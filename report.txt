@@ -1,0 +1,72 @@
+ClashFest Codebase Maintainer Review
+
+- Current session scope: Routine review of ClashFest (branch feat/init-clashfest) checking security, stability, architecture, and overall release readiness based on AGENTS.md priorities.
+- Files inspected: `AGENTS.md`, `ProxyHardener.kt`, `YamlHardener.kt`, `ServiceStore.kt`, `TunService.kt`, `ClashService.kt`, `LogcatService.kt`, `MainActivity.kt`, `ProfileWorker.kt`, `build.gradle.kts`, `app/build.gradle.kts`, `AndroidManifest.xml`, etc.
+- Main risks found: Potential race conditions in background services/job queues if not shut down gracefully. Default `Strict` mode handles core leak risks well, but `Compat` mode could still allow lateral movement if local SOCKS listener binds are abused by malicious apps matching the random auth string. `LogcatService` binding has minor crash potential if the service is stopped while the bound client is actively trying to stream logs.
+- Recommended next action: Review findings, prioritize P0/P1 fixes, and schedule a stabilization sprint before the next alpha release. Do not merge feature PRs until the VPN lifecycle regressions are fully patched.
+
+[Severity: P1]
+Area: vpn
+File(s): `service/src/main/java/com/github/kr328/clash/service/ProfileWorker.kt`
+Problem: The `stopWhenIdle()` job cancels and checks completion aggressively using `delay(150)`. While this saves battery, it can lead to `Service.stopSelf()` being called before `NotificationManager` properly dismisses the foreground notification or cleans up pending intents on older Android versions, or potentially racing with a newly arriving `Intent`.
+Why it matters: Flaky service lifecycle; could leave ghost notifications or crash the app with `ForegroundServiceDidNotStartInTimeException` if restarted instantly.
+Suggested fix: Increase delay to 500ms or implement a proper `LifecycleService` / `WorkManager` for profile updates.
+Risk/tradeoff: Using `WorkManager` requires a medium refactor. Extending delay is safe.
+How to verify: Spam "Update Profile" in UI and monitor logcat for service lifecycle exceptions.
+Minimal patch plan: Change `delay(150)` back to `delay(500)` in `stopWhenIdle()`.
+
+[Severity: P2]
+Area: performance
+File(s): `app/src/main/java/com/github/kr328/clash/MainActivity.kt`
+Problem: `syncSubscriptionMetadata()` has a hardcoded cooldown of 6 hours (`6L * 3600L`). If the user manually requests a profile update or the network was down during the previous attempt, they have to wait up to 6 hours to fetch updated headers/operator brandings.
+Why it matters: Bad UX for users trying to refresh announcements or operator web pages.
+Suggested fix: Add a forced refresh parameter to `syncSubscriptionMetadata()` that skips the throttle when triggered by explicit user action (e.g. pull-to-refresh).
+Risk/tradeoff: Minimal risk, just slightly more bandwidth on explicit refresh.
+How to verify: Change subscription metadata server-side, hit update, observe instant reflection in UI.
+Minimal patch plan: Add `force: Boolean = false` parameter to `syncSubscriptionMetadata()` and bypass `cooldown` if true.
+
+[Severity: P2]
+Area: security
+File(s): `service/src/main/java/com/github/kr328/clash/service/util/ProxyHardener.kt`
+Problem: In `ProxyHardeningMode.Compat`, listeners are open on `127.0.0.1` and protected by `RuntimeSocksAuth`. While `127.0.0.1` prevents LAN access, any app on the same Android device can still attempt to connect to `127.0.0.1:7891` (if they know or brute-force the random auth, or if `RuntimeSocksAuth` fails to enforce it properly).
+Why it matters: Malicious apps could bypass the Android VPN/per-app routing rules by directly talking to the local proxy port.
+Suggested fix: Add UID-based socket filtering even for the proxy ports, similarly to how `TunModule.queryUid` restricts TUN access.
+Risk/tradeoff: High complexity, requires modifying the core (Go) listener logic to check caller UID.
+How to verify: Write a test app that tries to connect to `127.0.0.1:7891` when `Compat` mode is on.
+Minimal patch plan: N/A for this sprint, keep `Strict` as default.
+
+[Severity: P3]
+Area: build
+File(s): `app/build.gradle.kts`
+Problem: `downloadGeoFiles` task uses hardcoded JSdelivr/Github URLs to fetch large binaries during build time.
+Why it matters: If a developer is offline, or GitHub/JSdelivr is blocked (e.g. in China), the gradle build `assembleAlphaDebug` fails entirely.
+Suggested fix: Make the download task opportunistic, or provide a flag to skip it.
+Risk/tradeoff: If skipped, the APK might not bundle the `.dat` files leading to runtime "geoip.dat not found" on first start until the app downloads them itself.
+How to verify: Disconnect internet, run `./gradlew assembleAlphaDebug`, ensure it falls back gracefully if files are missing.
+Minimal patch plan: Catch `GradleException` and print a warning instead of failing the build if `outputPath.isFile` is false.
+
+1. Top 5 urgent fixes.
+   - P1: Fix `ProfileWorker.kt` 150ms race condition to avoid lifecycle crashes.
+   - P1: Ensure `ClashService` and `TunService` handoff logic (`StatusProvider.awaitServiceShutdown()`) handles ANR-level slow cleanups.
+   - P2: Add force-refresh bypass to `syncSubscriptionMetadata()` for better UX.
+   - P2: Enforce UID checks for local SOCKS proxy in `Compat` mode (Core-level).
+   - P3: Make `downloadGeoFiles` task in gradle offline-friendly.
+2. Top 5 medium-risk technical debts.
+   - `LogcatService.kt` uses custom binder/observer pattern instead of Flow/LiveData.
+   - `AccessControlActivity` loads package list heavily on the IO dispatcher instead of standard Android `PackageManager` async helpers.
+   - Hardcoded UI string updates when profile updates fail (use string resources correctly).
+   - `ProxyHardeningMode` logic is split between `ProxyHardener` (runtime) and `YamlHardener` (disk).
+   - Deprecated Gradle features used in `build.gradle.kts`.
+3. Suggested roadmap:
+   - quick wins: Fix ProfileWorker delay, make gradle geo downloads offline-friendly.
+   - security hardening: Implement UID socket filtering for SOCKS proxy in Core for `Compat` mode.
+   - stability/performance: Refactor `LogcatService` to use modern Kotlin Coroutines (StateFlow).
+   - cleanup after release: Migrate build scripts to Gradle 8.x/9.x compatible syntax.
+4. What NOT to touch right now.
+   - Do NOT refactor the core `mihomo` bridge logic in `core/src/main/golang`.
+   - Do NOT touch `TunService` routing logic as it is very sensitive.
+   - Do NOT change the `ProxyHardeningMode.Strict` default.
+5. Questions for me before changing code.
+   - Should we migrate `ProfileWorker` to `WorkManager` in the next sprint, or keep the `Service` approach?
+   - Do you want to enforce `Strict` mode even on older Android versions (API < 29) despite the lack of UID filtering APIs?
+   - Should we host our own GeoIP mirrors for the build script instead of relying on JSdelivr?
