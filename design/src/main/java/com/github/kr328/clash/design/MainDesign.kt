@@ -687,6 +687,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
 
     suspend fun setClashRunning(running: Boolean) {
         withContext(Dispatchers.Main) {
+            val wasRunning = clashRunningState
             clashRunningState = running
             binding.clashRunning = running
             if (running) {
@@ -694,7 +695,22 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
                 binding.tunnelStarting = false
             }
             applyPowerVisuals()
+            if (running && !wasRunning) playConnectPop()
         }
+    }
+
+    /** WOW pilot: crisp overshoot "pop" on the power button the moment we connect. */
+    private fun playConnectPop() {
+        val card = binding.mainPowerCard
+        card.animate().cancel()
+        card.scaleX = 0.88f
+        card.scaleY = 0.88f
+        card.animate()
+            .scaleX(1f)
+            .scaleY(1f)
+            .setInterpolator(android.view.animation.OvershootInterpolator(2.4f))
+            .setDuration(440L)
+            .start()
     }
 
     suspend fun setTunnelStarting(starting: Boolean) {
@@ -1603,6 +1619,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
 
         val card = binding.mainPowerCard
         card.setOnClickListener {
+            it.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
             requests.trySend(Request.ToggleStatus)
         }
         card.setOnTouchListener { v, event ->

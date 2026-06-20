@@ -29,7 +29,7 @@
             android:layout_height="wrap_content"
             app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
             app:cardCornerRadius="22dp"
-            app:cardElevation="0dp"
+            app:cardElevation="6dp"
             app:rippleColor="?attr/colorControlHighlight"
             app:strokeColor="?attr/colorOutlineVariant"
             app:strokeWidth="1dp">
@@ -43,7 +43,8 @@
                 android:focusable="true"
                 android:minHeight="78dp"
                 android:onClick="@{clicked}"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:stateListAnimator="@animator/card_press_scale">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -132,7 +133,6 @@
                                 android:text="@string/not_selected"
                                 android:textAppearance="@style/TextAppearance.App.TitleSmall"
                                 android:textColor="?attr/colorOnSurface"
-                                android:textStyle="bold"
                                 tools:text="Germany 1" />
 
                             <TextView
@@ -148,6 +148,19 @@
                                 tools:visibility="visible" />
                         </LinearLayout>
 
+                        <TextView
+                            android:id="@+id/usage_summary"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="3dp"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textAppearance="@style/TextAppearance.App.BodySmall"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:visibility="gone"
+                            tools:text="1.2 GB / 100 GB"
+                            tools:visibility="visible" />
+
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -162,20 +175,6 @@
                                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                                 android:textColor="?attr/colorOnSurfaceVariant"
                                 tools:text="URL" />
-
-                            <TextView
-                                android:id="@+id/usage_summary"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="8dp"
-                                android:layout_weight="1"
-                                android:ellipsize="end"
-                                android:maxLines="1"
-                                android:textAppearance="@style/TextAppearance.App.BodySmall"
-                                android:textColor="?attr/colorOnSurfaceVariant"
-                                android:visibility="gone"
-                                tools:text="48 ms · Frankfurt"
-                                tools:visibility="visible" />
 
                             <TextView
                                 android:id="@+id/expiry_chip"

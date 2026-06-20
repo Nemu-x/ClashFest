@@ -543,6 +543,7 @@
     <string name="profile_ping_all_short">Пинг</string>
     <string name="profile_force_update">Обновить подписку по ссылке</string>
     <string name="profile_active_status">Активна</string>
+    <string name="profile_card_traffic">Трафик</string>
     <string name="profile_inactive_status">Готова</string>
     <string name="profile_use">Использовать</string>
     <string name="profile_selected_group">Выбранная группа</string>

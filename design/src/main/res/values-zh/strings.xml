@@ -935,6 +935,7 @@
     <string name="per_app_mode_allow">仅所选</string>
     <string name="per_app_mode_deny">所选除外</string>
     <string name="profile_active_status">活动</string>
+    <string name="profile_card_traffic">流量</string>
     <string name="profile_auto_refresh_failed_starting_saved">暂时无法刷新。将使用已保存的订阅启动。</string>
     <string name="profile_auto_refreshing">启动前正在检查订阅…</string>
     <string name="profile_inactive_status">就绪</string>

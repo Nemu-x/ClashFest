@@ -1641,7 +1641,9 @@ class ProfileAdapter(
                 }
             }
             mainHit.setOnClickListener {
-                if (!tryPickNode()) {
+                if (tryPickNode()) {
+                    it.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                } else {
                     onProxyYamlDetail(profile, groupName, p.name)
                 }
             }

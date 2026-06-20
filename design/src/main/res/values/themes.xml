@@ -117,6 +117,8 @@
 
     <style name="AppThemeLightBase" parent="Theme.Material3.Light.NoActionBar">
         <item name="android:windowBackground">@color/color_light_background</item>
+        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="fontFamily">@font/space_grotesk</item>
         <item name="android:ambientShadowAlpha">0.08</item>
         <item name="android:spotShadowAlpha">0.08</item>
 
@@ -221,6 +223,8 @@
 
     <style name="AppThemeDarkBase" parent="Theme.Material3.Dark.NoActionBar">
         <item name="android:windowBackground">@color/tech_bg</item>
+        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="fontFamily">@font/space_grotesk</item>
         <item name="android:ambientShadowAlpha">0.12</item>
         <item name="android:spotShadowAlpha">0.14</item>
 

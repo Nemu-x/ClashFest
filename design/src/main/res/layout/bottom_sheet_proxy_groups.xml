@@ -240,6 +240,9 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/proxy_sheet_sort_button"
                 style="@style/Widget.Material3.Button.TonalButton"
+                android:textColor="?attr/colorOnSurface"
+                app:backgroundTint="?attr/colorSurfaceContainerHigh"
+                app:iconTint="?attr/colorOnSurfaceVariant"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="4dp"
@@ -254,6 +257,9 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/proxy_sheet_filter_button"
                 style="@style/Widget.Material3.Button.TonalButton"
+                android:textColor="?attr/colorOnSurface"
+                app:backgroundTint="?attr/colorSurfaceContainerHigh"
+                app:iconTint="?attr/colorOnSurfaceVariant"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"

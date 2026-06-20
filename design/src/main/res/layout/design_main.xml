@@ -33,7 +33,7 @@
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="?attr/colorSurface"
+        android:background="@drawable/bg_home_ambient"
         android:clipChildren="true"
         android:clipToPadding="true"
         android:paddingStart="@{self.surface.insets.start}"
@@ -46,6 +46,11 @@
             android:clipChildren="false"
             android:clipToPadding="false"
             android:overScrollMode="never" />
+
+        <!-- WOW design pilot: subtle blueprint grid behind the home content. -->
+        <com.github.kr328.clash.design.view.GridBackgroundView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
 
         <androidx.core.widget.NestedScrollView
             android:id="@+id/main_home_page"
@@ -262,9 +267,12 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_m3_status_chip_neutral"
+                    android:fontFamily="@font/space_mono"
+                    android:letterSpacing="0.15"
                     android:paddingHorizontal="12dp"
                     android:paddingVertical="4dp"
                     android:text="@{clashRunning ? @string/main_status_connected : (tunnelStarting ? @string/main_status_connecting : @string/main_status_stopped)}"
+                    android:textAllCaps="true"
                     android:textAppearance="@style/TextAppearance.App.LabelMedium"
                     android:textColor="?attr/colorOnSurfaceVariant"
                     tools:text="Connected" />
@@ -299,12 +307,21 @@
                         android:alpha="0.0"
                         android:background="@drawable/bg_power_ring" />
 
+                    <!-- WOW pilot: crisp accent ring hugging the button -->
+                    <View
+                        android:layout_width="162dp"
+                        android:layout_height="162dp"
+                        android:layout_gravity="center"
+                        android:alpha="0.7"
+                        android:background="@drawable/bg_power_ring_crisp" />
+
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/main_power_card"
                         style="@style/Widget.Material3.Button.IconButton.Filled"
                         android:layout_width="148dp"
                         android:layout_height="148dp"
                         android:layout_gravity="center"
+                        android:stateListAnimator="@animator/card_press_scale"
                         android:contentDescription="@string/tap_to_start"
                         android:insetLeft="0dp"
                         android:insetTop="0dp"
@@ -337,7 +354,7 @@
                 android:layout_marginTop="18dp"
                 app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
                 app:cardCornerRadius="22dp"
-                app:cardElevation="0dp"
+                app:cardElevation="6dp"
                 app:strokeColor="?attr/colorOutlineVariant"
                 app:strokeWidth="1dp">
 
@@ -440,20 +457,24 @@
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
+                                android:fontFamily="@font/space_mono"
+                                android:letterSpacing="0.12"
                                 android:text="@string/mode"
-                                android:textAppearance="@style/TextAppearance.App.TitleSmall"
-                                android:textColor="?attr/colorOnSurface"
+                                android:textAllCaps="true"
+                                android:textColor="?attr/colorPrimary"
+                                android:textSize="10sp"
                                 android:textStyle="bold" />
 
                             <TextView
                                 android:id="@+id/main_mode_value"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
+                                android:layout_marginTop="1dp"
                                 android:ellipsize="end"
                                 android:maxLines="1"
                                 android:text="@{mode}"
-                                android:textAppearance="@style/TextAppearance.App.BodySmall"
-                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textAppearance="@style/TextAppearance.App.TitleSmall"
+                                android:textColor="?attr/colorOnSurface"
                                 tools:text="Rule mode" />
                         </LinearLayout>
 
@@ -508,9 +529,12 @@
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
+                                android:fontFamily="@font/space_mono"
+                                android:letterSpacing="0.12"
                                 android:text="@string/main_active_profile_title"
-                                android:textAppearance="@style/TextAppearance.App.TitleSmall"
-                                android:textColor="?attr/colorOnSurface"
+                                android:textAllCaps="true"
+                                android:textColor="?attr/colorPrimary"
+                                android:textSize="10sp"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -521,8 +545,8 @@
                                 android:ellipsize="end"
                                 android:maxLines="1"
                                 android:text="@{profileName}"
-                                android:textAppearance="@style/TextAppearance.App.BodySmall"
-                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textAppearance="@style/TextAppearance.App.TitleSmall"
+                                android:textColor="?attr/colorOnSurface"
                                 tools:text="Zhapon VPN" />
 
                             <LinearLayout
@@ -672,6 +696,7 @@
             android:id="@+id/main_profiles_page"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:background="@drawable/bg_home_ambient"
             android:orientation="vertical"
             android:paddingTop="@{self.surface.insets.top}"
             android:paddingBottom="@{self.surface.insets.bottom + context.resources.getDimensionPixelSize(com.github.kr328.clash.design.R.dimen.main_bottom_nav_reserved_space)}"
@@ -731,10 +756,13 @@
                         android:textAllCaps="false"
                         android:maxLines="1"
                         android:ellipsize="end"
+                        android:textColor="?attr/colorOnPrimary"
+                        app:backgroundTint="?attr/colorPrimary"
                         app:icon="@drawable/ic_baseline_add"
                         app:iconGravity="textStart"
                         app:iconPadding="6dp"
-                        app:iconSize="18dp" />
+                        app:iconSize="18dp"
+                        app:iconTint="?attr/colorOnPrimary" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/profiles_tab_update"
@@ -748,11 +776,14 @@
                         android:textAllCaps="false"
                         android:maxLines="1"
                         android:ellipsize="end"
+                        android:textColor="?attr/colorOnSurface"
                         android:visibility="gone"
                         app:icon="@drawable/ic_baseline_sync"
                         app:iconGravity="textStart"
                         app:iconPadding="6dp"
-                        app:iconSize="18dp" />
+                        app:iconSize="18dp"
+                        app:iconTint="?attr/colorOnSurfaceVariant"
+                        app:strokeColor="?attr/colorOutlineVariant" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -848,8 +879,9 @@
                     android:focusable="true"
                     android:foreground="?attr/selectableItemBackground"
                     android:onClick="@{() -> self.request(Request.OpenRouting)}"
-                    app:cardBackgroundColor="?attr/colorPrimaryContainer"
-                    app:cardCornerRadius="24dp"
+                    android:stateListAnimator="@animator/card_press_scale"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainer"
+                    app:cardCornerRadius="22dp"
                     app:cardElevation="0dp">
 
                     <LinearLayout
@@ -864,7 +896,7 @@
                             android:layout_height="34dp"
                             android:contentDescription="@string/rules_hub_nav_title"
                             android:src="@drawable/ic_baseline_route"
-                            app:tint="?attr/colorOnPrimaryContainer" />
+                            app:tint="?attr/colorPrimary" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -878,7 +910,7 @@
                                 android:layout_height="wrap_content"
                                 android:text="@string/rules_hub_nav_title"
                                 android:textAppearance="@style/TextAppearance.App.TitleMedium"
-                                android:textColor="?attr/colorOnPrimaryContainer"
+                                android:textColor="?attr/colorOnSurface"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -887,7 +919,7 @@
                                 android:layout_marginTop="4dp"
                                 android:text="@string/rules_hub_nav_summary"
                                 android:textAppearance="@style/TextAppearance.App.BodySmall"
-                                android:textColor="?attr/colorOnPrimaryContainer" />
+                                android:textColor="?attr/colorOnSurfaceVariant" />
                         </LinearLayout>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- WOW pilot: subtle ambient "top light" on the home canvas (depth, not flat). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:centerColor="?attr/colorSurface"
+        android:centerY="0.42"
+        android:endColor="?attr/colorSurface"
+        android:startColor="?attr/colorSurfaceContainerHigh"
+        android:type="linear" />
+</shape>
