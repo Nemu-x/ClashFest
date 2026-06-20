@@ -1212,8 +1212,9 @@
                     android:focusable="true"
                     android:foreground="?attr/selectableItemBackground"
                     android:onClick="@{() -> self.request(Request.OpenSettings)}"
-                    app:cardBackgroundColor="?attr/colorPrimaryContainer"
-                    app:cardCornerRadius="24dp"
+                    android:stateListAnimator="@animator/card_press_scale"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainer"
+                    app:cardCornerRadius="22dp"
                     app:cardElevation="0dp">
 
                     <LinearLayout
@@ -1228,7 +1229,7 @@
                             android:layout_height="34dp"
                             android:contentDescription="@string/main_advanced_settings"
                             android:src="@drawable/ic_baseline_settings"
-                            app:tint="?attr/colorOnPrimaryContainer" />
+                            app:tint="?attr/colorPrimary" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -1242,7 +1243,7 @@
                                 android:layout_height="wrap_content"
                                 android:text="@string/main_advanced_settings"
                                 android:textAppearance="@style/TextAppearance.App.TitleMedium"
-                                android:textColor="?attr/colorOnPrimaryContainer"
+                                android:textColor="?attr/colorOnSurface"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -1251,7 +1252,7 @@
                                 android:layout_marginTop="4dp"
                                 android:text="@string/main_advanced_settings_summary"
                                 android:textAppearance="@style/TextAppearance.App.BodySmall"
-                                android:textColor="?attr/colorOnPrimaryContainer" />
+                                android:textColor="?attr/colorOnSurfaceVariant" />
                         </LinearLayout>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
