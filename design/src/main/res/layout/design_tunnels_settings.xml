@@ -47,7 +47,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
-                app:cardBackgroundColor="?attr/colorPrimaryContainer"
+                app:cardBackgroundColor="?attr/colorSurfaceContainer"
                 app:cardCornerRadius="20dp"
                 app:cardElevation="0dp">
 
@@ -69,7 +69,7 @@
                             android:layout_height="wrap_content"
                             android:text="@string/tunnels_master_title"
                             android:textAppearance="@style/TextAppearance.App.TitleSmall"
-                            android:textColor="?attr/colorOnPrimaryContainer"
+                            android:textColor="?attr/colorOnSurface"
                             android:textStyle="bold" />
 
                         <TextView
@@ -78,7 +78,7 @@
                             android:layout_marginTop="2dp"
                             android:text="@string/tunnels_master_summary"
                             android:textAppearance="@style/TextAppearance.App.BodySmall"
-                            android:textColor="?attr/colorOnPrimaryContainer" />
+                            android:textColor="?attr/colorOnSurface" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch

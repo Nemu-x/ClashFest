@@ -24,7 +24,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
-        app:cardBackgroundColor="?attr/colorPrimaryContainer"
+        app:cardBackgroundColor="?attr/colorSurfaceContainer"
         app:cardCornerRadius="14dp"
         app:cardElevation="0dp">
 
@@ -35,7 +35,7 @@
             android:paddingHorizontal="14dp"
             android:paddingVertical="10dp"
             android:textAppearance="@style/TextAppearance.App.LabelLarge"
-            android:textColor="?attr/colorOnPrimaryContainer"
+            android:textColor="?attr/colorOnSurface"
             android:textStyle="bold"
             tools:text="3 yours · 48 subscription" />
     </com.google.android.material.card.MaterialCardView>

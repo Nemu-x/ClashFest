@@ -53,7 +53,7 @@
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?attr/selectableItemBackground"
-                    app:cardBackgroundColor="?attr/colorPrimaryContainer"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainer"
                     app:cardCornerRadius="24dp"
                     app:cardElevation="0dp">
 
@@ -69,7 +69,7 @@
                             android:layout_height="32dp"
                             android:contentDescription="@string/rules_hub_nav_title"
                             android:src="@drawable/ic_baseline_route"
-                            app:tint="?attr/colorOnPrimaryContainer" />
+                            app:tint="?attr/colorPrimary" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -83,7 +83,7 @@
                                 android:layout_height="wrap_content"
                                 android:text="@string/rules_hub_nav_title"
                                 android:textAppearance="@style/TextAppearance.App.TitleMedium"
-                                android:textColor="?attr/colorOnPrimaryContainer"
+                                android:textColor="?attr/colorOnSurface"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -92,7 +92,7 @@
                                 android:layout_marginTop="4dp"
                                 android:text="@string/rules_hub_nav_summary"
                                 android:textAppearance="@style/TextAppearance.App.BodySmall"
-                                android:textColor="?attr/colorOnPrimaryContainer" />
+                                android:textColor="?attr/colorOnSurface" />
                         </LinearLayout>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
