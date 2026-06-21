@@ -8,5 +8,8 @@
     android:layout_marginHorizontal="16dp"
     android:layout_marginBottom="8dp"
     android:textAllCaps="false"
+    android:textColor="?attr/colorOnSurface"
+    app:backgroundTint="?attr/colorSurfaceContainerHigh"
     app:icon="@drawable/ic_baseline_add"
-    app:iconGravity="textStart" />
+    app:iconGravity="textStart"
+    app:iconTint="?attr/colorOnSurfaceVariant" />
