@@ -40,7 +40,8 @@ All ClashFest-specific headers use the `X-Brand-*` prefix.
 Some headers are kept under their conventional V2Ray / Clash-compatible names
 (`profile-title`, `Subscription-Userinfo`, `announce`, `share-links`,
 `x-hwid-*`) because they're already widely supported by panels. We extend
-those rather than rename them.
+those rather than rename them. Operator **policy** headers that aren't cosmetic
+branding (`share-links`, `X-Network-Stack`) apply without `X-Branding-Enabled`.
 
 Headers are matched **case-insensitively**.
 
