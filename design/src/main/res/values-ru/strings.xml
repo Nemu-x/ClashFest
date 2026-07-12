@@ -1125,6 +1125,7 @@
     <string name="tun_stack_mode">Режим стека</string>
     <string name="tun_stack_auto">Авто</string>
     <string name="tun_stack_auto_fmt">Авто: %1$s</string>
+    <string name="tun_stack_operator_fmt">Задано оператором: %1$s</string>
     <string name="tun_stack_system">Системный стек</string>
     <string name="usage_unlimited_symbol">∞</string>
     <string name="whitelist">Белый список</string>

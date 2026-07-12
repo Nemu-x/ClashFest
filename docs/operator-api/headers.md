@@ -336,6 +336,22 @@ wipes cosmetic branding).
 | Applied to | Hides "Copy node link" / "Share" actions in the picker AND locks subscription URL editing for **that subscription only** |
 | Notes | Stored per-profile (`subscriptionShareLinksLockedFor(uuid)`). Different subscriptions can have different share policies — one operator's lock does not affect another's subscription on the same device. |
 
+### `X-Network-Stack`
+
+| | |
+|---|---|
+| Type | enum: `system` \| `gvisor` \| `mixed` \| `auto` |
+| Status | **v1** |
+| Needs `X-Branding-Enabled`? | **No** — operator policy, applies unbranded. |
+| Applied to | The TUN network stack handed to the VpnService. `system`/`gvisor`/`mixed` **lock** the client to that stack for this subscription, overriding the user's manual Stack Mode setting. `auto` = operator does not lock (defer to the user setting / the `system` default). |
+| Default | Header absent → client default (`system`). |
+| Notes | Stored per-profile (`subscriptionNetworkStackFor(uuid)`) like the share-links policy — different subscriptions can force different stacks on the same device. Precedence: **operator header > user's manual setting > Auto (follow the subscription's `tun.stack`) > `system` default** (see `TunStackResolver`). The app default is `system`; the user can pick `auto` to follow the subscription's declared `tun.stack`, and this header overrides both. `system` is recommended — the kernel stack is lower-latency on teardown and cheaper on battery than gVisor's userspace netstack; choose `gvisor`/`mixed` only when a device/network needs it. Accepted spellings (case-insensitive): `X-Network-Stack`, `Network-Stack`, `X-NetworkStack`, `X-NetworkStack-enabled`. |
+
+**Example (lock all users of this subscription to the kernel stack):**
+```
+X-Network-Stack: system
+```
+
 ### `x-hwid-active` / `x-hwid-not-supported` / `x-hwid-max-devices-reached` / `x-hwid-limit` (existing)
 
 | | |

@@ -659,6 +659,7 @@
     <string name="tun_stack_mode">栈模式</string>
     <string name="tun_stack_auto">自动</string>
     <string name="tun_stack_auto_fmt">自动：%1$s</string>
+    <string name="tun_stack_operator_fmt">由运营商设置：%1$s</string>
     <string name="tun_stack_system">系统栈</string>
     <string name="usage_unlimited_symbol">∞</string>
 

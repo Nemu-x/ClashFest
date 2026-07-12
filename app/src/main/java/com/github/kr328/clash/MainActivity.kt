@@ -2088,6 +2088,11 @@ class MainActivity : BaseActivity<MainDesign>() {
         meta.shareLinksDisable?.let {
             ServiceStore(this).setSubscriptionShareLinksLockedFor(active.uuid, it)
         }
+        // Operator TUN-stack policy (X-Network-Stack). Store as-is; `auto` is the operator's explicit
+        // "unlock". Applied at TUN open by TunStackResolver, independent of branding.
+        meta.networkStack?.let {
+            ServiceStore(this).setSubscriptionNetworkStackFor(active.uuid, it)
+        }
         uiStore.subscriptionHwidActive = meta.hwidActive?.toString().orEmpty()
         uiStore.subscriptionHwidNotSupported = meta.hwidNotSupported?.toString().orEmpty()
         uiStore.subscriptionHwidMaxDevicesReached = meta.hwidMaxDevicesReached?.toString().orEmpty()

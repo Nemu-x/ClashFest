@@ -244,9 +244,13 @@ class TunService : VpnService(), CoroutineScope by CoroutineScope(Dispatchers.De
             TunModule.TunDevice(
                 fd = establish()?.detachFd()
                     ?: throw NullPointerException("Establish VPN rejected by system"),
-                // Honour the subscription's declared `tun.stack` (mixed/system/gvisor); the app
-                // setting is only a fallback when the subscription doesn't specify one.
-                stack = TunStackResolver.resolve(readActiveProfileConfigYaml(), store.tunStackMode),
+                // Operator `X-Network-Stack` header locks the stack; else the user's app setting; else
+                // (Auto) the subscription's tun.stack; else the `system` default. See TunStackResolver.
+                stack = TunStackResolver.resolve(
+                    store.tunStackMode,
+                    store.activeProfile?.let { store.subscriptionNetworkStackFor(it) },
+                    readActiveProfileConfigYaml(),
+                ),
                 gateway = "$TUN_GATEWAY/$TUN_SUBNET_PREFIX" + if (store.allowIpv6) ",$TUN_GATEWAY6/$TUN_SUBNET_PREFIX6" else "",
                 portal = TUN_PORTAL + if (store.allowIpv6) ",$TUN_PORTAL6" else "",
                 dns = buildTunDnsEndpoints(store.dnsHijacking, store.allowIpv6),
