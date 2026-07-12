@@ -11,13 +11,13 @@
     <string name="tun_stack_mixed">Mixed</string>
     <string name="tun_stack_mode">Chế độ xếp chồng dữ liệu</string>
     <string name="tun_stack_system">Hệ thống</string>
-    <string name="application_name_alpha">Clash Meta</string>
-    <string name="application_name_meta">Clash Meta</string>
+    <string name="application_name_alpha">ClashFest</string>
+    <string name="application_name_meta">ClashFest</string>
     <string name="clash_meta_core">Clash Meta Core</string>
     <string name="clash_meta_for_android">Clash Meta</string>
     <string name="clash_meta_wiki">Clash Meta Wiki</string>
-    <string name="launch_name_alpha">Clash Meta</string>
-    <string name="launch_name_meta">Clash Meta</string>
+    <string name="launch_name_alpha">ClashFest</string>
+    <string name="launch_name_meta">ClashFest</string>
     <string name="_new">Mới</string>
     <string name="about">Thông tin</string>
     <string name="accept_http_content">Chỉ chấp nhận http(s)</string>
@@ -27,7 +27,8 @@
     <string name="active_unsaved_tips">Hồ sơ cần được lưu trước khi kích hoạt</string>
     <string name="allow_all_apps">Cho phép tất cả các ứng dụng</string>
     <string name="allow_bypass">Cho phép bỏ qua</string>
-    <string name="allow_bypass_summary">Cho phép tất cả các ứng dụng bỏ qua kết nối VPN này</string>
+    <string name="allow_bypass_dev_summary">Chế độ nâng cao: cho phép ứng dụng bỏ qua VPN. Có thể làm sai kết quả kiểm tra rò rỉ.</string>
+    <string name="advanced_vpn_experiments">Thử nghiệm VPN</string>
     <string name="allow_clash_auto_restart">Cho phép Clash tự khởi động lại</string>
     <string name="allow_lan">Cho phép mạng LAN</string>
     <string name="allow_selected_apps">Cho phép các ứng dụng đã chọn</string>
@@ -45,8 +46,6 @@
     <string name="auto_update_minutes">Tự động cập nhật (Phút)</string>
     <string name="behavior">Điều hướng</string>
     <string name="bind_address">Địa chỉ ràng buộc</string>
-    <string name="block_loopback">Chặn lặp</string>
-    <string name="block_loopback_summary">Chặn kết nối lặp lại</string>
     <string name="browse_configuration_providers">Duyệt qua tệp cấu hình và nhà cung cấp</string>
     <string name="browse_files">Duyệt qua tệp</string>
     <string name="bypass_private_network">Bỏ qua mạng riêng</string>
@@ -87,7 +86,7 @@
     <string name="exit_without_save">Thoát mà không lưu</string>
     <string name="exit_without_save_warning">Tất cả thay đổi sẽ *MẤT*</string>
     <string name="export">Xuất</string>
-    <string name="export_to_clipboard">Nhập từ khay nhớ tạm</string>
+    <string name="export_to_clipboard">Xuất vào khay nhớ tạm</string>
     <string name="external">Bên ngoài</string>
     <string name="fakeip">Fake-IP thành ánh xạ miền</string>
     <string name="fakeip_filter">Bộ lọc Fake-IP</string>
@@ -107,7 +106,6 @@
     <string name="format_hours_ago">%d giờ trước</string>
     <string name="format_minutes">%d phút</string>
     <string name="format_minutes_ago">%d phút trước</string>
-    <string name="format_months_ago">%d tháng trước</string>
     <string name="format_profile_activated">%s đang sử dụng</string>
     <string name="format_provider_type">%1$s(%2$s)</string>
     <string name="format_traffic_forwarded">%s được sử dụng</string>
@@ -115,7 +113,6 @@
     <string name="format_update_complete">Cập nhật %s thành công</string>
     <string name="format_update_failure">Cập nhật %1$s: %2$s</string>
     <string name="format_update_provider_failure">Cập nhật %1$s: %2$s</string>
-    <string name="format_years_ago">%d năm trước</string>
     <string name="general">Chung</string>
     <string name="geoip_fallback">Dự phòng GeoIP</string>
     <string name="geoip_fallback_code">Mã dự phòng GeoIP</string>
@@ -179,6 +176,7 @@
     <string name="provider_files">Tệp nhà cung cấp</string>
     <string name="providers">Nhà cung cấp</string>
     <string name="proxy">Proxy</string>
+    <string name="home_proxy">Proxy</string>
     <string name="proxy_empty_tips">Không có nhóm nào được hiển thị</string>
     <string name="recently">Vừa xong</string>
     <string name="redirect_port">Cổng Redirect</string>
@@ -201,6 +199,7 @@
     <string name="select_none">Không chọn</string>
     <string name="service">Dịch vụ</string>
     <string name="settings">Cài đặt</string>
+    <string name="advanced_settings">Nâng cao</string>
     <string name="should_not_be_blank">Không được để trống</string>
     <string name="show_traffic">Hiển thị lưu lượng truy cập</string>
     <string name="show_traffic_summary">Tự động làm mới lưu lượng truy cập trong thông báo</string>
@@ -237,6 +236,34 @@
     <string name="vpn_service_options">Tuỳ chọn VpnService</string>
     <string name="warning">Cảnh báo</string>
     <string name="import_from_qr">Nhập từ Mã QR</string>
+    <string name="profile_quick_edit_title">Sửa nhanh đăng ký</string>
+    <string name="profile_quick_open_advanced">Mở trình chỉnh sửa đầy đủ</string>
+    <string name="profile_quick_saved">Đã cập nhật đăng ký</string>
     <string name="import_from_qr_no_permission">Quyền truy cập camera bị hạn chế. Vui lòng bật trong Cài đặt.</string>
     <string name="import_from_qr_exception">Đã xảy ra ngoại lệ hệ thống không xử lý được.</string>
+
+    <string name="proxy_chain_menu">Chuỗi proxy…</string>
+    <string name="proxy_chain_title">Chuỗi proxy</string>
+    <string name="proxy_chain_intro">Chọn proxy đi (outbound), rồi proxy upstream làm dialer. Ghi dialer-proxy vào cấu hình hoặc YAML provider. Làm mới đăng ký có thể ghi đè file provider — áp dụng lại nếu cần.</string>
+    <string name="proxy_chain_outbound_label">Outbound (nhận dialer-proxy)</string>
+    <string name="proxy_chain_dialer_label">Dialer (upstream)</string>
+    <string name="proxy_chain_apply">Áp dụng chuỗi</string>
+    <string name="proxy_chain_clear">Xóa dialer trên outbound</string>
+    <string name="proxy_chain_no_groups">Hãy bật VPN và tải hồ sơ trước.</string>
+    <string name="proxy_chain_pick_outbound">Chọn proxy outbound.</string>
+    <string name="proxy_chain_pick_dialer">Chọn proxy dialer.</string>
+    <string name="proxy_chain_same_proxy">Outbound và dialer phải khác nhau.</string>
+    <string name="proxy_chain_applied">Đã lưu chuỗi. Cấu hình sẽ tải lại.</string>
+    <string name="proxy_chain_cleared">Đã xóa dialer khỏi outbound.</string>
+    <string name="proxy_chain_not_found">Không tìm thấy proxy trong config hoặc file provider.</string>
+    <string name="age_secret_key">Age secret key</string>
+    <string name="age_secret_key_helper">For age-encrypted subscriptions. Leave empty if the panel serves plain YAML.</string>
+    <string name="age_secret_key_error">Must start with AGE-SECRET-KEY-</string>
+    <string name="age_key_category">Age keys</string>
+    <string name="age_key_generate_summary">Tap to generate</string>
+    <string name="age_public_key">Age public key</string>
+    <string name="age_public_key_error">Invalid age public key</string>
+    <string name="age_key_generate">Generate</string>
+    <string name="age_key_to_public">From secret</string>
+    <string name="age_key_copy">Copy</string>
 </resources>

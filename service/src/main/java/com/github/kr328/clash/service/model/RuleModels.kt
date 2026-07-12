@@ -32,6 +32,14 @@ data class RuleProviderItem(
     val url: String,
     val interval: Int = 86400,
     val path: String = "",
+    /**
+     * mihomo's optional `format:` field. Empty means "not set" — mihomo will
+     * treat it as `yaml`. For `.mrs` providers (binary rule-set) the value
+     * MUST be `"mrs"`, otherwise mihomo will try to parse the binary file as
+     * YAML and fail with `file must have a 'payload' field`. Round-tripped
+     * through state file → mergeStateIntoConfig so user edits don't strip it.
+     */
+    val format: String = "",
     val enabled: Boolean = true,
     val source: RuleSource = RuleSource.MANUAL,
 )
@@ -40,4 +48,14 @@ data class RuleProviderItem(
 data class RuleState(
     val providers: List<RuleProviderItem> = emptyList(),
     val rules: List<RuleItem> = emptyList(),
+)
+
+/**
+ * Everything the rule editor needs to open, from a SINGLE snapshot parse:
+ * the rule state plus the policy options (proxy + group names) for the picker.
+ */
+@Serializable
+data class RuleEditorBundle(
+    val state: RuleState = RuleState(),
+    val policies: List<String> = emptyList(),
 )

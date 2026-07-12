@@ -1,21 +1,38 @@
 package com.github.kr328.clash.design.adapter
 
-import android.animation.ObjectAnimator
+import android.content.Context
+import android.content.res.ColorStateList
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
 import android.widget.TextView
+import androidx.core.content.ContextCompat
+import androidx.core.widget.addTextChangedListener
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.DividerItemDecoration
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.github.kr328.clash.core.model.Proxy
 import com.github.kr328.clash.core.model.ProxyGroup
 import com.github.kr328.clash.core.model.TunnelState
 import com.github.kr328.clash.design.R
+import com.github.kr328.clash.design.util.FlagDrawableLoader
+import com.github.kr328.clash.design.util.FlagParser
+import com.github.kr328.clash.design.util.ParsedFlag
 import com.github.kr328.clash.design.util.toBytesString
 import com.github.kr328.clash.design.databinding.AdapterProfileBinding
+import com.github.kr328.clash.design.databinding.BottomSheetProxyGroupsBinding
+import com.github.kr328.clash.design.dialog.AppBottomSheetDialog
 import com.github.kr328.clash.design.model.ProfilePageState
 import com.github.kr328.clash.design.util.layoutInflater
+import com.github.kr328.clash.common.branding.BrandManifest
 import com.github.kr328.clash.service.model.Profile
+import com.github.kr328.clash.service.model.ProxyGroupPreviewRow
+import com.github.kr328.clash.service.model.ProxyTransportInfo
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.color.MaterialColors
 import java.util.UUID
 
 class ProfileAdapter(
@@ -27,11 +44,12 @@ class ProfileAdapter(
     private val onForceUpdate: (Profile) -> Unit = {},
     private val onProxyYamlDetail: (profile: Profile, groupName: String, proxyName: String) -> Unit =
         { _, _, _ -> },
+    private val onVisibleGroupChanged: (Profile, String) -> Unit = { _, _ -> },
+    private val expandOnProfileClick: Boolean = false,
+    private val showServerChooserInCard: Boolean = true,
+    private val showActivateButton: Boolean = true,
 ) : RecyclerView.Adapter<ProfileAdapter.Holder>() {
-    class Holder(val binding: AdapterProfileBinding) : RecyclerView.ViewHolder(binding.root) {
-        var ignoreSpinner: Boolean = false
-        var activePulse: ObjectAnimator? = null
-    }
+    class Holder(val binding: AdapterProfileBinding) : RecyclerView.ViewHolder(binding.root)
 
     var profiles: List<Profile> = emptyList()
     val states = ProfilePageState()
@@ -44,26 +62,154 @@ class ProfileAdapter(
     private var lastGroupHint: String? = null
     private var expandedUuids: Set<UUID> = emptySet()
     /** Offline proxy groups per profile (expanded cards that are not using live engine data). */
-    private var offlinePreviewByProfile: Map<UUID, Map<String, List<String>>> = emptyMap()
+    private var offlinePreviewByProfile: Map<UUID, Map<String, ProxyGroupPreviewRow>> = emptyMap()
     private var offlineSelectionsByProfile: Map<UUID, Map<String, String>> = emptyMap()
+    private var transportInfoByProfile: Map<UUID, Map<String, ProxyTransportInfo>> = emptyMap()
+    private val cachedOfflinePreviewByProfile = mutableMapOf<UUID, Map<String, ProxyGroupPreviewRow>>()
+    private val cachedOfflineSelectionsByProfile = mutableMapOf<UUID, Map<String, String>>()
     private val selectedGroupIndex = mutableMapOf<UUID, Int>()
+    private val lastReportedVisibleGroup = mutableMapOf<UUID, String>()
+    private val pendingProxySelections = mutableMapOf<String, String>()
     /** Per-node ms when core is off: key `uuid|proxyName`. */
     private val standalonePingDelays: MutableMap<String, Int> = mutableMapOf()
 
+    // A live URL-test pushes one delay per proxy. With many nodes (e.g. 200) doing a full
+    // active-card rebind per push froze the UI (the expanded card re-renders every node row each
+    // time). We patch the data immediately but coalesce the rebind into one notify per window.
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var activeCardNotifyScheduled = false
+    private val activeCardNotifyRunnable = Runnable {
+        activeCardNotifyScheduled = false
+        val uuid = activeProfileUuid ?: return@Runnable
+        val i = profiles.indexOfFirst { it.uuid == uuid }
+        if (i >= 0) notifyItemChanged(i)
+    }
+
+    private fun scheduleActiveCardNotify() {
+        if (activeCardNotifyScheduled) return
+        activeCardNotifyScheduled = true
+        mainHandler.postDelayed(activeCardNotifyRunnable, ACTIVE_CARD_NOTIFY_DEBOUNCE_MS)
+    }
+    /** Last time ping-all was triggered per profile (System.currentTimeMillis()). */
+    private val lastPingAllAt: MutableMap<UUID, Long> = mutableMapOf()
+
+    /** Operator-supplied brand manifest, used by v2+ surfaces (Renew tap, max-devices chip). */
+    private var brandManifest: BrandManifest = BrandManifest.EMPTY
+    private var onOpenBrandUrl: ((String) -> Unit)? = null
+
+    /** Operator-pushed announcement, rendered inline on the active profile card. */
+    private var announcementText: String? = null
+    private var announcementUrl: String? = null
+    private var announcementSupportUrl: String? = null
+    private var announcementOnOpenUrl: ((String) -> Unit)? = null
+    private var announcementOnSupport: (() -> Unit)? = null
+    private val profileEmojiPool = listOf(
+        "🐱", "🐶", "🦊", "🐼", "🐻", "🐨", "🐯", "🦁",
+        "🐸", "🐵", "🐙", "🦄", "🐧", "🐺", "🐹", "🐰",
+    )
+
+    private enum class ProxyPickerSort {
+        Config,
+        Delay,
+        Name,
+    }
+
+    private sealed class ProxyPickerFilter {
+        object All : ProxyPickerFilter()
+        object CurrentGroup : ProxyPickerFilter()
+        object Selected : ProxyPickerFilter()
+        object Available : ProxyPickerFilter()
+        data class Provider(val name: String) : ProxyPickerFilter()
+    }
+
+    private data class ProxyPickerRow(
+        val groupName: String,
+        val groupIndex: Int,
+        val proxy: Proxy,
+        val configIndex: Int,
+        val delayMs: Int,
+        val selected: Boolean,
+        val provider: String?,
+    ) {
+        val available: Boolean
+            get() = delayMs >= 0
+    }
+
+    /**
+     * Push the latest operator brand into the adapter so v2 surfaces
+     * (critical-expiry chip Renew tap, max-devices chip, etc.) can react.
+     */
+    fun setBrandManifest(manifest: BrandManifest, onOpenBrandUrl: (String) -> Unit) {
+        val changed = manifest != brandManifest
+        brandManifest = manifest
+        this.onOpenBrandUrl = onOpenBrandUrl
+        if (changed) notifyDataSetChanged()
+    }
+
+    fun setActiveAnnouncement(
+        text: String?,
+        url: String?,
+        supportUrl: String?,
+        onOpenUrl: ((String) -> Unit)?,
+        onSupport: (() -> Unit)?,
+    ) {
+        val raw = text?.takeIf { it.isNotBlank() }
+        val decoded = raw?.let {
+            com.github.kr328.clash.common.util.MaybeBase64.decode(it).takeIf { d -> d.isNotBlank() }
+        }
+        val changed =
+            decoded != announcementText ||
+                url != announcementUrl ||
+                supportUrl != announcementSupportUrl
+        announcementText = decoded
+        announcementUrl = url?.takeIf { it.isNotBlank() }
+        announcementSupportUrl = supportUrl?.takeIf { it.isNotBlank() }
+        announcementOnOpenUrl = onOpenUrl
+        announcementOnSupport = onSupport
+        if (changed) {
+            val active = activeProfileUuid ?: return
+            val i = profiles.indexOfFirst { it.uuid == active }
+            if (i >= 0) notifyItemChanged(i)
+        }
+    }
+
     fun updateElapsed() {
+        // Full rebind is acceptable here: this is invoked from the profile
+        // ticker (TimeUnit.MINUTES.toMillis(2)) — every two minutes, not on a
+        // scroll-sensitive cadence. Moving it to a payload-based partial bind
+        // would require splitting onBindViewHolder into time-dependent / time-
+        // independent halves, which is not worth the maintenance cost for a
+        // 0.5/min event.
         notifyDataSetChanged()
+    }
+
+    fun moveProfile(from: Int, to: Int): Boolean {
+        if (from !in profiles.indices || to !in profiles.indices || from == to) return false
+        profiles = profiles.toMutableList().apply {
+            add(to, removeAt(from))
+        }
+        notifyItemMoved(from, to)
+        return true
     }
 
     fun setPingingUuid(uuid: UUID?) {
-        if (states.pingingUuid == uuid) return
+        val prev = states.pingingUuid
+        if (prev == uuid) return
         states.pingingUuid = uuid
-        notifyDataSetChanged()
+        // Targeted notify instead of full-list rebind: ping spinners only affect at most
+        // two cards (the one that was pinging and the one that just started).
+        prev?.let { id ->
+            val i = profiles.indexOfFirst { it.uuid == id }
+            if (i >= 0) notifyItemChanged(i)
+        }
+        uuid?.let { id ->
+            val i = profiles.indexOfFirst { it.uuid == id }
+            if (i >= 0) notifyItemChanged(i)
+        }
     }
 
     override fun onViewRecycled(holder: Holder) {
-        holder.activePulse?.cancel()
-        holder.activePulse = null
-        holder.binding.activeStrip.alpha = 1f
+        holder.binding.activeStatusChip.alpha = 1f
         holder.binding.pingProgress.visibility = View.GONE
         super.onViewRecycled(holder)
     }
@@ -73,32 +219,262 @@ class ProfileAdapter(
         running: Boolean,
         mode: TunnelState.Mode?,
         lastGroupHint: String?,
-        offlinePreviewByProfile: Map<UUID, Map<String, List<String>>> = emptyMap(),
+        offlinePreviewByProfile: Map<UUID, Map<String, ProxyGroupPreviewRow>> = emptyMap(),
         activeProfileUuid: UUID? = null,
         offlineSelectionsByProfile: Map<UUID, Map<String, String>> = emptyMap(),
+        transportInfoByProfile: Map<UUID, Map<String, ProxyTransportInfo>> = emptyMap(),
     ) {
         if (names == proxyGroupNames && running == clashRunning && mode == tunnelMode &&
             lastGroupHint == this.lastGroupHint &&
             offlinePreviewByProfile == this.offlinePreviewByProfile &&
             activeProfileUuid == this.activeProfileUuid &&
-            offlineSelectionsByProfile == this.offlineSelectionsByProfile
+            offlineSelectionsByProfile == this.offlineSelectionsByProfile &&
+            transportInfoByProfile == this.transportInfoByProfile
         ) {
             return
         }
-        proxyGroupNames = names
-        this.offlinePreviewByProfile = offlinePreviewByProfile
-        this.offlineSelectionsByProfile = offlineSelectionsByProfile
+        // Capture what was here so we can compute which profile cards actually
+        // need a rebind. Doing a full notifyDataSetChanged from this hot path
+        // (interactive dashboard ticker fires it every ~2s) was the main scroll
+        // jank source: every visible card got rebound from scratch even when
+        // only one profile's selection map changed.
+        val previousActiveUuid = this.activeProfileUuid
+        val previousMode = this.tunnelMode
+        val previousLastGroupHint = this.lastGroupHint
+        val previousOfflinePreview = this.offlinePreviewByProfile
+        val previousOfflineSelections = this.offlineSelectionsByProfile
+        val previousTransportInfo = this.transportInfoByProfile
+
+        this.transportInfoByProfile = transportInfoByProfile
+        // Only reset runtime proxies when identity actually changes. The core may return the
+        // same selector list in a different order after patchSelector; treating that like a
+        // full reset cleared pending selections and made the home card look like the tap lost.
+        val groupSetChanged = names.toSet() != proxyGroupNames.toSet()
+        val identityChanged =
+            activeProfileUuid != this.activeProfileUuid || groupSetChanged
+        val runningChanged = running != clashRunning
+        val shouldResetRuntimeProxyState = runningChanged || identityChanged
+        if (shouldResetRuntimeProxyState) {
+            lastReportedVisibleGroup.clear()
+            proxyDetails = emptyMap()
+            // Keep pending across VPN off→on: engine `now` is wrong until applyPostLoad
+            // finishes; pending matches the user's choice and avoids a first-frame flash.
+            if (identityChanged) {
+                pendingProxySelections.clear()
+            }
+        }
+        // On a profile switch the engine keeps serving the PREVIOUS profile's config for a moment
+        // (async reload), so `names` can still be the old profile's groups — which showed the old
+        // profile's selectors/nodes in the picker until the reload landed. Detect that (fresh engine
+        // groups share nothing with the NEW active profile's offline preview) and suppress the stale
+        // list until reload completes; the picker then falls back to the new profile's offline groups
+        // (useEngineFor requires proxyGroupNames non-empty) instead of showing the old profile's.
+        val newActiveOfflineGroups = activeProfileUuid?.let { offlinePreviewByProfile[it]?.keys }.orEmpty()
+        val engineStaleAfterSwitch = activeProfileUuid != previousActiveUuid && names.isNotEmpty() &&
+            newActiveOfflineGroups.isNotEmpty() &&
+            names.none { n -> newActiveOfflineGroups.any { groupsMatchKey(n, it) } }
+        proxyGroupNames = if (engineStaleAfterSwitch) emptyList() else names
+        if (offlinePreviewByProfile.isNotEmpty()) {
+            cachedOfflinePreviewByProfile.putAll(offlinePreviewByProfile)
+        }
+        if (offlineSelectionsByProfile.isNotEmpty()) {
+            cachedOfflineSelectionsByProfile.putAll(offlineSelectionsByProfile)
+        }
+        this.offlinePreviewByProfile = cachedOfflinePreviewByProfile.toMap()
+        this.offlineSelectionsByProfile = cachedOfflineSelectionsByProfile.toMap()
         this.activeProfileUuid = activeProfileUuid
         clashRunning = running
         tunnelMode = mode
         this.lastGroupHint = lastGroupHint
-        notifyDataSetChanged()
+        dispatchProxyContextChanges(
+            previousActiveUuid = previousActiveUuid,
+            previousMode = previousMode,
+            previousLastGroupHint = previousLastGroupHint,
+            previousOfflinePreview = previousOfflinePreview,
+            previousOfflineSelections = previousOfflineSelections,
+            previousTransportInfo = previousTransportInfo,
+            runningChanged = runningChanged,
+            groupSetChanged = groupSetChanged,
+        )
+    }
+
+    /**
+     * Computes the set of profile cards actually affected by a setProxyContext
+     * batch and issues a single notifyItemChanged per affected position.
+     *
+     * The rules are intentionally conservative — when in doubt we still notify,
+     * because a missed update would look like a stale card. The point is to
+     * avoid full notifyDataSetChanged for the common case where only the
+     * active profile's selection / transport map changed: that case used to
+     * rebind every visible card and was the dominant cause of scroll jank.
+     */
+    private fun dispatchProxyContextChanges(
+        previousActiveUuid: UUID?,
+        previousMode: TunnelState.Mode?,
+        previousLastGroupHint: String?,
+        previousOfflinePreview: Map<UUID, Map<String, ProxyGroupPreviewRow>>,
+        previousOfflineSelections: Map<UUID, Map<String, String>>,
+        previousTransportInfo: Map<UUID, Map<String, ProxyTransportInfo>>,
+        runningChanged: Boolean,
+        groupSetChanged: Boolean,
+    ) {
+        val affected = HashSet<UUID>()
+
+        // Active-profile identity flips both the visual "this card is on" badge
+        // and engine/offline routing — touch the old card and the new one.
+        if (previousActiveUuid != activeProfileUuid) {
+            previousActiveUuid?.let(affected::add)
+            activeProfileUuid?.let(affected::add)
+        }
+        // Engine identity (running/group set/mode) influences the active card's
+        // expanded carriage (engine path vs offline preview). Other cards
+        // consult these fields only via useEngineFor() which short-circuits to
+        // false for non-active profiles, so they don't need a rebind here.
+        if (runningChanged || groupSetChanged || previousMode != tunnelMode) {
+            activeProfileUuid?.let(affected::add)
+        }
+        // lastGroupHint is global — resolvePreferredGroupFromList() consults it
+        // for every profile that hasn't yet cached a selectedGroupIndex (cards
+        // that were never bound, e.g. still below the scroll viewport). If we
+        // only touch the active card, a later scroll-into-view of card C would
+        // bind it against the new hint while card A still shows the old one,
+        // leaving the list with two different preferred groups across cards.
+        // Hint changes are not on a hot path — they only fire when the user
+        // explicitly switches the visible group — so rebinding every imported
+        // card here is cheap insurance against that inconsistency.
+        if (previousLastGroupHint != lastGroupHint) {
+            for (p in profiles) {
+                if (p.imported) affected.add(p.uuid)
+            }
+        }
+        // Per-profile maps only affect the profile whose UUID actually moved.
+        previousOfflinePreview.collectDiffKeys(offlinePreviewByProfile, affected)
+        previousOfflineSelections.collectDiffKeys(offlineSelectionsByProfile, affected)
+        previousTransportInfo.collectDiffKeys(transportInfoByProfile, affected)
+
+        if (affected.isEmpty()) return
+        for (i in profiles.indices) {
+            if (profiles[i].uuid in affected) notifyItemChanged(i)
+        }
+    }
+
+    private fun <K, V> Map<K, V>.collectDiffKeys(other: Map<K, V>, into: HashSet<K>) {
+        for ((key, value) in this) {
+            if (other[key] != value) into.add(key)
+        }
+        for ((key, value) in other) {
+            if (this[key] != value) into.add(key)
+        }
     }
 
     fun setProxyDetails(details: Map<String, ProxyGroup>) {
-        if (details == proxyDetails) return
-        proxyDetails = details
-        notifyDataSetChanged()
+        if (details.isEmpty()) return
+        val merged = proxyDetails.toMutableMap().apply {
+            putAll(details)
+        }
+        val active = activeProfileUuid
+        val hasFuzzyPending = active != null &&
+            details.keys.any { group -> pendingMapValueForGroup(active, group) != null }
+        val needsDiskOverlay = active != null && details.keys.any { group ->
+            val d = merged[group] ?: return@any false
+            val disk = offlineSelectedForGroup(active, group)
+            disk.isNotBlank() && disk != d.now &&
+                (d.proxies.isEmpty() || d.proxies.any { it.name == disk })
+        }
+        if (merged == proxyDetails && !hasFuzzyPending && !needsDiskOverlay) return
+        proxyDetails = merged
+        active?.let { uuid ->
+            for ((group, detail) in details) {
+                val prefix = "${uuid}|"
+                val removeKeys = mutableListOf<String>()
+                for (key in pendingProxySelections.keys) {
+                    if (!key.startsWith(prefix)) continue
+                    val g = key.substring(prefix.length)
+                    if (!groupsMatchKey(group, g)) continue
+                    val pending = pendingProxySelections[key] ?: continue
+                    val pendingApplied = detail.now == pending
+                    val pendingInvalid = detail.proxies.isNotEmpty() &&
+                        detail.proxies.none { it.name == pending }
+                    if (pendingApplied || pendingInvalid) {
+                        removeKeys.add(key)
+                    }
+                }
+                for (k in removeKeys) {
+                    pendingProxySelections.remove(k)
+                }
+            }
+        }
+        active ?: return
+        val i = profiles.indexOfFirst { it.uuid == active }
+        if (i >= 0) {
+            notifyItemChanged(i)
+        }
+    }
+
+    /**
+     * Update a single proxy's delay inside the active profile's live group
+     * map. Receives one push per proxy from the per-proxy health-check path
+     * — bypasses the full setProxyDetails merge so we don't trigger pending /
+     * disk-overlay reconciliation on every URLTest tick.
+     *
+     * No-ops if the proxy or group isn't tracked yet (the live engine map
+     * hasn't been populated for this group, or the active profile changed
+     * between the request and the callback). The caller is responsible for
+     * the eventual full refresh that fills in `now` / `alive` fields the
+     * per-proxy push doesn't carry.
+     */
+    fun patchSingleProxyDelay(groupName: String, proxyName: String, delayMs: Int) {
+        if (groupName.isBlank() || proxyName.isBlank()) return
+        val active = activeProfileUuid ?: return
+        val current = proxyDetails
+        val key = if (current.containsKey(groupName)) {
+            groupName
+        } else {
+            current.entries.firstOrNull { groupsMatchKey(groupName, it.key) }?.key ?: return
+        }
+        val existing = current[key] ?: return
+        val proxyIdx = existing.proxies.indexOfFirst { it.name == proxyName }
+        if (proxyIdx < 0) return
+        if (existing.proxies[proxyIdx].delay == delayMs) return
+        val updatedProxies = existing.proxies.toMutableList().also { list ->
+            list[proxyIdx] = list[proxyIdx].copy(delay = delayMs)
+        }
+        proxyDetails = current.toMutableMap().apply {
+            this[key] = existing.copy(proxies = updatedProxies)
+        }
+        // Coalesce the rebind: a URL-test fires this once per proxy in a burst; one debounced
+        // notify keeps the latest delays without freezing the main thread on big node lists.
+        scheduleActiveCardNotify()
+    }
+
+    fun clearProxyDetails() {
+        if (proxyDetails.isEmpty()) return
+        proxyDetails = emptyMap()
+        // Only the active card reads proxyDetails — clearing it cannot change
+        // anything on the other rows. If we don't know who the active profile
+        // is right now (rare race during VPN off→on), no card depends on the
+        // stale details either; skipping the rebind here avoids the same
+        // scroll-jank pattern setProxyContext used to cause.
+        val uuid = activeProfileUuid ?: return
+        val i = profiles.indexOfFirst { it.uuid == uuid }
+        if (i >= 0) notifyItemChanged(i)
+    }
+
+    fun setPendingProxySelection(uuid: UUID, groupName: String, proxyName: String) {
+        if (groupName.isBlank() || proxyName.isBlank()) return
+        val key = proxySelectionKey(uuid, groupName)
+        val alreadyPending = pendingProxySelections[key] == proxyName
+        pendingProxySelections[key] = proxyName
+        // Also mirror the choice into in-memory offline cache. Without this, after pending
+        // is cleared by setProxyDetails the desiredUiSelection() falls back to a stale
+        // offline value (the prior on-disk pick), causing the row highlight to bounce back.
+        val perProfile = (cachedOfflineSelectionsByProfile[uuid]?.toMutableMap() ?: mutableMapOf())
+        perProfile[groupName] = proxyName
+        cachedOfflineSelectionsByProfile[uuid] = perProfile.toMap()
+        offlineSelectionsByProfile = cachedOfflineSelectionsByProfile.toMap()
+        if (alreadyPending) return
+        val i = profiles.indexOfFirst { it.uuid == uuid }
+        if (i >= 0) notifyItemChanged(i)
     }
 
     fun clearStandalonePingDelays(uuid: UUID) {
@@ -110,11 +486,15 @@ class ProfileAdapter(
     }
 
     fun setStandalonePingResults(uuid: UUID, results: Map<String, Int>) {
-        val prefix = "${uuid}|"
-        standalonePingDelays.keys.removeAll { it.startsWith(prefix) }
+        var changed = false
         for ((name, ms) in results) {
-            standalonePingDelays["${uuid}|$name"] = ms
+            val key = "${uuid}|$name"
+            if (standalonePingDelays[key] != ms) {
+                standalonePingDelays[key] = ms
+                changed = true
+            }
         }
+        if (!changed) return
         val i = profiles.indexOfFirst { it.uuid == uuid }
         if (i >= 0) notifyItemChanged(i)
     }
@@ -142,6 +522,98 @@ class ProfileAdapter(
         if (profile.uuid !in expandedUuids || !profile.imported) {
             return emptyList()
         }
+        // proxyGroupNames is the visible-only list (from queryProxyGroupNames).
+        // offlinePreviewByProfile keys include hidden too (parseProxyGroupsPreview
+        // is called with includeHidden=true), so we filter back to visible here
+        // and then narrowly surface a hidden auto-subgroup only when the
+        // visible parent is a pure dispatch shell — i.e. all of its declared
+        // members are themselves group names, none are dialable leaf nodes.
+        // That catches the kaso.fyi pattern (one visible select root whose
+        // only members are hidden url-test/fallback subgroups) without
+        // polluting the pill bar of typical mixed configs that legitimately
+        // reference hidden auto groups as backup paths alongside leaf nodes.
+        val offlinePreview = offlinePreviewByProfile[profile.uuid]
+        val visible = if (useEngineFor(profile)) {
+            proxyGroupNames
+        } else {
+            offlinePreview?.entries
+                ?.filterNot { (_, row) -> row.hidden }
+                ?.map { (k, _) -> k }
+                ?.toList()
+                .orEmpty()
+        }
+        if (offlinePreview.isNullOrEmpty()) return visible
+
+        val visibleSet = visible.toHashSet()
+        // Global pure-shell test: every visible root must reference *only*
+        // other proxy-groups (no leaves, no special targets like DIRECT /
+        // REJECT). That uniquely identifies a kaso-style config whose top
+        // level is a dispatch tree delegating routing to hidden auto
+        // subgroups. A standard subscription will have at least one visible
+        // root with concrete leaf nodes in its `proxies:`, which fails the
+        // shell test and short-circuits the heuristic — its hidden auto
+        // backups stay hidden, which is what the user expects.
+        val configIsPureShell = visible.isNotEmpty() && visible.all { vname ->
+            val row = offlinePreview[vname]
+                ?: offlinePreview.entries.firstOrNull { groupsMatchKey(vname, it.key) }?.value
+                ?: return@all false
+            val staticRefs = row.staticProxies
+            if (staticRefs.isEmpty()) return@all false
+            staticRefs.all { memberName ->
+                offlinePreview[memberName] != null ||
+                    offlinePreview.entries.any { groupsMatchKey(memberName, it.key) }
+            }
+        }
+        if (!configIsPureShell) return visible
+
+        val extras = LinkedHashSet<String>()
+        for (vname in visible) {
+            val row = offlinePreview[vname]
+                ?: offlinePreview.entries.firstOrNull { groupsMatchKey(vname, it.key) }?.value
+                ?: continue
+            for (memberName in row.staticProxies) {
+                if (memberName in visibleSet || memberName in extras) continue
+                val memberRow = offlinePreview[memberName]
+                    ?: offlinePreview.entries.firstOrNull { groupsMatchKey(memberName, it.key) }?.value
+                    ?: continue
+                if (!memberRow.hidden) continue
+                // Only auto types help routing — Selector/Unknown hidden roots
+                // (e.g. mihomo's auto GLOBAL when the config defines its own)
+                // would just add noise.
+                if (memberRow.type != Proxy.Type.URLTest &&
+                    memberRow.type != Proxy.Type.Fallback &&
+                    memberRow.type != Proxy.Type.LoadBalance
+                ) continue
+                extras.add(memberName)
+            }
+        }
+        return if (extras.isEmpty()) visible else visible + extras.toList()
+    }
+
+    fun hasProxyGroupsFor(profile: Profile): Boolean =
+        effectiveGroupsForProfile(profile).isNotEmpty()
+
+    /**
+     * Active node's display name (with its flag prefix) for the Home "Node" row (redesign 1.0),
+     * or null when nothing is selected / groups aren't loaded yet. Same source the profile card
+     * uses, so the Node row shows the flag + node exactly like the picker.
+     */
+    fun activeNodeDisplayName(profile: Profile): String? =
+        resolveCurrentNodeDisplayName(profile)?.takeIf { it.isNotBlank() }
+
+    /**
+     * The proxy group whose current selection the Home "Node" summary displays for [profile].
+     * Callers (MainActivity) use this to prime that one group's live detail on connect so the row
+     * isn't blank until the user opens the picker.
+     */
+    fun summaryGroupForProfile(profile: Profile): String? = selectedGroupForSummary(profile)
+
+    /** True when live engine detail (carrying `now`) is already cached for [groupName]. */
+    fun hasLiveDetailForGroup(groupName: String): Boolean =
+        proxyDetails[groupName] != null || proxyDetails.keys.any { groupsMatchKey(groupName, it) }
+
+    private fun groupsForSelectionSummary(profile: Profile): List<String> {
+        if (!profile.imported) return emptyList()
         return if (useEngineFor(profile)) {
             proxyGroupNames
         } else {
@@ -149,38 +621,698 @@ class ProfileAdapter(
         }
     }
 
+    private fun selectedGroupForSummary(profile: Profile): String? {
+        val groups = groupsForSelectionSummary(profile)
+        if (groups.isEmpty()) return null
+        val uuid = profile.uuid
+        val kept = selectedGroupIndex[uuid]?.takeIf { it in groups.indices }?.let { groups[it] }
+        if (kept != null) {
+            return kept
+        }
+        val picked = resolvePreferredGroupFromList(profile, groups)
+        val index = groups.indexOf(picked).takeIf { it >= 0 } ?: 0
+        selectedGroupIndex[uuid] = index.coerceIn(0, groups.lastIndex)
+        return groups[selectedGroupIndex[uuid]!!]
+    }
+
+    private fun formatSelectionSummaryForHome(groupName: String): String = displayGroupName(groupName)
+
+    private fun formatSelectionSummaryForProfiles(
+        context: Context,
+        profile: Profile,
+        groupName: String,
+    ): String {
+        val groupDisplay = displayGroupName(groupName)
+        val selectedProxy = resolvedSelectedProxyName(profile, groupName)
+            ?.let(::displayGroupName)
+        return if (selectedProxy.isNullOrBlank()) {
+            context.getString(R.string.main_selected_group_fmt, groupDisplay)
+        } else {
+            context.getString(R.string.main_selected_route_fmt, groupDisplay, selectedProxy)
+        }
+    }
+
+    /**
+     * Resolve a leaf node's protocol type **offline** from the parsed transport info
+     * (config-overlay: config.yaml is the composed effective config). Without this the
+     * picker shows no protocol/transport badge unless the engine is running — the type
+     * was hard-coded to Unknown for offline placeholders. Empty/absent → Unknown.
+     */
+    private fun offlineProxyType(uuid: UUID, name: String): Proxy.Type {
+        val leaf = proxyTypeFromYamlName(transportInfoByProfile[uuid]?.get(name)?.type)
+        if (leaf != Proxy.Type.Unknown) return leaf
+        // Not a leaf proxy → it may be a nested auto-group; surface its group type
+        // (url-test / fallback / …) so the picker can chip it distinctly offline too.
+        return offlinePreviewByProfile[uuid]?.get(name)?.type ?: Proxy.Type.Unknown
+    }
+
+    private fun proxyTypeFromYamlName(raw: String?): Proxy.Type = when (raw?.trim()?.lowercase()) {
+        "ss", "shadowsocks" -> Proxy.Type.Shadowsocks
+        "ssr", "shadowsocksr" -> Proxy.Type.ShadowsocksR
+        "snell" -> Proxy.Type.Snell
+        "socks5", "socks" -> Proxy.Type.Socks5
+        "http", "https" -> Proxy.Type.Http
+        "vmess" -> Proxy.Type.Vmess
+        "vless" -> Proxy.Type.Vless
+        "trojan" -> Proxy.Type.Trojan
+        "hysteria" -> Proxy.Type.Hysteria
+        "hysteria2", "hy2" -> Proxy.Type.Hysteria2
+        "tuic" -> Proxy.Type.Tuic
+        "wireguard", "wg" -> Proxy.Type.WireGuard
+        "ssh" -> Proxy.Type.Ssh
+        "mieru" -> Proxy.Type.Mieru
+        "anytls" -> Proxy.Type.AnyTLS
+        "masque" -> Proxy.Type.Masque
+        "trusttunnel" -> Proxy.Type.TrustTunnel
+        "direct" -> Proxy.Type.Direct
+        else -> Proxy.Type.Unknown
+    }
+
     private fun proxyGroupForRow(profile: Profile, groupName: String): ProxyGroup? {
-        if (useEngineFor(profile) && proxyDetails.isNotEmpty()) {
-            return proxyDetails[groupName]
+        if (useEngineFor(profile)) {
+            val live = proxyDetails[groupName]
+                ?: proxyDetails.entries.firstOrNull { groupsMatchKey(groupName, it.key) }?.value
+            if (live != null) {
+                // mihomo expands `include-all-providers` / `include-all-proxies` / `include-all`
+                // groups at routing time but Clash.queryGroup() only returns the statically
+                // declared `proxies:` list. If our offline YAML parse shows a wider member set,
+                // it's almost certainly one of those dynamic flags — merge the offline names
+                // into the live group while preserving the live Proxy entries (delay, type,
+                // current selection) for any names that overlap.
+                val offlineRow = offlinePreviewByProfile[profile.uuid]?.let { map ->
+                    map[groupName] ?: map.entries.firstOrNull { groupsMatchKey(groupName, it.key) }?.value
+                }
+                if (offlineRow != null && offlineRow.members.size > live.proxies.size) {
+                    val liveByName = live.proxies.associateBy { it.name }
+                    val seen = HashSet<String>(offlineRow.members.size + live.proxies.size)
+                    val merged = buildList {
+                        offlineRow.members.forEach { name ->
+                            if (seen.add(name)) {
+                                add(liveByName[name] ?: Proxy(name, name, "", offlineProxyType(profile.uuid, name), -1))
+                            }
+                        }
+                        // Trailing live-only proxies (DIRECT/REJECT/etc. that aren't in the
+                        // subscription's leaf set but mihomo still injects) stay where they were.
+                        live.proxies.forEach { p ->
+                            if (seen.add(p.name)) add(p)
+                        }
+                    }
+                    return ProxyGroup(live.type, merged, live.now).withSelectionOverlay(profile.uuid, groupName)
+                }
+                return live.withSelectionOverlay(profile.uuid, groupName)
+            }
+            val offlineMap = offlinePreviewByProfile[profile.uuid]
+            val row = offlineMap?.get(groupName)
+                ?: offlineMap?.entries?.firstOrNull { groupsMatchKey(groupName, it.key) }?.value
+            val now = offlineSelectedForGroup(profile.uuid, groupName)
+            val type = row?.type ?: Proxy.Type.Selector
+            // Engine cache may not yet hold a sibling group the user just tapped (the prior
+            // fetch only walked the tree rooted at the previously visible group). Render the
+            // subscription's member names as a placeholder so the row is usable immediately;
+            // live engine data overwrites it on the next setProxyDetails tick.
+            val placeholderMembers = row?.members.orEmpty().map { n ->
+                Proxy(n, n, "", offlineProxyType(profile.uuid, n), -1)
+            }
+            return ProxyGroup(
+                type,
+                placeholderMembers,
+                now,
+            ).withSelectionOverlay(profile.uuid, groupName)
         }
         val offline = offlinePreviewByProfile[profile.uuid] ?: return null
-        val names = offline[groupName] ?: return null
-        val now = offlineSelectionsByProfile[profile.uuid]?.get(groupName).orEmpty()
+        val row = offline[groupName]
+            ?: offline.entries.firstOrNull { (k, _) -> groupsMatchKey(groupName, k) }?.value
+            ?: return null
+        val names = row.members
+        val now = offlineSelectedForGroup(profile.uuid, groupName)
         return ProxyGroup(
-            Proxy.Type.Selector,
+            row.type,
             names.map { n ->
-                Proxy(n, n, "", Proxy.Type.Unknown, -1)
+                Proxy(n, n, "", offlineProxyType(profile.uuid, n), -1)
             },
             now,
-        )
+        ).withSelectionOverlay(profile.uuid, groupName)
+    }
+
+    private fun proxySelectionKey(uuid: UUID, groupName: String): String =
+        "${uuid}|${groupName}"
+
+    private fun groupsMatchKey(engineName: String, storedName: String): Boolean {
+        if (engineName == storedName) return true
+        return displayGroupName(engineName) == displayGroupName(storedName)
+    }
+
+    private fun hasLiveProxyDetail(profile: Profile, groupName: String): Boolean {
+        if (!useEngineFor(profile)) return false
+        if (proxyDetails.containsKey(groupName)) return true
+        return proxyDetails.keys.any { groupsMatchKey(groupName, it) }
+    }
+
+    private fun resolvePreferredGroupFromList(profile: Profile, groupNames: List<String>): String {
+        if (groupNames.isEmpty()) return ""
+        lastGroupHint?.let { hint ->
+            groupNames.firstOrNull { groupsMatchKey(it, hint) }?.let { return it }
+        }
+        offlineSelectionsByProfile[profile.uuid]?.forEach { (g, sel) ->
+            if (sel.isBlank()) return@forEach
+            groupNames.firstOrNull { groupsMatchKey(it, g) }?.let { return it }
+        }
+        val prefix = "${profile.uuid}|"
+        for (key in pendingProxySelections.keys) {
+            if (!key.startsWith(prefix)) continue
+            val g = key.substring(prefix.length)
+            if (g.isBlank()) continue
+            groupNames.firstOrNull { groupsMatchKey(it, g) }?.let { return it }
+        }
+        return groupNames.first()
+    }
+
+    private fun offlineSelectedForGroup(uuid: UUID, engineGroupName: String): String {
+        val m = offlineSelectionsByProfile[uuid] ?: return ""
+        m[engineGroupName]?.takeIf { it.isNotBlank() }?.let { return it }
+        return m.entries.firstOrNull { (g, _) -> groupsMatchKey(engineGroupName, g) }
+            ?.value.orEmpty()
+    }
+
+    private fun pendingMapValueForGroup(uuid: UUID, engineGroupName: String): String? {
+        val exact = proxySelectionKey(uuid, engineGroupName)
+        pendingProxySelections[exact]?.takeIf { it.isNotBlank() }?.let { return it }
+        val prefix = "${uuid}|"
+        for ((k, v) in pendingProxySelections) {
+            if (!k.startsWith(prefix)) continue
+            if (v.isBlank()) continue
+            val g = k.substring(prefix.length)
+            if (groupsMatchKey(engineGroupName, g)) return v
+        }
+        return null
+    }
+
+    private fun desiredUiSelection(uuid: UUID, engineGroupName: String): String? {
+        pendingMapValueForGroup(uuid, engineGroupName)?.let { return it }
+        offlineSelectedForGroup(uuid, engineGroupName).takeIf { it.isNotBlank() }?.let { return it }
+        return null
+    }
+
+    private fun ProxyGroup.withSelectionOverlay(uuid: UUID, engineGroupName: String): ProxyGroup {
+        val target = desiredUiSelection(uuid, engineGroupName) ?: return this
+        if (target == now) return this
+        if (proxies.isNotEmpty() && proxies.none { it.name == target }) return this
+        return copy(now = target)
     }
 
     private fun applyActiveVisuals(holder: Holder, profile: Profile) {
-        holder.activePulse?.cancel()
-        holder.activePulse = null
-        val strip = holder.binding.activeStrip
-        holder.binding.profileCard.strokeWidth = 0
+        val chip = holder.binding.activeStatusChip
+        val context = chip.context
+        holder.binding.profileCard.strokeWidth = context.dp(1)
         if (profile.active) {
-            strip.alpha = 1f
-            holder.activePulse =
-                ObjectAnimator.ofFloat(strip, View.ALPHA, 0.38f, 1f).apply {
-                    duration = 1000L
-                    repeatCount = ObjectAnimator.INFINITE
-                    repeatMode = ObjectAnimator.REVERSE
-                    start()
-                }
+            chip.visibility = View.VISIBLE
+            chip.text = context.getString(R.string.profile_active_status)
+            chip.setBackgroundResource(R.drawable.bg_m3_status_chip)
+            chip.setTextColor(MaterialColors.getColor(chip, com.google.android.material.R.attr.colorOnPrimaryContainer))
         } else {
-            strip.alpha = 1f
+            chip.visibility = View.GONE
+            chip.text = context.getString(R.string.profile_inactive_status)
+            chip.setBackgroundResource(R.drawable.bg_m3_status_chip_neutral)
+            chip.setTextColor(MaterialColors.getColor(chip, com.google.android.material.R.attr.colorOnSurfaceVariant))
+        }
+    }
+
+
+    fun showProxySheet(context: Context, profile: Profile) {
+        if (!profile.imported) return
+
+        val sheet = BottomSheetProxyGroupsBinding.inflate(context.layoutInflater)
+        val dialog = AppBottomSheetDialog(context)
+        val groupNames = effectiveGroupsForProfile(profile)
+
+        // Subscription pill
+        sheet.proxySheetSubName.text = profile.name
+        bindSubscriptionStatus(sheet, profile, context)
+        bindSubscriptionExpiry(sheet, profile, context)
+
+        if (groupNames.isEmpty()) {
+            sheet.proxySheetGroupSegments.visibility = View.GONE
+            sheet.proxySheetTestedDot.visibility = View.GONE
+            sheet.proxySheetTestedText.visibility = View.GONE
+            sheet.proxySheetPingSlot.visibility = View.GONE
+            sheet.proxySheetEmpty.text = context.getString(R.string.proxy_nodes_empty_connect_vpn)
+            sheet.proxySheetEmpty.visibility = View.VISIBLE
+        } else {
+            val picked = resolvePreferredGroupFromList(profile, groupNames)
+            var idx = selectedGroupIndex[profile.uuid]
+                ?: groupNames.indexOf(picked).takeIf { i -> i >= 0 }
+                ?: 0
+            if (idx >= groupNames.size) idx = 0
+            selectedGroupIndex[profile.uuid] = idx
+            var query = ""
+            var sort = ProxyPickerSort.Config
+            var filter: ProxyPickerFilter = ProxyPickerFilter.CurrentGroup
+            var selectedScrolledGroupIndex: Int? = null
+            // Per-sheet row cache: buildProxyPickerRows walks every group of the profile,
+            // which can be hundreds of nodes for big subscriptions. Invalidated whenever
+            // we know live state may have changed (URL-test, ping cycle, group switch).
+            var cachedRows: List<ProxyPickerRow>? = null
+            var cachedRowsGroupIndex: Int = -1
+            var pendingSearch: Runnable? = null
+
+            fun rowsForCurrentGroup(selectedIndex: Int): List<ProxyPickerRow> {
+                val cached = cachedRows
+                if (cached != null && cachedRowsGroupIndex == selectedIndex) return cached
+                val fresh = buildProxyPickerRows(profile, groupNames, selectedIndex)
+                cachedRows = fresh
+                cachedRowsGroupIndex = selectedIndex
+                return fresh
+            }
+
+            fun invalidateRowCache() {
+                cachedRows = null
+                cachedRowsGroupIndex = -1
+            }
+
+            fun sortLabel(s: ProxyPickerSort): String = context.getString(
+                when (s) {
+                    ProxyPickerSort.Config -> R.string.profile_proxy_sort_config
+                    ProxyPickerSort.Delay -> R.string.profile_proxy_sort_delay
+                    ProxyPickerSort.Name -> R.string.profile_proxy_sort_name
+                },
+            )
+
+            fun filterLabel(f: ProxyPickerFilter): String = when (f) {
+                ProxyPickerFilter.All -> context.getString(R.string.profile_proxy_filter_all)
+                ProxyPickerFilter.CurrentGroup -> context.getString(R.string.profile_proxy_filter_current)
+                ProxyPickerFilter.Selected -> context.getString(R.string.profile_proxy_filter_selected)
+                ProxyPickerFilter.Available -> context.getString(R.string.profile_proxy_filter_available)
+                is ProxyPickerFilter.Provider ->
+                    context.getString(R.string.profile_proxy_filter_provider, f.name)
+            }
+
+            fun updateControlLabels() {
+                sheet.proxySheetSortButton.text = sortLabel(sort)
+                sheet.proxySheetFilterButton.text = filterLabel(filter)
+            }
+
+            // The node list is a RecyclerView (virtualized — see O-07). render() references
+            // nodeAdapter, and the adapter's selection callback references render(): break that
+            // cycle via renderFn, assigned right after render() is defined below.
+            var renderFn: (Int) -> Unit = {}
+            val nodeAdapter = ProxyNodeAdapter(profile) {
+                // Tapping a node sets a pending selection; the cached rows still carry the OLD
+                // `selected` flags, so drop the cache before re-render or submitList would diff
+                // against identical data and the check-mark would never move to the new node.
+                invalidateRowCache()
+                renderFn(selectedGroupIndex[profile.uuid] ?: 0)
+            }
+            sheet.proxySheetNodesList.layoutManager = LinearLayoutManager(context)
+            sheet.proxySheetNodesList.adapter = nodeAdapter
+            // Rebinds during live ping / selection are content-only; suppress the change animation
+            // so delay capsules update without a flicker.
+            sheet.proxySheetNodesList.itemAnimator = null
+            ContextCompat.getDrawable(context, R.drawable.divider_node_hairline)?.let { d ->
+                sheet.proxySheetNodesList.addItemDecoration(
+                    DividerItemDecoration(context, DividerItemDecoration.VERTICAL).apply { setDrawable(d) },
+                )
+            }
+
+            fun render(selectedIndex: Int) {
+                selectedGroupIndex[profile.uuid] = selectedIndex
+                renderGroupSegmentsInto(
+                    sheet.proxySheetGroupSegments,
+                    profile,
+                    groupNames,
+                    selectedIndex,
+                ) { index, group ->
+                    render(index)
+                    reportVisibleGroup(profile, group, force = true)
+                }
+                bindGroupType(sheet.proxySheetGroupTypeLabel, profile, groupNames.getOrNull(selectedIndex).orEmpty())
+                val rows = applyProxyPickerControls(
+                    rows = rowsForCurrentGroup(selectedIndex),
+                    query = query,
+                    sort = sort,
+                    filter = filter,
+                    currentGroupIndex = selectedIndex,
+                )
+                nodeAdapter.showGroupInSubtitle = rows.map { it.groupName }.distinct().size > 1
+                nodeAdapter.submitList(rows)
+                if (rows.isEmpty()) {
+                    val groupHasNodes = rowsForCurrentGroup(selectedIndex).isNotEmpty()
+                    sheet.proxySheetEmpty.text =
+                        context.getString(proxyPickerEmptyHint(profile, groupNames.getOrNull(selectedIndex), groupHasNodes))
+                    sheet.proxySheetEmpty.visibility = View.VISIBLE
+                } else {
+                    sheet.proxySheetEmpty.visibility = View.GONE
+                }
+                bindTestedAgo(sheet, profile, context)
+                if (selectedScrolledGroupIndex != selectedIndex) {
+                    selectedScrolledGroupIndex = selectedIndex
+                    scrollProxyPickerToSelected(sheet, rows)
+                }
+            }
+            renderFn = ::render
+
+            fun visibleRows(): List<ProxyPickerRow> {
+                val currentIndex = (selectedGroupIndex[profile.uuid] ?: 0).coerceIn(0, groupNames.lastIndex)
+                return applyProxyPickerControls(
+                    rows = rowsForCurrentGroup(currentIndex),
+                    query = query,
+                    sort = sort,
+                    filter = filter,
+                    currentGroupIndex = currentIndex,
+                )
+            }
+
+            var wasPinging = states.pingingUuid == profile.uuid
+            val refreshRunnable = object : Runnable {
+                override fun run() {
+                    if (!dialog.isShowing) return
+                    val pingingNow = states.pingingUuid == profile.uuid
+                    val currentIndex = (selectedGroupIndex[profile.uuid] ?: 0)
+                        .coerceIn(0, groupNames.lastIndex)
+
+                    when {
+                        pingingNow -> {
+                            // Live ping: patch delays on the CURRENT row order (no re-sort /
+                            // re-filter, so the structure stays frozen and the user can keep
+                            // scrolling and tapping). DiffUtil rebinds only the capsules whose
+                            // delay actually changed — no full re-inflate.
+                            val patched = nodeAdapter.currentList.map {
+                                it.copy(delayMs = resolveProxyDelay(profile.uuid, it.proxy))
+                            }
+                            nodeAdapter.submitList(patched)
+                        }
+                        wasPinging -> {
+                            // Ping just finished — one full render so Delay
+                            // sort and the Available filter pick up the fresh
+                            // results and the list re-orders exactly once.
+                            invalidateRowCache()
+                            render(currentIndex)
+                        }
+                        // else — steady idle: nothing rebuilds. The picker has
+                        // nothing that changes on its own between ping runs;
+                        // only the lightweight "tested ago" / status text below
+                        // ticks.
+                    }
+                    wasPinging = pingingNow
+
+                    bindSubscriptionStatus(sheet, profile, context)
+                    bindTestedAgo(sheet, profile, context)
+                    sheet.proxySheetPingProgress.visibility = if (pingingNow) View.VISIBLE else View.GONE
+                    sheet.proxySheetPingButton.visibility = if (pingingNow) View.INVISIBLE else View.VISIBLE
+                    // 260ms while pinging keeps the live delay capsules fresh.
+                    // Idle interval is 2500ms — only the "tested ago" label
+                    // ticks, and the sheet may stay open for a while.
+                    if (pingingNow) {
+                        sheet.root.postDelayed(this, 260L)
+                    } else {
+                        sheet.root.postDelayed(this, 2500L)
+                    }
+                }
+            }
+
+            val pinging = states.pingingUuid == profile.uuid
+            sheet.proxySheetPingProgress.visibility = if (pinging) View.VISIBLE else View.GONE
+            sheet.proxySheetPingButton.visibility = if (pinging) View.INVISIBLE else View.VISIBLE
+            sheet.proxySheetPingButton.setOnClickListener {
+                val currentIndex = selectedGroupIndex[profile.uuid] ?: 0
+                val groupName = groupNames.getOrNull(currentIndex) ?: return@setOnClickListener
+                val names = visibleRows()
+                    .filter { it.groupIndex == currentIndex }
+                    .map { it.proxy.name }
+                    .ifEmpty {
+                        proxyGroupForRow(profile, groupName)
+                            ?.proxies
+                            ?.filterNot { shouldHideProxyOption(groupName, it) }
+                            ?.map { it.name }
+                            .orEmpty()
+                    }
+                if (names.isEmpty()) return@setOnClickListener
+                lastPingAllAt[profile.uuid] = System.currentTimeMillis()
+                onPingAll(profile, groupName, names)
+                sheet.root.post(refreshRunnable)
+            }
+
+            sheet.proxySheetSearch.addTextChangedListener { editable ->
+                val newQuery = editable?.toString().orEmpty()
+                sheet.proxySheetSearchClear.visibility =
+                    if (newQuery.isNotEmpty()) View.VISIBLE else View.GONE
+                pendingSearch?.let(sheet.proxySheetSearch::removeCallbacks)
+                val runnable = Runnable {
+                    query = newQuery
+                    render((selectedGroupIndex[profile.uuid] ?: 0).coerceIn(0, groupNames.lastIndex))
+                }
+                pendingSearch = runnable
+                sheet.proxySheetSearch.postDelayed(runnable, 200L)
+            }
+            sheet.proxySheetSearchClear.setOnClickListener {
+                sheet.proxySheetSearch.setText("")
+            }
+            // Sort dropdown — three fixed options.
+            sheet.proxySheetSortButton.setOnClickListener { anchor ->
+                android.widget.PopupMenu(context, anchor).apply {
+                    val options = listOf(
+                        ProxyPickerSort.Config,
+                        ProxyPickerSort.Delay,
+                        ProxyPickerSort.Name,
+                    )
+                    options.forEachIndexed { i, opt -> menu.add(0, i, i, sortLabel(opt)) }
+                    setOnMenuItemClickListener { item ->
+                        sort = options.getOrElse(item.itemId) { ProxyPickerSort.Config }
+                        updateControlLabels()
+                        render((selectedGroupIndex[profile.uuid] ?: 0).coerceIn(0, groupNames.lastIndex))
+                        true
+                    }
+                }.show()
+            }
+            // Filter dropdown — four fixed options plus one entry per provider
+            // present in the current group. The provider list is rebuilt at
+            // click time so it always reflects the group currently shown.
+            sheet.proxySheetFilterButton.setOnClickListener { anchor ->
+                val currentIndex = (selectedGroupIndex[profile.uuid] ?: 0)
+                    .coerceIn(0, groupNames.lastIndex)
+                val providers = rowsForCurrentGroup(currentIndex)
+                    .mapNotNull { it.provider }
+                    .distinct()
+                    .sortedWith(String.CASE_INSENSITIVE_ORDER)
+                android.widget.PopupMenu(context, anchor).apply {
+                    val fixed = listOf(
+                        ProxyPickerFilter.All,
+                        ProxyPickerFilter.CurrentGroup,
+                        ProxyPickerFilter.Selected,
+                        ProxyPickerFilter.Available,
+                    )
+                    fixed.forEachIndexed { i, opt -> menu.add(0, i, i, filterLabel(opt)) }
+                    // Provider entries use ids offset by 100 to never collide
+                    // with the fixed-option ids above.
+                    providers.forEachIndexed { i, p ->
+                        menu.add(
+                            0, 100 + i, 100 + i,
+                            context.getString(R.string.profile_proxy_filter_provider, p),
+                        )
+                    }
+                    setOnMenuItemClickListener { item ->
+                        filter = if (item.itemId >= 100) {
+                            providers.getOrNull(item.itemId - 100)
+                                ?.let(ProxyPickerFilter::Provider)
+                                ?: ProxyPickerFilter.All
+                        } else {
+                            fixed.getOrElse(item.itemId) { ProxyPickerFilter.All }
+                        }
+                        updateControlLabels()
+                        render((selectedGroupIndex[profile.uuid] ?: 0).coerceIn(0, groupNames.lastIndex))
+                        true
+                    }
+                }.show()
+            }
+
+            updateControlLabels()
+            render(idx)
+            reportVisibleGroup(profile, groupNames[idx])
+
+            sheet.root.post(refreshRunnable)
+            dialog.setOnDismissListener {
+                sheet.root.removeCallbacks(refreshRunnable)
+                pendingSearch?.let(sheet.proxySheetSearch::removeCallbacks)
+                pendingSearch = null
+            }
+        }
+
+        dialog.setContentView(sheet.root)
+        dialog.show()
+        // Open fully expanded, single-state (no collapsed peek). A previous peek override
+        // (skipCollapsed=false + peekHeight=0.55h) caused two real bugs: (1) the sheet flashed
+        // at peek then animated to full on the next frame ("comes out in two stages"), and
+        // (2) on a short list, dragging to the end settled into the collapsed state and
+        // dismissed instead of just stopping. The base AppBottomSheetDialog already forces
+        // skipCollapsed=true + STATE_EXPANDED on show, so scrolling to the list end simply
+        // stops and only a deliberate drag-down from the top dismisses.
+        dialog.behavior.skipCollapsed = true
+        dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+    }
+
+    private fun bindSubscriptionStatus(
+        sheet: BottomSheetProxyGroupsBinding,
+        profile: Profile,
+        context: Context,
+    ) {
+        val connected = clashRunning && useEngineFor(profile)
+        sheet.proxySheetSubStatus.text = context.getString(
+            if (connected) R.string.proxy_sheet_status_connected
+            else R.string.proxy_sheet_status_disconnected
+        )
+        val tint = if (connected) {
+            MaterialColors.getColor(sheet.root, com.google.android.material.R.attr.colorPrimary)
+        } else {
+            MaterialColors.getColor(sheet.root, com.google.android.material.R.attr.colorOnSurfaceVariant)
+        }
+        sheet.proxySheetSubStatus.setTextColor(tint)
+        sheet.proxySheetSubStatusDot.backgroundTintList = ColorStateList.valueOf(tint)
+    }
+
+    private fun bindSubscriptionExpiry(
+        sheet: BottomSheetProxyGroupsBinding,
+        profile: Profile,
+        context: Context,
+    ) {
+        val text = formatExpiryLeft(profile.expire, context)
+        if (text == null) {
+            sheet.proxySheetSubExpiry.visibility = View.GONE
+        } else {
+            sheet.proxySheetSubExpiry.visibility = View.VISIBLE
+            sheet.proxySheetSubExpiry.text = text
+        }
+    }
+
+    private fun formatExpiryLeft(expireMs: Long, context: Context): String? {
+        if (expireMs <= 0L) return null
+        val now = System.currentTimeMillis()
+        val diff = expireMs - now
+        if (diff <= 0L) return context.getString(R.string.proxy_sheet_expiry_expired)
+        val totalHours = diff / 3_600_000L
+        val days = totalHours / 24L
+        val hours = totalHours % 24L
+        return if (days > 0) {
+            context.getString(R.string.proxy_sheet_expiry_days_hours, days.toInt(), hours.toInt())
+        } else {
+            context.getString(R.string.proxy_sheet_expiry_hours, hours.toInt().coerceAtLeast(1))
+        }
+    }
+
+    private fun bindTestedAgo(
+        sheet: BottomSheetProxyGroupsBinding,
+        profile: Profile,
+        context: Context,
+    ) {
+        val triggered = lastPingAllAt[profile.uuid]
+        if (triggered == null) {
+            sheet.proxySheetTestedDot.visibility = View.GONE
+            sheet.proxySheetTestedText.text = context.getString(R.string.proxy_sheet_tested_never)
+            return
+        }
+        sheet.proxySheetTestedDot.visibility = View.VISIBLE
+        val elapsedSec = ((System.currentTimeMillis() - triggered) / 1000L).coerceAtLeast(0L)
+        sheet.proxySheetTestedText.text = when {
+            elapsedSec < 3 -> context.getString(R.string.proxy_sheet_tested_now)
+            elapsedSec < 60 -> context.getString(R.string.proxy_sheet_tested_seconds_ago, elapsedSec.toInt())
+            else -> context.getString(R.string.proxy_sheet_tested_minutes_ago, (elapsedSec / 60).toInt())
+        }
+    }
+
+    private fun renderGroupSegmentsInto(
+        container: ViewGroup,
+        profile: Profile,
+        groupNames: List<String>,
+        selectedIndex: Int,
+        onSelected: (Int, String) -> Unit,
+    ) {
+        val context = container.context
+        val inflater = context.layoutInflater
+        // Re-inflate only when the group set actually changes; otherwise update in place so
+        // the per-second refresh tick doesn't tear down + rebuild N segments (felt janky with
+        // many groups and broke scroll inertia).
+        val structureTag = groupNames.joinToString("|")
+        val needsRebuild = container.tag != structureTag || container.childCount != groupNames.size
+        if (needsRebuild) {
+            container.removeAllViews()
+            for (groupName in groupNames) {
+                container.addView(inflater.inflate(R.layout.item_proxy_group_segment, container, false))
+            }
+            container.tag = structureTag
+        }
+        groupNames.forEachIndexed { index, groupName ->
+            val segment = container.getChildAt(index) ?: return@forEachIndexed
+            val nameView = segment.findViewById<TextView>(R.id.segment_name)
+            val countView = segment.findViewById<TextView>(R.id.segment_count)
+            val displayName = displayGroupName(groupName)
+            if (nameView.text?.toString() != displayName) nameView.text = displayName
+            val count = (proxyGroupForRow(profile, groupName)?.proxies?.size ?: 0).toString()
+            if (countView.text?.toString() != count) countView.text = count
+            segment.isSelected = index == selectedIndex
+            segment.setOnClickListener {
+                if (segment.isSelected) return@setOnClickListener
+                for (i in 0 until container.childCount) {
+                    container.getChildAt(i).isSelected = i == index
+                }
+                onSelected(index, groupName)
+            }
+        }
+        // Keep the active segment visible in the scroll area, but only when selection
+        // actually changes (or on first render). Without this guard the per-second refresh
+        // tick yanks scroll back to the selected pill mid-drag, making it impossible to
+        // browse far-away groups.
+        val scroller = container.parent as? android.widget.HorizontalScrollView ?: return
+        val lastIdxTagKey = scroller.id.takeIf { it != View.NO_ID } ?: return
+        val lastIdx = scroller.getTag(lastIdxTagKey) as? Int
+        if (lastIdx == selectedIndex) return
+        scroller.setTag(lastIdxTagKey, selectedIndex)
+        val target = container.getChildAt(selectedIndex) ?: return
+        scroller.post {
+            val viewLeft = target.left
+            val viewRight = target.right
+            val scrollX = scroller.scrollX
+            val visibleRight = scrollX + scroller.width
+            when {
+                viewLeft < scrollX -> scroller.smoothScrollTo(maxOf(0, viewLeft - 24), 0)
+                viewRight > visibleRight ->
+                    scroller.smoothScrollTo(viewRight - scroller.width + 24, 0)
+            }
+        }
+    }
+
+    private fun bindExpiryChip(holder: Holder, profile: Profile, context: Context) {
+        val view = holder.binding.expiryChip
+        if (profile.expire <= 0L || !profile.imported || profile.pending) {
+            view.visibility = View.GONE
+            return
+        }
+        val now = System.currentTimeMillis()
+        val diff = profile.expire - now
+        val expired = diff <= 0L
+        val totalHours = if (expired) 0L else diff / 3_600_000L
+        val days = totalHours / 24L
+        val hours = totalHours % 24L
+        val critical = expired || days < 3L
+        if (!critical) {
+            view.visibility = View.GONE
+            return
+        }
+        view.text = when {
+            expired -> context.getString(R.string.proxy_sheet_expiry_expired)
+            days > 0 -> context.getString(R.string.proxy_sheet_expiry_days_hours, days.toInt(), hours.toInt())
+            else -> context.getString(R.string.proxy_sheet_expiry_hours, hours.toInt().coerceAtLeast(1))
+        }
+        view.visibility = View.VISIBLE
+        view.setBackgroundResource(R.drawable.bg_m3_expiry_chip_warning)
+        view.setTextColor(
+            MaterialColors.getColor(view, com.google.android.material.R.attr.colorOnErrorContainer),
+        )
+        // Operator may supply X-Brand-Renew-URL; when set, critical-expiry chip
+        // becomes the user's primary "renew this" action. When absent we leave
+        // the chip with its layout defaults (non-clickable TextView) untouched.
+        val renew = brandManifest.renewUrl?.takeIf { it.isNotBlank() }
+        if (renew != null) {
+            view.isClickable = true
+            view.isFocusable = true
+            view.setOnClickListener { onOpenBrandUrl?.invoke(renew) }
         }
     }
 
@@ -221,163 +1353,814 @@ class ProfileAdapter(
 
         binding.profile = current
         binding.setClicked {
-            onClicked(current)
+            if (expandOnProfileClick && current.imported) {
+                onExpandToggle(current)
+            } else {
+                onClicked(current)
+            }
         }
         binding.menuView.setOnClickListener { v ->
             onMenuClicked(current, v)
         }
+        val compactHomeCard = expandOnProfileClick
+        binding.rootView.minimumHeight = if (compactHomeCard) context.dp(68) else context.dp(78)
+        binding.menuView.visibility = if (compactHomeCard) View.GONE else View.VISIBLE
+        binding.menuView.isClickable = !compactHomeCard
+        binding.menuView.isFocusable = !compactHomeCard
+        val hasSupport = !announcementSupportUrl.isNullOrBlank() && current.imported && current.uuid == activeProfileUuid
+        binding.supportSlot.visibility = if (!compactHomeCard && hasSupport) View.VISIBLE else View.GONE
+        binding.supportView.setOnClickListener {
+            announcementSupportUrl?.let { url ->
+                announcementOnOpenUrl?.invoke(url) ?: announcementOnSupport?.invoke()
+            }
+        }
+        binding.activateButton.text = context.getString(R.string.profile_use)
+        binding.activateButton.visibility = if (current.active || !showActivateButton) View.GONE else View.VISIBLE
+        binding.activateButton.isEnabled = true
+        binding.activateButton.setOnClickListener {
+            if (!current.active) onClicked(current)
+        }
 
         applyActiveVisuals(holder, current)
         bindUsageAndProgress(holder, current)
+        bindExpiryChip(holder, current, context)
+        if (compactHomeCard) {
+            binding.usageSummary.visibility = View.GONE
+            binding.usageProgress.visibility = View.GONE
+        }
 
+        val canExpandProxiesInline =
+            !compactHomeCard && showServerChooserInCard && current.imported && current.active
         val groupNames = effectiveGroupsForProfile(current)
-        val expanded = current.uuid in expandedUuids && current.imported
+        val expanded = current.uuid in expandedUuids && canExpandProxiesInline
 
-        val showChevron = current.imported
-        // Keep three fixed slots for imported profiles so expand/collapse does not move the chevron.
-        val reserveActionStrip = showChevron
-        binding.forceUpdateSlot.visibility = if (reserveActionStrip) View.VISIBLE else View.GONE
-        binding.pingSlot.visibility = if (reserveActionStrip) View.VISIBLE else View.GONE
-        binding.chevronSlot.visibility = if (reserveActionStrip) View.VISIBLE else View.GONE
-        binding.chevronView.rotation = if (expanded) 180f else 0f
-
-        val showPing = expanded && current.imported
-        val pinging = states.pingingUuid == current.uuid && showPing
-        if (pinging) {
-            binding.pingProgress.visibility = View.VISIBLE
-            binding.pingAllView.visibility = View.INVISIBLE
+        binding.pingSlot.visibility = View.GONE
+        val showServerChooser = canExpandProxiesInline
+        binding.chevronSlot.visibility = if (showServerChooser) View.VISIBLE else View.GONE
+        binding.chevronView.visibility = if (showServerChooser) View.VISIBLE else View.GONE
+        binding.chevronView.rotation = if (expanded) 0f else -90f
+        val expandToggle: (View) -> Unit = expandToggle@{
+            if (!showServerChooser) return@expandToggle
+            onExpandToggle(current)
+        }
+        binding.chevronSlot.isClickable = showServerChooser
+        binding.chevronSlot.setOnClickListener(expandToggle)
+        binding.serverButton.setOnClickListener(expandToggle)
+        val selectedGroup = selectedGroupForSummary(current)
+        val selectionSummary = selectedGroup?.let { group ->
+            if (compactHomeCard) {
+                formatSelectionSummaryForHome(group)
+            } else {
+                formatSelectionSummaryForProfiles(context, current, group)
+            }
+        }
+        if (compactHomeCard) {
+            val profileTitle = resolveCurrentNodeDisplayName(current)
+                ?: context.getString(R.string.not_selected)
+            val flag = FlagParser.parse(
+                profileTitle.takeUnless { it == context.getString(R.string.not_selected) },
+            )
+            val titleText = if (flag != null) {
+                profileTitle.removePrefix(flag.emoji)
+                    .trimStart(' ', '|', '-', '_', '.', ':')
+                    .ifBlank { profileTitle }
+            } else {
+                formatNodeHeadline(profileTitle, context).first
+            }
+            val groupSuffix = selectedGroup
+                ?.takeIf { resolveCurrentNodeDisplayName(current) != null }
+                ?.let { " · " + displayGroupName(it) }
+                .orEmpty()
+            binding.profileTitle.text = titleText + groupSuffix
+            bindProfileFlag(binding, context, flag)
         } else {
-            binding.pingProgress.visibility = View.GONE
-            binding.pingAllView.visibility = if (showPing) View.VISIBLE else View.INVISIBLE
-        }
-        binding.pingAllView.isClickable = false
-        binding.pingAllView.isFocusable = false
-        binding.pingSlot.isClickable = reserveActionStrip
-        binding.pingSlot.setOnClickListener {
-            if (!showPing) return@setOnClickListener
-            val ix = selectedGroupIndex[current.uuid] ?: 0
-            val groupName = groupNames.getOrNull(ix) ?: return@setOnClickListener
-            val pg = proxyGroupForRow(current, groupName) ?: return@setOnClickListener
-            onPingAll(current, groupName, pg.proxies.map { it.name })
+            binding.profileTitle.text = current.name
+            binding.profileFlagCard.visibility = View.GONE
+            binding.profileFlagImage.visibility = View.GONE
+            binding.profileFlag.visibility = View.GONE
+            binding.profileIconEmoji.visibility = View.VISIBLE
+            binding.profileIcon.visibility = View.GONE
+            binding.profileIconEmoji.text = profileEmoji(current)
         }
 
-        val showForceUpdate = expanded && current.type != Profile.Type.File
+        binding.serverSelectionSummary.visibility = when {
+            compactHomeCard -> View.GONE
+            !selectionSummary.isNullOrBlank() -> View.VISIBLE
+            else -> View.GONE
+        }
+        binding.serverSelectionSummary.text = selectionSummary.orEmpty()
+        if (useEngineFor(current) && selectedGroup != null) {
+            reportVisibleGroup(current, selectedGroup)
+        }
+
+        val showForceUpdate = !compactHomeCard && current.imported && current.type != Profile.Type.File
+        binding.forceUpdateSlot.visibility = if (showForceUpdate) View.VISIBLE else View.GONE
         binding.forceUpdateView.visibility = if (showForceUpdate) View.VISIBLE else View.INVISIBLE
         binding.forceUpdateView.isClickable = false
         binding.forceUpdateView.isFocusable = false
-        binding.forceUpdateSlot.isClickable = reserveActionStrip
+        binding.forceUpdateSlot.isClickable = showForceUpdate
         binding.forceUpdateSlot.setOnClickListener {
             if (showForceUpdate) onForceUpdate(current)
         }
 
-        binding.chevronView.visibility = View.VISIBLE
-        if (showChevron) {
-            binding.chevronView.isClickable = true
-            binding.chevronView.setOnClickListener {
-                onExpandToggle(current)
-            }
-        } else {
-            binding.chevronView.setOnClickListener(null)
-            binding.chevronView.isClickable = false
-        }
+        binding.chevronView.isClickable = false
 
-        binding.proxyExpandPanel.visibility = if (expanded) View.VISIBLE else View.GONE
+        val showInlineExpandPanel = expanded && !compactHomeCard
+        binding.proxyExpandPanel.visibility =
+            if (showInlineExpandPanel) View.VISIBLE else View.GONE
+        if (!expanded) return
+        if (compactHomeCard) return
 
-        if (!expanded) {
-            return
-        }
-
-        if (groupNames.isEmpty()) {
-            binding.proxyGroupSpinner.visibility = View.GONE
-            binding.proxyGroupSpinner.onItemSelectedListener = null
-            binding.proxyNodesList.removeAllViews()
-            return
-        }
-        binding.proxyGroupSpinner.visibility = View.VISIBLE
-
-        val spinAdapter = ArrayAdapter(
-            context,
-            android.R.layout.simple_spinner_dropdown_item,
-            groupNames,
-        )
-        binding.proxyGroupSpinner.adapter = spinAdapter
-
-        val preferred = lastGroupHint?.takeIf { groupNames.contains(it) }
-        var idx = selectedGroupIndex[current.uuid]
-            ?: preferred?.let { groupNames.indexOf(it).takeIf { i -> i >= 0 } }
-            ?: 0
-        if (idx >= groupNames.size) idx = 0
-
-        holder.ignoreSpinner = true
-        binding.proxyGroupSpinner.setSelection(idx)
-        fillProxyRows(holder, current, groupNames, idx)
-        binding.proxyGroupSpinner.post {
-            holder.ignoreSpinner = false
-        }
-
-        binding.proxyGroupSpinner.onItemSelectedListener =
-            object : AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(
-                    parent: AdapterView<*>?,
-                    view: View?,
-                    pos: Int,
-                    id: Long,
-                ) {
-                    if (holder.ignoreSpinner) return
-                    selectedGroupIndex[current.uuid] = pos
-                    fillProxyRows(holder, current, groupNames, pos)
-                }
-
-                override fun onNothingSelected(parent: AdapterView<*>?) = Unit
-            }
+        renderGroupAccordion(binding.proxyGroupsAccordion, current, groupNames)
     }
 
-    private fun fillProxyRows(
-        holder: Holder,
+    /** Per-profile set of group names currently expanded in the inline accordion (multi-open). */
+    private val inlineExpandedGroups = HashMap<UUID, MutableSet<String>>()
+    /** Which group's "ping all" is in-flight per profile, so the spinner shows on the right block. */
+    private val pingingGroupByUuid = HashMap<UUID, String>()
+
+    /**
+     * FlClash-style vertical accordion of proxy-group blocks for the Profiles-tab inline panel.
+     * Each block header toggles its own node list; several can stay open at once.
+     */
+    private fun renderGroupAccordion(
+        container: ViewGroup,
+        profile: Profile,
+        groupNames: List<String>,
+    ) {
+        val context = container.context
+        val inflater = context.layoutInflater
+
+        if (groupNames.isEmpty()) {
+            container.tag = null
+            container.removeAllViews()
+            addEmptyProxyHint(container, context)
+            return
+        }
+
+        val expandedGroups = inlineExpandedGroups.getOrPut(profile.uuid) {
+            // First open: reveal the preferred (active/selected) group so nodes show immediately.
+            val preferred = resolvePreferredGroupFromList(profile, groupNames)
+            linkedSetOf(preferred.takeIf { it.isNotBlank() } ?: groupNames.first())
+        }
+        expandedGroups.retainAll(groupNames.toSet())
+
+        // Rebuild the block list only when the group set changes; otherwise update in place so the
+        // per-second refresh tick doesn't tear down every block (matches renderGroupSegmentsInto).
+        val structureTag = "acc:" + groupNames.joinToString("|")
+        if (container.tag != structureTag || container.childCount != groupNames.size) {
+            container.removeAllViews()
+            repeat(groupNames.size) {
+                container.addView(inflater.inflate(R.layout.item_proxy_group_block, container, false))
+            }
+            container.tag = structureTag
+        }
+
+        groupNames.forEachIndexed { index, _ ->
+            val block = container.getChildAt(index) ?: return@forEachIndexed
+            bindGroupBlock(block, profile, groupNames, index, expandedGroups)
+        }
+
+        // Keep the engine feeding at least the primary group's live detail.
+        reportVisibleGroup(profile, resolvePreferredGroupFromList(profile, groupNames))
+    }
+
+    private fun bindGroupBlock(
+        block: View,
+        profile: Profile,
+        groupNames: List<String>,
+        index: Int,
+        expandedGroups: MutableSet<String>,
+    ) {
+        val groupName = groupNames[index]
+        val header = block.findViewById<View>(R.id.group_block_header)
+        val nameView = block.findViewById<TextView>(R.id.group_block_name)
+        val typeView = block.findViewById<TextView>(R.id.group_block_type)
+        val summaryView = block.findViewById<TextView>(R.id.group_block_summary)
+        val countView = block.findViewById<TextView>(R.id.group_block_count)
+        val chevron = block.findViewById<View>(R.id.group_block_chevron)
+        val pingView = block.findViewById<View>(R.id.group_block_ping)
+        val pingProgress = block.findViewById<View>(R.id.group_block_ping_progress)
+        val nodesList = block.findViewById<ViewGroup>(R.id.group_block_nodes)
+
+        val pg = proxyGroupForRow(profile, groupName)
+        nameView.text = displayGroupName(groupName)
+        bindGroupType(typeView, profile, groupName)
+
+        val pendingChoice = pendingMapValueForGroup(profile.uuid, groupName)?.takeIf { it.isNotBlank() }
+        val selectedName = pendingChoice ?: pg?.now
+        val selectedDisplay = selectedName?.takeIf { it.isNotBlank() }?.let { name ->
+            pg?.proxies?.firstOrNull { it.name == name }?.let { it.title.ifBlank { it.name } } ?: name
+        }
+        summaryView.text = selectedDisplay.orEmpty()
+        summaryView.visibility = if (selectedDisplay.isNullOrBlank()) View.GONE else View.VISIBLE
+
+        val count = pg?.proxies?.count { !shouldHideProxyOption(groupName, it) } ?: 0
+        countView.text = count.toString()
+
+        val isExpanded = groupName in expandedGroups
+        chevron.rotation = if (isExpanded) 0f else -90f
+        nodesList.visibility = if (isExpanded) View.VISIBLE else View.GONE
+
+        val pinging = states.pingingUuid == profile.uuid && pingingGroupByUuid[profile.uuid] == groupName
+        pingProgress.visibility = if (pinging) View.VISIBLE else View.GONE
+        pingView.visibility = if (pinging) View.INVISIBLE else View.VISIBLE
+        pingView.setOnClickListener {
+            pingingGroupByUuid[profile.uuid] = groupName
+            val names = proxyGroupForRow(profile, groupName)?.proxies?.map { it.name }.orEmpty()
+            onPingAll(profile, groupName, names)
+        }
+
+        header.setOnClickListener {
+            if (!expandedGroups.remove(groupName)) {
+                expandedGroups.add(groupName)
+                if (useEngineFor(profile)) reportVisibleGroup(profile, groupName, force = true)
+            }
+            bindGroupBlock(block, profile, groupNames, index, expandedGroups)
+        }
+
+        if (isExpanded) {
+            fillProxyRowsInto(nodesList, profile, groupNames, index)
+        } else {
+            nodesList.removeAllViews()
+        }
+    }
+
+    private fun reportVisibleGroup(profile: Profile, groupName: String, force: Boolean = false) {
+        if (!useEngineFor(profile)) return
+        if (!force && lastReportedVisibleGroup[profile.uuid] == groupName) return
+        lastReportedVisibleGroup[profile.uuid] = groupName
+        onVisibleGroupChanged(profile, groupName)
+    }
+
+    private fun fillProxyRowsInto(
+        list: ViewGroup,
         profile: Profile,
         groupNames: List<String>,
         groupIndex: Int,
     ) {
-        val binding = holder.binding
-        val list = binding.proxyNodesList
+        // NB: do NOT clear the list up front — the 3-arg overload below is structure-guarded and
+        // must see the previously-inflated rows to update delays in place instead of re-inflating
+        // on every live-ping tick (O-07). Clearing happens only on the empty/early-out paths.
+        val context = list.context
+        val groupName = groupNames.getOrNull(groupIndex) ?: run { list.removeAllViews(); list.tag = null; return }
+        val pg = proxyGroupForRow(profile, groupName) ?: run { list.removeAllViews(); list.tag = null; return }
+        val pendingChoice = pendingMapValueForGroup(profile.uuid, groupName)?.takeIf { it.isNotBlank() }
+        val effectiveNow = pendingChoice ?: pg.now
+        val rows = pg.proxies
+            .mapIndexedNotNull { index, proxy ->
+                if (shouldHideProxyOption(groupName, proxy)) return@mapIndexedNotNull null
+                ProxyPickerRow(
+                    groupName = groupName,
+                    groupIndex = groupIndex,
+                    proxy = proxy,
+                    configIndex = index,
+                    delayMs = resolveProxyDelay(profile.uuid, proxy),
+                    selected = proxy.name.isNotEmpty() && proxy.name == effectiveNow,
+                    provider = providerNameForProxy(proxy.name),
+                )
+            }
+
+        if (rows.isEmpty()) {
+            val hintRes = when {
+                useEngineFor(profile) && !hasLiveProxyDetail(profile, groupName) ->
+                    R.string.proxy_nodes_loading
+                useEngineFor(profile) ->
+                    R.string.proxy_group_empty_runtime
+                else ->
+                    R.string.proxy_nodes_empty_connect_vpn
+            }
+            list.removeAllViews()
+            list.tag = null
+            addEmptyProxyHint(list, context, hintRes)
+            return
+        }
+
+        fillProxyRowsInto(list, profile, rows)
+    }
+
+    /**
+     * Inflates [rows] straight into a plain [list] container — the inline group-block accordion in
+     * the profile card. The bottom-sheet picker uses [ProxyNodeAdapter] (RecyclerView) instead; this
+     * path stays a simple fill because it lives inside the card's own scroll, where a nested
+     * RecyclerView could not recycle anyway. Reuses [bindProxyNodeRow] so both paths render rows
+     * identically.
+     */
+    private fun fillProxyRowsInto(
+        list: ViewGroup,
+        profile: Profile,
+        rows: List<ProxyPickerRow>,
+    ) {
+        val context = list.context
+        // Structure tag = the node identity list. During a live URL-test the engine pushes fresh
+        // delays ~8×/s and the card re-binds each push; without this guard we re-inflated every node
+        // on every tick (200 inflations/tick → ContentCapture assumeLayout flood → the device melts
+        // down during a ping, O-07). Same node set → patch the delay capsules on the existing views
+        // in place and return; only a changed node set falls through to a full re-inflate.
+        val structureTag = "nodes:" + rows.joinToString("|") { it.groupName + "/" + it.proxy.name }
+        if (rows.isNotEmpty() && list.tag == structureTag && list.childCount == rows.size) {
+            rows.forEachIndexed { i, pickerRow ->
+                list.getChildAt(i)?.let { updateProxyRowDynamic(it, pickerRow) }
+            }
+            return
+        }
+
         list.removeAllViews()
-
-        val groupName = groupNames.getOrNull(groupIndex) ?: return
-        val pg = proxyGroupForRow(profile, groupName) ?: return
-        val inflater = binding.root.context.layoutInflater
-
-        for (p in pg.proxies) {
+        list.tag = null
+        if (rows.isEmpty()) {
+            addEmptyProxyHint(list, context, R.string.profile_proxy_empty_filtered)
+            return
+        }
+        val showGroupInSubtitle = rows.map { it.groupName }.distinct().size > 1
+        val inflater = context.layoutInflater
+        for (pickerRow in rows) {
             val row = inflater.inflate(R.layout.adapter_home_proxy_node, list, false)
-            row.findViewById<TextView>(R.id.proxy_title).text = p.title.ifBlank { p.name }
-            row.findViewById<TextView>(R.id.proxy_subtitle).text =
-                p.subtitle.ifBlank { p.type.name }
-            val key = "${profile.uuid}|${p.name}"
-            val standalone = standalonePingDelays[key]
-            val delayMs = when {
-                p.delay >= 0 -> p.delay
-                standalone != null -> standalone
-                else -> p.delay
-            }
-            row.findViewById<TextView>(R.id.proxy_delay).text = formatDelay(delayMs)
-            val selected = p.name.isNotEmpty() && p.name == pg.now
-            row.findViewById<View>(R.id.selected_bar).visibility =
-                if (selected) View.VISIBLE else View.INVISIBLE
-            val mainHit = row.findViewById<View>(R.id.proxy_row_main_hit)
-            mainHit.setOnClickListener {
-                if (clashRunning && useEngineFor(profile)) {
-                    onProxyNodeSelected(profile, groupName, p.name)
-                } else if (profile.imported && profile.uuid == activeProfileUuid) {
-                    onProxyNodeSelected(profile, groupName, p.name)
-                } else {
-                    onProxyYamlDetail(profile, groupName, p.name)
-                }
-            }
-            mainHit.setOnLongClickListener {
-                onProxyYamlDetail(profile, groupName, p.name)
-                true
-            }
+            bindProxyNodeRow(row, profile, pickerRow, showGroupInSubtitle) { markRowSelected(list, row) }
             list.addView(row)
         }
+        list.tag = structureTag
+    }
+
+    /**
+     * Refreshes only the values that change without a structural change — the latency capsule and the
+     * selection ornaments — on an already-inflated node row. Used on the live-ping tick so no view is
+     * re-inflated (the capsules follow the URL-test, and the check follows a server-side `now` change).
+     */
+    private fun updateProxyRowDynamic(row: View, pickerRow: ProxyPickerRow) {
+        val delayMs = pickerRow.delayMs
+        val capsule = row.findViewById<View>(R.id.latency_capsule)
+        val dot = row.findViewById<View>(R.id.latency_dot)
+        val delayView = row.findViewById<TextView>(R.id.proxy_delay)
+        if (capsule != null && dot != null && delayView != null) {
+            delayView.text = formatDelay(delayMs)
+            applyDelayStyle(capsule, dot, delayView, delayMs, row.context)
+        }
+        val selected = pickerRow.selected
+        row.isSelected = selected
+        row.findViewById<View>(R.id.selected_bar)?.visibility = if (selected) View.VISIBLE else View.INVISIBLE
+        row.findViewById<View>(R.id.selected_check)?.visibility = if (selected) View.VISIBLE else View.GONE
+    }
+
+    /**
+     * Binds one proxy-node row view from a [ProxyPickerRow]. Shared by [ProxyNodeAdapter], whose
+     * RecyclerView recycles views so only the ~10 visible rows are ever inflated — a 200-node group
+     * no longer inflates 200 views synchronously and freezes the UI on open (O-07).
+     */
+    private fun bindProxyNodeRow(
+        row: View,
+        profile: Profile,
+        pickerRow: ProxyPickerRow,
+        showGroupInSubtitle: Boolean,
+        onSelectionChanged: () -> Unit,
+    ) {
+        val context = row.context
+        val p = pickerRow.proxy
+        val groupName = pickerRow.groupName
+
+        val title = p.title.ifBlank { p.name }
+        val flag = FlagParser.parse(title)
+        val cleanTitle = flag?.let {
+            title.removePrefix(it.emoji)
+                .trimStart(' ', '|', '-', '_', '.', ':')
+                .ifBlank { title }
+        } ?: title
+        val (namePart, cityPart) = splitNameAndCity(cleanTitle)
+        row.findViewById<TextView>(R.id.proxy_title).text = namePart
+        row.findViewById<TextView>(R.id.proxy_city).apply {
+            if (cityPart != null) {
+                text = cityPart
+                visibility = View.VISIBLE
+            } else {
+                visibility = View.GONE
+            }
+        }
+        val flagCard = row.findViewById<View>(R.id.proxy_flag_card)
+        val flagImage = row.findViewById<com.google.android.material.imageview.ShapeableImageView>(R.id.proxy_flag_image)
+        val flagText = row.findViewById<TextView>(R.id.proxy_flag)
+        if (flag != null) {
+            flagCard.visibility = View.VISIBLE
+            val sizePx = context.dp(28)
+            val bitmap = FlagDrawableLoader.loadBitmap(context, flag.code, sizePx)
+            if (bitmap != null) {
+                flagImage.setImageBitmap(bitmap)
+                flagImage.visibility = View.VISIBLE
+                flagText.visibility = View.GONE
+            } else {
+                flagImage.visibility = View.GONE
+                flagText.text = flag.emoji
+                flagText.visibility = View.VISIBLE
+            }
+        } else {
+            flagCard.visibility = View.GONE
+        }
+
+        val typeBadge = row.findViewById<TextView>(R.id.proxy_type_badge)
+        val transportBadge = row.findViewById<TextView>(R.id.proxy_transport_badge)
+        val realityBadge = row.findViewById<TextView>(R.id.proxy_reality_badge)
+        val typeName = p.type.name
+
+        // Leaf node → protocol chips (VLESS / GRPC / REALITY). Nested auto-group →
+        // a single group-type chip (URL-TEST / FALLBACK / …) so groups read distinctly
+        // from nodes. Both resolve offline (overlay: type from transport/groups preview).
+        val groupTypeLabel = groupTypeLabel(p.type)
+        val showBadge: Boolean
+        if (p.type.group) {
+            if (groupTypeLabel != null) {
+                applyProtoChip(typeBadge, groupTypeLabel, ContextCompat.getColor(context, groupTypeColor(p.type)))
+            } else {
+                typeBadge.visibility = View.GONE
+            }
+            transportBadge.visibility = View.GONE
+            realityBadge.visibility = View.GONE
+            showBadge = groupTypeLabel != null
+        } else {
+            showBadge = typeName != "Unknown"
+            if (showBadge) {
+                applyProtoChip(typeBadge, typeName.uppercase(), ContextCompat.getColor(context, protocolFamilyColor(typeName)))
+            } else {
+                typeBadge.visibility = View.GONE
+            }
+
+            val transportInfo = if (showBadge) transportInfoByProfile[profile.uuid]?.get(p.name) else null
+            val transportLabel = transportLabel(transportInfo)
+            if (transportLabel != null) {
+                applyProtoChip(transportBadge, transportLabel, ContextCompat.getColor(context, R.color.proto_transport))
+            } else {
+                transportBadge.visibility = View.GONE
+            }
+            if (transportInfo?.reality == true) {
+                applyProtoChip(realityBadge, "REALITY", ContextCompat.getColor(context, R.color.proto_reality))
+            } else {
+                realityBadge.visibility = View.GONE
+            }
+        }
+
+        val rawSubtitle = p.subtitle
+            .takeIf { it.isNotBlank() && !it.equals(typeName, ignoreCase = true) }
+        val subtitle = buildList {
+            rawSubtitle?.let(::add)
+            if (showGroupInSubtitle) add(displayGroupName(groupName))
+        }.joinToString(" · ").takeIf { it.isNotBlank() }
+        row.findViewById<TextView>(R.id.proxy_subtitle).apply {
+            visibility = if (subtitle == null) View.GONE else View.VISIBLE
+            text = subtitle.orEmpty()
+        }
+        row.findViewById<View>(R.id.proxy_subtitle_sep).visibility =
+            if (showBadge && subtitle != null) View.VISIBLE else View.GONE
+
+        val delayMs = pickerRow.delayMs
+
+        val capsule = row.findViewById<View>(R.id.latency_capsule)
+        val dot = row.findViewById<View>(R.id.latency_dot)
+        val delayView = row.findViewById<TextView>(R.id.proxy_delay)
+        delayView.text = formatDelay(delayMs)
+        applyDelayStyle(capsule, dot, delayView, delayMs, context)
+
+        val selected = pickerRow.selected
+        row.isSelected = selected
+        row.findViewById<View>(R.id.selected_bar).visibility =
+            if (selected) View.VISIBLE else View.INVISIBLE
+        row.findViewById<View>(R.id.selected_check).visibility =
+            if (selected) View.VISIBLE else View.GONE
+        val mainHit = row.findViewById<View>(R.id.proxy_row_main_hit)
+        val tryPickNode: () -> Boolean = {
+            val canPickLive = clashRunning && useEngineFor(profile)
+            val canPickOffline = profile.imported && profile.uuid == activeProfileUuid
+            if (canPickLive || canPickOffline) {
+                setPendingProxySelection(profile.uuid, groupName, p.name)
+                // Re-submit the list so the newly-selected and previously-selected rows rebind
+                // (the RecyclerView is data-driven; DiffUtil touches just those two rows).
+                onSelectionChanged()
+                onProxyNodeSelected(profile, groupName, p.name)
+                true
+            } else {
+                false
+            }
+        }
+        mainHit.setOnClickListener {
+            if (!tryPickNode()) {
+                onProxyYamlDetail(profile, groupName, p.name)
+            }
+        }
+        mainHit.setOnLongClickListener {
+            onProxyYamlDetail(profile, groupName, p.name)
+            true
+        }
+    }
+
+    private val proxyNodeDiff = object : DiffUtil.ItemCallback<ProxyPickerRow>() {
+        override fun areItemsTheSame(oldItem: ProxyPickerRow, newItem: ProxyPickerRow): Boolean =
+            oldItem.groupName == newItem.groupName && oldItem.proxy.name == newItem.proxy.name
+
+        // ProxyPickerRow is a data class — equals covers delay/selected/proxy, so DiffUtil rebinds
+        // only the rows whose delay or selection actually changed (e.g. live-ping capsule updates),
+        // which is what refreshProxyDelaysInPlace used to hand-roll.
+        override fun areContentsTheSame(oldItem: ProxyPickerRow, newItem: ProxyPickerRow): Boolean =
+            oldItem == newItem
+    }
+
+    private inner class ProxyNodeAdapter(
+        private val profile: Profile,
+        private val onSelectionChanged: () -> Unit,
+    ) : ListAdapter<ProxyPickerRow, ProxyNodeViewHolder>(proxyNodeDiff) {
+        /** Recomputed by the caller before each submit; true when the rows span more than one group. */
+        var showGroupInSubtitle: Boolean = false
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ProxyNodeViewHolder {
+            val v = parent.context.layoutInflater.inflate(R.layout.adapter_home_proxy_node, parent, false)
+            return ProxyNodeViewHolder(v)
+        }
+
+        override fun onBindViewHolder(holder: ProxyNodeViewHolder, position: Int) {
+            bindProxyNodeRow(holder.itemView, profile, getItem(position), showGroupInSubtitle, onSelectionChanged)
+        }
+    }
+
+    private class ProxyNodeViewHolder(view: View) : RecyclerView.ViewHolder(view)
+
+    /**
+     * Empty-state hint for the bottom-sheet node list: distinguishes "this group has no nodes yet"
+     * (loading / connect the VPN) from "the current filter matched nothing".
+     */
+    private fun proxyPickerEmptyHint(profile: Profile, groupName: String?, groupHasNodes: Boolean): Int =
+        when {
+            groupHasNodes -> R.string.profile_proxy_empty_filtered
+            useEngineFor(profile) && !hasLiveProxyDetail(profile, groupName.orEmpty()) -> R.string.proxy_nodes_loading
+            useEngineFor(profile) -> R.string.proxy_group_empty_runtime
+            else -> R.string.proxy_nodes_empty_connect_vpn
+        }
+
+    private fun buildProxyPickerRows(
+        profile: Profile,
+        groupNames: List<String>,
+        currentGroupIndex: Int,
+    ): List<ProxyPickerRow> {
+        val selectedIndex = currentGroupIndex.coerceIn(0, groupNames.lastIndex)
+        return groupNames.flatMapIndexed { groupIndex, groupName ->
+            val pg = proxyGroupForRow(profile, groupName) ?: return@flatMapIndexed emptyList()
+            val pendingChoice = pendingMapValueForGroup(profile.uuid, groupName)
+                ?.takeIf { it.isNotBlank() }
+            val effectiveNow = pendingChoice ?: pg.now
+            pg.proxies.mapIndexedNotNull { proxyIndex, proxy ->
+                if (shouldHideProxyOption(groupName, proxy)) return@mapIndexedNotNull null
+                ProxyPickerRow(
+                    groupName = groupName,
+                    groupIndex = groupIndex,
+                    proxy = proxy,
+                    configIndex = groupIndex * 100_000 + proxyIndex,
+                    delayMs = resolveProxyDelay(profile.uuid, proxy),
+                    selected = proxy.name.isNotEmpty() && proxy.name == effectiveNow,
+                    provider = providerNameForProxy(proxy.name),
+                )
+            }
+        }.let { rows ->
+            val selectedGroupRows = rows.filter { it.groupIndex == selectedIndex }
+            rows.filterNot { it.groupIndex == selectedIndex } + selectedGroupRows
+        }.sortedBy { it.configIndex }
+    }
+
+    private fun applyProxyPickerControls(
+        rows: List<ProxyPickerRow>,
+        query: String,
+        sort: ProxyPickerSort,
+        filter: ProxyPickerFilter,
+        currentGroupIndex: Int,
+    ): List<ProxyPickerRow> {
+        val normalizedQuery = query.trim()
+        val filtered = rows.asSequence()
+            .filter { row ->
+                normalizedQuery.isBlank() ||
+                    row.proxy.name.contains(normalizedQuery, ignoreCase = true) ||
+                    row.proxy.title.contains(normalizedQuery, ignoreCase = true) ||
+                    row.groupName.contains(normalizedQuery, ignoreCase = true) ||
+                    displayGroupName(row.groupName).contains(normalizedQuery, ignoreCase = true) ||
+                    row.provider?.contains(normalizedQuery, ignoreCase = true) == true
+            }
+            .filter { row ->
+                when (filter) {
+                    ProxyPickerFilter.All -> true
+                    ProxyPickerFilter.CurrentGroup -> row.groupIndex == currentGroupIndex
+                    ProxyPickerFilter.Selected -> row.selected
+                    ProxyPickerFilter.Available -> row.available
+                    is ProxyPickerFilter.Provider -> row.provider == filter.name
+                }
+            }
+            .toList()
+
+        return when (sort) {
+            ProxyPickerSort.Config -> filtered.sortedBy { it.configIndex }
+            ProxyPickerSort.Delay -> filtered.sortedWith(
+                compareBy<ProxyPickerRow> { if (it.delayMs >= 0) 0 else 1 }
+                    .thenBy { if (it.delayMs >= 0) it.delayMs else Int.MAX_VALUE }
+                    .thenBy(String.CASE_INSENSITIVE_ORDER) { displayGroupName(it.groupName) }
+                    .thenBy(String.CASE_INSENSITIVE_ORDER) { it.proxy.title.ifBlank { it.proxy.name } },
+            )
+            ProxyPickerSort.Name -> filtered.sortedWith(
+                compareBy<ProxyPickerRow, String>(String.CASE_INSENSITIVE_ORDER) { row ->
+                    row.proxy.title.ifBlank { row.proxy.name }
+                }
+                    .thenBy(String.CASE_INSENSITIVE_ORDER) { displayGroupName(it.groupName) }
+                    .thenBy { it.configIndex },
+            )
+        }
+    }
+
+    private fun resolveProxyDelay(uuid: UUID, proxy: Proxy): Int {
+        val key = "${uuid}|${proxy.name}"
+        val standalone = standalonePingDelays[key]
+        val nested = nestedGroupDelay(uuid, proxy.name)
+        return when {
+            proxy.delay >= 0 -> proxy.delay
+            nested >= 0 -> nested
+            standalone != null -> standalone
+            else -> proxy.delay
+        }
+    }
+
+    private fun providerNameForProxy(proxyName: String): String? {
+        val trimmed = proxyName.trimStart()
+        if (!trimmed.startsWith("[")) return null
+        val end = trimmed.indexOf(']')
+        if (end <= 1) return null
+        return trimmed.substring(1, end).takeIf { it.isNotBlank() }
+    }
+
+    /** Clear all rows' selected-state ornaments, then mark [target] as selected. */
+    private fun markRowSelected(list: ViewGroup, target: View) {
+        for (i in 0 until list.childCount) {
+            val r = list.getChildAt(i)
+            r.isSelected = false
+            r.findViewById<View>(R.id.selected_bar)?.visibility = View.INVISIBLE
+            r.findViewById<View>(R.id.selected_check)?.visibility = View.GONE
+        }
+        target.isSelected = true
+        target.findViewById<View>(R.id.selected_bar).visibility = View.VISIBLE
+        target.findViewById<View>(R.id.selected_check).visibility = View.VISIBLE
+    }
+
+    private fun bindGroupType(view: TextView, profile: Profile, groupName: String) {
+        // The group's type is now shown inline as a per-row chip (groupTypeLabel), so the
+        // standalone "Selector"/"URLTest" caption above the list is redundant — keep it hidden.
+        view.visibility = View.GONE
+    }
+
+    private fun shouldHideProxyOption(groupName: String, proxy: Proxy): Boolean {
+        if (!groupName.equals("GLOBAL", ignoreCase = true)) return false
+        if (proxy.type == Proxy.Type.Direct || proxy.type == Proxy.Type.Reject) return true
+        return proxy.name.equals("DIRECT", ignoreCase = true) ||
+            proxy.name.equals("REJECT", ignoreCase = true)
+    }
+
+    private fun shouldHideProxyName(groupName: String, proxyName: String): Boolean {
+        if (!groupName.equals("GLOBAL", ignoreCase = true)) return false
+        return proxyName.equals("DIRECT", ignoreCase = true) ||
+            proxyName.equals("REJECT", ignoreCase = true)
+    }
+
+    private fun scrollProxyPickerToSelected(
+        sheet: BottomSheetProxyGroupsBinding,
+        rows: List<ProxyPickerRow>,
+    ) {
+        val index = rows.indexOfFirst { it.selected }
+        if (index < 0) return
+        sheet.proxySheetNodesList.post {
+            (sheet.proxySheetNodesList.layoutManager as? LinearLayoutManager)
+                ?.scrollToPositionWithOffset(index, 0)
+        }
+    }
+
+    private fun addEmptyProxyHint(
+        list: ViewGroup,
+        context: Context,
+        messageRes: Int = R.string.proxy_nodes_empty_connect_vpn,
+    ) {
+        val tv = TextView(context).apply {
+            text = context.getString(messageRes)
+            setPadding(context.dp(8), context.dp(8), context.dp(8), context.dp(8))
+            setTextColor(ContextCompat.getColor(context, R.color.delay_timeout))
+        }
+        list.addView(tv)
+    }
+
+    private fun nestedGroupDelay(uuid: UUID, proxyName: String): Int {
+        val seen = linkedSetOf<String>()
+
+        fun resolve(groupName: String): Int {
+            if (!seen.add(groupName)) return -1
+
+            proxyDetails[groupName]?.let { group ->
+                val selectedDelay = group.proxies
+                    .firstOrNull { it.name == group.now && it.delay >= 0 }
+                    ?.delay
+                if (selectedDelay != null) return selectedDelay
+
+                return group.proxies.asSequence()
+                    .map { proxy ->
+                        when {
+                            proxy.delay >= 0 -> proxy.delay
+                            proxy.name in proxyDetails -> resolve(proxy.name)
+                            else -> standalonePingDelays["$uuid|${proxy.name}"] ?: -1
+                        }
+                    }
+                    .filter { it >= 0 }
+                    .minOrNull() ?: -1
+            }
+
+            val offline = offlinePreviewByProfile[uuid]?.get(groupName) ?: return -1
+            return offline.members.asSequence()
+                .map { name ->
+                    val direct = standalonePingDelays["$uuid|$name"]
+                    direct ?: resolve(name)
+                }
+                .filter { it >= 0 }
+                .minOrNull() ?: -1
+        }
+
+        return resolve(proxyName)
+    }
+
+    private fun splitNameAndCity(text: String): Pair<String, String?> {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) return trimmed to null
+        val lastSpace = trimmed.lastIndexOf(' ')
+        if (lastSpace <= 0) return trimmed to null
+        val head = trimmed.substring(0, lastSpace).trim()
+        val tail = trimmed.substring(lastSpace + 1).trim()
+        if (head.isEmpty() || tail.length < 3) return trimmed to null
+        val tailIsCityLike = tail.first().isLetter() && tail.all { it.isLetter() || it == '-' || it == '\'' }
+        val headHasIdShape = head.any { it.isDigit() || it == '-' || it == '_' || it == '#' }
+        return if (tailIsCityLike && headHasIdShape) head to tail else trimmed to null
+    }
+
+    /** "TCP" / "WS" / "GRPC" / "XHTTP" / "H2" / "HTTP"; null when YAML had no transport info. */
+    private fun transportLabel(info: ProxyTransportInfo?): String? {
+        if (info == null) return null
+        return when (val net = info.network.lowercase()) {
+            "" -> "TCP"
+            "h2", "http2" -> "H2"
+            else -> net.uppercase()
+        }
+    }
+
+    private fun protocolFamilyColor(typeName: String): Int = when (typeName.lowercase()) {
+        "vmess", "vless" -> R.color.proto_vless
+        "trojan" -> R.color.proto_trojan
+        "hysteria", "hysteria2" -> R.color.proto_hysteria
+        "tuic", "anytls", "masque" -> R.color.proto_tuic
+        "shadowsocks", "shadowsocksr", "snell", "socks5" -> R.color.proto_shadowsocks
+        "http" -> R.color.proto_http
+        "wireguard", "trusttunnel" -> R.color.proto_wireguard
+        "direct" -> R.color.proto_tcp
+        else -> R.color.proto_default
+    }
+
+    /** Lumen protocol chip: coloured label on a soft (~14% alpha) tint of the same colour. */
+    private fun applyProtoChip(badge: TextView, label: String, color: Int) {
+        badge.visibility = View.VISIBLE
+        badge.text = label
+        badge.setTextColor(color)
+        val tint = (color and 0x00FFFFFF) or (0x24 shl 24) // ~14% alpha fill
+        badge.backgroundTintList = ColorStateList.valueOf(tint)
+    }
+
+    /** Label for a nested auto-group member (url-test / fallback / …); null for leaf nodes. */
+    private fun groupTypeLabel(type: Proxy.Type): String? = when (type) {
+        Proxy.Type.URLTest -> "URL-TEST"
+        Proxy.Type.Fallback -> "FALLBACK"
+        Proxy.Type.LoadBalance -> "LOAD-BALANCE"
+        Proxy.Type.Selector -> "SELECTOR"
+        Proxy.Type.Relay -> "RELAY"
+        else -> null
+    }
+
+    /** Per-type chip colour — shared semantic palette with SlothClash (brand unity). */
+    private fun groupTypeColor(type: Proxy.Type): Int = when (type) {
+        Proxy.Type.URLTest -> R.color.group_urltest
+        Proxy.Type.Fallback -> R.color.group_fallback
+        Proxy.Type.LoadBalance -> R.color.group_loadbalance
+        Proxy.Type.Selector -> R.color.group_selector
+        Proxy.Type.Relay -> R.color.group_relay
+        else -> R.color.proto_default
+    }
+
+    private fun applyDelayStyle(
+        capsule: View,
+        dot: View,
+        text: TextView,
+        delayMs: Int,
+        context: Context,
+    ) {
+        // Lumen: delay reads as a coloured dot + value (Space Grotesk), no filled capsule.
+        val colorRes = when {
+            delayMs in 0..200 -> R.color.delay_good
+            delayMs in 201..500 -> R.color.delay_medium
+            delayMs in 501..Short.MAX_VALUE -> R.color.delay_bad
+            else -> R.color.delay_timeout
+        }
+        val color = ContextCompat.getColor(context, colorRes)
+        capsule.setBackgroundResource(0)
+        dot.backgroundTintList = ColorStateList.valueOf(color)
+        text.setTextColor(color)
     }
 
     private fun formatUsageLine(p: Profile): String {
@@ -395,5 +2178,157 @@ class ProfileAdapter(
             else -> "—"
         }
 
+    private fun displayGroupName(groupName: String): String =
+        groupName.trim().replace(Regex("\\s+"), " ")
+
+    private fun resolveCurrentNodeDisplayName(profile: Profile): String? {
+        val groups = groupsForSelectionSummary(profile)
+        if (groups.isEmpty()) return null
+
+        val preferred = selectedGroupForSummary(profile)
+        val orderedGroups = buildList {
+            preferred?.let { add(it) }
+            addAll(groups.filterNot { it == preferred })
+        }
+
+        for (group in orderedGroups) {
+            val selected = resolvedSelectedProxyName(profile, group)
+                ?.let(::displayGroupName)
+            if (!selected.isNullOrBlank()) return selected
+        }
+
+        val offlineSelected = offlineSelectionsByProfile[profile.uuid]
+            ?.values
+            ?.firstOrNull { it.isNotBlank() }
+            ?.let(::displayGroupName)
+        if (!offlineSelected.isNullOrBlank()) return offlineSelected
+
+        return null
+    }
+
+    private fun resolvedSelectedProxyName(profile: Profile, groupName: String): String? =
+        resolvedSelectedProxyName(profile, groupName, linkedSetOf())
+
+    private fun resolvedSelectedProxyName(
+        profile: Profile,
+        groupName: String,
+        seen: MutableSet<String>,
+    ): String? {
+        if (!seen.add(groupName)) return null
+
+        val selected = proxyGroupForRow(profile, groupName)
+            ?.now
+            ?.takeIf { it.isNotBlank() }
+            ?: return null
+        if (shouldHideProxyName(groupName, selected)) return null
+
+        if (selectedLooksLikeGroup(profile, groupName, selected)) {
+            resolvedSelectedProxyName(profile, selected, seen)
+                ?.takeIf { it.isNotBlank() }
+                ?.let { return it }
+        }
+
+        return selected
+    }
+
+    private fun selectedLooksLikeGroup(profile: Profile, groupName: String, selected: String): Boolean {
+        val selectedProxy = proxyGroupForRow(profile, groupName)
+            ?.proxies
+            ?.firstOrNull { it.name == selected }
+        return if (useEngineFor(profile)) {
+            selectedProxy?.type?.group == true || selected in proxyDetails
+        } else {
+            selected in offlinePreviewByProfile[profile.uuid].orEmpty()
+        }
+    }
+
+    private fun bindProfileFlag(
+        binding: AdapterProfileBinding,
+        context: Context,
+        flag: ParsedFlag?,
+    ) {
+        if (flag != null) {
+            binding.profileFlagCard.visibility = View.VISIBLE
+            binding.profileIcon.visibility = View.GONE
+            binding.profileIconEmoji.visibility = View.GONE
+            val sizePx = context.dp(40)
+            val bitmap = FlagDrawableLoader.loadBitmap(context, flag.code, sizePx)
+            if (bitmap != null) {
+                binding.profileFlagImage.setImageBitmap(bitmap)
+                binding.profileFlagImage.visibility = View.VISIBLE
+                binding.profileFlag.visibility = View.GONE
+            } else {
+                binding.profileFlagImage.visibility = View.GONE
+                binding.profileFlag.text = flag.emoji
+                binding.profileFlag.visibility = View.VISIBLE
+            }
+        } else {
+            binding.profileFlagCard.visibility = View.GONE
+            binding.profileFlagImage.visibility = View.GONE
+            binding.profileFlag.visibility = View.GONE
+            binding.profileIcon.visibility = View.VISIBLE
+            binding.profileIconEmoji.visibility = View.GONE
+        }
+    }
+
+    private fun formatNodeHeadline(raw: String, context: Context): Pair<String, String?> {
+        val trimmed = raw.trim()
+        val leadingEmoji = extractLeadingEmoji(trimmed)
+        val stripped = if (leadingEmoji != null) {
+            trimmed.removePrefix(leadingEmoji).trimStart(' ', '|', '-', '_', '.', ':')
+        } else {
+            trimmed
+        }
+        return stripped to leadingEmoji
+    }
+
+    private fun extractLeadingEmoji(raw: String): String? {
+        val input = raw.trimStart()
+        if (input.isEmpty()) return null
+
+        val firstCp = input.codePointAt(0)
+        val firstLen = Character.charCount(firstCp)
+
+        // Handle country flags encoded as two regional-indicator symbols.
+        if (isRegionalIndicator(firstCp) && input.length >= firstLen + 2) {
+            val secondCp = input.codePointAt(firstLen)
+            if (isRegionalIndicator(secondCp)) {
+                return String(Character.toChars(firstCp)) + String(Character.toChars(secondCp))
+            }
+        }
+
+        if (!isEmojiLike(firstCp)) return null
+        val base = String(Character.toChars(firstCp))
+        val remaining = input.substring(firstLen)
+        val variant = if (remaining.startsWith("\uFE0F")) "\uFE0F" else ""
+        return base + variant
+    }
+
+    private fun isRegionalIndicator(codePoint: Int): Boolean =
+        codePoint in 0x1F1E6..0x1F1FF
+
+    private fun isEmojiLike(codePoint: Int): Boolean =
+        codePoint in 0x1F300..0x1FAFF ||
+            codePoint in 0x2600..0x27BF ||
+            codePoint in 0x2300..0x23FF
+
+    private fun profileEmoji(profile: Profile): String {
+        val index = (profile.uuid.hashCode() and Int.MAX_VALUE) % profileEmojiPool.size
+        return profileEmojiPool[index]
+    }
+
     override fun getItemCount(): Int = profiles.size
+
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView)
+        mainHandler.removeCallbacks(activeCardNotifyRunnable)
+    }
+
+    private companion object {
+        /** Coalesce window for live URL-test delay pushes (one card rebind instead of N). */
+        const val ACTIVE_CARD_NOTIFY_DEBOUNCE_MS = 250L
+    }
 }
+
+private fun Context.dp(value: Int): Int =
+    (value * resources.displayMetrics.density).toInt()

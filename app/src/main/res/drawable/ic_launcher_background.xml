@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Obsidian icon background. The foreground illustration already carries its own
+     near-black backdrop; this solid black fills the adaptive-icon bleed so any launcher
+     mask (circle / squircle / teardrop) crops onto pure black and blends seamlessly. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#000000"
+        android:pathData="M0,0h108v108h-108z" />
+</vector>

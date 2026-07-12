@@ -1,10 +1,9 @@
 package tunnel
 
 import (
+	"regexp"
 	"sort"
 	"strings"
-
-	"github.com/dlclark/regexp2"
 
 	"github.com/metacubex/mihomo/adapter/outboundgroup"
 	C "github.com/metacubex/mihomo/constant"
@@ -52,7 +51,32 @@ func (s *sortableProxyList) Swap(i, j int) {
 	s.list[i], s.list[j] = s.list[j], s.list[i]
 }
 
+// When excludeNotSelectable is true, hide auto groups (URLTest, load-balance, relay) but keep
+// Selector and Fallback — nested fallback chains are common in subscription layouts.
+func proxyGroupVisibleWithSelectableFilter(adapterType C.AdapterType) bool {
+	switch adapterType {
+	case C.Selector, C.Fallback:
+		return true
+	default:
+		return false
+	}
+}
+
 func QueryProxyGroupNames(excludeNotSelectable bool) []string {
+	return queryProxyGroupNames(excludeNotSelectable, false)
+}
+
+// QueryAllProxyGroupNamesIncludingHidden returns every proxy group, including
+// `hidden: true` entries that QueryProxyGroupNames filters out for the UI.
+// Used by the health-check warmup path: subscriptions with deep group trees
+// where the user-facing root is `select` but every url-test/fallback child is
+// hidden would otherwise never get a health check triggered, because the
+// warmup builds its candidate set from the visible-name list.
+func QueryAllProxyGroupNamesIncludingHidden() []string {
+	return queryProxyGroupNames(false, true)
+}
+
+func queryProxyGroupNames(excludeNotSelectable bool, includeHidden bool) []string {
 	mode := tunnel.Mode()
 
 	if mode == tunnel.Direct {
@@ -69,8 +93,8 @@ func QueryProxyGroupNames(excludeNotSelectable bool) []string {
 
 	for _, p := range proxies {
 		if g, ok := p.Adapter().(outboundgroup.ProxyGroup); ok {
-			if !excludeNotSelectable || p.Type() == C.Selector {
-				if g.Hidden() {
+			if !excludeNotSelectable || proxyGroupVisibleWithSelectableFilter(p.Type()) {
+				if g.Hidden() && !includeHidden {
 					continue
 				}
 				result = append(result, p.Name())
@@ -81,7 +105,7 @@ func QueryProxyGroupNames(excludeNotSelectable bool) []string {
 	return result
 }
 
-func QueryProxyGroup(name string, sortMode SortMode, uiSubtitlePattern *regexp2.Regexp) *ProxyGroup {
+func QueryProxyGroup(name string, sortMode SortMode, uiSubtitlePattern *regexp.Regexp) *ProxyGroup {
 	p := tunnel.Proxies()[name]
 
 	if p == nil {
@@ -97,8 +121,42 @@ func QueryProxyGroup(name string, sortMode SortMode, uiSubtitlePattern *regexp2.
 		return nil
 	}
 
-	proxies := convertProxies(g.Proxies(), uiSubtitlePattern)
-	// 	proxies := collectProviders(g.Providers(), uiSubtitlePattern)
+	rawMembers := g.Proxies()
+	proxies := convertProxies(rawMembers, uiSubtitlePattern)
+	// mihomo's g.Proxies() already expands include-all / include-all-proxies / include-all-providers
+	// and `use:` references down to the group's real leaf members, AND applies the group's `filter`
+	// and `exclude-filter`. So only fall back to enumerating the group's providers directly when
+	// g.Proxies() yielded NO dialable leaf — i.e. an empty group or a pure dispatch shell whose
+	// members are all sub-groups (the case this merge was originally added for, where the picker
+	// otherwise showed only sub-groups instead of the provider's nodes).
+	//
+	// Doing the merge unconditionally re-introduced nodes the group's exclude-filter had dropped:
+	// an excluded node is absent from g.Proxies() but still present in the backing provider, so
+	// collectProviders (which does not apply the group filter) added it right back — the reported
+	// "exclude-filter has no effect while connected" bug.
+	hasLeaf := false
+	for _, m := range rawMembers {
+		if _, isGroup := m.Adapter().(outboundgroup.ProxyGroup); !isGroup {
+			hasLeaf = true
+			break
+		}
+	}
+	if !hasLeaf {
+		providerProxies := collectProviders(g.Providers(), uiSubtitlePattern)
+		if len(providerProxies) > 0 {
+			existing := make(map[string]struct{}, len(proxies)+len(providerProxies))
+			for _, p := range proxies {
+				existing[p.Name] = struct{}{}
+			}
+			for _, p := range providerProxies {
+				if _, ok := existing[p.Name]; ok {
+					continue
+				}
+				existing[p.Name] = struct{}{}
+				proxies = append(proxies, p)
+			}
+		}
+	}
 
 	switch sortMode {
 	case Title:
@@ -155,6 +213,8 @@ func PatchSelector(selector, name string) bool {
 
 	if err := s.Set(name); err != nil {
 		log.Warnln("Patch selector `%s`: %s", selector, err.Error())
+
+		return false
 	}
 
 	log.Infoln("Patch selector %s -> %s", selector, name)
@@ -164,7 +224,7 @@ func PatchSelector(selector, name string) bool {
 	return true
 }
 
-func convertProxies(proxies []C.Proxy, uiSubtitlePattern *regexp2.Regexp) []*Proxy {
+func convertProxies(proxies []C.Proxy, uiSubtitlePattern *regexp.Regexp) []*Proxy {
 	result := make([]*Proxy, 0, 128)
 
 	for _, p := range proxies {
@@ -174,11 +234,9 @@ func convertProxies(proxies []C.Proxy, uiSubtitlePattern *regexp2.Regexp) []*Pro
 
 		if uiSubtitlePattern != nil {
 			if _, ok := p.Adapter().(outboundgroup.ProxyGroup); !ok {
-				runes := []rune(name)
-				match, err := uiSubtitlePattern.FindRunesMatch(runes)
-				if err == nil && match != nil {
-					title = string(runes[:match.Index]) + string(runes[match.Index+match.Length:])
-					subtitle = string(runes[match.Index : match.Index+match.Length])
+				if match := uiSubtitlePattern.FindStringIndex(name); match != nil {
+					title = name[:match[0]] + name[match[1]:]
+					subtitle = name[match[0]:match[1]]
 				}
 			}
 		}
@@ -201,7 +259,7 @@ func convertProxies(proxies []C.Proxy, uiSubtitlePattern *regexp2.Regexp) []*Pro
 	return result
 }
 
-func collectProviders(providers []provider.ProxyProvider, uiSubtitlePattern *regexp2.Regexp) []*Proxy {
+func collectProviders(providers []provider.ProxyProvider, uiSubtitlePattern *regexp.Regexp) []*Proxy {
 	result := make([]*Proxy, 0, 128)
 
 	for _, p := range providers {
@@ -212,11 +270,9 @@ func collectProviders(providers []provider.ProxyProvider, uiSubtitlePattern *reg
 
 			if uiSubtitlePattern != nil {
 				if _, ok := px.Adapter().(outboundgroup.ProxyGroup); !ok {
-					runes := []rune(name)
-					match, err := uiSubtitlePattern.FindRunesMatch(runes)
-					if err == nil && match != nil {
-						title = string(runes[:match.Index]) + string(runes[match.Index+match.Length:])
-						subtitle = string(runes[match.Index : match.Index+match.Length])
+					if match := uiSubtitlePattern.FindStringIndex(name); match != nil {
+						title = name[:match[0]] + name[match[1]:]
+						subtitle = name[match[0]:match[1]]
 					}
 				}
 			}

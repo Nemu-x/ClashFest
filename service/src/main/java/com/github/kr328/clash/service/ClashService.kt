@@ -37,6 +37,7 @@ class ClashService : BaseService() {
         install(AppListCacheModule(self))
         install(TimeZoneModule(self))
         install(SuspendModule(self))
+        install(SpeedWidgetModule(self))
 
         try {
             while (isActive) {
@@ -56,6 +57,10 @@ class ClashService : BaseService() {
 
                 if (quit) break
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // Normal VPN stop cancels the runtime scope — not a failure. Rethrow so it isn't logged
+            // as "Create clash runtime failed" on every stop, and structured cancellation works. (O-01)
+            throw e
         } catch (e: Exception) {
             Log.e("Create clash runtime failed", e)
 
@@ -71,8 +76,13 @@ class ClashService : BaseService() {
         super.onCreate()
         ProxyPropertyGuard.clearGlobalProxyProperties()
 
-        if (StatusProvider.serviceRunning)
+        // See TunService.onCreate — same handoff window applies when the
+        // app starts the headless service variant. Brief wait turns the
+        // racing onCreate/onDestroy pair into a deterministic restart.
+        if (!StatusProvider.awaitServiceShutdown()) {
+            Log.w("ClashService: previous instance still alive after handoff timeout, aborting")
             return stopSelf()
+        }
 
         StatusProvider.serviceRunning = true
 

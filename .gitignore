@@ -27,7 +27,7 @@ gradle-app.setting
 /core/src/premium/golang/.idea/*
 !/core/src/premium/golang/.idea/codeStyles
 
-# Ignore builtin geofiles
+# Ignore builtin geofiles (fetched at build time from a pinned, checksum-verified source)
 app/src/main/assets
 
 # KeyStore
@@ -64,3 +64,15 @@ google-services.json
 
 # MacOS
 .DS_Store
+
+# AI agent tooling (local, not shared)
+.claude/
+.cursor/
+openspec/
+
+# Generated write-pipeline-robustness oracle fixtures (Layer-2)
+core/src/main/golang/native/snapshot/testdata/roundtrip/
+
+# Local-only architecture deep-dive maps (not committed)
+architecture/
+core/src/main/golang/native/snapshot/testdata/merge/

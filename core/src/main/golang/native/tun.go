@@ -7,6 +7,7 @@ import (
 	"context"
 	"io"
 	"sync"
+	"time"
 	"unsafe"
 
 	"golang.org/x/sync/semaphore"
@@ -50,21 +51,46 @@ func (t *remoteTun) querySocketUid(protocol int, source, target string) int {
 
 func (t *remoteTun) close() {
 	_ = t.limit.Acquire(context.TODO(), 4)
-	defer t.limit.Release(4)
 
 	t.closed = true
 
-	if t.closer != nil {
-		_ = t.closer.Close()
-	}
-
+	// Drop the global tun context synchronously: no new markSocket/querySocketUid should target this
+	// instance while its stack drains, and doing it now (rather than in the background goroutine)
+	// avoids a late clear clobbering the context a subsequent startTun installs on reconnect.
 	app.ApplyTunContext(nil, nil)
 
-	C.release_object(t.callback)
+	// sing_tun's gVisor/mixed Close() drains a userspace netstack and can block for several seconds.
+	// Don't hold the VpnService teardown (and the reconnect handoff under rTunLock) hostage to it —
+	// finish the close, callback release and semaphore drain in the background, waiting only briefly.
+	// The System stack closes instantly and hits the fast path; gVisor/mixed keep closing after we
+	// return, which is safe: the context is already cleared and the fd is per-instance.
+	closer := t.closer
+	callback := t.callback
+	done := make(chan struct{})
+	go func() {
+		if closer != nil {
+			_ = closer.Close()
+		}
+		C.release_object(callback)
+		t.limit.Release(4)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(700 * time.Millisecond):
+	}
 }
 
 //export startTun
-func startTun(fd C.int, stack, gateway, portal, dns C.c_string, callback unsafe.Pointer) C.int {
+func startTun(fd C.int, stack, gateway, portal, dns C.c_string, callback unsafe.Pointer) (result C.int) {
+	// On panic return a failure code (1), not the success value (0).
+	defer func() {
+		if r := recover(); r != nil {
+			logRecover("startTun", r)
+			result = 1
+		}
+	}()
 	rTunLock.Lock()
 	defer rTunLock.Unlock()
 
@@ -99,6 +125,7 @@ func startTun(fd C.int, stack, gateway, portal, dns C.c_string, callback unsafe.
 
 //export stopTun
 func stopTun() {
+	defer guard("stopTun")()
 	rTunLock.Lock()
 	defer rTunLock.Unlock()
 

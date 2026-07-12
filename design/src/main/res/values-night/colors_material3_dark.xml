@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material 3 Dark Color Scheme for ClashFest -->
+
+    <!-- Primary Colors -->
+    <color name="md3_dark_primary">#00E676</color>
+    <color name="md3_dark_onPrimary">#00390E</color>
+    <color name="md3_dark_primaryContainer">#00531A</color>
+    <color name="md3_dark_onPrimaryContainer">#9AFF92</color>
+
+    <!-- Secondary Colors -->
+    <color name="md3_dark_secondary">#8B5CF6</color>
+    <color name="md3_dark_onSecondary">#FFFFFF</color>
+    <color name="md3_dark_secondaryContainer">#6D3FD7</color>
+    <color name="md3_dark_onSecondaryContainer">#E6DDFF</color>
+
+    <!-- Tertiary Colors -->
+    <color name="md3_dark_tertiary">#5A9BB3</color>
+    <color name="md3_dark_onTertiary">#001F29</color>
+    <color name="md3_dark_tertiaryContainer">#1E4858</color>
+    <color name="md3_dark_onTertiaryContainer">#C1E8FA</color>
+
+    <!-- Error Colors -->
+    <color name="md3_dark_error">#FFB4AB</color>
+    <color name="md3_dark_onError">#690005</color>
+    <color name="md3_dark_errorContainer">#93000A</color>
+    <color name="md3_dark_onErrorContainer">#FFDAD6</color>
+
+    <!-- Background Colors — Lumen "obsidian": deep neutral near-black (warm-neutral, no blue
+         cast) so cards read premium against the canvas and any dynamic accent sits cleanly. -->
+    <color name="md3_dark_background">#0A0A0B</color>
+    <color name="md3_dark_onBackground">#EDECEF</color>
+
+    <!-- Surface Colors -->
+    <color name="md3_dark_surface">#141415</color>
+    <color name="md3_dark_onSurface">#EDECEF</color>
+
+    <!-- Surface Variant Colors -->
+    <color name="md3_dark_surfaceVariant">#201F22</color>
+    <color name="md3_dark_onSurfaceVariant">#9B9AA0</color>
+
+    <!-- Outline Colors -->
+    <color name="md3_dark_outline">#55545A</color>
+    <color name="md3_dark_outlineVariant">#333237</color>
+
+    <!-- Surface Container Colors — deliberate depth ladder (recessed → raised) -->
+    <color name="md3_dark_surfaceContainerLowest">#0B0B0C</color>
+    <color name="md3_dark_surfaceContainerLow">#141416</color>
+    <color name="md3_dark_surfaceContainer">#1A1A1C</color>
+    <color name="md3_dark_surfaceContainerHigh">#212023</color>
+    <color name="md3_dark_surfaceContainerHighest">#29282B</color>
+
+    <!-- Inverse Colors -->
+    <color name="md3_dark_inverseSurface">#E6EDF3</color>
+    <color name="md3_dark_inverseOnSurface">#1D2733</color>
+    <color name="md3_dark_inversePrimary">#2FA36B</color>
+
+    <!-- Proxy Delay Colors (dark variants) -->
+    <color name="delay_good">#66BB6A</color>
+    <color name="delay_good_bg">#1B2E7D32</color>
+    <color name="delay_medium">#FFA726</color>
+    <color name="delay_medium_bg">#1BE65100</color>
+    <color name="delay_bad">#EF5350</color>
+    <color name="delay_bad_bg">#1BC62828</color>
+    <color name="delay_timeout">#757575</color>
+    <color name="delay_timeout_bg">#1B757575</color>
+
+    <!-- Proxy Type Badge Colors (dark) -->
+    <color name="proxy_type_badge_bg">#3300E676</color>
+    <color name="proxy_type_badge_text">#A5D6A7</color>
+
+    <!-- Flag Square Background (dark) -->
+    <color name="flag_square_bg">#1A2330</color>
+
+    <!-- Protocol family colors (dark) -->
+    <color name="proto_tcp">#7DDF93</color>
+    <color name="proto_ws">#7FDDE6</color>
+    <color name="proto_grpc">#9CC6FF</color>
+    <color name="proto_http">#FFB37A</color>
+    <color name="proto_xhttp">#FFB37A</color>
+    <color name="proto_transport">#4DB6AC</color>
+    <color name="proto_reality">#F48FB1</color>
+    <color name="proto_hysteria">#F2C76F</color>
+    <color name="proto_tuic">#F2C76F</color>
+    <color name="proto_vmess">#C0A6FF</color>
+    <color name="proto_vless">#C0A6FF</color>
+    <color name="proto_trojan">#FF99BB</color>
+    <color name="proto_shadowsocks">#7FC7FF</color>
+    <color name="proto_wireguard">#A5D6A7</color>
+    <color name="proto_default">#A8AFB5</color>
+
+    <!-- Lumen lux-card hairline: a whisper of light on the card edge (top-light feel). -->
+    <color name="lumen_hairline">#16FFFFFF</color>
+
+    <!-- Proxy-group type chips — shared palette with SlothClash (brand unity). -->
+    <color name="group_urltest">#7EE0A8</color>
+    <color name="group_selector">#C4B5FD</color>
+    <color name="group_fallback">#5EEAD4</color>
+    <color name="group_loadbalance">#D2D27A</color>
+    <color name="group_relay">#82AAFF</color>
+</resources>

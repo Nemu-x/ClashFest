@@ -2,13 +2,13 @@ package com.github.kr328.clash.design
 
 import android.content.Context
 import android.view.View
+import android.app.Activity
+import androidx.appcompat.app.AppCompatActivity
 import com.github.kr328.clash.design.databinding.DesignSettingsCommonBinding
+import com.github.kr328.clash.design.model.AppLanguage
 import com.github.kr328.clash.design.model.Behavior
-import com.github.kr328.clash.design.model.DarkMode
 import com.github.kr328.clash.design.preference.*
 import com.github.kr328.clash.design.store.UiStore
-import com.github.kr328.clash.design.util.applyFrom
-import com.github.kr328.clash.design.util.bindAppBarElevation
 import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.design.util.root
 import com.github.kr328.clash.service.store.ServiceStore
@@ -22,7 +22,8 @@ class AppSettingsDesign(
     onHideIconChange: (hide: Boolean) -> Unit,
 ) : Design<AppSettingsDesign.Request>(context) {
     enum class Request {
-        ReCreateAllActivities
+        ReCreateAllActivities,
+        ApplyLanguage,
     }
 
     private val binding = DesignSettingsCommonBinding
@@ -33,10 +34,7 @@ class AppSettingsDesign(
 
     init {
         binding.surface = surface
-
-        binding.activityBarLayout.applyFrom(context)
-
-        binding.scrollRoot.bindAppBarElevation(binding.activityBarLayout)
+        binding.header.screenTitle.text = (context as? Activity)?.title?.toString().orEmpty()
 
         val screen = preferenceScreen(context) {
             category(R.string.behavior)
@@ -51,18 +49,19 @@ class AppSettingsDesign(
             category(R.string.interface_)
 
             selectableList(
-                value = uiStore::darkMode,
-                values = DarkMode.values(),
+                value = uiStore::appLanguage,
+                values = AppLanguage.values(),
                 valuesText = arrayOf(
-                    R.string.follow_system_android_10,
-                    R.string.always_light,
-                    R.string.always_dark
+                    R.string.app_language_system,
+                    R.string.app_language_en,
+                    R.string.app_language_ru,
+                    R.string.app_language_zh,
                 ),
-                icon = R.drawable.ic_baseline_brightness_4,
-                title = R.string.dark_mode
+                icon = R.drawable.ic_baseline_language,
+                title = R.string.app_language,
             ) {
                 listener = OnChangedListener {
-                    requests.trySend(Request.ReCreateAllActivities)
+                    requests.trySend(Request.ApplyLanguage)
                 }
             }
 
@@ -88,6 +87,27 @@ class AppSettingsDesign(
                 }
             }
 
+            switch(
+                value = uiStore::dnsHostsEnabled,
+                icon = R.drawable.ic_baseline_language,
+                title = R.string.dns_hosts_experimental_title,
+                summary = R.string.dns_hosts_experimental_summary,
+            )
+
+            switch(
+                value = uiStore::tunnelsEnabled,
+                icon = R.drawable.ic_baseline_swap_horiz,
+                title = R.string.tunnels_experimental_title,
+                summary = R.string.tunnels_experimental_summary,
+            )
+
+            switch(
+                value = uiStore::expertEnabled,
+                icon = R.drawable.ic_baseline_bolt,
+                title = R.string.expert_features_title,
+                summary = R.string.expert_features_summary,
+            )
+
             category(R.string.service)
 
             switch(
@@ -98,6 +118,13 @@ class AppSettingsDesign(
             ) {
                 enabled = !running
             }
+
+            switch(
+                value = srvStore::allowExternalControl,
+                icon = R.drawable.ic_baseline_stack,
+                title = R.string.allow_external_control_title,
+                summary = R.string.allow_external_control_summary,
+            )
         }
 
         binding.content.addView(screen.root)

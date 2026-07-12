@@ -19,4 +19,7 @@ data class Pending(
     @ColumnInfo(name = "total") val total: Long,
     @ColumnInfo(name = "expire") val expire: Long,
     @ColumnInfo(name = "createdAt") val createdAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(name = "profileOrder") val profileOrder: Long = createdAt,
+    /** age identity (AGE-SECRET-KEY-…) used to decrypt an age-encrypted subscription; null = plain. */
+    @ColumnInfo(name = "ageSecretKey") val ageSecretKey: String? = null,
 )

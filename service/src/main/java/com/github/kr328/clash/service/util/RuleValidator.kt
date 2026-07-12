@@ -5,7 +5,18 @@ import com.github.kr328.clash.service.model.RuleState
 object RuleValidator {
     private val builtInPolicies = setOf("DIRECT", "REJECT", "REJECT-DROP", "PASS")
 
-    fun validate(state: RuleState, availableProxyGroups: Set<String> = emptySet()) {
+    /**
+     * @param availablePolicies proxy-group names **and** proxy (node) names a rule may target —
+     *        in mihomo a rule policy can be a single proxy, not only a group.
+     * @param allowUnknownPolicy when the config pulls proxies from proxy-providers their names are
+     *        not statically known, so an unknown policy can't be confidently rejected; the engine
+     *        gate is the real check. Set true in that case to avoid false rejections.
+     */
+    fun validate(
+        state: RuleState,
+        availablePolicies: Set<String> = emptySet(),
+        allowUnknownPolicy: Boolean = false,
+    ) {
         val duplicateProvider = state.providers
             .map { it.name.trim() }
             .filter { it.isNotBlank() }
@@ -22,13 +33,22 @@ object RuleValidator {
 
         state.rules.filter { it.enabled && !it.deleted }.forEach {
             require(it.type.isNotBlank()) { "Rule type is empty" }
+            // Opaque/logical types (AND/OR/NOT/SUB-RULE/SCRIPT) carry their whole
+            // payload in `raw`; value AND policy are legitimately empty for them.
+            // Validating those fields would reject a perfectly valid subscription
+            // rule and fail the entire save. Only their raw line must be present.
+            if (RuleMapper.isOpaqueType(it.type)) {
+                require(it.raw.isNotBlank()) { "Rule line is empty for type ${it.type}" }
+                return@forEach
+            }
             if (!it.type.equals("MATCH", true)) {
                 require(it.value.isNotBlank()) { "Rule value is empty for type ${it.type}" }
             }
             require(it.policy.isNotBlank()) { "Rule policy is empty" }
             val policy = it.policy.trim()
-            val knownPolicy = builtInPolicies.contains(policy) || availableProxyGroups.contains(policy)
-            require(knownPolicy) { "Unknown rule policy/group: $policy" }
+            val knownPolicy = builtInPolicies.any { b -> b.equals(policy, true) } ||
+                availablePolicies.any { g -> g.equals(policy, true) }
+            require(allowUnknownPolicy || knownPolicy) { "Unknown rule policy/group: $policy" }
         }
     }
 }

@@ -2,12 +2,17 @@ package com.github.kr328.clash.design
 
 import android.content.Context
 import android.view.View
+import android.view.inputmethod.InputMethodManager
+import android.widget.ArrayAdapter
+import androidx.core.widget.doAfterTextChanged
 import com.github.kr328.clash.core.model.FetchStatus
 import com.github.kr328.clash.design.databinding.DesignPropertiesBinding
 import com.github.kr328.clash.design.dialog.ModelProgressBarConfigure
-import com.github.kr328.clash.design.dialog.requestModelTextInput
 import com.github.kr328.clash.design.dialog.withModelProgressBar
-import com.github.kr328.clash.design.util.*
+import com.github.kr328.clash.design.util.applyFrom
+import com.github.kr328.clash.design.util.bindAppBarElevation
+import com.github.kr328.clash.design.util.layoutInflater
+import com.github.kr328.clash.design.util.root
 import com.github.kr328.clash.service.model.Profile
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
@@ -18,13 +23,37 @@ import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 
 class PropertiesDesign(context: Context) : Design<PropertiesDesign.Request>(context) {
+    private enum class UserAgentPreset {
+        Default,
+        HappIos,
+        HappAndroid,
+        V2RayTunIos,
+        V2RayTunAndroid,
+        Custom,
+    }
+
     sealed class Request {
         object Commit : Request()
         object BrowseFiles : Request()
+        object BrowseProxyProviders : Request()
     }
 
     private val binding = DesignPropertiesBinding
         .inflate(context.layoutInflater, context.root, false)
+
+    private var suppressFieldSync: Boolean = false
+    private var userAgentOverrideValue: String = ""
+    private var userAgentChangeListener: ((String) -> Unit)? = null
+    private var strictUserAgentValue: Boolean = false
+    private var strictUserAgentChangeListener: ((Boolean) -> Unit)? = null
+    private var userAgentPreset: UserAgentPreset = UserAgentPreset.Default
+
+    /** Operator policy: disallow editing subscription URL (still allows name/interval). */
+    var subscriptionSourceLocked: Boolean = false
+        set(value) {
+            field = value
+            applyFieldEnabled()
+        }
 
     override val root: View
         get() = binding.root
@@ -33,10 +62,54 @@ class PropertiesDesign(context: Context) : Design<PropertiesDesign.Request>(cont
         get() = binding.profile!!
         set(value) {
             binding.profile = value
+            syncFieldsFromProfile()
+            applyFieldEnabled()
         }
 
     val progressing: Boolean
         get() = binding.processing
+
+    var userAgentOverride: String
+        get() = userAgentOverrideValue
+        set(value) {
+            val normalized = value.trim()
+            userAgentOverrideValue = normalized
+            userAgentPreset = when (normalized.lowercase()) {
+                "" -> UserAgentPreset.Default
+                "happ" -> UserAgentPreset.HappIos
+                "happ/android" -> UserAgentPreset.HappAndroid
+                "v2raytun/ios" -> UserAgentPreset.V2RayTunIos
+                "v2raytun/android" -> UserAgentPreset.V2RayTunAndroid
+                else -> UserAgentPreset.Custom
+            }
+            val presetLabel = presetLabel(userAgentPreset)
+            if (binding.editUserAgentPreset.text?.toString() != presetLabel) {
+                binding.editUserAgentPreset.setText(presetLabel, false)
+            }
+            if (userAgentPreset == UserAgentPreset.Custom &&
+                binding.editUserAgentCustom.text?.toString() != normalized
+            ) {
+                binding.editUserAgentCustom.setText(normalized)
+            }
+            applyUserAgentVisibility()
+        }
+
+    fun setOnUserAgentChanged(listener: (String) -> Unit) {
+        userAgentChangeListener = listener
+    }
+
+    var strictUserAgent: Boolean
+        get() = strictUserAgentValue
+        set(value) {
+            strictUserAgentValue = value
+            if (binding.switchUserAgentStrict.isChecked != value) {
+                binding.switchUserAgentStrict.isChecked = value
+            }
+        }
+
+    fun setOnStrictUserAgentChanged(listener: (Boolean) -> Unit) {
+        strictUserAgentChangeListener = listener
+    }
 
     suspend fun withProcessing(executeTask: suspend (suspend (FetchStatus) -> Unit) -> Unit) {
         try {
@@ -81,64 +154,127 @@ class PropertiesDesign(context: Context) : Design<PropertiesDesign.Request>(cont
 
         binding.activityBarLayout.applyFrom(context)
 
-        binding.tips.text = context.getHtml(R.string.tips_properties)
-
         binding.scrollRoot.bindAppBarElevation(binding.activityBarLayout)
+        binding.editUserAgentPreset.setAdapter(
+            ArrayAdapter(
+                context,
+                android.R.layout.simple_list_item_1,
+                listOf(
+                    presetLabel(UserAgentPreset.Default),
+                    presetLabel(UserAgentPreset.HappIos),
+                    presetLabel(UserAgentPreset.HappAndroid),
+                    presetLabel(UserAgentPreset.V2RayTunIos),
+                    presetLabel(UserAgentPreset.V2RayTunAndroid),
+                    presetLabel(UserAgentPreset.Custom),
+                ),
+            ),
+        )
+
+        binding.editName.doAfterTextChanged { text ->
+            if (suppressFieldSync) return@doAfterTextChanged
+            profile = profile.copy(name = text?.toString().orEmpty())
+        }
+        binding.editUrl.doAfterTextChanged { text ->
+            if (suppressFieldSync) return@doAfterTextChanged
+            // Operator links carry the age key in the fragment — split it into
+            // the key field right as the URL is pasted, so the user sees both
+            // fields populate and the key never lingers inside the visible URL.
+            val split = com.github.kr328.clash.common.util.AgeKeyUrl.split(text?.toString().orEmpty())
+            profile = if (split.ageSecretKey != null) {
+                profile.copy(source = split.source, ageSecretKey = split.ageSecretKey)
+            } else {
+                profile.copy(source = split.source)
+            }
+        }
+        binding.editInterval.doAfterTextChanged { text ->
+            if (suppressFieldSync) return@doAfterTextChanged
+            val raw = text?.toString()?.trim().orEmpty()
+            val minutes = raw.toLongOrNull() ?: 0L
+            val interval = TimeUnit.MINUTES.toMillis(minutes.coerceAtLeast(0))
+            profile = profile.copy(interval = interval)
+        }
+        binding.editAgeSecretKey.doAfterTextChanged { text ->
+            if (suppressFieldSync) return@doAfterTextChanged
+            val raw = text?.toString()?.trim().orEmpty()
+            // Inline validation: empty (no encryption) or an age identity.
+            binding.layoutAgeSecretKey.error =
+                if (raw.isEmpty() || raw.startsWith("AGE-SECRET-KEY-", ignoreCase = true)) null
+                else context.getString(R.string.age_secret_key_error)
+            profile = profile.copy(ageSecretKey = raw.ifBlank { null })
+        }
+        binding.editUserAgentPreset.setOnItemClickListener { _, _, position, _ ->
+            userAgentPreset = when (position) {
+                1 -> UserAgentPreset.HappIos
+                2 -> UserAgentPreset.HappAndroid
+                3 -> UserAgentPreset.V2RayTunIos
+                4 -> UserAgentPreset.V2RayTunAndroid
+                5 -> UserAgentPreset.Custom
+                else -> UserAgentPreset.Default
+            }
+            applyUserAgentVisibility()
+            val value = when (userAgentPreset) {
+                UserAgentPreset.Default -> ""
+                UserAgentPreset.HappIos -> "Happ"
+                UserAgentPreset.HappAndroid -> "Happ/Android"
+                UserAgentPreset.V2RayTunIos -> "v2raytun/ios"
+                UserAgentPreset.V2RayTunAndroid -> "v2raytun/android"
+                UserAgentPreset.Custom -> binding.editUserAgentCustom.text?.toString()?.trim().orEmpty()
+            }
+            if (userAgentOverrideValue != value) {
+                userAgentOverrideValue = value
+                userAgentChangeListener?.invoke(value)
+            }
+        }
+        binding.editUserAgentCustom.doAfterTextChanged { text ->
+            if (userAgentPreset != UserAgentPreset.Custom) return@doAfterTextChanged
+            val value = text?.toString()?.trim().orEmpty()
+            if (userAgentOverrideValue == value) return@doAfterTextChanged
+            userAgentOverrideValue = value
+            userAgentChangeListener?.invoke(value)
+        }
+        binding.switchUserAgentStrict.setOnCheckedChangeListener { _, checked ->
+            if (strictUserAgentValue == checked) return@setOnCheckedChangeListener
+            strictUserAgentValue = checked
+            strictUserAgentChangeListener?.invoke(checked)
+        }
+        applyUserAgentVisibility()
     }
 
-    fun inputName() {
-        launch {
-            val name = context.requestModelTextInput(
-                initial = profile.name,
-                title = context.getText(R.string.name),
-                hint = context.getText(R.string.properties),
-                error = context.getText(R.string.should_not_be_blank),
-                validator = ValidatorNotBlank
-            )
-
-            if (name != profile.name) {
-                profile = profile.copy(name = name)
-            }
+    private fun syncFieldsFromProfile() {
+        val p = profile
+        suppressFieldSync = true
+        try {
+            val minutes = TimeUnit.MILLISECONDS.toMinutes(p.interval)
+            val intervalText = if (minutes == 0L) "" else minutes.toString()
+            // Avoid setText when unchanged — setText resets the cursor and breaks inline rename (issue #2).
+            if (binding.editName.text?.toString() != p.name) binding.editName.setText(p.name)
+            if (binding.editUrl.text?.toString() != p.source) binding.editUrl.setText(p.source)
+            if (binding.editInterval.text?.toString() != intervalText) binding.editInterval.setText(intervalText)
+            val ageKey = p.ageSecretKey.orEmpty()
+            if (binding.editAgeSecretKey.text?.toString() != ageKey) binding.editAgeSecretKey.setText(ageKey)
+        } finally {
+            suppressFieldSync = false
         }
     }
 
-    fun inputUrl() {
-        if (profile.type == Profile.Type.External)
-            return
-
-        launch {
-            val url = context.requestModelTextInput(
-                initial = profile.source,
-                title = context.getText(R.string.url),
-                hint = context.getText(R.string.profile_url),
-                error = context.getText(R.string.accept_http_content),
-                validator = ValidatorHttpUrl
-            )
-
-            if (url != profile.source) {
-                profile = profile.copy(source = url)
-            }
-        }
+    private fun applyFieldEnabled() {
+        val p = profile
+        binding.layoutUrl.isEnabled = p.type == Profile.Type.Url && !subscriptionSourceLocked
+        binding.layoutInterval.isEnabled = p.type != Profile.Type.File
     }
 
-    fun inputInterval() {
-        launch {
-            var minutes = TimeUnit.MILLISECONDS.toMinutes(profile.interval)
+    private fun applyUserAgentVisibility() {
+        binding.layoutUserAgentCustom.visibility =
+            if (userAgentPreset == UserAgentPreset.Custom) View.VISIBLE else View.GONE
+    }
 
-            minutes = context.requestModelTextInput(
-                initial = if (minutes == 0L) "" else minutes.toString(),
-                title = context.getText(R.string.auto_update),
-                hint = context.getText(R.string.auto_update_minutes),
-                error = context.getText(R.string.at_least_15_minutes),
-                validator = ValidatorAutoUpdateInterval
-            ).toLongOrNull() ?: 0
-
-            val interval = TimeUnit.MINUTES.toMillis(minutes)
-
-            if (interval != profile.interval) {
-                profile = profile.copy(interval = interval)
-            }
-        }
+    private fun presetLabel(preset: UserAgentPreset): String = when (preset) {
+        UserAgentPreset.Default -> context.getString(R.string.subscription_user_agent_preset_default)
+        UserAgentPreset.HappIos -> context.getString(R.string.subscription_user_agent_preset_happ_ios)
+        UserAgentPreset.HappAndroid -> context.getString(R.string.subscription_user_agent_preset_happ_android)
+        UserAgentPreset.V2RayTunIos -> context.getString(R.string.subscription_user_agent_preset_v2raytun_ios)
+        UserAgentPreset.V2RayTunAndroid -> context.getString(R.string.subscription_user_agent_preset_v2raytun_android)
+        UserAgentPreset.Custom -> context.getString(R.string.subscription_user_agent_preset_custom)
     }
 
     fun requestCommit() {
@@ -149,14 +285,35 @@ class PropertiesDesign(context: Context) : Design<PropertiesDesign.Request>(cont
         requests.trySend(Request.BrowseFiles)
     }
 
+    fun requestProxyProviders() {
+        requests.trySend(Request.BrowseProxyProviders)
+    }
+
+    fun focusSubscriptionUrlIfEmpty() {
+        val p = profile
+        if (p.type != Profile.Type.Url || p.source.isNotBlank()) return
+        binding.editUrl.post {
+            binding.editUrl.requestFocus()
+            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                ?: return@post
+            imm.showSoftInput(binding.editUrl, InputMethodManager.SHOW_IMPLICIT)
+        }
+    }
+
     private fun ModelProgressBarConfigure.applyFrom(status: FetchStatus) {
         when (status.action) {
             FetchStatus.Action.FetchConfiguration -> {
-                text = context.getString(R.string.format_fetching_configuration, status.args[0])
+                text = context.getString(
+                    R.string.format_fetching_configuration,
+                    status.args.getOrElse(0) { "…" },
+                )
                 isIndeterminate = true
             }
             FetchStatus.Action.FetchProviders -> {
-                text = context.getString(R.string.format_fetching_provider, status.args[0])
+                text = context.getString(
+                    R.string.format_fetching_provider,
+                    status.args.getOrElse(0) { "…" },
+                )
                 isIndeterminate = false
                 max = status.max
                 progress = status.progress

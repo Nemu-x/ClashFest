@@ -12,6 +12,7 @@ import java.io.File
 object Bridge {
     external fun nativeReset()
     external fun nativeForceGc()
+    external fun nativeUpdateGeoDatabases(): String?
     external fun nativeSuspend(suspend: Boolean)
     external fun nativeQueryTunnelState(): String
     external fun nativeQueryTrafficNow(): Long
@@ -24,20 +25,42 @@ object Bridge {
     external fun nativeStartHttp(listenAt: String): String?
     external fun nativeStopHttp()
     external fun nativeQueryGroupNames(excludeNotSelectable: Boolean): String
+    external fun nativeQueryAllGroupNamesIncludingHidden(): String
     external fun nativeQueryGroup(name: String, sort: String): String?
     external fun nativeHealthCheck(completable: CompletableDeferred<Unit>, name: String)
+    external fun nativeHealthCheckWithCallback(callback: ProxyDelayCallback, name: String)
     external fun nativeHealthCheckAll()
     external fun nativePatchSelector(selector: String, name: String): Boolean
     external fun nativeFetchAndValid(
         completable: FetchCallback,
         path: String,
         url: String,
-        force: Boolean
+        force: Boolean,
+        subscriptionHeadersJson: String,
     )
 
+    external fun nativeFetchProvidersAndValid(
+        completable: FetchCallback,
+        path: String,
+        force: Boolean,
+        subscriptionHeadersJson: String,
+    )
+
+    external fun nativeSetAgeSecretKey(key: String?)
+    external fun nativeGenX25519KeyPair(): String?
+    external fun nativeGenHybridKeyPair(): String?
+    external fun nativeVeritySecretKeys(secretKeys: String): Boolean
+    external fun nativeToPublicKeys(secretKeys: String): String?
+    external fun nativeVerityPublicKeys(publicKeys: String): Boolean
     external fun nativeLoad(completable: CompletableDeferred<Unit>, path: String)
+    external fun nativeValidateProfile(completable: CompletableDeferred<Unit>, path: String)
+    external fun nativeParseProfileSnapshot(path: String): String
+    external fun nativeParseProfileSnapshotFromBytes(yaml: String): String
+    external fun nativeValidateProfileBytes(yaml: String): String?
     external fun nativeQueryProviders(): String
     external fun nativeQueryConnectionsSnapshot(): String
+    external fun nativeCloseConnection(id: String): Boolean
+    external fun nativeCloseAllConnections(): Int
     external fun nativeUpdateProvider(
         completable: CompletableDeferred<Unit>,
         type: String,

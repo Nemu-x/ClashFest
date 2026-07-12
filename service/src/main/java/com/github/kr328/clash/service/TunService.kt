@@ -13,6 +13,8 @@ import com.github.kr328.clash.service.clash.clashRuntime
 import com.github.kr328.clash.service.clash.module.*
 import com.github.kr328.clash.service.model.AccessControlMode
 import com.github.kr328.clash.service.store.ServiceStore
+import com.github.kr328.clash.service.util.TunStackResolver
+import com.github.kr328.clash.service.util.importedDir
 import com.github.kr328.clash.service.util.cancelAndJoinBlocking
 import com.github.kr328.clash.service.util.parseCIDR
 import com.github.kr328.clash.service.util.ProxyPropertyGuard
@@ -43,6 +45,7 @@ class TunService : VpnService(), CoroutineScope by CoroutineScope(Dispatchers.De
         install(AppListCacheModule(self))
         install(TimeZoneModule(self))
         install(SuspendModule(self))
+        install(SpeedWidgetModule(self))
 
         try {
             tun.open()
@@ -70,6 +73,10 @@ class TunService : VpnService(), CoroutineScope by CoroutineScope(Dispatchers.De
 
                 if (quit) break
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // Normal VPN stop cancels the runtime scope — not a failure. Rethrow so it isn't logged
+            // as "Create clash runtime failed" on every stop, and structured cancellation works. (O-01)
+            throw e
         } catch (e: Exception) {
             Log.e("Create clash runtime failed", e)
 
@@ -77,6 +84,14 @@ class TunService : VpnService(), CoroutineScope by CoroutineScope(Dispatchers.De
         } finally {
             withContext(NonCancellable) {
                 tun.close()
+
+                // The tunnel is down at this point (runtime torn down + Clash.reset). Broadcast
+                // "stopped" NOW so the UI flips to Disconnected immediately, instead of waiting for
+                // onDestroy — Android delays onDestroy by up to a few seconds when a foreground
+                // service is stopped right after it started (immediate connect→disconnect), which
+                // otherwise leaves the dashboard stuck on "Connected". onDestroy re-sends it (the
+                // broadcast is idempotent) to cover paths where the runtime never reached here.
+                sendClashStopped(reason)
 
                 stopSelf()
             }
@@ -87,8 +102,15 @@ class TunService : VpnService(), CoroutineScope by CoroutineScope(Dispatchers.De
         super.onCreate()
         ProxyPropertyGuard.clearGlobalProxyProperties()
 
-        if (StatusProvider.serviceRunning)
+        // Rapid Disconnect→Connect from the UI used to commit suicide here:
+        // the previous instance was still inside onDestroy → cancelAndJoinBlocking,
+        // so serviceRunning was true and the new instance stopSelf'd, leaving
+        // the user disconnected silently. awaitServiceShutdown gives the
+        // previous onDestroy up to 500ms to flip the flag back.
+        if (!StatusProvider.awaitServiceShutdown()) {
+            Log.w("TunService: previous instance still alive after handoff timeout, aborting")
             return stopSelf()
+        }
 
         StatusProvider.serviceRunning = true
 
@@ -178,8 +200,8 @@ class TunService : VpnService(), CoroutineScope by CoroutineScope(Dispatchers.De
             // Mtu
             setMtu(TUN_MTU)
 
-            // Session Name
-            setSession("Clash")
+            // Session name shown in system VPN UI (not related to traffic encryption).
+            setSession(getString(R.string.vpn_session_name))
 
             // Virtual Dns Server
             addDnsServer(TUN_DNS)
@@ -222,14 +244,28 @@ class TunService : VpnService(), CoroutineScope by CoroutineScope(Dispatchers.De
             TunModule.TunDevice(
                 fd = establish()?.detachFd()
                     ?: throw NullPointerException("Establish VPN rejected by system"),
-                stack = store.tunStackMode,
+                // Operator `X-Network-Stack` header locks the stack; else the user's app setting; else
+                // (Auto) the subscription's tun.stack; else the `system` default. See TunStackResolver.
+                stack = TunStackResolver.resolve(
+                    store.tunStackMode,
+                    store.activeProfile?.let { store.subscriptionNetworkStackFor(it) },
+                    readActiveProfileConfigYaml(),
+                ),
                 gateway = "$TUN_GATEWAY/$TUN_SUBNET_PREFIX" + if (store.allowIpv6) ",$TUN_GATEWAY6/$TUN_SUBNET_PREFIX6" else "",
                 portal = TUN_PORTAL + if (store.allowIpv6) ",$TUN_PORTAL6" else "",
-                dns = if (store.dnsHijacking) NET_ANY else (TUN_DNS + if (store.allowIpv6) ",$TUN_DNS6" else ""),
+                dns = buildTunDnsEndpoints(store.dnsHijacking, store.allowIpv6),
             )
         }
 
         attach(device)
+    }
+
+    /** Composed `config.yaml` of the active profile (subscription as-is + user layer), or null. */
+    private fun readActiveProfileConfigYaml(): String? {
+        val uuid = ServiceStore(self).activeProfile ?: return null
+        return runCatching {
+            java.io.File(self.importedDir.resolve(uuid.toString()), "config.yaml").readText()
+        }.getOrNull()
     }
 
     companion object {
@@ -244,6 +280,13 @@ class TunService : VpnService(), CoroutineScope by CoroutineScope(Dispatchers.De
         private const val TUN_DNS6 = TUN_PORTAL6
         private const val NET_ANY = "0.0.0.0"
         private const val NET_ANY6 = "::"
+
+        internal fun buildTunDnsEndpoints(dnsHijacking: Boolean, allowIpv6: Boolean): String =
+            if (dnsHijacking) {
+                NET_ANY + if (allowIpv6) ",$NET_ANY6" else ""
+            } else {
+                TUN_DNS + if (allowIpv6) ",$TUN_DNS6" else ""
+            }
 
         private val HTTP_PROXY_LOCAL_LIST: List<String> = listOf(
             "localhost",

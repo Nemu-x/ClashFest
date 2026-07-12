@@ -6,16 +6,23 @@ import android.content.ClipboardManager
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import android.widget.Toast
 import androidx.core.content.getSystemService
+import com.github.kr328.clash.common.log.Log
 import com.github.kr328.clash.design.AccessControlDesign
+import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.model.AppInfo
 import com.github.kr328.clash.design.util.toAppInfo
+import com.github.kr328.clash.service.model.AccessControlMode
 import com.github.kr328.clash.service.store.ServiceStore
+import com.github.kr328.clash.util.RussianBypassDefaults
 import com.github.kr328.clash.util.startClashService
 import com.github.kr328.clash.util.stopClashService
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withContext
 
@@ -26,12 +33,35 @@ class AccessControlActivity : BaseActivity<AccessControlDesign>() {
         val selected = withContext(Dispatchers.IO) {
             service.accessControlPackages.toMutableSet()
         }
+        val initialSelected = selected.toSet()
+        var currentMode: AccessControlMode = withContext(Dispatchers.IO) {
+            service.accessControlMode
+        }
+        val initialMode = currentMode
 
         defer {
             withContext(Dispatchers.IO) {
-                val changed = selected != service.accessControlPackages
+                val locallyModified =
+                    selected.toSet() != initialSelected || currentMode != initialMode
+                if (!locallyModified) return@withContext
+
+                val latestPackages = service.accessControlPackages
+                val latestMode = service.accessControlMode
+                val externallyModified =
+                    latestPackages != initialSelected || latestMode != initialMode
+                if (externallyModified) {
+                    Log.w("Skip access-control save due to external concurrent update")
+                    return@withContext
+                }
+
+                val changedPackages = selected.toSet() != latestPackages
+                val changedMode = currentMode != latestMode
                 service.accessControlPackages = selected
-                if (clashRunning && changed) {
+                service.accessControlMode = currentMode
+                if (changedPackages || changedMode) {
+                    service.russianBypassSeeded = true
+                }
+                if (clashRunning && (changedPackages || changedMode)) {
                     stopClashService()
                     while (clashRunning) {
                         delay(200)
@@ -45,7 +75,11 @@ class AccessControlActivity : BaseActivity<AccessControlDesign>() {
 
         setContentDesign(design)
 
+        design.setMode(currentMode)
         design.requests.send(AccessControlDesign.Request.ReloadApps)
+        maybePromptRussianBypass(service, design, selected) { mode ->
+            currentMode = mode
+        }
 
         while (isActive) {
             select<Unit> {
@@ -56,6 +90,14 @@ class AccessControlActivity : BaseActivity<AccessControlDesign>() {
                     when (it) {
                         AccessControlDesign.Request.ReloadApps -> {
                             design.patchApps(loadApps(selected))
+                        }
+
+                        AccessControlDesign.Request.ChangeMode -> {
+                            design.pendingMode?.let { mode ->
+                                currentMode = mode
+                                design.setMode(currentMode)
+                                design.patchApps(loadApps(selected))
+                            }
                         }
 
                         AccessControlDesign.Request.SelectAll -> {
@@ -115,6 +157,47 @@ class AccessControlActivity : BaseActivity<AccessControlDesign>() {
                 }
             }
         }
+    }
+
+    private suspend fun maybePromptRussianBypass(
+        service: ServiceStore,
+        design: AccessControlDesign,
+        selected: MutableSet<String>,
+        setMode: (AccessControlMode) -> Unit,
+    ) {
+        val shouldPrompt = withContext(Dispatchers.IO) {
+            !service.russianBypassSeeded && service.accessControlPackages.isEmpty()
+        }
+        if (!shouldPrompt) return
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.ru_bypass_routing_prompt_title)
+            .setMessage(R.string.ru_bypass_routing_prompt_message)
+            .setPositiveButton(R.string.ru_bypass_routing_prompt_apply) { _, _ ->
+                launch {
+                    val count = withContext(Dispatchers.IO) {
+                        val before = selected.size
+                        selected.addAll(RussianBypassDefaults.installed(packageManager))
+                        service.accessControlMode = AccessControlMode.DenySelected
+                        service.accessControlPackages = selected
+                        service.russianBypassSeeded = true
+                        selected.size - before
+                    }
+                    val mode = AccessControlMode.DenySelected
+                    setMode(mode)
+                    design.setMode(mode)
+                    design.patchApps(loadApps(selected))
+                    if (count > 0) {
+                        Toast.makeText(
+                            this@AccessControlActivity,
+                            getString(R.string.ru_bypass_prompt_seeded, count),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }
+            .setNegativeButton(R.string.ru_bypass_routing_prompt_later, null)
+            .show()
     }
 
     private suspend fun loadApps(selected: Set<String>): List<AppInfo> =

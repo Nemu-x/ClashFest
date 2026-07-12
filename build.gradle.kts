@@ -11,7 +11,12 @@ buildscript {
     repositories {
         mavenCentral()
         google()
-        maven("https://raw.githubusercontent.com/MetaCubeX/maven-backup/main/releases")
+        // Vendored copy of the few kr328 artifacts (golang gradle-plugin, kaidl)
+        // that only exist in MetaCubeX/maven-backup. Do not add the mutable
+        // raw.githubusercontent.com branch mirror here: buildscript artifacts
+        // execute during Gradle configuration, so they must come from this
+        // repository-controlled copy instead of an unpinned branch.
+        maven(rootProject.projectDir.resolve("maven").toURI())
     }
     dependencies {
         classpath(libs.build.android)
@@ -26,7 +31,10 @@ subprojects {
     repositories {
         mavenCentral()
         google()
-        maven("https://raw.githubusercontent.com/MetaCubeX/maven-backup/main/releases")
+        // Same trust boundary as the buildscript block above: kr328 artifacts
+        // are resolved from the repository-controlled vendored Maven copy, not
+        // from the mutable raw.githubusercontent.com branch mirror.
+        maven(rootProject.projectDir.resolve("maven").toURI())
     }
 
     val isApp = name == "app"
@@ -60,8 +68,8 @@ subprojects {
             minSdk = 21
             targetSdk = 35
 
-            versionName = "0.3.0"
-            versionCode = 211025
+            versionName = "0.10.0"
+            versionCode = 1000000
 
             resValue("string", "release_name", "v$versionName")
             resValue("integer", "release_code", "$versionCode")
@@ -107,11 +115,10 @@ subprojects {
                     versionNameSuffix = ".Alpha"
                 }
 
-
-                buildConfigField("boolean", "PREMIUM", "Boolean.parseBoolean(\"false\")")
-
-                resValue("string", "launch_name", "@string/launch_name_alpha")
-                resValue("string", "application_name", "@string/application_name_alpha")
+                if (isApp) {
+                    resValue("string", "launch_name", "@string/launch_name_alpha")
+                    resValue("string", "application_name", "@string/application_name_alpha")
+                }
 
                 if (isApp && !removeSuffix) {
                     applicationIdSuffix = ".alpha"
@@ -124,11 +131,10 @@ subprojects {
                 if (!removeSuffix) {
                     versionNameSuffix = ".Meta"
                 }
-
-                buildConfigField("boolean", "PREMIUM", "Boolean.parseBoolean(\"false\")")
-
-                resValue("string", "launch_name", "@string/launch_name_meta")
-                resValue("string", "application_name", "@string/application_name_meta")
+                if (isApp) {
+                    resValue("string", "launch_name", "@string/launch_name_meta")
+                    resValue("string", "application_name", "@string/application_name_meta")
+                }
 
                 if (isApp && !removeSuffix) {
                     applicationIdSuffix = ".meta"

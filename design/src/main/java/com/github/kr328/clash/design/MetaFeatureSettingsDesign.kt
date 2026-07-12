@@ -1,12 +1,23 @@
 package com.github.kr328.clash.design
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.view.View
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.getSystemService
+import androidx.core.widget.doOnTextChanged
+import com.github.kr328.clash.core.Clash
 import com.github.kr328.clash.core.model.ConfigurationOverride
 import com.github.kr328.clash.design.databinding.DesignSettingsMetaFeatureBinding
+import com.github.kr328.clash.design.databinding.DialogAgeKeyHelperBinding
 import com.github.kr328.clash.design.preference.*
+import com.github.kr328.clash.design.ui.ToastDuration
+import com.github.kr328.clash.design.store.UiStore
 import com.github.kr328.clash.design.util.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
@@ -15,7 +26,7 @@ class MetaFeatureSettingsDesign(
     configuration: ConfigurationOverride
 ) : Design<MetaFeatureSettingsDesign.Request>(context) {
     enum class Request {
-        ResetOverride, ImportGeoIp, ImportGeoSite, ImportCountry, ImportASN
+        ResetOverride
     }
 
     private val binding = DesignSettingsMetaFeatureBinding
@@ -47,9 +58,9 @@ class MetaFeatureSettingsDesign(
     init {
         binding.self = this
 
-        binding.activityBarLayout.applyFrom(context)
+        binding.header.screenTitle.text = context.getString(R.string.meta_features)
 
-        binding.scrollRoot.bindAppBarElevation(binding.activityBarLayout)
+        val ui = UiStore(context)
 
         val booleanValues: Array<Boolean?> = arrayOf(
             null,
@@ -63,6 +74,26 @@ class MetaFeatureSettingsDesign(
         )
 
         val screen = preferenceScreen(context) {
+            category(R.string.age_key_category)
+
+            clickable(
+                title = R.string.age_key_type_x25519,
+                summary = R.string.age_key_generate_summary,
+            ) {
+                clicked {
+                    requestAgeKeyHelper(hybrid = false)
+                }
+            }
+
+            clickable(
+                title = R.string.age_key_type_hybrid,
+                summary = R.string.age_key_generate_summary,
+            ) {
+                clicked {
+                    requestAgeKeyHelper(hybrid = true)
+                }
+            }
+
             category(R.string.settings)
 
             selectableList(
@@ -86,6 +117,8 @@ class MetaFeatureSettingsDesign(
                 title = R.string.tcp_concurrent,
             )
 
+            // find-process-mode is a power-user knob (and a footgun for bad
+            // subscription values) — only show it when Expert features is on.
             selectableList(
                 value = configuration::findProcessMode,
                 values = arrayOf(
@@ -102,7 +135,7 @@ class MetaFeatureSettingsDesign(
                 ),
                 title = R.string.find_process_mode,
             ) {
-
+                visible = ui.expertEnabled
             }
 
             category(R.string.sniffer_setting)
@@ -241,80 +274,85 @@ class MetaFeatureSettingsDesign(
             )
 
             sniffer.listener?.onChanged()
-
-            /*
-            category(R.string.geox_url_setting)
-
-            val geoxUrlDependencies: MutableList<Preference> = mutableListOf()
-
-            editableText(
-                value = configuration.geoxurl::geoip,
-                adapter = NullableTextAdapter.String,
-                title = R.string.geox_geoip,
-                placeholder = R.string.dont_modify,
-                empty = R.string.geoip_url,
-                configure = geoxUrlDependencies::add,
-            )
-
-            editableText(
-                value = configuration.geoxurl::mmdb,
-                adapter = NullableTextAdapter.String,
-                title = R.string.geox_mmdb,
-                placeholder = R.string.dont_modify,
-                empty = R.string.mmdb_url,
-                configure = geoxUrlDependencies::add,
-            )
-
-            editableText(
-                value = configuration.geoxurl::geosite,
-                adapter = NullableTextAdapter.String,
-                title = R.string.geox_geosite,
-                placeholder = R.string.dont_modify,
-                empty = R.string.geosite_url,
-                configure = geoxUrlDependencies::add,
-            )
-            */
-
-            category(R.string.geox_files)
-
-            clickable (
-                title = R.string.import_geoip_file,
-                summary = R.string.press_to_import,
-            ){
-                clicked {
-                    requests.trySend(Request.ImportGeoIp)
-                }
-            }
-
-            clickable (
-                title = R.string.import_geosite_file,
-                summary = R.string.press_to_import,
-            ){
-                clicked {
-                    requests.trySend(Request.ImportGeoSite)
-                }
-            }
-
-            clickable (
-                title = R.string.import_country_file,
-                summary = R.string.press_to_import,
-            ){
-                clicked {
-                    requests.trySend(Request.ImportCountry)
-                }
-            }
-            
-            clickable (
-                title = R.string.import_asn_file,
-                summary = R.string.press_to_import,
-            ){
-                clicked {
-                    requests.trySend(Request.ImportASN)
-                }
-            }
         }
 
         binding.content.addView(screen.root)
+    }
+
+    /**
+     * Operator helper (ported from upstream d628f332): generate an age keypair
+     * on-device — the public key goes to the panel that encrypts subscriptions,
+     * the secret key goes into the profile's "Age secret key" field.
+     */
+    private fun requestAgeKeyHelper(hybrid: Boolean) {
+        launch(Dispatchers.Main) {
+            val binding = DialogAgeKeyHelperBinding
+                .inflate(context.layoutInflater, context.root, false)
+            val dialog = MaterialAlertDialogBuilder(context)
+                .setTitle(if (hybrid) R.string.age_key_type_hybrid else R.string.age_key_type_x25519)
+                .setView(binding.root)
+                .create()
+
+            fun copy(label: String, value: String) {
+                if (value.isBlank())
+                    return
+
+                val data = ClipData.newPlainText(label, value)
+                context.getSystemService<ClipboardManager>()?.setPrimaryClip(data)
+
+                launch { showToast(R.string.copied, ToastDuration.Short) }
+            }
+
+            fun patchSecretKeyState() {
+                val secretKey = binding.secretKeyView.text?.toString() ?: ""
+                val valid = secretKey.isBlank() || Clash.veritySecretKeys(secretKey)
+
+                binding.secretKeyLayout.error =
+                    if (valid) null else context.getText(R.string.age_secret_key_error)
+            }
+
+            fun patchPublicKeyState() {
+                val publicKey = binding.publicKeyView.text?.toString() ?: ""
+                val valid = publicKey.isBlank() || Clash.verityPublicKeys(publicKey)
+
+                binding.publicKeyLayout.error =
+                    if (valid) null else context.getText(R.string.age_public_key_error)
+            }
+
+            dialog.setOnShowListener {
+                binding.secretKeyView.doOnTextChanged { _, _, _, _ -> patchSecretKeyState() }
+                binding.publicKeyView.doOnTextChanged { _, _, _, _ -> patchPublicKeyState() }
+
+                binding.generateView.setOnClickListener {
+                    val keyPair = if (hybrid) {
+                        Clash.genHybridKeyPair()
+                    } else {
+                        Clash.genX25519KeyPair()
+                    }
+
+                    binding.secretKeyView.setText(keyPair.secretKey)
+                    binding.publicKeyView.setText(keyPair.publicKey)
+                }
+
+                binding.toPublicKeyView.setOnClickListener {
+                    val publicKey = Clash.toPublicKeys(binding.secretKeyView.text?.toString() ?: "")
+                        .firstOrNull()
+                        ?: ""
+
+                    binding.publicKeyView.setText(publicKey)
+                }
+
+                binding.copySecretKeyView.setOnClickListener {
+                    copy("age-secret-key", binding.secretKeyView.text?.toString() ?: "")
+                }
+
+                binding.copyPublicKeyView.setOnClickListener {
+                    copy("age-public-key", binding.publicKeyView.text?.toString() ?: "")
+                }
+            }
+
+            dialog.show()
+        }
     }
 
     fun requestClear() {

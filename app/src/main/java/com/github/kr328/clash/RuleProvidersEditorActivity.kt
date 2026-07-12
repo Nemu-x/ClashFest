@@ -1,9 +1,12 @@
 package com.github.kr328.clash
 
+import com.github.kr328.clash.common.util.intent
+import com.github.kr328.clash.common.util.setUUID
 import com.github.kr328.clash.common.util.uuid
 import com.github.kr328.clash.design.RuleProvidersEditorDesign
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.ui.ToastDuration
+import com.github.kr328.clash.util.showYamlPreview
 import com.github.kr328.clash.util.withProfile
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -11,11 +14,22 @@ import kotlinx.coroutines.selects.select
 
 class RuleProvidersEditorActivity : BaseActivity<RuleProvidersEditorDesign>() {
     override suspend fun main() {
-        val uuid = intent.uuid ?: return finish()
+        val uuid = intent.uuid
+        if (uuid != null) {
+            startActivity(
+                RulesHubActivity::class.intent
+                    .setUUID(uuid)
+                    .putExtra(RulesHubActivity.EXTRA_EXPAND_PROVIDERS, true),
+            )
+            finish()
+            return
+        }
+
+        val legacyUuid = intent.uuid ?: return finish()
         val design = RuleProvidersEditorDesign(this)
         setContentDesign(design)
 
-        val initial = withProfile { readRuleProvidersYaml(uuid) }
+        val initial = withProfile { readRuleProvidersYaml(legacyUuid) }
             .orEmpty()
         if (initial.isEmpty()) {
             design.setYaml(
@@ -31,14 +45,12 @@ class RuleProvidersEditorActivity : BaseActivity<RuleProvidersEditorDesign>() {
                 design.requests.onReceive { req ->
                     when (req) {
                         RuleProvidersEditorDesign.Request.Save -> launch {
-                            val ok = withProfile {
-                                replaceRuleProvidersYaml(uuid, design.getYaml())
+                            val preview = withProfile {
+                                previewReplaceRuleProvidersYaml(legacyUuid, design.getYaml())
                             }
-                            if (ok) {
+                            showYamlPreview(preview) {
                                 design.showToast(R.string.rule_snippet_apply_ok, ToastDuration.Long)
                                 finish()
-                            } else {
-                                design.showToast(R.string.rule_snippet_apply_failed, ToastDuration.Long)
                             }
                         }
                     }

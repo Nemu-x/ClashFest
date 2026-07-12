@@ -1,6 +1,8 @@
 package com.github.kr328.clash
 
 import com.github.kr328.clash.common.util.intent
+import com.github.kr328.clash.common.util.setUUID
+import com.github.kr328.clash.common.util.uuid
 import com.github.kr328.clash.design.EffectiveRulesDesign
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.ui.ToastDuration
@@ -16,6 +18,8 @@ class EffectiveRulesActivity : BaseActivity<EffectiveRulesDesign>() {
     private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun main() {
+        if (redirectToRulesHub()) return
+
         val design = EffectiveRulesDesign(this)
         setContentDesign(design)
 
@@ -39,44 +43,21 @@ class EffectiveRulesActivity : BaseActivity<EffectiveRulesDesign>() {
                     when (it) {
                         is EffectiveRulesDesign.Request.OpenLogcat ->
                             startActivity(LogcatActivity::class.intent)
-                        is EffectiveRulesDesign.Request.ToggleRule -> launch {
-                            val p = withProfile { queryActive() } ?: return@launch
-                            val ok = withProfile { mutateRule(p.uuid, it.ruleId, "toggle", it.enabled) }
-                            if (!ok) {
-                                design.showToast(R.string.rule_snippet_apply_failed, ToastDuration.Long)
-                                return@launch
-                            }
-                            reloadRules(design)
-                        }
-                        is EffectiveRulesDesign.Request.DeleteRule -> launch {
-                            val p = withProfile { queryActive() } ?: return@launch
-                            val ok = withProfile { mutateRule(p.uuid, it.ruleId, "delete", false) }
-                            if (!ok) {
-                                design.showToast(R.string.rule_snippet_apply_failed, ToastDuration.Long)
-                                return@launch
-                            }
-                            reloadRules(design)
-                        }
-                        is EffectiveRulesDesign.Request.RestoreRule -> launch {
-                            val p = withProfile { queryActive() } ?: return@launch
-                            val ok = withProfile { mutateRule(p.uuid, it.ruleId, "restore", true) }
-                            if (!ok) {
-                                design.showToast(R.string.rule_snippet_apply_failed, ToastDuration.Long)
-                                return@launch
-                            }
-                            reloadRules(design)
-                        }
                     }
                 }
             }
         }
     }
 
-    private suspend fun reloadRules(design: EffectiveRulesDesign) {
-        val active = withProfile { queryActive() } ?: return
-        val stateJson = withProfile { readRuleState(active.uuid) } ?: return
-        val state = runCatching { json.decodeFromString(RuleState.serializer(), stateJson) }.getOrNull() ?: return
-        val providers = state.providers.associateBy(RuleProviderItem::name)
-        design.patchRules(state.rules.sortedBy { it.order }, providers)
+    private suspend fun redirectToRulesHub(): Boolean {
+        val id = intent.uuid ?: withProfile { queryActive()?.takeIf { it.imported }?.uuid }
+            ?: return false
+        startActivity(
+            RulesHubActivity::class.intent
+                .setUUID(id)
+                .putExtra(RulesHubActivity.EXTRA_EXPAND_PROVIDERS, false),
+        )
+        finish()
+        return true
     }
 }

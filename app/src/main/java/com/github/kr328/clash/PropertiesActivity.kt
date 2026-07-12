@@ -1,5 +1,7 @@
 package com.github.kr328.clash
 
+import com.github.kr328.clash.common.util.ShareImportSupport
+import com.github.kr328.clash.common.util.SubscriptionOverrides
 import com.github.kr328.clash.common.util.intent
 import com.github.kr328.clash.common.util.setUUID
 import com.github.kr328.clash.common.util.uuid
@@ -7,16 +9,22 @@ import com.github.kr328.clash.design.PropertiesDesign
 import com.github.kr328.clash.design.ui.ToastDuration
 import com.github.kr328.clash.design.util.showExceptionToast
 import com.github.kr328.clash.service.model.Profile
+import com.github.kr328.clash.service.store.ServiceStore
 import com.github.kr328.clash.util.withProfile
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
 import com.github.kr328.clash.design.R
+import java.util.concurrent.TimeUnit
 
 class PropertiesActivity : BaseActivity<PropertiesDesign>() {
     private var canceled: Boolean = false
     private lateinit var original: Profile
+    private var originalUserAgentOverride: String? = null
+    private var userAgentOverride: String? = null
+    private var originalStrictUserAgent: Boolean = false
+    private var strictUserAgent: Boolean = false
 
     override suspend fun main() {
         setResult(RESULT_CANCELED)
@@ -25,10 +33,21 @@ class PropertiesActivity : BaseActivity<PropertiesDesign>() {
         val design = PropertiesDesign(this)
 
         original = withProfile { queryByUUID(uuid) } ?: return finish()
+        originalUserAgentOverride = SubscriptionOverrides.getUserAgent(this, uuid)
+        originalStrictUserAgent = SubscriptionOverrides.isStrictUserAgent(this, uuid)
+        userAgentOverride = originalUserAgentOverride
+        strictUserAgent = originalStrictUserAgent
 
         design.profile = original
+        design.userAgentOverride = originalUserAgentOverride.orEmpty()
+        design.setOnUserAgentChanged { userAgentOverride = it.takeIf(String::isNotBlank) }
+        design.strictUserAgent = originalStrictUserAgent
+        design.setOnStrictUserAgentChanged { strictUserAgent = it }
+        design.subscriptionSourceLocked = ServiceStore(this).subscriptionShareLinksLockedFor(original.uuid)
 
         setContentDesign(design)
+
+        design.focusSubscriptionUrlIfEmpty()
 
         defer {
             canceled = true
@@ -45,8 +64,24 @@ class PropertiesActivity : BaseActivity<PropertiesDesign>() {
 
                             if (!canceled && profile != original) {
                                 withProfile {
-                                    patch(profile.uuid, profile.name, profile.source, profile.interval)
+                                    patch(profile.uuid, profile.name, profile.source, profile.interval, profile.ageSecretKey)
                                 }
+                            }
+                            if (!canceled && userAgentOverride != originalUserAgentOverride) {
+                                SubscriptionOverrides.setUserAgent(
+                                    this@PropertiesActivity,
+                                    profile.uuid,
+                                    userAgentOverride,
+                                )
+                                originalUserAgentOverride = userAgentOverride
+                            }
+                            if (!canceled && strictUserAgent != originalStrictUserAgent) {
+                                SubscriptionOverrides.setStrictUserAgent(
+                                    this@PropertiesActivity,
+                                    profile.uuid,
+                                    strictUserAgent,
+                                )
+                                originalStrictUserAgent = strictUserAgent
                             }
                         }
                         Event.ServiceRecreated -> {
@@ -59,6 +94,11 @@ class PropertiesActivity : BaseActivity<PropertiesDesign>() {
                     when (it) {
                         PropertiesDesign.Request.BrowseFiles -> {
                             startActivity(FilesActivity::class.intent.setUUID(uuid))
+                        }
+                        PropertiesDesign.Request.BrowseProxyProviders -> {
+                            if (original.imported) {
+                                startActivity(ProxyProvidersEditorActivity::class.intent.setUUID(uuid))
+                            }
                         }
                         PropertiesDesign.Request.Commit -> {
                             design.verifyAndCommit()
@@ -81,36 +121,65 @@ class PropertiesActivity : BaseActivity<PropertiesDesign>() {
     }
 
     private suspend fun PropertiesDesign.verifyAndCommit() {
-        when {
-            profile.name.isBlank() -> {
-                showToast(R.string.empty_name, ToastDuration.Long)
+        if (ServiceStore(this@PropertiesActivity).subscriptionShareLinksLockedFor(original.uuid) &&
+            profile.source.trim() != original.source.trim()
+        ) {
+            showToast(R.string.subscription_source_locked, ToastDuration.Long)
+            profile = original
+            return
+        }
+        if (profile.name.isBlank()) {
+            showToast(R.string.empty_name, ToastDuration.Long)
+            return
+        }
+        if (profile.type != Profile.Type.File && profile.source.isBlank()) {
+            showToast(R.string.invalid_url, ToastDuration.Long)
+            return
+        }
+        if (profile.type == Profile.Type.Url) {
+            val s = profile.source.trim()
+            if (!ShareImportSupport.isAllowedUrlProfileSource(s)) {
+                showToast(R.string.accept_http_content, ToastDuration.Long)
+                return
             }
-            profile.type != Profile.Type.File && profile.source.isBlank() -> {
-                showToast(R.string.invalid_url, ToastDuration.Long)
-            }
-            else -> {
-                try {
-                    withProcessing { updateStatus ->
-                        withProfile {
-                            patch(profile.uuid, profile.name, profile.source, profile.interval)
+        }
+        val minutes = TimeUnit.MILLISECONDS.toMinutes(profile.interval)
+        if (profile.type != Profile.Type.File && minutes in 1..14) {
+            showToast(R.string.at_least_15_minutes, ToastDuration.Long)
+            return
+        }
+        try {
+            withProcessing { updateStatus ->
+                withProfile {
+                    patch(profile.uuid, profile.name, profile.source, profile.interval, profile.ageSecretKey)
+                    SubscriptionOverrides.setUserAgent(
+                        this@PropertiesActivity,
+                        profile.uuid,
+                        userAgentOverride,
+                    )
+                    SubscriptionOverrides.setStrictUserAgent(
+                        this@PropertiesActivity,
+                        profile.uuid,
+                        strictUserAgent,
+                    )
+                    originalUserAgentOverride = userAgentOverride
+                    originalStrictUserAgent = strictUserAgent
 
-                            coroutineScope {
-                                commit(profile.uuid) {
-                                    launch {
-                                        updateStatus(it)
-                                    }
-                                }
+                    coroutineScope {
+                        commit(profile.uuid) {
+                            launch {
+                                updateStatus(it)
                             }
                         }
                     }
-
-                    setResult(RESULT_OK)
-
-                    finish()
-                } catch (e: Exception) {
-                    showExceptionToast(e)
                 }
             }
+
+            setResult(RESULT_OK)
+
+            finish()
+        } catch (e: Exception) {
+            showExceptionToast(e)
         }
     }
 }

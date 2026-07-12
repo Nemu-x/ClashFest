@@ -2,15 +2,32 @@
 <resources>
     <attr name="fullScreenDialogTheme" format="reference" />
 
+    <attr name="colorBackground" format="color" />
+    <attr name="colorOnBackground" format="color" />
+
+    <!-- Ambient top-glow tint used by bg_home_canvas. White-ish on normal dark, transparent on
+         pure-black (TrueBlack) so pure black stays pure. -->
+    <attr name="homeGlowColor" format="color" />
+
     <attr name="colorClashStopped" format="color" />
     <attr name="colorControlDisabled" format="color" />
     <attr name="colorLogo" format="color" />
+
+    <!-- YAML config viewer syntax highlighting (resolves per AppThemeLight / AppThemeDark) -->
+    <attr name="yamlKey" format="color" />
+    <attr name="yamlString" format="color" />
+    <attr name="yamlNumber" format="color" />
+    <attr name="yamlKeyword" format="color" />
+    <attr name="yamlComment" format="color" />
+    <attr name="yamlPunctuation" format="color" />
+    <attr name="yamlPlain" format="color" />
 
     <!-- Main dashboard (home): resolves per AppThemeLight / AppThemeDark -->
     <attr name="mainDashboardBackground" format="reference" />
     <attr name="colorMainDashboardText" format="color" />
     <attr name="colorMainModeChipLabel" format="color" />
     <attr name="colorMainCardGlass" format="color" />
+    <attr name="colorMainBottomNavGlass" format="color" />
     <attr name="colorMainGlassStroke" format="color" />
     <!-- Profile list row + expanded proxy panel (home) -->
     <attr name="profileCardBackground" format="reference" />
@@ -56,5 +73,9 @@
         <attr name="android:clickable" />
         <attr name="android:background" />
         <attr name="android:foreground" />
+    </declare-styleable>
+
+    <declare-styleable name="BoundedNestedScrollView">
+        <attr name="maxHeight" format="dimension" />
     </declare-styleable>
 </resources>

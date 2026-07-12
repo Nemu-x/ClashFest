@@ -1,6 +1,7 @@
 package com.github.kr328.clash.service.util
 
 import android.content.Context
+import com.github.kr328.clash.core.Clash
 import com.github.kr328.clash.service.model.RuleSource
 import com.github.kr328.clash.service.model.RuleState
 import kotlinx.serialization.json.Json
@@ -14,8 +15,17 @@ class RuleRepository(private val context: Context) {
         prettyPrint = true
     }
 
-    fun load(uuid: UUID, configText: String): RuleState {
-        val parsed = RuleMapper.parseStateFromConfig(configText)
+    /**
+     * Loads the editor-facing state for a profile. The parse goes through
+     * mihomo (Clash.parseProfileSnapshot) — never through Kotlin-side YAML
+     * parsing — so rule strings (including AND/OR/SUB-RULE) survive intact.
+     */
+    fun load(uuid: UUID, profileDir: File): RuleState =
+        load(uuid, Clash.parseProfileSnapshot(profileDir))
+
+    /** Same as [load] but reuses an already-parsed snapshot (avoids a 2nd native parse). */
+    fun load(uuid: UUID, snapshot: com.github.kr328.clash.core.model.ProfileSnapshot): RuleState {
+        val parsed = RuleMapper.parseStateFromSnapshot(snapshot)
         val file = stateFile(uuid)
         if (file.isFile) {
             runCatching {
@@ -35,8 +45,8 @@ class RuleRepository(private val context: Context) {
         file.writeText(json.encodeToString(RuleState.serializer(), state))
     }
 
-    fun readStateJson(uuid: UUID, configText: String): String {
-        val state = load(uuid, configText)
+    fun readStateJson(uuid: UUID, profileDir: File): String {
+        val state = load(uuid, profileDir)
         return json.encodeToString(RuleState.serializer(), state)
     }
 
@@ -49,7 +59,15 @@ class RuleRepository(private val context: Context) {
     }
 
     private fun syncProviderRules(stored: RuleState, incoming: RuleState): RuleState {
-        val byKey = stored.rules.associateBy {
+        // A deleted MANUAL rule is gone for good: it has no upstream subscription to
+        // restore from (unlike a deleted PROVIDER rule, whose soft-delete guards against
+        // a sub refresh resurrecting it). Drop such entries up front so they neither
+        // resurface on the post-apply reload (the "delete does nothing" bug) nor poison a
+        // later same-key re-add by copying their stale deleted=true flag onto it.
+        val storedRules = stored.rules.filterNot {
+            it.deleted && it.source == RuleSource.MANUAL
+        }
+        val byKey = storedRules.associateBy {
             "${it.type.uppercase()},${it.value.uppercase()},${it.policy.uppercase()}"
         }
         val mergedRules = incoming.rules.mapIndexed { index, rule ->
@@ -58,6 +76,11 @@ class RuleRepository(private val context: Context) {
             if (old != null) {
                 rule.copy(
                     id = old.id,
+                    // Trust the STORED source (it's authoritative for MANUAL vs PROVIDER
+                    // after the last reconcile). The snapshot now defaults everything to
+                    // PROVIDER, so without this a genuine MANUAL rule present in config
+                    // would silently flip to PROVIDER on a plain editor open.
+                    source = old.source,
                     enabled = old.enabled,
                     deleted = old.deleted,
                     isRestorable = old.isRestorable || rule.isRestorable,
@@ -75,7 +98,7 @@ class RuleRepository(private val context: Context) {
         val incomingKeys = incoming.rules.map {
             "${it.type.uppercase()},${it.value.uppercase()},${it.policy.uppercase()}"
         }.toSet()
-        val retained = stored.rules.filter { rule ->
+        val retained = storedRules.filter { rule ->
             val k = "${rule.type.uppercase()},${rule.value.uppercase()},${rule.policy.uppercase()}"
             k !in incomingKeys &&
                 (

@@ -4,9 +4,15 @@ import android.content.Context
 import android.net.Uri
 import com.github.kr328.clash.common.constants.Authorities
 import com.github.kr328.clash.common.log.Log
+import com.github.kr328.clash.common.log.LogRedaction
 import com.github.kr328.clash.service.StatusProvider
 
 class StatusClient(private val context: Context) {
+    data class StatusSnapshot(
+        val serviceRunning: Boolean,
+        val currentProfile: String?,
+    )
+
     private val uri: Uri
         get() {
             return Uri.Builder()
@@ -24,11 +30,31 @@ class StatusClient(private val context: Context) {
                 null
             )
 
-            result?.getString("name")
+            result?.getString(StatusProvider.EXTRA_CURRENT_PROFILE)
         } catch (e: Exception) {
-            Log.w("Query current profile: $e", e)
+            Log.w("Query current profile: ${LogRedaction.throwableMessage(e)}")
 
             null
+        }
+    }
+
+    fun statusSnapshot(): StatusSnapshot {
+        return try {
+            val result = context.contentResolver.call(
+                uri,
+                StatusProvider.METHOD_STATUS_SNAPSHOT,
+                null,
+                null
+            )
+
+            StatusSnapshot(
+                serviceRunning = result?.getBoolean(StatusProvider.EXTRA_SERVICE_RUNNING) ?: false,
+                currentProfile = result?.getString(StatusProvider.EXTRA_CURRENT_PROFILE),
+            )
+        } catch (e: Exception) {
+            Log.w("Query service status: ${LogRedaction.throwableMessage(e)}")
+
+            StatusSnapshot(serviceRunning = false, currentProfile = null)
         }
     }
 }

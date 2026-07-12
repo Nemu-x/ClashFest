@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.view.View
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.getSystemService
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.github.kr328.clash.core.model.LogMessage
@@ -54,10 +55,6 @@ class LogcatDesign(
     init {
         binding.self = this
         binding.streaming = streaming
-
-        binding.activityBarLayout.applyFrom(context)
-
-        binding.recyclerList.bindAppBarElevation(binding.activityBarLayout)
 
         binding.recyclerList.layoutManager = LinearLayoutManager(context).apply {
             if (streaming) {

@@ -3,18 +3,21 @@ package com.github.kr328.clash
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
+import androidx.core.os.LocaleListCompat
 import com.github.kr328.clash.common.Global
 import com.github.kr328.clash.common.compat.currentProcessName
 import com.github.kr328.clash.common.constants.Intents
 import com.github.kr328.clash.common.log.Log
+import com.github.kr328.clash.design.store.UiStore
 import com.github.kr328.clash.remote.Remote
+import com.github.kr328.clash.service.store.ServiceStore
+import com.github.kr328.clash.service.util.ensureBundledGeoAssets
 import com.github.kr328.clash.service.util.sendServiceRecreated
-import com.github.kr328.clash.util.clashDir
-import java.io.File
-import java.io.FileOutputStream
+import com.github.kr328.clash.util.AppUpdateChecker
 import com.github.kr328.clash.design.R as DesignR
 
 
@@ -30,16 +33,42 @@ class MainApplication : Application() {
         super.onCreate()
 
         val processName = currentProcessName
-        extractGeoFiles()
+        ensureBundledGeoAssets()
 
         Log.d("Process $processName started")
 
         if (processName == packageName) {
+            applyAppLanguage()
+            applyNightMode()
+            ServiceStore.runMigrations(this)
             Remote.launch()
             setupShortcuts()
+            AppUpdateChecker.schedulePeriodic(this)
         } else {
             sendServiceRecreated()
         }
+    }
+
+    private fun applyAppLanguage() {
+        val tag = runCatching { UiStore(this).appLanguage.tag }.getOrDefault("")
+        val locales = if (tag.isEmpty()) {
+            LocaleListCompat.getEmptyLocaleList()
+        } else {
+            LocaleListCompat.forLanguageTags(tag)
+        }
+        AppCompatDelegate.setApplicationLocales(locales)
+    }
+
+    /**
+     * Drive day/night through AppCompat's night mode so the real Configuration night bit follows the
+     * user's darkMode choice. The config-qualified base theme (BootstrapTheme -> AppThemeLight/Dark)
+     * and values-night/ colors then resolve to match the chosen mode — this is what makes a forced
+     * dark theme on a light-system device render (and not crash). Replaces the old approach of faking
+     * day/night with theme.applyStyle(AppThemeDark/Light) while leaving the config untouched.
+     */
+    private fun applyNightMode() {
+        val darkMode = runCatching { UiStore(this).darkMode }.getOrNull() ?: return
+        AppCompatDelegate.setDefaultNightMode(nightModeFor(darkMode))
     }
 
     private fun setupShortcuts() {
@@ -84,27 +113,15 @@ class MainApplication : Application() {
             .setRank(2)
             .build()
 
-        ShortcutManagerCompat.setDynamicShortcuts(this, listOf(toggle, start, stop))
-    }
-
-    private fun extractGeoFiles() {
-        clashDir.mkdirs()
-
-        val updateDate = packageManager.getPackageInfo(packageName, 0).lastUpdateTime
-        ensureAssetFresh("geoip.metadb", "geoip.metadb", updateDate)
-        ensureAssetFresh("geosite.dat", "geosite.dat", updateDate)
-        ensureAssetFresh("ASN.mmdb", "ASN.mmdb", updateDate)
-    }
-
-    private fun ensureAssetFresh(assetName: String, targetName: String, updateDate: Long) {
-        val target = File(clashDir, targetName)
-        if (target.exists() && target.lastModified() < updateDate) {
-            target.delete()
-        }
-        if (!target.exists()) {
-            FileOutputStream(target).use {
-                assets.open(assetName).copyTo(it)
-            }
+        // Dynamic shortcuts are a convenience and MUST NOT crash app startup.
+        // When the launcher icon is hidden (MainActivityAlias disabled) the
+        // package has no launcher activity and setDynamicShortcuts throws
+        // IllegalStateException("Launcher activity not found") — swallow it.
+        runCatching {
+            ShortcutManagerCompat.setDynamicShortcuts(this, listOf(toggle, start, stop))
+        }.onFailure {
+            Log.w("setupShortcuts: skipped dynamic shortcuts (no launcher activity?)", it)
         }
     }
+
 }

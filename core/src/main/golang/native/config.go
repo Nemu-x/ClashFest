@@ -4,11 +4,17 @@ package main
 import "C"
 
 import (
+	"fmt"
 	"runtime"
+	"sync"
 	"unsafe"
 
+	"cfa/native/app"
 	"cfa/native/config"
+	"cfa/native/snapshot"
 )
+
+var subscriptionFetchSessionMu sync.Mutex
 
 type remoteValidCallback struct {
 	callback unsafe.Pointer
@@ -19,8 +25,25 @@ func (r *remoteValidCallback) reportStatus(json string) {
 }
 
 //export fetchAndValid
-func fetchAndValid(callback unsafe.Pointer, path, url C.c_string, force C.int) {
-	go func(path, url string, callback unsafe.Pointer) {
+func fetchAndValid(callback unsafe.Pointer, path, url C.c_string, force C.int, headersJson C.c_string) {
+	go func(path, url, headers string, callback unsafe.Pointer) {
+		subscriptionFetchSessionMu.Lock()
+		defer subscriptionFetchSessionMu.Unlock()
+
+		completed := false
+		defer func() {
+			if r := recover(); r != nil {
+				logRecover("fetchAndValid", r)
+				if !completed {
+					C.fetch_complete(callback, marshalString(fmt.Sprintf("native panic: %v", r)))
+					C.release_object(callback)
+				}
+			}
+		}()
+
+		app.SetSubscriptionFetchHeadersJSON(headers)
+		defer app.ClearSubscriptionFetchHeaders()
+
 		cb := &remoteValidCallback{callback: callback}
 
 		err := config.FetchAndValid(path, url, force != 0, cb.reportStatus)
@@ -28,29 +51,122 @@ func fetchAndValid(callback unsafe.Pointer, path, url C.c_string, force C.int) {
 		C.fetch_complete(callback, marshalString(err))
 
 		C.release_object(callback)
+		completed = true
 
 		runtime.GC()
-	}(C.GoString(path), C.GoString(url), callback)
+	}(C.GoString(path), C.GoString(url), C.GoString(headersJson), callback)
+}
+
+//export fetchProvidersAndValid
+func fetchProvidersAndValid(callback unsafe.Pointer, path C.c_string, force C.int, headersJson C.c_string) {
+	go func(path, headers string, callback unsafe.Pointer) {
+		subscriptionFetchSessionMu.Lock()
+		defer subscriptionFetchSessionMu.Unlock()
+
+		completed := false
+		defer func() {
+			if r := recover(); r != nil {
+				logRecover("fetchProvidersAndValid", r)
+				if !completed {
+					C.fetch_complete(callback, marshalString(fmt.Sprintf("native panic: %v", r)))
+					C.release_object(callback)
+				}
+			}
+		}()
+
+		app.SetSubscriptionFetchHeadersJSON(headers)
+		defer app.ClearSubscriptionFetchHeaders()
+
+		cb := &remoteValidCallback{callback: callback}
+
+		err := config.FetchProvidersAndValid(path, force != 0, cb.reportStatus)
+
+		C.fetch_complete(callback, marshalString(err))
+
+		C.release_object(callback)
+		completed = true
+
+		runtime.GC()
+	}(C.GoString(path), C.GoString(headersJson), callback)
 }
 
 //export load
 func load(completable unsafe.Pointer, path C.c_string) {
 	go func(path string) {
+		completed := false
+		defer func() {
+			if r := recover(); r != nil {
+				logRecover("load", r)
+				if !completed {
+					C.complete(completable, marshalString(fmt.Sprintf("native panic: %v", r)))
+					C.release_object(completable)
+				}
+			}
+		}()
+
 		C.complete(completable, marshalString(config.Load(path)))
 
 		C.release_object(completable)
+		completed = true
 
 		runtime.GC()
 	}(C.GoString(path))
 }
 
+//export validateProfile
+func validateProfile(completable unsafe.Pointer, path C.c_string) {
+	go func(path string) {
+		completed := false
+		defer func() {
+			if r := recover(); r != nil {
+				logRecover("validateProfile", r)
+				if !completed {
+					C.complete(completable, marshalString(fmt.Sprintf("native panic: %v", r)))
+					C.release_object(completable)
+				}
+			}
+		}()
+
+		C.complete(completable, marshalString(config.Validate(path)))
+
+		C.release_object(completable)
+		completed = true
+
+		runtime.GC()
+	}(C.GoString(path))
+}
+
+//export parseProfileSnapshot
+func parseProfileSnapshot(path C.c_string) *C.char {
+	defer guard("parseProfileSnapshot")()
+	return C.CString(snapshot.MarshalJSON(C.GoString(path)))
+}
+
+//export parseProfileSnapshotFromBytes
+func parseProfileSnapshotFromBytes(yaml C.c_string) *C.char {
+	defer guard("parseProfileSnapshotFromBytes")()
+	return C.CString(snapshot.MarshalJSONFromBytes([]byte(C.GoString(yaml))))
+}
+
+//export validateProfileBytes
+func validateProfileBytes(yaml C.c_string) *C.char {
+	defer guard("validateProfileBytes")()
+	errMsg := snapshot.ValidateBytes([]byte(C.GoString(yaml)))
+	if errMsg == "" {
+		return nil
+	}
+	return C.CString(errMsg)
+}
+
 //export readOverride
 func readOverride(slot C.int) *C.char {
+	defer guard("readOverride")()
 	return C.CString(config.ReadOverride(config.OverrideSlot(slot)))
 }
 
 //export writeOverride
 func writeOverride(slot C.int, content C.c_string) {
+	defer guard("writeOverride")()
 	c := C.GoString(content)
 
 	config.WriteOverride(config.OverrideSlot(slot), c)
@@ -58,5 +174,81 @@ func writeOverride(slot C.int, content C.c_string) {
 
 //export clearOverride
 func clearOverride(slot C.int) {
+	defer guard("clearOverride")()
 	config.ClearOverride(config.OverrideSlot(slot))
+}
+
+//export setAgeSecretKey
+func setAgeSecretKey(key C.c_string) {
+	defer guard("setAgeSecretKey")()
+
+	if key == nil {
+		config.SetGlobalSecretKeys()
+		return
+	}
+
+	config.SetGlobalSecretKeys(C.GoString(key))
+}
+
+type ageKeyPair struct {
+	SecretKey string `json:"secretKey"`
+	PublicKey string `json:"publicKey"`
+}
+
+//export genX25519KeyPair
+func genX25519KeyPair() *C.char {
+	defer guard("genX25519KeyPair")()
+
+	secretKey, publicKey, err := config.GenX25519KeyPair()
+	if err != nil {
+		return nil
+	}
+
+	return marshalJson(ageKeyPair{SecretKey: secretKey, PublicKey: publicKey})
+}
+
+//export genHybridKeyPair
+func genHybridKeyPair() *C.char {
+	defer guard("genHybridKeyPair")()
+
+	secretKey, publicKey, err := config.GenHybridKeyPair()
+	if err != nil {
+		return nil
+	}
+
+	return marshalJson(ageKeyPair{SecretKey: secretKey, PublicKey: publicKey})
+}
+
+//export veritySecretKeys
+func veritySecretKeys(secretKeys C.c_string) C.int {
+	defer guard("veritySecretKeys")()
+
+	if config.VeritySecretKeys(C.GoString(secretKeys)) != nil {
+		return 0
+	}
+
+	return 1
+}
+
+//export toPublicKeys
+func toPublicKeys(secretKeys C.c_string) *C.char {
+	defer guard("toPublicKeys")()
+
+	publicKeys, err := config.ToPublicKeys(C.GoString(secretKeys))
+	if err != nil {
+		return nil
+	}
+
+	return marshalJson(publicKeys)
+}
+
+//export verityPublicKeys
+func verityPublicKeys(publicKeys C.c_string) C.int {
+	defer guard("verityPublicKeys")()
+
+	if config.VerityPublicKeys(C.GoString(publicKeys)) != nil {
+		return 0
+	}
+
+	return 1
 }

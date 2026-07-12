@@ -18,13 +18,24 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.kaidl.runtime)
+    implementation(libs.okhttp)
     implementation(libs.rikkax.multiprocess)
-    implementation(platform("com.squareup.okhttp3:okhttp-bom:4.12.0"))
-
-    // define any required OkHttp artifacts without version
-    implementation("com.squareup.okhttp3:okhttp")
-    implementation("com.squareup.okhttp3:logging-interceptor")
     implementation("org.yaml:snakeyaml:2.2")
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation(kotlin("test"))
+    // Real org.json for JVM unit tests (android.jar's is stubbed under isReturnDefaultValues).
+    testImplementation("org.json:json:20240303")
+}
+
+android {
+    // Stub Android APIs (android.util.Log etc.) called from production code
+    // return default values inside JVM unit tests instead of throwing
+    // "Method X not mocked". Lets YamlHardener / SubscriptionUpdateMerge
+    // tests cover the real production code path including its log lines.
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 afterEvaluate {

@@ -3,6 +3,7 @@ package com.github.kr328.clash.service
 import android.content.Context
 import android.net.Uri
 import com.github.kr328.clash.common.log.Log
+import com.github.kr328.clash.common.util.SubscriptionUsage
 import com.github.kr328.clash.core.Clash
 import com.github.kr328.clash.service.data.Imported
 import com.github.kr328.clash.service.data.ImportedDao
@@ -11,23 +12,35 @@ import com.github.kr328.clash.service.data.PendingDao
 import com.github.kr328.clash.service.model.Profile
 import com.github.kr328.clash.service.remote.IFetchObserver
 import com.github.kr328.clash.service.store.ServiceStore
-import com.github.kr328.clash.service.util.SubscriptionUpdateMerge
+import com.github.kr328.clash.service.util.FetchHeadersFile
+import com.github.kr328.clash.service.util.GeoUrlSanitizer
+import com.github.kr328.clash.service.util.MihomoConfigDocument
+import com.github.kr328.clash.service.util.RuleApplyService
+import com.github.kr328.clash.service.util.RuleMapper
+import com.github.kr328.clash.service.util.FetchErrorClassifier
+import com.github.kr328.clash.service.util.MergeEngineVerdict
+import com.github.kr328.clash.service.util.ConfigComposer
+import com.github.kr328.clash.service.util.GeoDataSources
+import com.github.kr328.clash.service.util.ProfileComposer
+import com.github.kr328.clash.service.util.ProfileMigration
+import com.github.kr328.clash.service.util.UserLayerStore
+import com.github.kr328.clash.service.util.YamlHardener
 import com.github.kr328.clash.service.util.importedDir
 import com.github.kr328.clash.service.util.pendingDir
 import com.github.kr328.clash.service.util.processingDir
+import com.github.kr328.clash.common.util.ShareImportSupport
+import com.github.kr328.clash.common.util.SubscriptionOverrides
+import com.github.kr328.clash.common.util.SubscriptionRequestHeaders
 import com.github.kr328.clash.service.util.sendProfileChanged
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import java.io.File
-import java.math.BigDecimal
-import java.net.URL
 import java.util.*
 import java.util.concurrent.TimeUnit
+
 
 object ProfileProcessor {
     private val profileLock = Mutex()
@@ -54,15 +67,61 @@ object ProfileProcessor {
                 val force = snapshot.type != Profile.Type.File
                 var cb = callback
 
-                Clash.fetchAndValid(context.processingDir, snapshot.source, force) {
-                    try {
-                        cb?.updateStatus(it)
-                    } catch (e: Exception) {
-                        cb = null
+                val userAgentOverride = SubscriptionOverrides.getUserAgent(context, snapshot.uuid)
+                val strictUserAgent = SubscriptionOverrides.isStrictUserAgent(context, snapshot.uuid)
+                // age: install this profile's identity before the fetch — the Go side
+                // decrypts the downloaded body in place (decryptConfigInPlace) so the
+                // rest of the (text-based) pipeline sees plain YAML.
+                Clash.setAgeSecretKey(snapshot.ageSecretKey?.takeIf { it.isNotBlank() })
+                try {
+                    Clash.fetchAndValid(
+                        context.processingDir,
+                        snapshot.source,
+                        force,
+                        SubscriptionRequestHeaders.toNativeFetchJson(context, userAgentOverride),
+                    ) {
+                        try {
+                            cb?.updateStatus(it)
+                        } catch (e: Exception) {
+                            cb = null
 
-                        Log.w("Report fetch status: $e", e)
+                            Log.w("Report fetch status callback failed", e)
+                        }
+                    }.await()
+                } catch (e: Exception) {
+                    if (userAgentOverride.isNullOrBlank() || strictUserAgent) {
+                        throw FetchErrorClassifier.clarify(context.processingDir, e)
                     }
-                }.await()
+
+                    Log.w("Subscription fetch failed with custom User-Agent, retrying default core User-Agent", e)
+                    Clash.fetchAndValid(
+                        context.processingDir,
+                        snapshot.source,
+                        force,
+                        SubscriptionRequestHeaders.toNativeFetchJson(context, null),
+                    ) {
+                        try {
+                            cb?.updateStatus(it)
+                        } catch (e2: Exception) {
+                            cb = null
+                            Log.w("Report fetch status callback failed", e2)
+                        }
+                    }.await()
+                }
+
+                GeoUrlSanitizer.sanitizeProfile(context.processingDir)
+                YamlHardener.hardenProfile(
+                    context.processingDir,
+                    ServiceStore(context).proxyHardeningMode,
+                )
+                // Overlay (config-overlay-architecture): record the imported config as the
+                // subscription base so future updates / VPN starts can compose the user layer on top.
+                runCatching {
+                    val cfg = File(context.processingDir, "config.yaml")
+                    if (cfg.isFile) {
+                        File(context.processingDir, ProfileComposer.SUBSCRIPTION_FILE).writeText(cfg.readText())
+                    }
+                }
 
                 withContext(NonCancellable) {
                     profileLock.withLock {
@@ -78,42 +137,16 @@ object ProfileProcessor {
                         var total: Long = 0
                         var expire: Long = 0
                         if (snapshot?.type == Profile.Type.Url) {
-                            if (snapshot.source.startsWith("https://", true)) {
-                                val client = OkHttpClient()
-                                val versionName = context.packageManager.getPackageInfo(context.packageName, 0).versionName
-                                val request = Request.Builder()
-                                    .url(snapshot.source)
-                                    .header("User-Agent", "ClashMetaForAndroid/$versionName")
-                                    .build()
-
-                                client.newCall(request).execute().use { response ->
-                                    val userinfo = response.headers["subscription-userinfo"]
-                                    if (response.isSuccessful && userinfo != null) {
-                                        val flags = userinfo.split(";")
-                                        for (flag in flags) {
-                                            val info = flag.split("=", limit = 2)
-                                            val key = info.getOrNull(0)?.trim().orEmpty()
-                                            val value = info.getOrNull(1)?.trim().orEmpty()
-                                            if (value.isEmpty()) continue
-                                            when {
-                                                key.contains("upload") -> upload =
-                                                    value.toLongOrNull()
-                                                        ?: BigDecimal(value.split('.').first()).longValueExact()
-
-                                                key.contains("download") -> download =
-                                                    value.toLongOrNull()
-                                                        ?: BigDecimal(value.split('.').first()).longValueExact()
-
-                                                key.contains("total") -> total =
-                                                    value.toLongOrNull()
-                                                        ?: BigDecimal(value.split('.').first()).longValueExact()
-
-                                                key.contains("expire") -> expire =
-                                                    (value.toDoubleOrNull()?.times(1000.0))?.toLong() ?: 0L
-                                            }
-                                        }
-                                    }
-                                }
+                            // Quota comes from the header snapshot the Go fetch persisted
+                            // alongside config.yaml — the import above IS the request, so
+                            // no second GET (which doubled traffic on fetch-counting
+                            // panels and could race the primary download) is needed.
+                            FetchHeadersFile.readFrom(context.processingDir)?.let { headers ->
+                                val usage = SubscriptionUsage.parse(headers.get("subscription-userinfo"))
+                                upload = usage?.upload ?: 0L
+                                download = usage?.download ?: 0L
+                                total = usage?.total ?: 0L
+                                expire = usage?.expireAt?.times(1000L) ?: 0L
                             }
                             val new = Imported(
                                 snapshot.uuid,
@@ -125,7 +158,9 @@ object ProfileProcessor {
                                 download,
                                 total,
                                 expire,
-                                old?.createdAt ?: System.currentTimeMillis()
+                                old?.createdAt ?: System.currentTimeMillis(),
+                                old?.profileOrder ?: snapshot.profileOrder,
+                                ageSecretKey = snapshot.ageSecretKey,
                             )
                             if (old != null) {
                                 ImportedDao().update(new)
@@ -150,7 +185,9 @@ object ProfileProcessor {
                                 download,
                                 total,
                                 expire,
-                                old?.createdAt ?: System.currentTimeMillis()
+                                old?.createdAt ?: System.currentTimeMillis(),
+                                old?.profileOrder ?: snapshot.profileOrder,
+                                ageSecretKey = snapshot.ageSecretKey,
                             )
                             if (old != null) {
                                 ImportedDao().update(new)
@@ -188,29 +225,149 @@ object ProfileProcessor {
                 }
 
                 val configFile = File(context.processingDir, "config.yaml")
-                val preserved = if (configFile.isFile) {
-                    SubscriptionUpdateMerge.extractPreserved(configFile.readText())
+                val serviceStore = ServiceStore(context)
+                val dnsHostsManaged = serviceStore.isDnsHostsManaged(snapshot.uuid)
+                val tunnelsManaged = serviceStore.isTunnelsManaged(snapshot.uuid)
+                // Overlay (config-overlay-architecture): the user's edit layer is composed onto the
+                // freshly fetched subscription below. Stage C — the user_layer store is the single
+                // source of truth once the overlay is active, so we no longer re-extract it from the
+                // (composed) config.yaml on every update: that string-extraction was the last
+                // reconciling path, exactly the divergence class this epic removes.
+                val capturedLayer = if (ProfileMigration.isMigrated(context.processingDir)) {
+                    // Overlay active: carry the store as-is. Every editor writes it directly, so it
+                    // already holds the authoritative intent; re-deriving from config.yaml could only
+                    // diverge.
+                    UserLayerStore.loadAt(context.processingDir)
+                } else if (configFile.isFile) {
+                    // Legacy install updating before its first post-upgrade VPN-start migration: one
+                    // time, extract the edits baked into the current config.yaml so nothing is lost.
+                    ProfileMigration.buildLayerFromConfig(
+                        profileDir = context.processingDir,
+                        rulesStateJson = File(context.processingDir, "rules_state.json").takeIf { it.isFile }
+                            ?.let { runCatching { it.readText() }.getOrNull() },
+                        dnsHostsManaged = dnsHostsManaged,
+                        tunnelsManaged = tunnelsManaged,
+                        parseSnapshot = { d -> runCatching { Clash.parseProfileSnapshot(d) }.getOrNull() },
+                        base = UserLayerStore.loadAt(context.processingDir),
+                    )
                 } else {
-                    SubscriptionUpdateMerge.PreservedOverlay.EMPTY
+                    UserLayerStore.loadAt(context.processingDir)
                 }
 
                 var cb = callback
 
-                Clash.fetchAndValid(context.processingDir, snapshot.source, true) {
-                    try {
-                        cb?.updateStatus(it)
-                    } catch (e: Exception) {
-                        cb = null
+                val userAgentOverride = SubscriptionOverrides.getUserAgent(context, snapshot.uuid)
+                val strictUserAgent = SubscriptionOverrides.isStrictUserAgent(context, snapshot.uuid)
+                var effectiveUserAgentOverride = userAgentOverride
+                // age: same as apply() — key first, the Go fetch decrypts on disk.
+                Clash.setAgeSecretKey(snapshot.ageSecretKey?.takeIf { it.isNotBlank() })
+                try {
+                    Clash.fetchAndValid(
+                        context.processingDir,
+                        snapshot.source,
+                        true,
+                        SubscriptionRequestHeaders.toNativeFetchJson(context, userAgentOverride),
+                    ) {
+                        try {
+                            cb?.updateStatus(it)
+                        } catch (e: Exception) {
+                            cb = null
 
-                        Log.w("Report fetch status: $e", e)
+                            Log.w("Report fetch status callback failed", e)
+                        }
+                    }.await()
+                } catch (e: Exception) {
+                    if (userAgentOverride.isNullOrBlank() || strictUserAgent) {
+                        throw FetchErrorClassifier.clarify(context.processingDir, e)
                     }
-                }.await()
 
-                if (!preserved.isEmpty() && configFile.isFile) {
-                    val merged = SubscriptionUpdateMerge.mergeAfterFetch(configFile.readText(), preserved)
-                    configFile.writeText(merged)
-                    Log.d("Subscription merge preserved local overlays: rules/providers reapplied for ${snapshot.uuid}")
+                    Log.w("Subscription update failed with custom User-Agent, retrying default core User-Agent", e)
+                    Clash.fetchAndValid(
+                        context.processingDir,
+                        snapshot.source,
+                        true,
+                        SubscriptionRequestHeaders.toNativeFetchJson(context, null),
+                    ) {
+                        try {
+                            cb?.updateStatus(it)
+                        } catch (e2: Exception) {
+                            cb = null
+                            Log.w("Report fetch status callback failed", e2)
+                        }
+                    }.await()
+                    effectiveUserAgentOverride = null
                 }
+
+                // Clear any stale warnings from a previous update; set below only
+                // if THIS merge breaks a config / drops an orphaned rule.
+                ServiceStore(context).setUpdateEngineWarning(snapshot.uuid, false)
+                ServiceStore(context).setOrphanedRulesDropped(snapshot.uuid, emptyList())
+                if (configFile.isFile) {
+                    val fetchedText = configFile.readText()
+                    // The freshly fetched subscription is the new canonical base; persist it and
+                    // compose the captured user layer on top (Clash-Verge-Rev style overlay).
+                    File(context.processingDir, ProfileComposer.SUBSCRIPTION_FILE).writeText(fetchedText)
+                    UserLayerStore.saveAt(context.processingDir, capturedLayer)
+                    val geoUrls = GeoDataSources.resolve(
+                        preset = serviceStore.geoDataSourcePreset,
+                        customGeoIp = serviceStore.geoDataCustomGeoIp,
+                        customGeoSite = serviceStore.geoDataCustomGeoSite,
+                        customMmdb = serviceStore.geoDataCustomMmdb,
+                        customAsn = serviceStore.geoDataCustomAsn,
+                    )
+                    val composed = ConfigComposer.compose(
+                        fetchedText, capturedLayer, geoUrls, serviceStore.proxyHardeningMode,
+                    )
+                    // Runtime engine gate (§config-engine-gate): NEVER apply a config the engine
+                    // rejects. If our overlay broke an otherwise-valid subscription, fall back to the
+                    // clean fetched subscription so the update still works, and surface that the local
+                    // edits could not be applied. PreexistingBroken uses the fetched body as-is.
+                    val composedError = Clash.validateProfileBytes(composed)
+                    val verdict = if (composedError == null) {
+                        MergeEngineVerdict.Ok
+                    } else {
+                        MergeEngineVerdict.classify(Clash.validateProfileBytes(fetchedText), composedError)
+                    }
+                    when (verdict) {
+                        MergeEngineVerdict.MergeIntroduced -> {
+                            Log.w("Overlay broke a valid subscription for ${snapshot.uuid}; applying clean fetched instead. $composedError")
+                            serviceStore.setUpdateEngineWarning(snapshot.uuid, true)
+                        }
+                        MergeEngineVerdict.PreexistingBroken ->
+                            Log.w("Composed config invalid for ${snapshot.uuid}, but fetched was already invalid (using fetched): $composedError")
+                        MergeEngineVerdict.Ok -> Unit
+                    }
+                    configFile.writeText(if (verdict.appliesMergedConfig()) composed else fetchedText)
+                    Log.d("Subscription overlay composed: user layer re-applied onto fresh subscription for ${snapshot.uuid}")
+
+                    // Subscription providers are already on disk from the fetch above; this pass only
+                    // downloads local-only providers reintroduced by the layer (force=false).
+                    Clash.fetchProvidersAndValid(
+                        context.processingDir,
+                        false,
+                        "{}",
+                    ) {
+                        try {
+                            cb?.updateStatus(it)
+                        } catch (e: Exception) {
+                            cb = null
+                            Log.w("Report provider refresh status callback failed", e)
+                        }
+                    }.await()
+                }
+
+                // Tier-2 rule reconciliation is no longer needed: rules now come from the user layer
+                // (RuleMapper.composeUserRulesOnto prepends them onto the fresh subscription), so
+                // there is no string-merge classification to repair.
+
+                GeoUrlSanitizer.sanitizeProfile(context.processingDir)
+                // Hardening also runs inside ConfigComposer.compose above; this is a defensive
+                // second pass over the whole processing dir (provider files included) and is
+                // idempotent.
+                YamlHardener.hardenProfile(
+                    context.processingDir,
+                    serviceStore.proxyHardeningMode,
+                )
 
                 withContext(NonCancellable) {
                     profileLock.withLock {
@@ -269,8 +426,6 @@ object ProfileProcessor {
     }
 
     private fun Pending.enforceFieldValid() {
-        val scheme = Uri.parse(source)?.scheme?.lowercase(Locale.getDefault())
-
         when {
             name.isBlank() ->
                 throw IllegalArgumentException("Empty name")
@@ -278,8 +433,16 @@ object ProfileProcessor {
             source.isEmpty() && type != Profile.Type.File ->
                 throw IllegalArgumentException("Invalid url")
 
-            source.isNotEmpty() && scheme != "https" && scheme != "http" && scheme != "content" ->
+            source.isNotEmpty() && type == Profile.Type.Url &&
+                !ShareImportSupport.isAllowedUrlProfileSource(source) ->
                 throw IllegalArgumentException("Unsupported url $source")
+
+            source.isNotEmpty() && type == Profile.Type.External -> {
+                val scheme = Uri.parse(source).scheme?.lowercase(Locale.getDefault())
+                if (scheme != "https" && scheme != "http" && scheme != "content") {
+                    throw IllegalArgumentException("Unsupported url $source")
+                }
+            }
 
             interval != 0L && TimeUnit.MILLISECONDS.toMinutes(interval) < 15 ->
                 throw IllegalArgumentException("Invalid interval")

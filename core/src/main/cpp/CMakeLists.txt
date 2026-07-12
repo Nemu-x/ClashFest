@@ -52,6 +52,20 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
   ERROR_QUIET
 )
+
+# Reconfigure whenever the mihomo submodule moves. CORE_TAG above is read at
+# configure time and cached in .cxx/, which survives `gradlew clean` — without
+# this a core bump keeps shipping the old version string (and constant.Version,
+# which the Go side derives from it) until .cxx/ is deleted by hand.
+execute_process(
+  COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR}/../../foss/golang/clash rev-parse --absolute-git-dir
+  OUTPUT_VARIABLE MIHOMO_GIT_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  ERROR_QUIET
+)
+if (EXISTS "${MIHOMO_GIT_DIR}/HEAD")
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${MIHOMO_GIT_DIR}/HEAD")
+endif ()
 string(REGEX REPLACE "[\n\t\r]" "" CORE_TAG "${CORE_TAG}")
 message(STATUS "core tag = ${CORE_TAG}")
 
@@ -69,8 +83,8 @@ else ()
 endif ()
 message(STATUS "version info = ${GIT_VERSION}")
 
-# 去除空格
-string(REGEX REPLACE "[ ]+" "" GIT_VERSION "${GIT_VERSION}")
+# Keep Git metadata as inert preprocessor tokens before version.h stringifies it.
+string(REGEX REPLACE "[^A-Za-z0-9._-]+" "_" GIT_VERSION "${GIT_VERSION}")
 
 # 保存变量到文件
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/version.h @ONLY)

@@ -16,14 +16,21 @@
         tools:ignore="QueryAllPackagesPermission" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Companion remote-control (clashctl): mDNS multicast + QR scanning. -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
         android:name=".MainApplication"
         android:allowBackup="true"
         android:banner="@mipmap/ic_banner"
         android:fullBackupContent="@xml/full_backup_content"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/application_name"
+        android:localeConfig="@xml/locales_config"
         android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
@@ -42,7 +49,8 @@
             android:configChanges="uiMode"
             android:exported="true"
             android:label="@string/launch_name"
-            android:launchMode="singleTask">
+            android:launchMode="singleTask"
+            android:taskAffinity="">
             <intent-filter>
                 <action android:name="android.intent.action.APPLICATION_PREFERENCES" />
                 <action android:name="android.intent.action.MAIN" />
@@ -78,21 +86,36 @@
 
                 <data android:scheme="clash"/>
                 <data android:scheme="clashmeta"/>
+                <data android:scheme="clashfest"/>
                 <data android:host="install-config"/>
+                <data android:host="installconfig"/>
             </intent-filter>
             <intent-filter>
-                <action android:name="com.github.metacubex.clash.meta.action.START_CLASH" />
+                <action android:name="${applicationId}.action.START_CLASH" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <intent-filter>
-                <action android:name="com.github.metacubex.clash.meta.action.STOP_CLASH" />
+                <action android:name="${applicationId}.action.STOP_CLASH" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <intent-filter>
-                <action android:name="com.github.metacubex.clash.meta.action.TOGGLE_CLASH" />
+                <action android:name="${applicationId}.action.TOGGLE_CLASH" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".UpdateDownloadActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+        <activity
+            android:name=".QuickTileStartActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" />
         <activity
             android:name=".ApkBrokenActivity"
             android:configChanges="uiMode"
@@ -105,11 +128,6 @@
             android:label="@string/application_crashed"
             android:launchMode="singleTask" />
         <activity
-            android:name=".ProfilesActivity"
-            android:configChanges="uiMode"
-            android:exported="false"
-            android:label="@string/profiles" />
-        <activity
             android:name=".NewProfileActivity"
             android:configChanges="uiMode"
             android:exported="false"
@@ -120,15 +138,10 @@
             android:exported="false"
             android:label="@string/profile" />
         <activity
-            android:name=".ProxyActivity"
+            android:name=".ProxyChainActivity"
             android:configChanges="uiMode"
             android:exported="false"
-            android:label="@string/proxy" />
-        <activity
-            android:name=".ProvidersActivity"
-            android:configChanges="uiMode"
-            android:exported="false"
-            android:label="@string/providers" />
+            android:label="@string/proxy_chain_title" />
         <activity
             android:name=".LogsActivity"
             android:configChanges="uiMode"
@@ -143,17 +156,52 @@
             android:name=".SettingsActivity"
             android:configChanges="uiMode"
             android:exported="false"
-            android:label="@string/settings" />
+            android:label="@string/main_advanced_settings" />
         <activity
             android:name=".NetworkSettingsActivity"
             android:configChanges="uiMode"
             android:exported="false"
             android:label="@string/network" />
         <activity
+            android:name=".DnsHostsSettingsActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/dns_hosts_title" />
+        <activity
+            android:name=".TunnelsSettingsActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/tunnels_title" />
+        <activity
             android:name=".AppSettingsActivity"
             android:configChanges="uiMode"
             android:exported="false"
             android:label="@string/app" />
+        <activity
+            android:name=".LanguageSettingsActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/app_language" />
+        <activity
+            android:name=".SubscriptionIdentityActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/subscription_identity" />
+        <activity
+            android:name=".ThemeSettingsActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/theme_settings" />
+        <activity
+            android:name=".GeoSettingsActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/settings_geo" />
+        <activity
+            android:name=".GeoDataSourceSettingsActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/geo_data_source" />
         <activity
             android:name=".OverrideSettingsActivity"
             android:configChanges="uiMode"
@@ -170,15 +218,50 @@
             android:exported="false"
             android:label="@string/effective_rules_title" />
         <activity
+            android:name=".RulesHubActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/rules_hub_title" />
+        <activity
+            android:name=".RoutingHubActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/nav_routing" />
+        <activity
+            android:name=".AnnouncementSettingsActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/announcement_settings" />
+        <activity
             android:name=".ConnectionsActivity"
             android:configChanges="uiMode"
             android:exported="false"
             android:label="@string/connections_title" />
         <activity
+            android:name=".RequestHistoryActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/request_history_title" />
+        <activity
             android:name=".RuleProvidersEditorActivity"
             android:configChanges="uiMode"
             android:exported="false"
             android:label="@string/rule_providers_editor_title" />
+        <activity
+            android:name=".ProfileConfigActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/profile_menu_view_config" />
+        <activity
+            android:name=".ProxyProvidersEditorActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/proxy_providers_editor_title" />
+        <activity
+            android:name=".ProxyProviderMergedGroupActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/proxy_providers_merged_screen_title" />
         <activity
             android:name=".MetaFeatureSettingsActivity"
             android:configChanges="uiMode"
@@ -190,15 +273,29 @@
             android:exported="false"
             android:label="@string/access_control_packages" />
         <activity
-            android:name=".HelpActivity"
-            android:configChanges="uiMode"
-            android:exported="false"
-            android:label="@string/help" />
-        <activity
             android:name=".FilesActivity"
             android:configChanges="uiMode"
             android:exported="false"
             android:label="@string/files" />
+        <activity
+            android:name=".CompanionActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/companion_title" />
+        <activity
+            android:name=".CompanionControlActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/companion_devices_title" />
+
+        <service
+            android:name=".companion.agent.CompanionGatewayService"
+            android:exported="false"
+            android:label="@string/companion_title"
+            android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="companion_remote_control"/>
+        </service>
 
         <service
             android:name=".LogcatService"
@@ -211,13 +308,25 @@
         <service
             android:name=".TileService"
             android:exported="true"
-            android:icon="@drawable/ic_logo_service"
+            android:icon="@drawable/ic_qs_tile"
             android:label="@string/launch_name"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
         </service>
+
+        <receiver
+            android:name=".SpeedWidget"
+            android:exported="false"
+            android:label="@string/widget_speed_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_speed_info" />
+        </receiver>
 
         <receiver
             android:name=".RestartReceiver"
@@ -235,6 +344,17 @@
                 <action android:name="android.provider.Telephony.SECRET_CODE" />
                 <!-- 252746382 is the name of Clash Meta in T9 -->
                 <data android:scheme="android_secret_code" android:host="252746382" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".UpdateCheckReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".UpdateActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.DOWNLOAD_COMPLETE" />
             </intent-filter>
         </receiver>
     </application>

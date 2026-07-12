@@ -6,18 +6,27 @@ import com.github.kr328.clash.core.Clash
 import com.github.kr328.clash.core.model.*
 import com.github.kr328.clash.service.data.Selection
 import com.github.kr328.clash.service.data.SelectionDao
+import com.github.kr328.clash.service.model.RequestHistoryRepository
+import com.github.kr328.clash.service.model.RequestHistorySnapshot
 import com.github.kr328.clash.service.remote.IClashManager
 import com.github.kr328.clash.service.remote.ILogObserver
+import com.github.kr328.clash.service.remote.IProxyDelayObserver
 import com.github.kr328.clash.service.store.ServiceStore
-import com.github.kr328.clash.service.util.RuntimeSocksAuth
+import com.github.kr328.clash.service.util.ProxyHardener
 import com.github.kr328.clash.service.util.sendOverrideChanged
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 class ClashManager(private val context: Context) : IClashManager,
     CoroutineScope by CoroutineScope(Dispatchers.IO) {
     private val store = ServiceStore(context)
     private var logReceiver: ReceiveChannel<LogMessage>? = null
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+    }
 
     override fun queryTunnelState(): TunnelState {
         return Clash.queryTunnelState()
@@ -27,8 +36,16 @@ class ClashManager(private val context: Context) : IClashManager,
         return Clash.queryTrafficTotal()
     }
 
+    override fun queryTrafficNow(): Long {
+        return Clash.queryTrafficNow()
+    }
+
     override fun queryProxyGroupNames(excludeNotSelectable: Boolean): List<String> {
         return Clash.queryGroupNames(excludeNotSelectable)
+    }
+
+    override fun queryAllProxyGroupNamesIncludingHidden(): List<String> {
+        return Clash.queryAllGroupNamesIncludingHidden()
     }
 
     override fun queryProxyGroup(name: String, proxySort: ProxySort): ProxyGroup {
@@ -47,25 +64,104 @@ class ClashManager(private val context: Context) : IClashManager,
         return Clash.queryConnectionsSnapshot()
     }
 
+    override fun queryRequestHistory(): String {
+        return json.encodeToString<RequestHistorySnapshot>(RequestHistoryRepository.snapshot())
+    }
+
+    override fun clearRequestHistory() {
+        RequestHistoryRepository.clear()
+    }
+
+    override fun startRequestHistoryTracking() {
+        RequestHistoryRepository.startTracking()
+    }
+
+    override fun stopRequestHistoryTracking() {
+        RequestHistoryRepository.stopTracking()
+    }
+
+    override fun closeConnection(id: String): Boolean {
+        return Clash.closeConnection(id)
+    }
+
+    override fun closeAllConnections(): Int {
+        return Clash.closeAllConnections()
+    }
+
     override fun queryOverride(slot: Clash.OverrideSlot): ConfigurationOverride {
         return Clash.queryOverride(slot)
     }
 
     override fun patchSelector(group: String, name: String): Boolean {
-        return Clash.patchSelector(group, name).also {
-            val current = store.activeProfile ?: return@also
+        val ok = Clash.patchSelector(group, name)
+        val current = store.activeProfile
+        if (!ok) {
+            current?.let { SelectionDao().removeSelected(it, group) }
 
-            if (it) {
-                SelectionDao().setSelected(Selection(current, group, name))
-            } else {
-                SelectionDao().removeSelected(current, group)
+            return false
+        }
+
+        current?.let { SelectionDao().setSelected(Selection(it, group, name)) }
+        syncSelectorAncestors(current, group)
+
+        return ok
+    }
+
+    private fun syncSelectorAncestors(current: java.util.UUID?, selectedGroup: String) {
+        if (selectedGroup.isBlank() || selectedGroup == "GLOBAL") return
+
+        val groupNames = runCatching { Clash.queryGroupNames(false) }
+            .getOrDefault(emptyList())
+        val queriedGroups = linkedMapOf<String, ProxyGroup>()
+
+        fun queryGroup(name: String): ProxyGroup? {
+            queriedGroups[name]?.let { return it }
+            return runCatching { Clash.queryGroup(name, ProxySort.Default) }
+                .getOrNull()
+                ?.also { queriedGroups[name] = it }
+        }
+
+        val visited = linkedSetOf<String>()
+        var child = selectedGroup
+
+        while (visited.add(child)) {
+            val parent = groupNames.firstNotNullOfOrNull { candidate ->
+                val parentGroup = queryGroup(candidate)
+                if (candidate == "GLOBAL" || candidate == child || parentGroup == null) {
+                    null
+                } else if (parentGroup.proxies.none { it.name == child }) {
+                    null
+                } else {
+                    candidate to parentGroup
+                }
+            } ?: break
+
+            val (parentName, parentGroup) = parent
+            if (parentGroup.type == Proxy.Type.Selector) {
+                if (parentGroup.now != child && !Clash.patchSelector(parentName, child)) break
+                current?.let { SelectionDao().setSelected(Selection(it, parentName, child)) }
             }
+            child = parentName
+        }
+
+        val state = runCatching { Clash.queryTunnelState() }.getOrNull()
+        if (state?.mode != TunnelState.Mode.Global) return
+
+        val global = runCatching { Clash.queryGroup("GLOBAL", ProxySort.Default) }.getOrNull()
+            ?: return
+        if (global.proxies.none { it.name == child } || global.now == child) return
+        if (Clash.patchSelector("GLOBAL", child)) {
+            current?.let { SelectionDao().setSelected(Selection(it, "GLOBAL", child)) }
         }
     }
 
     override fun patchOverride(slot: Clash.OverrideSlot, configuration: ConfigurationOverride) {
         if (slot == Clash.OverrideSlot.Session) {
-            RuntimeSocksAuth.applyTo(configuration)
+            ProxyHardener.applyTo(
+                configuration = configuration,
+                mode = store.proxyHardeningMode,
+                seedGeoMirrors = store.seedDefaultGeoMirrors,
+            )
         }
         Clash.patchOverride(slot, configuration)
 
@@ -80,6 +176,23 @@ class ClashManager(private val context: Context) : IClashManager,
         return Clash.healthCheck(group).await()
     }
 
+    override suspend fun healthCheckPerProxy(group: String, observer: IProxyDelayObserver) {
+        // JNI fires onProxyDelay from arbitrary worker threads. AIDL stubs are
+        // not thread-safe across simultaneous calls, so the observer must
+        // tolerate concurrent onDelay() — IPC marshals them serially through
+        // the binder transaction queue, but a DeadObjectException from a
+        // crashed activity must not kill the whole health-check pipeline.
+        val finalErr: String? = runCatching {
+            Clash.healthCheckPerProxy(group) { name, ms, err ->
+                runCatching { observer.onDelay(group, name, ms, err) }
+            }.await()
+            null
+        }.getOrElse { e ->
+            e.message ?: e::class.simpleName ?: "unknown"
+        }
+        runCatching { observer.onComplete(finalErr) }
+    }
+
     override fun healthCheckAll() {
         Clash.healthCheckAll()
     }
@@ -87,6 +200,9 @@ class ClashManager(private val context: Context) : IClashManager,
     override suspend fun updateProvider(type: Provider.Type, name: String) {
         return Clash.updateProvider(type, name).await()
     }
+
+    override suspend fun updateGeoDatabases(): String? =
+        withContext(Dispatchers.IO) { Clash.updateGeoDatabases() }
 
     override fun setLogObserver(observer: ILogObserver?) {
         synchronized(this) {

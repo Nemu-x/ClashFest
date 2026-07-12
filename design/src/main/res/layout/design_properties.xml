@@ -12,13 +12,13 @@
             name="processing"
             type="boolean" />
 
-        <import type="com.github.kr328.clash.service.model.Profile.Type" />
         <import type="android.view.View" />
     </data>
 
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:background="@drawable/bg_home_canvas"
         android:paddingStart="@{self.surface.insets.start}"
         android:paddingEnd="@{self.surface.insets.end}">
 
@@ -26,76 +26,242 @@
             android:id="@+id/scroll_root"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:clipToPadding="false"
             android:scrollbars="none">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:paddingTop="@{(float) self.surface.insets.top + @dimen/toolbar_height}"
-                android:paddingBottom="@{self.surface.insets.bottom}">
+                android:paddingHorizontal="16dp"
+                android:paddingTop="@{self.surface.insets.top + context.resources.getDimensionPixelSize(com.github.kr328.clash.design.R.dimen.toolbar_height) + context.resources.getDimensionPixelSize(com.github.kr328.clash.design.R.dimen.properties_editor_padding_extra_top)}"
+                android:paddingBottom="@{self.surface.insets.bottom + context.resources.getDimensionPixelSize(com.github.kr328.clash.design.R.dimen.properties_editor_padding_extra_bottom)}">
 
-                <LinearLayout
-                    android:layout_width="wrap_content"
+                <TextView
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingVertical="@dimen/item_padding_vertical">
+                    android:layout_marginBottom="14dp"
+                    android:text="@string/properties_editor_intro"
+                    android:textAppearance="@style/TextAppearance.App.BodyMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
 
-                    <View
-                        android:layout_width="@dimen/tips_icon_size"
-                        android:layout_height="@dimen/tips_icon_size"
-                        android:layout_marginHorizontal="@dimen/tips_icon_margin"
-                        android:background="@drawable/ic_outline_info" />
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/AppCard.Filled"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainer"
+                    app:cardCornerRadius="24dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
 
-                    <TextView
-                        android:id="@+id/tips"
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="@dimen/item_tailing_margin"
-                        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2" />
-                </LinearLayout>
+                        android:orientation="vertical"
+                        android:paddingTop="14dp"
+                        android:paddingBottom="8dp">
 
-                <com.github.kr328.clash.design.view.ActionTextField
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:paddingHorizontal="16dp"
+                            android:paddingBottom="10dp"
+                            android:text="@string/properties_section_subscription"
+                            android:textAppearance="@style/TextAppearance.App.TitleSmall"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textStyle="bold" />
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/layout_url"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="16dp"
+                            android:layout_marginVertical="@dimen/properties_element_margin_vertical"
+                            android:hint="@string/url"
+                            app:endIconMode="clear_text"
+                            app:helperText="@string/properties_url_helper"
+                            app:startIconDrawable="@drawable/ic_baseline_language">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/edit_url"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textUri" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/layout_name"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="16dp"
+                            android:layout_marginVertical="@dimen/properties_element_margin_vertical"
+                            android:hint="@string/name">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/edit_name"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textCapSentences" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/layout_interval"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="16dp"
+                            android:layout_marginVertical="@dimen/properties_element_margin_vertical"
+                            android:hint="@string/auto_update_minutes"
+                            app:helperText="@string/properties_interval_helper">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/edit_interval"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="number" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/layout_user_agent_preset"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="16dp"
+                            android:layout_marginVertical="@dimen/properties_element_margin_vertical"
+                            android:hint="@string/subscription_user_agent_override">
+
+                            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                                android:id="@+id/edit_user_agent_preset"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="none" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/layout_user_agent_custom"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="16dp"
+                            android:layout_marginVertical="@dimen/properties_element_margin_vertical"
+                            android:hint="@string/subscription_user_agent_custom"
+                            app:helperText="@string/subscription_user_agent_override_summary">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/edit_user_agent_custom"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="text"
+                                android:maxLines="1" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/layout_age_secret_key"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="16dp"
+                            android:layout_marginVertical="@dimen/properties_element_margin_vertical"
+                            android:hint="@string/age_secret_key"
+                            app:helperText="@string/age_secret_key_helper"
+                            app:endIconMode="password_toggle">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/edit_age_secret_key"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textPassword|textNoSuggestions"
+                                android:maxLines="1" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="16dp"
+                            android:layout_marginTop="2dp"
+                            android:layout_marginBottom="8dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/subscription_user_agent_strict"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textColor="?attr/colorOnSurface" />
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:text="@string/subscription_user_agent_strict_summary"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                                    android:textColor="?attr/colorOnSurfaceVariant" />
+                            </LinearLayout>
+
+                            <com.google.android.material.materialswitch.MaterialSwitch
+                                android:id="@+id/switch_user_agent_strict"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/AppCard.Filled"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginVertical="@dimen/properties_element_margin_vertical"
-                    android:onClick="@{() -> self.inputName()}"
-                    app:icon="@drawable/ic_outline_label"
-                    app:placeholder="@string/profile_name"
-                    app:text="@{profile.name}"
-                    app:title="@string/name" />
+                    android:layout_marginBottom="12dp"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainer"
+                    app:cardCornerRadius="24dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
 
-                <com.github.kr328.clash.design.view.ActionTextField
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginVertical="@dimen/properties_element_margin_vertical"
-                    android:onClick="@{() -> self.inputUrl()}"
-                    app:enabled="@{profile.type != Type.File}"
-                    app:icon="@drawable/ic_outline_inbox"
-                    app:placeholder="@string/accept_http_content"
-                    app:text="@{profile.source}"
-                    app:title="@string/url" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingTop="14dp"
+                        android:paddingBottom="8dp">
 
-                <com.github.kr328.clash.design.view.ActionTextField
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginVertical="@dimen/properties_element_margin_vertical"
-                    android:onClick="@{() -> self.inputInterval()}"
-                    app:enabled="@{profile.type != Type.File}"
-                    app:icon="@drawable/ic_outline_update"
-                    app:placeholder="@string/at_least_15_minutes"
-                    app:text="@{profile.interval == 0 ? @string/disabled : @string/format_minutes(profile.interval / 1000 / 60)}"
-                    app:title="@string/auto_update" />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:paddingHorizontal="16dp"
+                            android:paddingBottom="10dp"
+                            android:text="@string/properties_section_configuration"
+                            android:textAppearance="@style/TextAppearance.App.TitleSmall"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textStyle="bold" />
 
-                <com.github.kr328.clash.design.view.ActionLabel
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginVertical="@dimen/properties_element_margin_vertical"
-                    android:onClick="@{() -> self.requestBrowseFiles()}"
-                    app:icon="@drawable/ic_outline_folder"
-                    app:subtext="@string/browse_configuration_providers"
-                    app:text="@string/browse_files" />
+                        <com.github.kr328.clash.design.view.ActionLabel
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginVertical="@dimen/properties_element_margin_vertical"
+                            android:onClick="@{() -> self.requestProxyProviders()}"
+                            app:icon="@drawable/ic_baseline_cloud_download"
+                            app:subtext="@string/properties_proxy_providers_summary"
+                            app:text="@string/properties_proxy_providers" />
+
+                        <com.github.kr328.clash.design.view.ActionLabel
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginVertical="@dimen/properties_element_margin_vertical"
+                            android:onClick="@{() -> self.requestBrowseFiles()}"
+                            app:icon="@drawable/ic_outline_folder"
+                            app:subtext="@string/browse_configuration_providers"
+                            app:text="@string/browse_files" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
         </com.github.kr328.clash.design.view.ObservableScrollView>
 

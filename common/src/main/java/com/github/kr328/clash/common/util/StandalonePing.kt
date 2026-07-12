@@ -38,7 +38,7 @@ object StandalonePing {
     fun isBuiltinProxyName(name: String): Boolean =
         name.uppercase(Locale.US) in BUILTIN_NAMES
 
-    private val BUILTIN_NAMES = setOf("DIRECT", "REJECT", "PASS", "COMPATIBLE")
+    private val BUILTIN_NAMES = setOf("DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE")
 
     /**
      * Measures time to complete HTTPS/HTTP request handshake (GET; many CDNs block HEAD).
@@ -61,8 +61,9 @@ object StandalonePing {
                 val t0 = SystemClock.elapsedRealtime()
                 try {
                     conn.connect()
-                    @Suppress("UNUSED_VARIABLE")
-                    val code = conn.responseCode
+                    // Force the full request/response round-trip (not just the TCP connect) so the
+                    // measured time reflects a real HTTP exchange. Return value intentionally ignored.
+                    conn.responseCode
                     (SystemClock.elapsedRealtime() - t0).coerceAtLeast(1L)
                 } finally {
                     conn.disconnect()

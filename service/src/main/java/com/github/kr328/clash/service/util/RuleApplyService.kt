@@ -2,9 +2,16 @@ package com.github.kr328.clash.service.util
 
 import android.content.Context
 import com.github.kr328.clash.common.log.Log
+import com.github.kr328.clash.core.Clash
 import com.github.kr328.clash.service.model.RuleItem
+import com.github.kr328.clash.service.model.RuleEditorBundle
 import com.github.kr328.clash.service.model.RuleState
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import com.github.kr328.clash.service.model.RuleSource
+import com.github.kr328.clash.service.store.ServiceStore
+import kotlinx.serialization.json.Json
 import java.io.File
 import java.util.UUID
 
@@ -12,10 +19,23 @@ class RuleApplyService(
     private val context: Context,
     private val repository: RuleRepository = RuleRepository(context),
 ) {
+    data class RuleDryRun(
+        val currentYaml: String,
+        val proposedYaml: String,
+        val normalizedState: RuleState,
+    )
+
+    private val serviceStore = ServiceStore(context)
+    private val stateJsonForReconcile = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+        prettyPrint = true
+    }
+
     fun readStateJson(uuid: UUID): String? {
         val config = configFile(uuid) ?: return null
         Log.d("Read rule state")
-        return repository.readStateJson(uuid, config.readText())
+        return repository.readStateJson(uuid, config.parentFile!!)
     }
 
     fun applyStateJson(uuid: UUID, stateJson: String): Boolean {
@@ -25,11 +45,63 @@ class RuleApplyService(
         return applyState(uuid, config, state)
     }
 
+    fun saveStateJson(uuid: UUID, stateJson: String) {
+        repository.save(uuid, repository.parseStateJson(stateJson))
+    }
+
+    /** Parse a rule-state JSON into the normalized [RuleState] (for mirroring into the user layer). */
+    fun parseState(json: String): RuleState = repository.parseStateJson(json)
+
+    /**
+     * Dry-run an arbitrary candidate state JSON for the rule editor's preview.
+     * Returns the proposed merged config (and normalized state), or null when the
+     * engine rejects it. Does not write anything.
+     */
+    fun dryRunStateJson(uuid: UUID, stateJson: String): RuleDryRun? {
+        val config = configFile(uuid) ?: return null
+        val state = repository.parseStateJson(stateJson)
+        return safeDryRunState(config, state)
+    }
+
+    /**
+     * Everything the rule editor needs to open — rule state + policy options
+     * (proxy/group names) — from a SINGLE snapshot parse (the hub used to parse
+     * twice: once for the state, once for the policy picker).
+     */
+    fun readEditorBundle(uuid: UUID): String? {
+        val config = configFile(uuid) ?: return null
+        val dir = config.parentFile ?: return null
+        val snapshot = runCatching { Clash.parseProfileSnapshot(dir) }.getOrNull() ?: return null
+        val state = repository.load(uuid, snapshot)
+        val policies = buildList {
+            snapshot.proxies.forEach { obj ->
+                (obj["name"] as? JsonPrimitive)?.contentOrNull?.trim()?.takeIf { it.isNotEmpty() }?.let(::add)
+            }
+            addAll(ProxyGroupsYamlPreview.listProxyGroupNames(snapshot))
+        }.distinct()
+        return stateJsonForReconcile.encodeToString(RuleEditorBundle.serializer(), RuleEditorBundle(state, policies))
+    }
+
     fun mergeProviderShortcut(uuid: UUID, providersYaml: String, prependRuleLine: String): Boolean {
         val config = configFile(uuid) ?: return false
-        val current = repository.load(uuid, config.readText())
+        val current = repository.load(uuid, config.parentFile!!)
+        val merged = mergeProviderShortcutState(current, providersYaml, prependRuleLine)
+        return applyState(uuid, config, merged)
+    }
+
+    fun dryRunMergeProviderShortcut(uuid: UUID, providersYaml: String, prependRuleLine: String): RuleDryRun? {
+        val config = configFile(uuid) ?: return null
+        val current = repository.load(uuid, config.parentFile!!)
+        return safeDryRunState(config, mergeProviderShortcutState(current, providersYaml, prependRuleLine))
+    }
+
+    private fun mergeProviderShortcutState(
+        current: RuleState,
+        providersYaml: String,
+        prependRuleLine: String,
+    ): RuleState {
         val incomingProviders = RuleMapper.parseProvidersYaml(providersYaml)
-        val incomingRule = parseRuleLine(prependRuleLine, current.rules.size)
+        val incomingRule = RuleMapper.parseRuleLine(prependRuleLine, current.rules.size)
         Log.d("Merge provider shortcut incomingProviders=${incomingProviders.size} incomingRule=${incomingRule != null}")
 
         val mergedProviders = (current.providers + incomingProviders)
@@ -45,68 +117,26 @@ class RuleApplyService(
             if (incomingRule != null) add(0, incomingRule)
         }.mapIndexed { i, item -> item.copy(order = i) }
 
-        return applyState(
-            uuid,
-            config,
-            current.copy(providers = mergedProviders, rules = mergedRules)
-        )
+        return current.copy(providers = mergedProviders, rules = mergedRules)
     }
 
-    fun addRules(uuid: UUID, rawRules: List<String>, addMode: Boolean, insertMode: String): Boolean {
-        val config = configFile(uuid) ?: return false
-        val current = repository.load(uuid, config.readText())
-        val incoming = rawRules.mapIndexedNotNull { idx, line ->
-            parseRuleLine(line, idx)
-        }
-        if (incoming.isEmpty()) return true
-
-        val merged = if (addMode) {
-            val existing = current.rules.filterNot { it.deleted }.map { ruleLineKey(it) }.toMutableSet()
-            val added = incoming.filter { existing.add(ruleLineKey(it)) }
-            val base = current.rules.toMutableList()
-            when {
-                insertMode.equals("prepend", true) -> base.addAll(0, added)
-                insertMode.startsWith("index:", true) -> {
-                    val idx = insertMode.substringAfter(":").toIntOrNull() ?: base.size
-                    val target = idx.coerceIn(0, base.size)
-                    base.addAll(target, added)
-                }
-                else -> base.addAll(added)
-            }
-            val rules = base.mapIndexed { i, r -> r.copy(order = i) }
-            current.copy(rules = rules)
-        } else {
-            val rules = incoming.mapIndexed { i, r -> r.copy(order = i) }
-            current.copy(rules = rules)
-        }
-        return applyState(uuid, config, merged)
-    }
-
-    fun mutateRule(uuid: UUID, ruleId: String, action: String, enabled: Boolean? = null): Boolean {
-        val config = configFile(uuid) ?: return false
-        val state = repository.load(uuid, config.readText())
-        val updatedRules = state.rules.mapNotNull { r ->
-            if (r.id != ruleId) return@mapNotNull r
-            when (action) {
-                "toggle" -> r.copy(enabled = enabled ?: r.enabled)
-                "delete" -> {
-                    if (r.source == RuleSource.PROVIDER) r.copy(deleted = true, enabled = false, isRestorable = true)
-                    else null
-                }
-                "restore" -> r.copy(deleted = false, enabled = true)
-                else -> r
-            }
-        }.mapIndexed { i, r -> r.copy(order = i) }
-        return applyState(uuid, config, state.copy(rules = updatedRules))
+    /**
+     * dryRunState now throws when the engine rejects the merged YAML (Path B
+     * Step 3 — see Clash.validateProfileBytes). Dry-run callers must surface
+     * this as "preview unavailable" rather than crashing the UI, so they go
+     * through this safe wrapper.
+     */
+    private fun safeDryRunState(config: File, state: RuleState): RuleDryRun? {
+        return runCatching { dryRunState(config, state) }
+            .onFailure { Log.w("Rule dry-run rejected by engine", it) }
+            .getOrNull()
     }
 
     private fun applyState(uuid: UUID, config: File, state: RuleState): Boolean {
         return runCatching {
-            val normalized = state.copy(rules = normalizeRuleOrder(state.rules))
-            val mergedYaml = RuleMapper.mergeStateIntoConfig(config.readText(), normalized)
-            val proxyGroups = ProxyGroupsYamlPreview.parseProxyNamesByGroup(mergedYaml).keys
-            RuleValidator.validate(normalized, proxyGroups)
-            validateMergedYaml(mergedYaml)
+            val dryRun = dryRunState(config, state) ?: return false
+            val normalized = dryRun.normalizedState
+            val mergedYaml = dryRun.proposedYaml
             repository.save(uuid, normalized)
             config.writeText(mergedYaml)
             context.sendProfileChanged(uuid)
@@ -117,20 +147,42 @@ class RuleApplyService(
         }.getOrElse { false }
     }
 
-    private fun normalizeRuleOrder(rules: List<RuleItem>): List<RuleItem> {
-        data class Indexed(val i: Int, val r: RuleItem)
-        val enabled = rules.mapIndexed { i, r -> Indexed(i, r) }.filter { it.r.enabled && !it.r.deleted }
-        val inactive = rules.mapIndexed { i, r -> Indexed(i, r) }.filterNot { it.r.enabled && !it.r.deleted }
-        val sortedEnabled = enabled.sortedWith(compareBy<Indexed> { priority(it.r) }.thenBy { it.i })
-        return (sortedEnabled + inactive).mapIndexed { idx, ir -> ir.r.copy(order = idx) }
-    }
-
-    private fun priority(rule: RuleItem): Int {
-        val reject = rule.policy.equals("REJECT", true) || rule.policy.equals("REJECT-DROP", true)
-        if (reject) return 0
-        if (rule.type.equals("GEOSITE", true)) return 1
-        if (rule.type.equals("RULE-SET", true)) return 2
-        return 3
+    private fun dryRunState(config: File, state: RuleState): RuleDryRun {
+        val currentYaml = config.readText()
+        val normalized = state.copy(rules = normalizeRuleOrder(state.rules))
+        val geoDataUrls = GeoDataSources.resolve(
+            preset = serviceStore.geoDataSourcePreset,
+            customGeoIp = serviceStore.geoDataCustomGeoIp,
+            customGeoSite = serviceStore.geoDataCustomGeoSite,
+            customMmdb = serviceStore.geoDataCustomMmdb,
+            customAsn = serviceStore.geoDataCustomAsn,
+        )
+        val mergedYaml = RuleMapper.mergeStateIntoConfig(currentYaml, normalized, geoDataUrls)
+        val mergedSnapshot = Clash.parseProfileSnapshotFromYaml(mergedYaml)
+        val proxyGroups = ProxyGroupsYamlPreview.listProxyGroupNames(mergedSnapshot).toSet()
+        // In mihomo a rule policy can be a single proxy (node), not only a group — accept both.
+        val proxyNames = mergedSnapshot.proxies.mapNotNull {
+            it["name"]?.jsonPrimitive?.contentOrNull?.trim()?.takeIf { n -> n.isNotEmpty() }
+        }.toSet()
+        RuleValidator.validate(
+            normalized,
+            availablePolicies = proxyGroups + proxyNames,
+            // Proxies pulled from proxy-providers aren't statically listed; don't reject a policy we
+            // can't see (the engine gate is the real check).
+            allowUnknownPolicy = mergedSnapshot.proxyProviders.isNotEmpty(),
+        )
+        // Soft engine check: ask mihomo whether it would accept the merged
+        // YAML and surface its verdict in the log. We do NOT block the write
+        // on failure - ParseRawConfig also loads provider files, which means
+        // a broken provider .mrs/.yaml on disk would block legitimate rule
+        // edits (toggle/delete) that have nothing to do with the provider.
+        // Use the log to spot issues; the runtime apply will hard-fail later
+        // if mihomo really can't load, and at that point the user fixes the
+        // provider, not their edits.
+        Clash.validateProfileBytes(mergedYaml)?.let { engineError ->
+            Log.w("Engine flagged merged config (continuing anyway): $engineError")
+        }
+        return RuleDryRun(currentYaml, mergedYaml, normalized)
     }
 
     private fun configFile(uuid: UUID): File? {
@@ -138,62 +190,18 @@ class RuleApplyService(
         return file.takeIf { it.isFile }
     }
 
-    private fun parseRuleLine(line: String, order: Int): RuleItem? {
-        val t = line.trim().removePrefix("-").trim()
-        if (t.isBlank()) return null
-        val parts = t.split(",").map { it.trim() }
-        val type = parts.firstOrNull().orEmpty()
-        if (type.isBlank()) return null
-        return if (type.equals("MATCH", true)) {
-            RuleItem(
-                id = UUID.randomUUID().toString(),
-                raw = t,
-                type = "MATCH",
-                value = "",
-                policy = parts.getOrElse(1) { "DIRECT" },
-                enabled = true,
-                deleted = false,
-                source = RuleSource.MANUAL,
-                order = order,
-            )
-        } else {
-            RuleItem(
-                id = UUID.randomUUID().toString(),
-                raw = t,
-                type = type.uppercase(),
-                value = parts.getOrElse(1) { "" },
-                policy = parts.getOrElse(2) { "DIRECT" },
-                enabled = true,
-                deleted = false,
-                source = if (type.equals("RULE-SET", true)) RuleSource.PROVIDER else RuleSource.MANUAL,
-                providerName = if (type.equals("RULE-SET", true)) parts.getOrElse(1) { "" }.ifBlank { null } else null,
-                isRestorable = type.equals("RULE-SET", true),
-                order = order,
-            )
-        }
-    }
-
-    private fun ruleLineKey(rule: RuleItem): String {
-        return if (rule.type.equals("MATCH", true)) {
-            "MATCH,${rule.policy}".uppercase()
-        } else {
-            "${rule.type},${rule.value},${rule.policy}".uppercase()
-        }
-    }
-
-    private fun validateMergedYaml(yaml: String) {
-        val root = YamlFormatting.parseRootMap(yaml)
-            ?: throw IllegalArgumentException("Generated YAML is invalid")
-        val rp = root["rule-providers"]
-        if (rp != null && rp !is Map<*, *>) {
-            throw IllegalArgumentException("Generated rule-providers must be a map")
-        }
-        val rules = root["rules"]
-        if (rules != null && rules !is List<*>) {
-            throw IllegalArgumentException("Generated rules must be a list")
-        }
-        (rules as? List<*>)?.forEach {
-            require(it is String) { "Generated rules entries must be strings" }
-        }
-    }
 }
+
+/**
+ * Stable rule ordering: rules keep their `order` (the user's manual drag order +
+ * the subscription's authored order); we only compact the indices. We do NOT move
+ * disabled rules to the tail and do NOT re-sort by rule type. So toggling a rule
+ * off then on returns it to exactly its place, and the subscription author's rule
+ * order is preserved. `mergeStateIntoConfig` emits enabled rules by `order`,
+ * skipping disabled ones — so a disabled rule simply holds its slot.
+ *
+ * Pure (no Context/engine) → unit-testable; `applyState`/`dryRunState`/reconcile
+ * delegate here.
+ */
+internal fun normalizeRuleOrder(rules: List<RuleItem>): List<RuleItem> =
+    rules.sortedBy { it.order }.mapIndexed { idx, r -> r.copy(order = idx) }

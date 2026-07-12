@@ -1,77 +1,87 @@
 package com.github.kr328.clash.design
 
 import android.content.Context
+import android.text.TextUtils
 import android.view.Gravity
 import android.view.View
-import android.widget.CompoundButton
-import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.github.kr328.clash.design.databinding.DesignRuleSnippetBinding
 import com.github.kr328.clash.design.R
-import com.github.kr328.clash.design.util.applyFrom
 import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.design.util.root
 import com.github.kr328.clash.service.model.RuleProviderItem
-import com.google.android.material.switchmaterial.SwitchMaterial
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
+import com.google.android.material.color.MaterialColors
+import kotlin.math.roundToInt
 
 class RuleSnippetDesign(context: Context) : Design<RuleSnippetDesign.Request>(context) {
     sealed class Request {
-        object OpenCreateSheet : Request()
-        object OpenManualRules : Request()
-        data class ToggleProvider(val id: String, val name: String, val enabled: Boolean) : Request()
-        data class DeleteProvider(val id: String, val name: String) : Request()
-        data class EditProvider(val id: String, val name: String) : Request()
+        object UpdateAllRuleSets : Request()
+        data class UpdateProvider(val name: String) : Request()
     }
 
     private val binding = DesignRuleSnippetBinding
         .inflate(context.layoutInflater, context.root, false)
     private var existingProviders: List<RuleProviderItem> = emptyList()
+    private var providerEntryCounts: Map<String, Int> = emptyMap()
 
     override val root: View
         get() = binding.root
 
     init {
         binding.self = this
-        binding.activityBarLayout.applyFrom(context)
-        binding.btnOpenCreateSheet.setOnClickListener { requests.trySend(Request.OpenCreateSheet) }
-        binding.btnOpenManualRules.setOnClickListener { requests.trySend(Request.OpenManualRules) }
+        binding.header.screenTitle.text = context.getString(R.string.rule_snippet_title)
+        binding.btnUpdateAllRuleSets.setOnClickListener { requests.trySend(Request.UpdateAllRuleSets) }
     }
 
-    fun patchExistingProviders(providers: List<RuleProviderItem>) {
+    fun patchExistingProviders(
+        providers: List<RuleProviderItem>,
+        entryCounts: Map<String, Int> = emptyMap(),
+    ) {
         existingProviders = providers
+        providerEntryCounts = entryCounts
         val container = binding.providerItemsContainer
         container.removeAllViews()
         if (existingProviders.isNotEmpty()) {
-            existingProviders.forEach { provider ->
-                container.addView(
-                    buildRowSwitch(
-                        title = provider.name,
-                        subtitle = provider.url,
-                        checked = provider.enabled,
-                    ) { checked ->
-                        requests.trySend(Request.ToggleProvider(provider.id, provider.name, checked))
-                    }.also { row ->
-                        val actions = LinearLayout(context).apply {
-                            orientation = LinearLayout.HORIZONTAL
-                        }
-                        val edit = ImageButton(context).apply {
-                            setImageResource(R.drawable.ic_baseline_edit)
-                            background = null
-                            layoutParams = LinearLayout.LayoutParams(80, 80).apply { marginEnd = 8 }
-                            setOnClickListener { requests.trySend(Request.EditProvider(provider.id, provider.name)) }
-                        }
-                        val delete = ImageButton(context).apply {
-                            setImageResource(R.drawable.ic_baseline_delete)
-                            background = null
-                            layoutParams = LinearLayout.LayoutParams(80, 80)
-                            setOnClickListener { requests.trySend(Request.DeleteProvider(provider.id, provider.name)) }
-                        }
-                        actions.addView(edit)
-                        actions.addView(delete)
-                        (row as LinearLayout).addView(actions)
-                    }
-                )
+            val columns = when {
+                context.resources.configuration.screenWidthDp >= 840 -> 4
+                context.resources.configuration.screenWidthDp >= 600 -> 2
+                else -> 1
+            }
+            existingProviders.chunked(columns).forEach { rowProviders ->
+                val row = LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    setBaselineAligned(false)
+                }
+                rowProviders.forEach { provider ->
+                    row.addView(
+                        buildExistingProviderCard(provider).apply {
+                            layoutParams = LinearLayout.LayoutParams(
+                                0,
+                                LinearLayout.LayoutParams.WRAP_CONTENT,
+                                1f,
+                            ).apply {
+                                setMargins(0, 10.dp(), 10.dp(), 0)
+                            }
+                        },
+                    )
+                }
+                repeat(columns - rowProviders.size) {
+                    row.addView(
+                        View(context).apply {
+                            layoutParams = LinearLayout.LayoutParams(
+                                0,
+                                1,
+                                1f,
+                            ).apply {
+                                setMargins(0, 10.dp(), 10.dp(), 0)
+                            }
+                        },
+                    )
+                }
+                container.addView(row)
             }
             return
         }
@@ -82,36 +92,105 @@ class RuleSnippetDesign(context: Context) : Design<RuleSnippetDesign.Request>(co
         })
     }
 
-    private fun buildRowSwitch(
-        title: String,
-        subtitle: String?,
-        checked: Boolean,
-        onChecked: (Boolean) -> Unit,
-    ): View {
-        val row = LinearLayout(context).apply {
+    private fun buildExistingProviderCard(provider: RuleProviderItem): View {
+        val content = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = 8 }
-            setPadding(0, 8, 0, 8)
+            setPadding(14.dp(), 12.dp(), 12.dp(), 12.dp())
         }
-        val sw = SwitchMaterial(context).apply {
-            text = title
-            isChecked = checked
-            setOnCheckedChangeListener { _: CompoundButton, isCheckedNow: Boolean ->
-                onChecked(isCheckedNow)
-            }
+        val header = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
         }
-        row.addView(sw)
-        if (!subtitle.isNullOrBlank()) {
-            row.addView(TextView(context).apply {
-                text = subtitle
-                textSize = 12f
-                alpha = 0.7f
-                gravity = Gravity.START
-            })
+        header.addView(
+            TextView(context).apply {
+                text = provider.name
+                setTextAppearance(R.style.TextAppearance_App_TitleSmall)
+                setTextColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface))
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+                layoutParams = LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f,
+                )
+            },
+        )
+        header.addView(
+            iconButton(
+                icon = R.drawable.ic_baseline_sync,
+                description = context.getString(R.string.update),
+                onClick = { requests.trySend(Request.UpdateProvider(provider.name)) },
+            ),
+        )
+        content.addView(header)
+        if (provider.url.isNotBlank()) {
+            content.addView(
+                TextView(context).apply {
+                    text = provider.url
+                    setPadding(0, 8.dp(), 0, 0)
+                    setTextAppearance(R.style.TextAppearance_App_BodySmall)
+                    setTextColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant))
+                    maxLines = 2
+                    ellipsize = TextUtils.TruncateAt.MIDDLE
+                    setTextIsSelectable(true)
+                },
+            )
         }
-        return row
+        content.addView(
+            TextView(context).apply {
+                val behaviorLabel = provider.behavior.replaceFirstChar { it.uppercaseChar() }
+                val typeLabel = provider.type.uppercase()
+                val parts = mutableListOf(behaviorLabel, typeLabel)
+                providerEntryCounts[provider.name]?.let { count ->
+                    parts += context.getString(R.string.rule_provider_entries_fmt, count.toString())
+                }
+                text = parts.joinToString(" · ")
+                setPadding(0, 8.dp(), 0, 0)
+                setTextAppearance(R.style.TextAppearance_App_BodySmall)
+                setTextColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant))
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+            },
+        )
+        return MaterialCardView(context).apply {
+            radius = 18f
+            cardElevation = 0f
+            setCardBackgroundColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorSurfaceContainer))
+            strokeWidth = 1
+            strokeColor = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOutlineVariant)
+            addView(content)
+        }
     }
+
+    private fun iconButton(
+        icon: Int,
+        description: String,
+        onClick: () -> Unit,
+    ): MaterialButton {
+        return MaterialButton(
+            context,
+            null,
+            com.google.android.material.R.attr.materialButtonOutlinedStyle,
+        ).apply {
+            text = ""
+            setIconResource(icon)
+            contentDescription = description
+            minWidth = 0
+            minimumWidth = 0
+            minHeight = 0
+            minimumHeight = 0
+            insetTop = 0
+            insetBottom = 0
+            iconPadding = 0
+            iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
+            setPadding(10.dp(), 0, 10.dp(), 0)
+            layoutParams = LinearLayout.LayoutParams(40.dp(), 36.dp()).apply {
+                marginStart = 6.dp()
+            }
+            setOnClickListener { onClick() }
+        }
+    }
+
+    private fun Int.dp(): Int =
+        (this * context.resources.displayMetrics.density).roundToInt()
 }

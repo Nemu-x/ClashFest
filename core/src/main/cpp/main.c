@@ -1,6 +1,7 @@
 #include <jni.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "bridge_helper.h"
@@ -52,6 +53,15 @@ Java_com_github_kr328_clash_core_bridge_Bridge_nativeQueryTunnelState(JNIEnv *en
     TRACE_METHOD();
 
     scoped_string response = queryTunnelState();
+
+    return new_string(response);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeUpdateGeoDatabases(JNIEnv *env, jobject thiz) {
+    TRACE_METHOD();
+
+    scoped_string response = updateGeoDatabases();
 
     return new_string(response);
 }
@@ -168,6 +178,15 @@ Java_com_github_kr328_clash_core_bridge_Bridge_nativeQueryGroupNames(JNIEnv *env
 }
 
 JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeQueryAllGroupNamesIncludingHidden(JNIEnv *env, jobject thiz) {
+    TRACE_METHOD();
+
+    scoped_string response = queryAllGroupNamesIncludingHidden();
+
+    return new_string(response);
+}
+
+JNIEXPORT jstring JNICALL
 Java_com_github_kr328_clash_core_bridge_Bridge_nativeQueryGroup(JNIEnv *env, jobject thiz,
                                                                 jstring name, jstring mode) {
     TRACE_METHOD();
@@ -193,6 +212,18 @@ Java_com_github_kr328_clash_core_bridge_Bridge_nativeHealthCheck(JNIEnv *env, jo
     scoped_string _name = get_string(name);
 
     healthCheck(_completable, _name);
+}
+
+JNIEXPORT void JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeHealthCheckWithCallback(JNIEnv *env, jobject thiz,
+                                                                              jobject callback,
+                                                                              jstring name) {
+    TRACE_METHOD();
+
+    jobject _callback = new_global(callback);
+    scoped_string _name = get_string(name);
+
+    healthCheckWithCallback(_callback, _name);
 }
 
 JNIEXPORT void JNICALL
@@ -225,17 +256,178 @@ Java_com_github_kr328_clash_core_bridge_Bridge_nativeLoad(JNIEnv *env, jobject t
 }
 
 JNIEXPORT void JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeValidateProfile(JNIEnv *env, jobject thiz,
+                                                                     jobject completable, jstring path) {
+    TRACE_METHOD();
+
+    jobject _completable = new_global(completable);
+    scoped_string _path = get_string(path);
+
+    validateProfile(_completable, _path);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeParseProfileSnapshot(JNIEnv *env, jobject thiz,
+                                                                          jstring path) {
+    TRACE_METHOD();
+
+    scoped_string _path = get_string(path);
+
+    scoped_string response = parseProfileSnapshot(_path);
+
+    return new_string(response);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeParseProfileSnapshotFromBytes(JNIEnv *env, jobject thiz,
+                                                                                    jstring yaml) {
+    TRACE_METHOD();
+
+    scoped_string _yaml = get_string(yaml);
+
+    scoped_string response = parseProfileSnapshotFromBytes(_yaml);
+
+    return new_string(response);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeValidateProfileBytes(JNIEnv *env, jobject thiz,
+                                                                          jstring yaml) {
+    TRACE_METHOD();
+
+    scoped_string _yaml = get_string(yaml);
+
+    scoped_string response = validateProfileBytes(_yaml);
+
+    if (response == NULL)
+        return NULL;
+
+    return new_string(response);
+}
+
+JNIEXPORT void JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeSetAgeSecretKey(JNIEnv *env, jobject thiz,
+                                                                     jstring key) {
+    TRACE_METHOD();
+
+    if (key == NULL) {
+        setAgeSecretKey(NULL);
+        return;
+    }
+
+    scoped_string _key = get_string(key);
+
+    setAgeSecretKey(_key);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeGenX25519KeyPair(JNIEnv *env, jobject thiz) {
+    TRACE_METHOD();
+
+    scoped_string response = genX25519KeyPair();
+
+    if (response == NULL)
+        return NULL;
+
+    return new_string(response);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeGenHybridKeyPair(JNIEnv *env, jobject thiz) {
+    TRACE_METHOD();
+
+    scoped_string response = genHybridKeyPair();
+
+    if (response == NULL)
+        return NULL;
+
+    return new_string(response);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeVeritySecretKeys(JNIEnv *env, jobject thiz,
+                                                                      jstring secret_keys) {
+    TRACE_METHOD();
+
+    if (secret_keys == NULL)
+        return 0;
+
+    scoped_string _secret_keys = get_string(secret_keys);
+
+    return (jboolean) veritySecretKeys(_secret_keys);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeToPublicKeys(JNIEnv *env, jobject thiz,
+                                                                  jstring secret_keys) {
+    TRACE_METHOD();
+
+    if (secret_keys == NULL)
+        return NULL;
+
+    scoped_string _secret_keys = get_string(secret_keys);
+    scoped_string response = toPublicKeys(_secret_keys);
+
+    if (response == NULL)
+        return NULL;
+
+    return new_string(response);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeVerityPublicKeys(JNIEnv *env, jobject thiz,
+                                                                      jstring public_keys) {
+    TRACE_METHOD();
+
+    if (public_keys == NULL)
+        return 0;
+
+    scoped_string _public_keys = get_string(public_keys);
+
+    return (jboolean) verityPublicKeys(_public_keys);
+}
+
+JNIEXPORT void JNICALL
 Java_com_github_kr328_clash_core_bridge_Bridge_nativeFetchAndValid(JNIEnv *env, jobject thiz,
                                                                    jobject callback,
                                                                    jstring path,
-                                                                   jstring url, jboolean force) {
+                                                                   jstring url, jboolean force,
+                                                                   jstring headersJson) {
     TRACE_METHOD();
 
     jobject _completable = new_global(callback);
     scoped_string _path = get_string(path);
     scoped_string _url = get_string(url);
+    char *_headers_raw;
+    if (headersJson == NULL) {
+        _headers_raw = strdup("");
+    } else {
+        _headers_raw = get_string(headersJson);
+    }
+    scoped_string _headers = _headers_raw;
 
-    fetchAndValid(_completable, _path, _url, force);
+    fetchAndValid(_completable, _path, _url, force, _headers);
+}
+
+JNIEXPORT void JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeFetchProvidersAndValid(JNIEnv *env, jobject thiz,
+                                                                            jobject callback,
+                                                                            jstring path,
+                                                                            jboolean force,
+                                                                            jstring headersJson) {
+    TRACE_METHOD();
+
+    jobject _completable = new_global(callback);
+    scoped_string _path = get_string(path);
+    char *_headers_raw;
+    if (headersJson == NULL) {
+        _headers_raw = strdup("");
+    } else {
+        _headers_raw = get_string(headersJson);
+    }
+    scoped_string _headers = _headers_raw;
+
+    fetchProvidersAndValid(_completable, _path, force, _headers);
 }
 
 JNIEXPORT jstring JNICALL
@@ -255,6 +447,24 @@ Java_com_github_kr328_clash_core_bridge_Bridge_nativeQueryConnectionsSnapshot(JN
     scoped_string response = queryConnectionsSnapshot();
 
     return new_string(response);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeCloseConnection(JNIEnv *env, jobject thiz,
+                                                                     jstring id) {
+    TRACE_METHOD();
+
+    scoped_string _id = get_string(id);
+
+    return closeConnection(_id) != 0;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeCloseAllConnections(JNIEnv *env,
+                                                                         jobject thiz) {
+    TRACE_METHOD();
+
+    return closeAllConnections();
 }
 
 JNIEXPORT void JNICALL
@@ -328,6 +538,8 @@ static jmethodID m_logcat_interface_received;
 static jmethodID m_clash_exception;
 static jmethodID m_fetch_callback_report;
 static jmethodID m_fetch_callback_complete;
+static jmethodID m_proxy_delay_callback_report;
+static jmethodID m_proxy_delay_callback_complete;
 static jmethodID m_open;
 static jmethodID m_get_message;
 static jclass c_clash_exception;
@@ -411,6 +623,38 @@ static void call_fetch_callback_complete_impl(void *fetch_callback, const char *
                            (jstring) _error);
 }
 
+static void call_proxy_delay_callback_report_impl(void *callback, const char *proxy_name, int delay_ms, const char *err_msg) {
+    TRACE_METHOD();
+
+    ATTACH_JNI();
+
+    jstring _proxy_name = new_string(proxy_name);
+    jstring _err_msg = err_msg != NULL ? new_string(err_msg) : new_string("");
+
+    (*env)->CallVoidMethod(env,
+                           (jobject) callback,
+                           (jmethodID) m_proxy_delay_callback_report,
+                           (jstring) _proxy_name,
+                           (jint) delay_ms,
+                           (jstring) _err_msg);
+}
+
+static void call_proxy_delay_callback_complete_impl(void *callback, const char *error) {
+    TRACE_METHOD();
+
+    ATTACH_JNI();
+
+    jstring _error = NULL;
+
+    if (error != NULL)
+        _error = new_string(error);
+
+    (*env)->CallVoidMethod(env,
+                           (jobject) callback,
+                           (jmethodID) m_proxy_delay_callback_complete,
+                           (jstring) _error);
+}
+
 static int call_logcat_interface_received_impl(void *callback, const char *payload) {
     TRACE_METHOD();
 
@@ -482,6 +726,7 @@ JNI_OnLoad(JavaVM *vm, void *reserved) {
     jclass c_tun_interface = find_class("com/github/kr328/clash/core/bridge/TunInterface");
     jclass c_completable = find_class("kotlinx/coroutines/CompletableDeferred");
     jclass c_fetch_callback = find_class("com/github/kr328/clash/core/bridge/FetchCallback");
+    jclass c_proxy_delay_callback = find_class("com/github/kr328/clash/core/bridge/ProxyDelayCallback");
     jclass c_logcat_interface = find_class("com/github/kr328/clash/core/bridge/LogcatInterface");
     jclass _c_clash_exception = find_class("com/github/kr328/clash/core/bridge/ClashException");
     jclass _c_content = find_class("com/github/kr328/clash/core/bridge/Content");
@@ -498,6 +743,10 @@ JNI_OnLoad(JavaVM *vm, void *reserved) {
                                           "(Ljava/lang/String;)V");
     m_fetch_callback_complete = find_method(c_fetch_callback, "complete",
                                             "(Ljava/lang/String;)V");
+    m_proxy_delay_callback_report = find_method(c_proxy_delay_callback, "report",
+                                                "(Ljava/lang/String;ILjava/lang/String;)V");
+    m_proxy_delay_callback_complete = find_method(c_proxy_delay_callback, "complete",
+                                                  "(Ljava/lang/String;)V");
     m_completable_complete_exceptionally = find_method(c_completable, "completeExceptionally",
                                                        "(Ljava/lang/Throwable;)Z");
     m_logcat_interface_received = find_method(c_logcat_interface, "received",
@@ -522,6 +771,8 @@ JNI_OnLoad(JavaVM *vm, void *reserved) {
     complete_func = &call_completable_complete_impl;
     fetch_report_func = &call_fetch_callback_report_impl;
     fetch_complete_func = &call_fetch_callback_complete_impl;
+    proxy_delay_report_func = &call_proxy_delay_callback_report_impl;
+    proxy_delay_complete_func = &call_proxy_delay_callback_complete_impl;
     logcat_received_func = &call_logcat_interface_received_impl;
     open_content_func = &open_content_impl;
     release_object_func = &release_jni_object_impl;

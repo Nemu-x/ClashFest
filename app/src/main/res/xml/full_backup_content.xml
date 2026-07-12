@@ -3,15 +3,24 @@
     <include
         domain="sharedpref"
         path="." />
+    <exclude
+        domain="sharedpref"
+        path="companion_controller.xml" />
     <include
         domain="database"
         path="." />
-    <include
-        domain="file"
-        path="imported" />
-    <include
-        domain="file"
-        path="pending" />
+    <exclude
+        domain="database"
+        path="profiles" />
+    <exclude
+        domain="database"
+        path="profiles-shm" />
+    <exclude
+        domain="database"
+        path="profiles-wal" />
+    <!-- imported/ and pending/ are intentionally NOT backed up: a profile may hold an age-encrypted
+         body or secret key that must not leave the device via cloud backup. Only override.json is
+         included (whitelist mode — anything not listed is skipped). -->
     <include
         domain="file"
         path="clash/override.json" />
