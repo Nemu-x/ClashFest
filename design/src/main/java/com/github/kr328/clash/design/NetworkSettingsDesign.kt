@@ -138,21 +138,26 @@ class NetworkSettingsDesign(
                 title = R.string.tun_stack_mode,
                 configure = vpnDependencies::add,
             )
-            // While the VPN is running on Auto, show the stack actually in use (Auto: gvisor/system/
-            // mixed) resolved from the active subscription — so the effective stack isn't opaque.
-            if (running) {
-                launch {
-                    val resolved = withContext(Dispatchers.IO) {
-                        if (srvStore.tunStackMode != TunStackResolver.AUTO) return@withContext null
-                        val uuid = srvStore.activeProfile ?: return@withContext null
-                        val cfg = runCatching {
-                            File(context.importedDir.resolve(uuid.toString()), "config.yaml").readText()
+            // Surface the effective stack so the picker isn't misleading: an operator `X-Network-Stack`
+            // header locks the stack over the user's pick ("Set by operator: …"), and Auto resolves to
+            // the subscription's declared stack ("Auto: …").
+            launch {
+                val setting = srvStore.tunStackMode
+                val (operatorLock, effective) = withContext(Dispatchers.IO) {
+                    val uuid = srvStore.activeProfile
+                    val operator = uuid?.let { srvStore.subscriptionNetworkStackFor(it) }
+                    val cfg = uuid?.let {
+                        runCatching {
+                            File(context.importedDir.resolve(it.toString()), "config.yaml").readText()
                         }.getOrNull()
-                        TunStackResolver.resolve(cfg, TunStackResolver.AUTO)
                     }
-                    if (resolved != null) {
-                        stackPref.summary = context.getString(R.string.tun_stack_auto_fmt, resolved)
-                    }
+                    operator?.trim()?.lowercase() to TunStackResolver.resolve(setting, operator, cfg)
+                }
+                when {
+                    operatorLock in setOf("system", "gvisor", "mixed") && operatorLock != setting ->
+                        stackPref.summary = context.getString(R.string.tun_stack_operator_fmt, effective)
+                    setting == TunStackResolver.AUTO ->
+                        stackPref.summary = context.getString(R.string.tun_stack_auto_fmt, effective)
                 }
             }
 

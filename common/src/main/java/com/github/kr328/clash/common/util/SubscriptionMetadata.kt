@@ -33,6 +33,13 @@ data class SubscriptionMetadata(
     val hwidNotSupported: Boolean? = null,
     val hwidMaxDevicesReached: Boolean? = null,
     val hwidLimit: Boolean? = null,
+    /**
+     * Operator-forced TUN network stack, parsed from `X-Network-Stack`. One of
+     * `system` / `gvisor` / `mixed` locks the client to that stack (operator policy, wins over the
+     * user's manual setting — see TunStackResolver); `auto` means "don't lock, defer to the user /
+     * the system default". null = header absent. An unrecognised value maps to null.
+     */
+    val networkStack: String? = null,
 ) {
     fun isEmpty(): Boolean =
         supportUrl == null &&
@@ -46,7 +53,8 @@ data class SubscriptionMetadata(
             hwidActive == null &&
             hwidNotSupported == null &&
             hwidMaxDevicesReached == null &&
-            hwidLimit == null
+            hwidLimit == null &&
+            networkStack == null
 }
 
 object SubscriptionMetadataFetcher {
@@ -183,6 +191,12 @@ object SubscriptionMetadataFetcher {
             "X-Share-Links-Policy",
         )
         val shareLinksDisable = parseShareLinksPolicy(shareLinksRaw)
+        val networkStack = parseNetworkStack(
+            header(
+                "X-Network-Stack", "x-network-stack", "Network-Stack",
+                "X-NetworkStack", "X-NetworkStack-enabled", "x-networkstack-enabled",
+            ),
+        )
         val hwidActive = parseBooleanHeader(header("x-hwid-active", "X-HWID-ACTIVE"))
         val hwidNotSupported = parseBooleanHeader(header("x-hwid-not-supported", "X-HWID-NOT-SUPPORTED"))
         val hwidMaxDevicesReached = parseBooleanHeader(
@@ -203,7 +217,17 @@ object SubscriptionMetadataFetcher {
             hwidNotSupported = hwidNotSupported,
             hwidMaxDevicesReached = hwidMaxDevicesReached,
             hwidLimit = hwidLimit,
+            networkStack = networkStack,
         )
+    }
+
+    /** `X-Network-Stack` value → canonical stack, or null when absent/unrecognised. */
+    private fun parseNetworkStack(raw: String?): String? {
+        if (raw.isNullOrBlank()) return null
+        return when (raw.trim().lowercase()) {
+            "auto", "system", "gvisor", "mixed" -> raw.trim().lowercase()
+            else -> null
+        }
     }
 
     private fun parseShareLinksPolicy(raw: String?): Boolean? {

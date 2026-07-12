@@ -73,8 +73,10 @@ class ServiceStore(context: Context) {
 
     var tunStackMode by store.string(
         key = "tun_stack_mode",
-        // "auto" follows the subscription's tun.stack; explicit values override it. See TunStackResolver.
-        defaultValue = "auto"
+        // Default "system" (matches upstream CMFA). "auto" follows the subscription's tun.stack;
+        // explicit values (system/gvisor/mixed) are the user's manual pick; an operator
+        // `X-Network-Stack` header can lock the stack over any of them. See TunStackResolver.
+        defaultValue = "system"
     )
 
     var dynamicNotification by store.boolean(
@@ -192,6 +194,21 @@ class ServiceStore(context: Context) {
 
     fun clearSubscriptionShareLinksLockedFor(uuid: UUID) {
         rawPrefs.edit().remove("subscription_share_links_locked_$uuid").apply()
+    }
+
+    /**
+     * Per-profile operator-forced TUN stack from the `X-Network-Stack` subscription header
+     * (system/gvisor/mixed = lock; `auto` = don't lock). Travels per subscription like the
+     * share-links policy. null when the operator didn't send it. See [TunStackResolver].
+     */
+    fun subscriptionNetworkStackFor(uuid: UUID): String? =
+        rawPrefs.getString("subscription_network_stack_$uuid", null)
+
+    fun setSubscriptionNetworkStackFor(uuid: UUID, value: String?) {
+        rawPrefs.edit().also { e ->
+            if (value.isNullOrBlank()) e.remove("subscription_network_stack_$uuid")
+            else e.putString("subscription_network_stack_$uuid", value)
+        }.apply()
     }
 
     /**
