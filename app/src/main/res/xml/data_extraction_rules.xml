@@ -19,18 +19,9 @@
         <exclude
             domain="database"
             path="profiles-wal" />
-        <include
-            domain="file"
-            path="imported" />
-        <exclude
-            domain="file"
-            path="imported" />
-        <include
-            domain="file"
-            path="pending" />
-        <exclude
-            domain="file"
-            path="pending" />
+        <!-- imported/ and pending/ are intentionally NOT extracted: a profile may hold an age-encrypted
+             body or secret key that must not leave the device. Only override.json is included
+             (whitelist mode — anything not listed is skipped). -->
         <include
             domain="file"
             path="clash/override.json" />
@@ -54,18 +45,9 @@
         <exclude
             domain="database"
             path="profiles-wal" />
-        <include
-            domain="file"
-            path="imported" />
-        <exclude
-            domain="file"
-            path="imported" />
-        <include
-            domain="file"
-            path="pending" />
-        <exclude
-            domain="file"
-            path="pending" />
+        <!-- imported/ and pending/ are intentionally NOT extracted: a profile may hold an age-encrypted
+             body or secret key that must not leave the device. Only override.json is included
+             (whitelist mode — anything not listed is skipped). -->
         <include
             domain="file"
             path="clash/override.json" />
