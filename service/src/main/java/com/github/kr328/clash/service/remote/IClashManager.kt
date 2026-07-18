@@ -2,7 +2,6 @@ package com.github.kr328.clash.service.remote
 
 import com.github.kr328.clash.core.Clash
 import com.github.kr328.clash.core.model.*
-import com.github.kr328.clash.service.model.LocalProxyInfo
 import com.github.kr328.kaidl.BinderInterface
 
 @BinderInterface
@@ -14,13 +13,6 @@ interface IClashManager {
     fun queryAllProxyGroupNamesIncludingHidden(): List<String>
     fun queryProxyGroup(name: String, proxySort: ProxySort): ProxyGroup
     fun queryConfiguration(): UiConfiguration
-
-    /**
-     * Address + credentials of the opt-in local proxy listener, so Settings can show the user what
-     * to paste into a container or another app. Credentials live in the service process; this is
-     * the only way the UI process can read them.
-     */
-    fun queryLocalProxyInfo(): LocalProxyInfo
     fun queryProviders(): ProviderList
 
     fun queryConnectionsSnapshot(): String
