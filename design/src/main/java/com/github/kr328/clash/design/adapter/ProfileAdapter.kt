@@ -693,32 +693,18 @@ class ProfileAdapter(
             val live = proxyDetails[groupName]
                 ?: proxyDetails.entries.firstOrNull { groupsMatchKey(groupName, it.key) }?.value
             if (live != null) {
-                // mihomo expands `include-all-providers` / `include-all-proxies` / `include-all`
-                // groups at routing time but Clash.queryGroup() only returns the statically
-                // declared `proxies:` list. If our offline YAML parse shows a wider member set,
-                // it's almost certainly one of those dynamic flags — merge the offline names
-                // into the live group while preserving the live Proxy entries (delay, type,
-                // current selection) for any names that overlap.
-                val offlineRow = offlinePreviewByProfile[profile.uuid]?.let { map ->
-                    map[groupName] ?: map.entries.firstOrNull { groupsMatchKey(groupName, it.key) }?.value
-                }
-                if (offlineRow != null && offlineRow.members.size > live.proxies.size) {
-                    val liveByName = live.proxies.associateBy { it.name }
-                    val seen = HashSet<String>(offlineRow.members.size + live.proxies.size)
-                    val merged = buildList {
-                        offlineRow.members.forEach { name ->
-                            if (seen.add(name)) {
-                                add(liveByName[name] ?: Proxy(name, name, "", offlineProxyType(profile.uuid, name), -1))
-                            }
-                        }
-                        // Trailing live-only proxies (DIRECT/REJECT/etc. that aren't in the
-                        // subscription's leaf set but mihomo still injects) stay where they were.
-                        live.proxies.forEach { p ->
-                            if (seen.add(p.name)) add(p)
-                        }
-                    }
-                    return ProxyGroup(live.type, merged, live.now).withSelectionOverlay(profile.uuid, groupName)
-                }
+                // The engine is authoritative: Clash.queryGroup() -> tunnel.QueryProxyGroup calls
+                // mihomo's g.Proxies(), which has ALREADY expanded `include-all*` / `use:` and applied
+                // `filter` / `exclude-filter` / `exclude-type`.
+                //
+                // We used to union the offline YAML preview into the live group whenever the offline
+                // member count was larger, on the assumption that queryGroup() returned only the
+                // statically declared `proxies:`. That assumption is stale, and the heuristic fired on
+                // cardinality alone — so whenever the offline preview over-counted (e.g. it cannot
+                // evaluate a `filter` containing a quantifier or lookahead and silently falls back to
+                // the declared list), nodes the engine had deliberately excluded were re-injected into
+                // the connected view. Same class of bug as the provider fallback fixed on the Go side
+                // in tunnel/proxies.go (gated on hasLeaf). Trust the engine; never widen its answer.
                 return live.withSelectionOverlay(profile.uuid, groupName)
             }
             val offlineMap = offlinePreviewByProfile[profile.uuid]
