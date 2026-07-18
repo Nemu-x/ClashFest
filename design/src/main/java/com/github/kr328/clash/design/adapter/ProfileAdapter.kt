@@ -996,7 +996,6 @@ class ProfileAdapter(
                     render(index)
                     reportVisibleGroup(profile, group, force = true)
                 }
-                bindGroupType(sheet.proxySheetGroupTypeLabel, profile, groupNames.getOrNull(selectedIndex).orEmpty())
                 val rows = applyProxyPickerControls(
                     rows = rowsForCurrentGroup(selectedIndex),
                     query = query,
@@ -1587,7 +1586,6 @@ class ProfileAdapter(
         val groupName = groupNames[index]
         val header = block.findViewById<View>(R.id.group_block_header)
         val nameView = block.findViewById<TextView>(R.id.group_block_name)
-        val typeView = block.findViewById<TextView>(R.id.group_block_type)
         val summaryView = block.findViewById<TextView>(R.id.group_block_summary)
         val countView = block.findViewById<TextView>(R.id.group_block_count)
         val chevron = block.findViewById<View>(R.id.group_block_chevron)
@@ -1597,7 +1595,6 @@ class ProfileAdapter(
 
         val pg = proxyGroupForRow(profile, groupName)
         nameView.text = displayGroupName(groupName)
-        bindGroupType(typeView, profile, groupName)
 
         val pendingChoice = pendingMapValueForGroup(profile.uuid, groupName)?.takeIf { it.isNotBlank() }
         val selectedName = pendingChoice ?: pg?.now
@@ -2048,12 +2045,6 @@ class ProfileAdapter(
         target.isSelected = true
         target.findViewById<View>(R.id.selected_bar).visibility = View.VISIBLE
         target.findViewById<View>(R.id.selected_check).visibility = View.VISIBLE
-    }
-
-    private fun bindGroupType(view: TextView, profile: Profile, groupName: String) {
-        // The group's type is now shown inline as a per-row chip (groupTypeLabel), so the
-        // standalone "Selector"/"URLTest" caption above the list is redundant — keep it hidden.
-        view.visibility = View.GONE
     }
 
     private fun shouldHideProxyOption(groupName: String, proxy: Proxy): Boolean {

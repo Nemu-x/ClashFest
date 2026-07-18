@@ -219,23 +219,6 @@
             </FrameLayout>
         </LinearLayout>
 
-        <!-- Hidden legacy chip group / type label (kept for binding compat) -->
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/proxy_sheet_group_chips"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:visibility="gone" />
-
-        <TextView
-            android:id="@+id/proxy_sheet_group_type_label"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:textAppearance="@style/TextAppearance.App.LabelSmall"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:visibility="gone"
-            tools:text="Selector" />
-
         <!-- Tested-ago indicator (right-aligned, no sort) -->
         <LinearLayout
             android:layout_width="match_parent"
