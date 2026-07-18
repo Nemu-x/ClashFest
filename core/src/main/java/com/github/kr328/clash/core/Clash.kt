@@ -342,6 +342,29 @@ object Clash {
         return Bridge.nativeValidateProfileBytes(yaml)
     }
 
+    /**
+     * Asks the engine for the proxy-group membership it computes for [yaml] — `include-all*`
+     * expanded, `use:` resolved, `filter` / `exclude-filter` / `exclude-type` applied — so the
+     * offline preview matches what the running tunnel would report.
+     *
+     * Same parse as [validateProfileBytes]: no listeners, no TUN, no network, no engine state
+     * mutation; providers opened during the parse are released before returning.
+     *
+     * @return the resolved groups in config order, or **null** when the YAML could not be parsed
+     *         (callers should fall back to their own preview). A valid config with no groups
+     *         yields an empty list.
+     */
+    fun resolveProxyGroups(yaml: String): List<ResolvedProxyGroup>? {
+        val raw = Bridge.nativeResolveProxyGroupsFromBytes(yaml)
+        if (raw.isBlank()) return null
+        return runCatching {
+            ProfileSnapshotJson.decodeFromString(
+                ListSerializer(ResolvedProxyGroup.serializer()),
+                raw,
+            )
+        }.getOrNull()
+    }
+
     private fun decodeSnapshotEnvelope(rawJson: String): ProfileSnapshot {
         val envelope = ProfileSnapshotJson.decodeFromString(
             ProfileSnapshotEnvelope.serializer(),
