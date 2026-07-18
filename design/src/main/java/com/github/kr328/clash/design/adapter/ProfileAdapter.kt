@@ -55,6 +55,8 @@ class ProfileAdapter(
     val states = ProfilePageState()
 
     private var proxyGroupNames: List<String> = emptyList()
+    /** The `excludeNotSelectable` setting [proxyGroupNames] was queried with — see [setProxyContext]. */
+    private var excludeNotSelectable: Boolean = false
     private var proxyDetails: Map<String, ProxyGroup> = emptyMap()
     private var activeProfileUuid: UUID? = null
     private var clashRunning: Boolean = false
@@ -223,8 +225,15 @@ class ProfileAdapter(
         activeProfileUuid: UUID? = null,
         offlineSelectionsByProfile: Map<UUID, Map<String, String>> = emptyMap(),
         transportInfoByProfile: Map<UUID, Map<String, ProxyTransportInfo>> = emptyMap(),
+        /**
+         * The `excludeNotSelectable` flag [names] was queried with. The engine applies it in
+         * `queryProxyGroupNames`; the offline preview has to apply the same rule itself, or the
+         * pill bar changes shape the moment the VPN comes up.
+         */
+        excludeNotSelectable: Boolean = false,
     ) {
         if (names == proxyGroupNames && running == clashRunning && mode == tunnelMode &&
+            excludeNotSelectable == this.excludeNotSelectable &&
             lastGroupHint == this.lastGroupHint &&
             offlinePreviewByProfile == this.offlinePreviewByProfile &&
             activeProfileUuid == this.activeProfileUuid &&
@@ -274,6 +283,7 @@ class ProfileAdapter(
             newActiveOfflineGroups.isNotEmpty() &&
             names.none { n -> newActiveOfflineGroups.any { groupsMatchKey(n, it) } }
         proxyGroupNames = if (engineStaleAfterSwitch) emptyList() else names
+        this.excludeNotSelectable = excludeNotSelectable
         if (offlinePreviewByProfile.isNotEmpty()) {
             cachedOfflinePreviewByProfile.putAll(offlinePreviewByProfile)
         }
@@ -430,7 +440,8 @@ class ProfileAdapter(
         val key = if (current.containsKey(groupName)) {
             groupName
         } else {
-            current.entries.firstOrNull { groupsMatchKey(groupName, it.key) }?.key ?: return
+            // A write path: patching the wrong group's selection is worse than not patching.
+            current.keys.filter { groupsMatchKey(groupName, it) }.singleOrNull() ?: return
         }
         val existing = current[key] ?: return
         val proxyIdx = existing.proxies.indexOfFirst { it.name == proxyName }
@@ -511,6 +522,19 @@ class ProfileAdapter(
         }
     }
 
+    /**
+     * Mirrors the engine's own visibility rule for "Hide non-selectable groups"
+     * (`proxyGroupVisibleWithSelectableFilter`, native/tunnel/proxies.go): url-test, load-balance
+     * and relay groups drop out, while Selector and Fallback stay — nested fallback chains are
+     * common in subscription layouts.
+     *
+     * Kept in sync deliberately. The engine list is queried WITH the user's setting, so without
+     * this the offline preview showed auto groups that vanished the instant the tunnel came up,
+     * and the pill bar visibly reflowed on connect.
+     */
+    private fun isFilteredOutAsNotSelectable(type: Proxy.Type): Boolean =
+        excludeNotSelectable && type != Proxy.Type.Selector && type != Proxy.Type.Fallback
+
     /** Engine data applies only when the expanded card is the active profile and VPN is on. */
     private fun useEngineFor(profile: Profile): Boolean =
         clashRunning &&
@@ -537,7 +561,7 @@ class ProfileAdapter(
             proxyGroupNames
         } else {
             offlinePreview?.entries
-                ?.filterNot { (_, row) -> row.hidden }
+                ?.filterNot { (_, row) -> row.hidden || isFilteredOutAsNotSelectable(row.type) }
                 ?.map { (k, _) -> k }
                 ?.toList()
                 .orEmpty()
@@ -554,8 +578,7 @@ class ProfileAdapter(
         // shell test and short-circuits the heuristic — its hidden auto
         // backups stay hidden, which is what the user expects.
         val configIsPureShell = visible.isNotEmpty() && visible.all { vname ->
-            val row = offlinePreview[vname]
-                ?: offlinePreview.entries.firstOrNull { groupsMatchKey(vname, it.key) }?.value
+            val row = uniqueGroupMatch(offlinePreview, vname)
                 ?: return@all false
             val staticRefs = row.staticProxies
             if (staticRefs.isEmpty()) return@all false
@@ -568,13 +591,11 @@ class ProfileAdapter(
 
         val extras = LinkedHashSet<String>()
         for (vname in visible) {
-            val row = offlinePreview[vname]
-                ?: offlinePreview.entries.firstOrNull { groupsMatchKey(vname, it.key) }?.value
+            val row = uniqueGroupMatch(offlinePreview, vname)
                 ?: continue
             for (memberName in row.staticProxies) {
                 if (memberName in visibleSet || memberName in extras) continue
-                val memberRow = offlinePreview[memberName]
-                    ?: offlinePreview.entries.firstOrNull { groupsMatchKey(memberName, it.key) }?.value
+                val memberRow = uniqueGroupMatch(offlinePreview, memberName)
                     ?: continue
                 if (!memberRow.hidden) continue
                 // Only auto types help routing — Selector/Unknown hidden roots
@@ -690,8 +711,7 @@ class ProfileAdapter(
 
     private fun proxyGroupForRow(profile: Profile, groupName: String): ProxyGroup? {
         if (useEngineFor(profile)) {
-            val live = proxyDetails[groupName]
-                ?: proxyDetails.entries.firstOrNull { groupsMatchKey(groupName, it.key) }?.value
+            val live = uniqueGroupMatch(proxyDetails, groupName)
             if (live != null) {
                 // The engine is authoritative: Clash.queryGroup() -> tunnel.QueryProxyGroup calls
                 // mihomo's g.Proxies(), which has ALREADY expanded `include-all*` / `use:` and applied
@@ -708,8 +728,7 @@ class ProfileAdapter(
                 return live.withSelectionOverlay(profile.uuid, groupName)
             }
             val offlineMap = offlinePreviewByProfile[profile.uuid]
-            val row = offlineMap?.get(groupName)
-                ?: offlineMap?.entries?.firstOrNull { groupsMatchKey(groupName, it.key) }?.value
+            val row = offlineMap?.let { uniqueGroupMatch(it, groupName) }
             val now = offlineSelectedForGroup(profile.uuid, groupName)
             val type = row?.type ?: Proxy.Type.Selector
             // Engine cache may not yet hold a sibling group the user just tapped (the prior
@@ -726,9 +745,7 @@ class ProfileAdapter(
             ).withSelectionOverlay(profile.uuid, groupName)
         }
         val offline = offlinePreviewByProfile[profile.uuid] ?: return null
-        val row = offline[groupName]
-            ?: offline.entries.firstOrNull { (k, _) -> groupsMatchKey(groupName, k) }?.value
-            ?: return null
+        val row = uniqueGroupMatch(offline, groupName) ?: return null
         val names = row.members
         val now = offlineSelectedForGroup(profile.uuid, groupName)
         return ProxyGroup(
@@ -743,9 +760,29 @@ class ProfileAdapter(
     private fun proxySelectionKey(uuid: UUID, groupName: String): String =
         "${uuid}|${groupName}"
 
+    /**
+     * Matches an engine group name against a stored one, tolerating the whitespace differences that
+     * appear when a name round-trips through YAML ("US  Auto" vs "US Auto").
+     *
+     * Exact equality is checked first so an exact name always wins over a normalized near-match:
+     * mihomo treats two names differing only in whitespace runs as two distinct groups, and callers
+     * resolve with `firstOrNull`, which would otherwise silently pick whichever came first in map
+     * order. See [uniqueGroupMatch] for the lookups that must not guess at all.
+     */
     private fun groupsMatchKey(engineName: String, storedName: String): Boolean {
         if (engineName == storedName) return true
         return displayGroupName(engineName) == displayGroupName(storedName)
+    }
+
+    /**
+     * Resolves [name] against [candidates] the way [groupsMatchKey] does, but returns null when the
+     * normalized form is ambiguous instead of picking an arbitrary winner. Showing no data beats
+     * showing another group's members under this group's heading.
+     */
+    private fun <V> uniqueGroupMatch(candidates: Map<String, V>, name: String): V? {
+        candidates[name]?.let { return it }
+        val matches = candidates.entries.filter { groupsMatchKey(name, it.key) }
+        return matches.singleOrNull()?.value
     }
 
     private fun hasLiveProxyDetail(profile: Profile, groupName: String): Boolean {

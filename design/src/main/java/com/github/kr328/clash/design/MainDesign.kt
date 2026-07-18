@@ -1165,6 +1165,9 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
                 activeProfileUuid,
                 offlineSelectionsByProfile,
                 transportInfoByProfile,
+                // Same flag [names] was queried with (MainActivity -> queryProxyGroupNames), so the
+                // offline preview hides exactly the groups the engine hides.
+                uiStore.proxyExcludeNotSelectable,
             )
             profileAdapter.setExpandedUuids(expandedProfileUuids.toSet())
             tabProfileAdapter.setProxyContext(
@@ -1176,6 +1179,9 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
                 activeProfileUuid,
                 offlineSelectionsByProfile,
                 transportInfoByProfile,
+                // Same flag [names] was queried with (MainActivity -> queryProxyGroupNames), so the
+                // offline preview hides exactly the groups the engine hides.
+                uiStore.proxyExcludeNotSelectable,
             )
             tabProfileAdapter.setExpandedUuids(tabExpandedProfileUuids.toSet())
         }
