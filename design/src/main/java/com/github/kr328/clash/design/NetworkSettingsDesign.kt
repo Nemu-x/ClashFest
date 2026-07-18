@@ -1,11 +1,21 @@
 package com.github.kr328.clash.design
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.view.View
 import android.app.Activity
 import androidx.appcompat.app.AppCompatActivity
+import android.widget.Toast
+import androidx.annotation.StringRes
 import com.github.kr328.clash.design.databinding.DesignSettingsCommonBinding
+import android.widget.TextView
 import com.github.kr328.clash.design.preference.*
 import com.github.kr328.clash.design.store.UiStore
 import com.github.kr328.clash.design.ui.ToastDuration
@@ -88,6 +98,54 @@ class NetworkSettingsDesign(
                 title = R.string.network_switch_reaction,
                 summary = R.string.network_switch_reaction_summary,
             )
+
+            category(R.string.local_proxy)
+
+            switch(
+                value = srvStore::localProxyEnabled,
+                title = R.string.local_proxy_enable,
+                summary = R.string.local_proxy_enable_summary,
+            ) {
+                vpnDependencies.add(this)
+                // Strict means "no local listeners at all", so leaving the picker on Strict while a
+                // listener is actually open would be a lie. Move it to Compat on enable and back on
+                // disable; an explicit Off is the user's call and stays untouched.
+                listener = OnChangedListener {
+                    val mode = srvStore.proxyHardeningMode
+                    if (srvStore.localProxyEnabled) {
+                        if (mode == ProxyHardeningMode.Strict) {
+                            srvStore.proxyHardeningMode = ProxyHardeningMode.Compat
+                        }
+                    } else if (mode == ProxyHardeningMode.Compat) {
+                        srvStore.proxyHardeningMode = ProxyHardeningMode.Strict
+                    }
+                }
+            }
+
+            // Pinned by us rather than inherited from the subscription, so the address shown here is
+            // always the real one — the whole point is giving the user something to paste.
+            val localProxyPortNullable = object {
+                var value: Int?
+                    get() = srvStore.localProxyPort
+                    set(v) {
+                        srvStore.localProxyPort = (v ?: DEFAULT_LOCAL_PROXY_PORT)
+                            .coerceIn(1, 65535)
+                    }
+            }
+            editableText(
+                value = localProxyPortNullable::value,
+                adapter = NullableTextAdapter.Port,
+                title = R.string.local_proxy_port,
+                configure = vpnDependencies::add,
+            )
+
+            val credentials = clickable(
+                title = R.string.local_proxy_credentials,
+                summary = R.string.local_proxy_credentials_summary,
+            ) {
+                clicked { revealLocalProxyCredentials(context, srvStore) }
+            }
+            credentials.summary = localProxySummary(context, srvStore)
 
             category(R.string.vpn_service_options)
 
@@ -184,5 +242,106 @@ class NetworkSettingsDesign(
                 showToast(R.string.options_unavailable, ToastDuration.Indefinite)
             }
         }
+    }
+
+    private fun localProxySummary(context: Context, srvStore: ServiceStore): CharSequence =
+        if (srvStore.localProxyEnabled) {
+            "$LOOPBACK:${srvStore.localProxyPort}"
+        } else {
+            context.getString(R.string.local_proxy_credentials_summary)
+        }
+
+    /**
+     * Reveal the credentials behind a biometric / device-credential prompt.
+     *
+     * The secret only grants access to this device's own loopback listener, so the prompt is
+     * shoulder-surfing and screen-sharing hygiene rather than a real security boundary. When the
+     * device has nothing enrolled we show the credentials anyway instead of locking the user out
+     * of their own proxy.
+     */
+    private fun revealLocalProxyCredentials(context: Context, srvStore: ServiceStore) {
+        val activity = context as? FragmentActivity
+        val authenticators = BiometricManager.Authenticators.BIOMETRIC_WEAK or
+            BiometricManager.Authenticators.DEVICE_CREDENTIAL
+        val canAuthenticate = BiometricManager.from(context)
+            .canAuthenticate(authenticators) == BiometricManager.BIOMETRIC_SUCCESS
+
+        if (activity == null || !canAuthenticate) {
+            showLocalProxyCredentials(context, srvStore)
+            return
+        }
+
+        BiometricPrompt(
+            activity,
+            ContextCompat.getMainExecutor(context),
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    showLocalProxyCredentials(context, srvStore)
+                }
+            },
+        ).authenticate(
+            BiometricPrompt.PromptInfo.Builder()
+                .setTitle(context.getString(R.string.local_proxy_credentials))
+                .setSubtitle(context.getString(R.string.local_proxy_reveal_subtitle))
+                .setAllowedAuthenticators(authenticators)
+                .build(),
+        )
+    }
+
+    private fun showLocalProxyCredentials(context: Context, srvStore: ServiceStore) {
+        val credential = srvStore.localProxyCredential
+        if (!srvStore.localProxyEnabled || credential.isBlank()) {
+            // Minted by the service on the first load after the toggle, so it can legitimately be
+            // missing until the user connects once.
+            MaterialAlertDialogBuilder(context)
+                .setTitle(R.string.local_proxy_credentials)
+                .setMessage(R.string.local_proxy_not_ready)
+                .setPositiveButton(R.string.ok, null)
+                .show()
+            return
+        }
+
+        val user = credential.substringBefore(':', "")
+        val pass = credential.substringAfter(':', "")
+        val port = srvStore.localProxyPort
+        val url = "socks5://$user:$pass@$LOOPBACK:$port"
+
+        fun copy(@StringRes label: Int, value: String) {
+            context.getSystemService(ClipboardManager::class.java)
+                ?.setPrimaryClip(ClipData.newPlainText(context.getString(label), value))
+            Toast.makeText(
+                context,
+                context.getString(R.string.local_proxy_copied_fmt, context.getString(label)),
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+
+        // Every value gets its own selectable row and its own copy button: some clients take a
+        // single socks5:// URL (the button below), others want the fields entered one at a time,
+        // and digging them out of one text blob is miserable.
+        val view = context.layoutInflater.inflate(R.layout.dialog_local_proxy, null, false)
+
+        fun bind(valueId: Int, copyId: Int, @StringRes label: Int, value: String) {
+            view.findViewById<TextView>(valueId).text = value
+            view.findViewById<View>(copyId).setOnClickListener { copy(label, value) }
+        }
+        bind(R.id.valueHost, R.id.copyHost, R.string.local_proxy_field_host, LOOPBACK)
+        bind(R.id.valuePort, R.id.copyPort, R.string.local_proxy_field_port, port.toString())
+        bind(R.id.valueUsername, R.id.copyUsername, R.string.local_proxy_field_username, user)
+        bind(R.id.valuePassword, R.id.copyPassword, R.string.local_proxy_field_password, pass)
+
+        MaterialAlertDialogBuilder(context)
+            .setTitle(R.string.local_proxy_credentials)
+            .setView(view)
+            .setPositiveButton(R.string.local_proxy_copy_url) { _, _ ->
+                copy(R.string.local_proxy_credentials, url)
+            }
+            .setNegativeButton(R.string.close, null)
+            .show()
+    }
+
+    private companion object {
+        const val LOOPBACK = "127.0.0.1"
+        const val DEFAULT_LOCAL_PROXY_PORT = 7890
     }
 }

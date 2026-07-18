@@ -6,6 +6,7 @@ import com.github.kr328.clash.core.Clash
 import com.github.kr328.clash.core.model.*
 import com.github.kr328.clash.service.data.Selection
 import com.github.kr328.clash.service.data.SelectionDao
+import com.github.kr328.clash.service.model.LocalProxyInfo
 import com.github.kr328.clash.service.model.RequestHistoryRepository
 import com.github.kr328.clash.service.model.RequestHistorySnapshot
 import com.github.kr328.clash.service.remote.IClashManager
@@ -54,6 +55,24 @@ class ClashManager(private val context: Context) : IClashManager,
 
     override fun queryConfiguration(): UiConfiguration {
         return Clash.queryConfiguration()
+    }
+
+    override fun queryLocalProxyInfo(): LocalProxyInfo {
+        if (!store.localProxyEnabled) {
+            return LocalProxyInfo(enabled = false)
+        }
+        // Credential is minted lazily by ConfigurationModule on the first load after the toggle,
+        // so it can still be blank if the user just enabled it and hasn't connected yet — report
+        // it as unavailable rather than showing half a credential.
+        val credential = store.localProxyCredential
+        return LocalProxyInfo(
+            enabled = true,
+            available = credential.isNotBlank() && StatusProvider.serviceRunning,
+            host = "127.0.0.1",
+            port = store.localProxyPort,
+            username = credential.substringBefore(':', ""),
+            password = credential.substringAfter(':', ""),
+        )
     }
 
     override fun queryProviders(): ProviderList {

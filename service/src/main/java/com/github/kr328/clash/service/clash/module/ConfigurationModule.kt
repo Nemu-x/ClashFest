@@ -13,6 +13,7 @@ import com.github.kr328.clash.service.util.ProfileOverlay
 import com.github.kr328.clash.service.util.ProxyDialerYamlEdit
 import com.github.kr328.clash.service.util.ProxyGroupsYamlEdit
 import com.github.kr328.clash.service.util.ProxyHardener
+import com.github.kr328.clash.service.util.RuntimeSocksAuth
 import com.github.kr328.clash.service.util.ensureBundledGeoAssets
 import com.github.kr328.clash.service.util.importedDir
 import com.github.kr328.clash.service.util.sendProfileLoaded
@@ -42,6 +43,23 @@ class ConfigurationModule(service: Service) : Module<ConfigurationModule.LoadExc
 
     private val store = ServiceStore(service)
     private val reload = Channel<Unit>(Channel.CONFLATED)
+
+    /**
+     * Local-proxy opt-in for [ProxyHardener], or null when the user hasn't enabled it (the
+     * hardening default then disables the listener as before). The stable credential is minted on
+     * first enable and persisted, so a container pointed at `127.0.0.1:port` keeps working across
+     * reconnects instead of breaking on every rotation.
+     */
+    private fun localProxySettings(): ProxyHardener.LocalProxySettings? {
+        if (!store.localProxyEnabled) return null
+        val credential = store.localProxyCredential.takeIf { it.isNotBlank() }
+            ?: RuntimeSocksAuth.mintCredential().also { store.localProxyCredential = it }
+        return ProxyHardener.LocalProxySettings(
+            enabled = true,
+            port = store.localProxyPort,
+            credential = credential,
+        )
+    }
 
     override suspend fun run() {
         val broadcasts = receiveBroadcast {
@@ -106,6 +124,7 @@ class ConfigurationModule(service: Service) : Module<ConfigurationModule.LoadExc
                         configuration = sessionOverride,
                         mode = store.proxyHardeningMode,
                         seedGeoMirrors = store.seedDefaultGeoMirrors,
+                        localProxy = localProxySettings(),
                     )
                     if (hardened) {
                         Clash.patchOverride(Clash.OverrideSlot.Session, sessionOverride)
