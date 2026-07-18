@@ -931,6 +931,8 @@
     <string name="profile_proxy_filter_provider">来源:%1$s</string>
     <string name="profile_proxy_filter_selected">已选</string>
     <string name="profile_proxy_search_hint">搜索节点或分组</string>
+    <string name="profile_proxy_sort">节点排序</string>
+    <string name="profile_proxy_filter">节点筛选</string>
     <string name="profile_proxy_sort_config">配置顺序</string>
     <string name="profile_proxy_sort_delay">延迟</string>
     <string name="profile_proxy_sort_name">名称</string>
