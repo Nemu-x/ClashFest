@@ -404,6 +404,7 @@ Java_com_github_kr328_clash_core_bridge_Bridge_nativeFetchAndValid(JNIEnv *env, 
                                                                    jobject callback,
                                                                    jstring path,
                                                                    jstring url, jboolean force,
+                                                                   jboolean viaProxy,
                                                                    jstring headersJson) {
     TRACE_METHOD();
 
@@ -418,7 +419,7 @@ Java_com_github_kr328_clash_core_bridge_Bridge_nativeFetchAndValid(JNIEnv *env, 
     }
     scoped_string _headers = _headers_raw;
 
-    fetchAndValid(_completable, _path, _url, force, _headers);
+    fetchAndValid(_completable, _path, _url, force, viaProxy, _headers);
 }
 
 JNIEXPORT void JNICALL

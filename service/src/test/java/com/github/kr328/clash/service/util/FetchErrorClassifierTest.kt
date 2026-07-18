@@ -96,6 +96,36 @@ class FetchErrorClassifierTest {
         assertEquals(false, FetchErrorClassifier.looksLikeNetworkFailure(RuntimeException("proxy 'X' not found")))
     }
 
+    @Test fun http_status_without_body_is_explained_per_code() {
+        // The engine no longer saves a non-2xx body as config.yaml, so nothing is on disk.
+        assertTrue(
+            FetchErrorClassifier.clarify(dirWith(null), RuntimeException("server returned HTTP 401 Unauthorized"))
+                .message!!.contains("rejected your account"),
+        )
+        assertTrue(
+            FetchErrorClassifier.clarify(dirWith(null), RuntimeException("server returned HTTP 404 Not Found"))
+                .message!!.contains("no longer exists"),
+        )
+        assertTrue(
+            FetchErrorClassifier.clarify(dirWith(null), RuntimeException("server returned HTTP 503 Service Unavailable"))
+                .message!!.contains("having problems"),
+        )
+    }
+
+    @Test fun status_survives_the_route_fallback_wrapper() {
+        // Both attempts are reported; the preferred route's code is the one that matters.
+        val wrapped = RuntimeException("proxy: server returned HTTP 403 Forbidden (direct: context deadline exceeded)")
+        val out = FetchErrorClassifier.clarify(dirWith(null), wrapped)
+        assertTrue(out.message!!.contains("refused the request (HTTP 403)"), out.message)
+        assertTrue(out.message!!.contains("[E-21]"), out.message)
+    }
+
+    @Test fun status_beats_network_wording_when_both_look_plausible() {
+        // "context deadline exceeded" trips looksLikeNetworkFailure; the status is the better answer.
+        val wrapped = RuntimeException("proxy: server returned HTTP 403 Forbidden (direct: timeout)")
+        assertTrue(FetchErrorClassifier.clarify(dirWith(null), wrapped).message!!.contains("[E-21]"))
+    }
+
     @Test fun html_detection() {
         assertEquals(true, FetchErrorClassifier.looksLikeHtml("<html><head><title>x</title>"))
         assertEquals(true, FetchErrorClassifier.looksLikeHtml("  <!doctype html>"))

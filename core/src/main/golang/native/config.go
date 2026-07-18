@@ -25,7 +25,7 @@ func (r *remoteValidCallback) reportStatus(json string) {
 }
 
 //export fetchAndValid
-func fetchAndValid(callback unsafe.Pointer, path, url C.c_string, force C.int, headersJson C.c_string) {
+func fetchAndValid(callback unsafe.Pointer, path, url C.c_string, force C.int, viaProxy C.int, headersJson C.c_string) {
 	go func(path, url, headers string, callback unsafe.Pointer) {
 		subscriptionFetchSessionMu.Lock()
 		defer subscriptionFetchSessionMu.Unlock()
@@ -46,7 +46,7 @@ func fetchAndValid(callback unsafe.Pointer, path, url C.c_string, force C.int, h
 
 		cb := &remoteValidCallback{callback: callback}
 
-		err := config.FetchAndValid(path, url, force != 0, cb.reportStatus)
+		err := config.FetchAndValid(path, url, force != 0, viaProxy != 0, cb.reportStatus)
 
 		C.fetch_complete(callback, marshalString(err))
 

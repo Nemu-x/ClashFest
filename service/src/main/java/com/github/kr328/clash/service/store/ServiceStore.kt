@@ -244,6 +244,18 @@ class ServiceStore(context: Context) {
     }
 
     /**
+     * Per-profile: route this subscription's download through the tunnel (rule matching), which is
+     * the engine default. Some subscriptions are only reachable off-tunnel, so the user can turn it
+     * off to force a direct dial (issue #178). Stored per subscription, like the share-links policy.
+     */
+    fun subscriptionUpdateViaProxy(uuid: UUID): Boolean =
+        rawPrefs.getBoolean("subscription_update_via_proxy_$uuid", true)
+
+    fun setSubscriptionUpdateViaProxy(uuid: UUID, value: Boolean) {
+        rawPrefs.edit().putBoolean("subscription_update_via_proxy_$uuid", value).apply()
+    }
+
+    /**
      * Per-profile DNS & Hosts master-toggle state. When true the profile's
      * `dns:`/`hosts:` are user-owned: editable in the DNS & Hosts screen and
      * preserved across subscription refreshes. Cleared by the master-toggle

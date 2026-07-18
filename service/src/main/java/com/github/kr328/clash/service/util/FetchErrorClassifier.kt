@@ -16,6 +16,9 @@ import java.net.UnknownHostException
  *  - **Network unreachable** (`E-20`): nothing was downloaded at all — DNS/TLS/connect
  *    timed out or the host is blocked — so the raw error is a stack-y
  *    `java.net.SocketTimeouteException: failed to connect to ...`.
+ *  - **Refused by the server** (`E-21`): the server answered, with a non-2xx status. The
+ *    engine rejects those bodies rather than saving an error page as config.yaml, so
+ *    nothing lands on disk and the raw error is a bare `server returned HTTP 403 ...`.
  *
  * A genuine config error (valid YAML, invalid values) is left **untouched** so its
  * precise engine message (e.g. `proxy 'X' not found`) survives — see docs/errors.md
@@ -30,6 +33,10 @@ object FetchErrorClassifier {
         // No body downloaded → network reachability failure (or an unrelated error we
         // shouldn't mask). Classify only the recognizable network case.
         if (!file.isFile) {
+            val status = httpStatusOf(original)
+            if (status != null) {
+                return IllegalStateException(httpStatusReason(status), original)
+            }
             if (looksLikeNetworkFailure(original)) {
                 return IllegalStateException(
                     "couldn't reach the subscription server — check your connection or " +
@@ -109,6 +116,47 @@ object FetchErrorClassifier {
         }
         return false
     }
+
+    /**
+     * Pulls the status code out of the engine's non-2xx error. The message is built by
+     * `httpStatusError` in `native/config/fetch.go`, and may be wrapped once by the
+     * route-fallback error, which reports both attempts: `proxy: server returned HTTP 403
+     * Forbidden (direct: ...)`. The first code wins — it is the preferred route's answer.
+     */
+    internal fun httpStatusOf(e: Throwable): Int? {
+        var cur: Throwable? = e
+        while (cur != null) {
+            val match = HTTP_STATUS.find(cur.message.orEmpty())
+            if (match != null) return match.groupValues[1].toIntOrNull()
+            cur = cur.cause
+        }
+        return null
+    }
+
+    /**
+     * 401/403 are worth splitting: both mean "refused", but the fix differs. A 401 is the
+     * subscription token, while a 403 survived the engine's automatic retry on the other route
+     * (see `route` in fetch.go) — so it is refusing this account or this exit IP, not this path.
+     */
+    internal fun httpStatusReason(status: Int): String = when (status) {
+        401, 402 ->
+            "the subscription server rejected your account (HTTP $status) — the link may have " +
+                "expired or been revoked; re-import it from your dashboard. [E-21]"
+        403, 451 ->
+            "the subscription server refused the request (HTTP $status), and the automatic retry " +
+                "on the other route didn't help — your plan may be expired, or the panel may be " +
+                "blocking this network. [E-21]"
+        404, 410 ->
+            "the subscription link no longer exists on the server (HTTP $status) — re-import it " +
+                "from your dashboard. [E-21]"
+        in 500..599 ->
+            "the subscription server is having problems (HTTP $status) — try again later. [E-21]"
+        else ->
+            "the subscription server returned HTTP $status instead of a config — try again " +
+                "later. [E-21]"
+    }
+
+    private val HTTP_STATUS = Regex("""server returned HTTP (\d{3})""")
 
     /**
      * The body downloaded fine but is an age armor the engine couldn't decrypt

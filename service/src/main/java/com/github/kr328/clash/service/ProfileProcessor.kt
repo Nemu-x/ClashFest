@@ -78,6 +78,7 @@ object ProfileProcessor {
                         context.processingDir,
                         snapshot.source,
                         force,
+                        ServiceStore(context).subscriptionUpdateViaProxy(snapshot.uuid),
                         SubscriptionRequestHeaders.toNativeFetchJson(context, userAgentOverride),
                     ) {
                         try {
@@ -98,6 +99,7 @@ object ProfileProcessor {
                         context.processingDir,
                         snapshot.source,
                         force,
+                        ServiceStore(context).subscriptionUpdateViaProxy(snapshot.uuid),
                         SubscriptionRequestHeaders.toNativeFetchJson(context, null),
                     ) {
                         try {
@@ -266,6 +268,7 @@ object ProfileProcessor {
                         context.processingDir,
                         snapshot.source,
                         true,
+                        ServiceStore(context).subscriptionUpdateViaProxy(snapshot.uuid),
                         SubscriptionRequestHeaders.toNativeFetchJson(context, userAgentOverride),
                     ) {
                         try {
@@ -286,6 +289,7 @@ object ProfileProcessor {
                         context.processingDir,
                         snapshot.source,
                         true,
+                        ServiceStore(context).subscriptionUpdateViaProxy(snapshot.uuid),
                         SubscriptionRequestHeaders.toNativeFetchJson(context, null),
                     ) {
                         try {

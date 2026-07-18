@@ -1218,4 +1218,6 @@ Password: %4$s</string>
     <string name="local_proxy_field_username">Username</string>
     <string name="local_proxy_field_password">Password</string>
     <string name="local_proxy_copied_fmt">%1$s copied</string>
+    <string name="subscription_update_via_proxy">Update via proxy</string>
+    <string name="subscription_update_via_proxy_summary">Preferred route for downloading this subscription: through the tunnel, following your rules. Turn off to try a direct connection first. Either way the other route is tried automatically if the first one fails. Applies to the next update.</string>
 </resources>

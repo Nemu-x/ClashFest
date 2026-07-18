@@ -36,6 +36,7 @@ object Bridge {
         path: String,
         url: String,
         force: Boolean,
+        viaProxy: Boolean,
         subscriptionHeadersJson: String,
     )
 

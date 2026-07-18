@@ -1139,4 +1139,6 @@
     <string name="local_proxy_field_username">用户名</string>
     <string name="local_proxy_field_password">密码</string>
     <string name="local_proxy_copied_fmt">已复制：%1$s</string>
+    <string name="subscription_update_via_proxy">通过代理更新</string>
+    <string name="subscription_update_via_proxy_summary">下载此订阅时优先使用的路径：通过隧道并按你的规则。关闭则优先尝试直连。无论哪种方式，若首选路径失败都会自动尝试另一条。下次更新时生效。</string>
 </resources>
