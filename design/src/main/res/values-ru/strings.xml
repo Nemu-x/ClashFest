@@ -1192,4 +1192,23 @@
     <string name="age_key_generate">Сгенерировать</string>
     <string name="age_key_to_public">Из секретного</string>
     <string name="age_key_copy">Копировать</string>
+    <string name="local_proxy">Локальная прокси</string>
+    <string name="local_proxy_enable">Включить локальную прокси</string>
+    <string name="local_proxy_enable_summary">Поднять SOCKS/HTTP-слушатель на loopback под паролем. По умолчанию выключено: иначе другие приложения смогут обойти ваши правила маршрутизации.</string>
+    <string name="local_proxy_port">Порт локальной прокси</string>
+    <string name="local_proxy_credentials">Данные локальной прокси</string>
+    <string name="local_proxy_credentials_summary">Включите локальную прокси, чтобы получить адрес и данные для входа</string>
+    <string name="local_proxy_reveal_subtitle">Подтвердите, чтобы показать пароль</string>
+    <string name="local_proxy_not_ready">Данные создаются при следующем подключении VPN. Включите локальную прокси, подключитесь один раз и вернитесь сюда.</string>
+    <string name="local_proxy_copy_url">Копировать URL</string>
+    <string name="local_proxy_details_fmt">Хост: %1$s
+Порт: %2$d
+Логин: %3$s
+Пароль: %4$s</string>
+    <string name="local_proxy_copy_password">Копировать пароль</string>
+    <string name="local_proxy_field_host">Хост</string>
+    <string name="local_proxy_field_port">Порт</string>
+    <string name="local_proxy_field_username">Логин</string>
+    <string name="local_proxy_field_password">Пароль</string>
+    <string name="local_proxy_copied_fmt">%1$s скопирован</string>
 </resources>

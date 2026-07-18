@@ -1199,4 +1199,23 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="age_key_generate">Generate</string>
     <string name="age_key_to_public">From secret</string>
     <string name="age_key_copy">Copy</string>
+    <string name="local_proxy">Local proxy</string>
+    <string name="local_proxy_enable">Enable local proxy</string>
+    <string name="local_proxy_enable_summary">Expose a password-protected SOCKS/HTTP listener on loopback. Off by default: other apps could otherwise bypass your per-app routing rules.</string>
+    <string name="local_proxy_port">Local proxy port</string>
+    <string name="local_proxy_credentials">Local proxy credentials</string>
+    <string name="local_proxy_credentials_summary">Enable the local proxy to get an address and credentials</string>
+    <string name="local_proxy_reveal_subtitle">Confirm to show the proxy password</string>
+    <string name="local_proxy_not_ready">Credentials are created the next time the VPN connects. Enable the local proxy, connect once, then come back.</string>
+    <string name="local_proxy_copy_url">Copy URL</string>
+    <string name="local_proxy_details_fmt">Host: %1$s
+Port: %2$d
+Username: %3$s
+Password: %4$s</string>
+    <string name="local_proxy_copy_password">Copy password</string>
+    <string name="local_proxy_field_host">Host</string>
+    <string name="local_proxy_field_port">Port</string>
+    <string name="local_proxy_field_username">Username</string>
+    <string name="local_proxy_field_password">Password</string>
+    <string name="local_proxy_copied_fmt">%1$s copied</string>
 </resources>

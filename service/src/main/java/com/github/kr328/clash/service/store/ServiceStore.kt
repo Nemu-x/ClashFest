@@ -71,6 +71,38 @@ class ServiceStore(context: Context) {
         defaultValue = false
     )
 
+    /**
+     * User opted into a reachable local SOCKS/HTTP listener on loopback (Settings -> Network ->
+     * Local proxy). Off by default: [proxyHardeningMode] Strict disables every local listener so
+     * other apps cannot bypass the per-app routing rules via `127.0.0.1`. Turning this on is an
+     * explicit trade — the listener comes back, gated by [localProxyCredential].
+     */
+    var localProxyEnabled by store.boolean(
+        key = "local_proxy_enabled",
+        defaultValue = false
+    )
+
+    /**
+     * Port ClashFest pins the local listener to when [localProxyEnabled]. Pinned by us rather than
+     * inherited from the subscription so the value shown in Settings is always the real one —
+     * users need a stable `127.0.0.1:port` to paste into a container or another app.
+     */
+    var localProxyPort by store.int(
+        key = "local_proxy_port",
+        defaultValue = 7890
+    )
+
+    /**
+     * Stable `user:pass` for the local listener, minted on first use and kept across reconnects.
+     * The session credential RuntimeSocksAuth rotates per service start is right for the hardening
+     * default, but useless for a container config that must survive a reconnect. Lives in the app's
+     * sandboxed prefs; the UI gates *displaying* it behind a device-credential prompt.
+     */
+    var localProxyCredential by store.string(
+        key = "local_proxy_credential",
+        defaultValue = ""
+    )
+
     var tunStackMode by store.string(
         key = "tun_stack_mode",
         // Default "system" (matches upstream CMFA). "auto" follows the subscription's tun.stack;

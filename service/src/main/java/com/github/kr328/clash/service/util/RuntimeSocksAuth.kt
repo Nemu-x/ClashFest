@@ -15,11 +15,20 @@ object RuntimeSocksAuth {
     @Volatile private var sessionCredential: String? = null
     @Volatile private var sessionControllerSecret: String? = null
 
+    /** Mints a fresh `user:pass`. Exposed so the store can seed a stable local-proxy credential. */
+    fun mintCredential(): String = newCredential()
+
     /**
-     * Apply a session-scoped runtime credential to [configuration].
+     * Apply a runtime credential to [configuration].
+     *
+     * @param stableCredential when non-blank, use this instead of the rotating per-process one.
+     *        The session credential is right for the hardening default (nothing outside the app is
+     *        supposed to dial the listener), but a user who deliberately enabled the local proxy
+     *        needs `user:pass` that survives a reconnect — otherwise every container config breaks
+     *        the moment the VPN restarts.
      * @return true if configuration was changed.
      */
-    fun applyTo(configuration: ConfigurationOverride): Boolean {
+    fun applyTo(configuration: ConfigurationOverride, stableCredential: String? = null): Boolean {
         var changed = false
 
         if (configuration.allowLan != false) {
@@ -45,7 +54,9 @@ object RuntimeSocksAuth {
             changed = true
         }
 
-        val credential = sessionCredential ?: newCredential().also { sessionCredential = it }
+        val credential = stableCredential?.takeIf { it.isNotBlank() }
+            ?: sessionCredential
+            ?: newCredential().also { sessionCredential = it }
         val current = configuration.authentication
 
         if (!(current?.size == 1 && current.firstOrNull() == credential)) {

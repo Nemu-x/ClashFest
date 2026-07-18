@@ -1120,4 +1120,23 @@
     <string name="age_key_generate">生成</string>
     <string name="age_key_to_public">由私钥导出</string>
     <string name="age_key_copy">复制</string>
+    <string name="local_proxy">本地代理</string>
+    <string name="local_proxy_enable">启用本地代理</string>
+    <string name="local_proxy_enable_summary">在回环地址上开启受密码保护的 SOCKS/HTTP 监听。默认关闭：否则其他应用可绕过你的分应用路由规则。</string>
+    <string name="local_proxy_port">本地代理端口</string>
+    <string name="local_proxy_credentials">本地代理凭据</string>
+    <string name="local_proxy_credentials_summary">启用本地代理后即可获取地址与凭据</string>
+    <string name="local_proxy_reveal_subtitle">验证后显示代理密码</string>
+    <string name="local_proxy_not_ready">凭据将在下次连接 VPN 时创建。请先启用本地代理，连接一次后再返回。</string>
+    <string name="local_proxy_copy_url">复制 URL</string>
+    <string name="local_proxy_details_fmt">主机：%1$s
+端口：%2$d
+用户名：%3$s
+密码：%4$s</string>
+    <string name="local_proxy_copy_password">复制密码</string>
+    <string name="local_proxy_field_host">主机</string>
+    <string name="local_proxy_field_port">端口</string>
+    <string name="local_proxy_field_username">用户名</string>
+    <string name="local_proxy_field_password">密码</string>
+    <string name="local_proxy_copied_fmt">已复制：%1$s</string>
 </resources>

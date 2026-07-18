@@ -17,6 +17,7 @@ dependencies {
     implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.fragment)
     implementation(libs.androidx.viewpager)
+    implementation(libs.androidx.biometric)
     implementation(libs.google.material)
     implementation("com.caverock:androidsvg-aar:1.4")
 
