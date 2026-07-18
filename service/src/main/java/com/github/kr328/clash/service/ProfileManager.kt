@@ -7,6 +7,10 @@ import com.github.kr328.clash.common.util.SubscriptionNameGuesser
 import com.github.kr328.clash.common.util.SubscriptionUsage
 import com.github.kr328.clash.core.Clash
 import com.github.kr328.clash.core.model.ProfileSnapshot
+import com.github.kr328.clash.core.model.Proxy
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import com.github.kr328.clash.service.data.Database
 import com.github.kr328.clash.service.data.Imported
 import com.github.kr328.clash.service.data.ImportedDao
@@ -601,22 +605,72 @@ class ProfileManager(private val context: Context) : IProfileManager,
             }
             try {
                 val snapshot = getOrParseSnapshot(uuid, file)
-                // includeHidden = true: when the live engine path serves the
-                // UI, the picker pills walk every group (visible + hidden) via
-                // Clash.queryAllProxyGroupNamesIncludingHidden, so the offline
-                // preview must match that universe — otherwise hidden auto
-                // subgroups have no rows during the warmup race (live data not
-                // ready yet, offline fallback missing the group), and the
-                // expanded carriage flashes empty until proxyDetails arrives.
-                ProxyGroupsYamlPreview.parseProxyGroupsPreview(
-                    snapshot,
-                    file.parentFile,
-                    includeHidden = true,
-                )
+                // Ask the engine first. It resolves include-all* / use: / filter / exclude-filter /
+                // exclude-type exactly as the running tunnel does, so the disconnected UI reports the
+                // same membership as the connected one. The Kotlin preview below re-implements those
+                // semantics and has repeatedly diverged (a filter with a quantifier or lookahead
+                // silently collapsed a group to its declared proxies:; use:-backed groups resolved to
+                // nothing), so it stays only as a fallback for YAML the engine refuses to parse.
+                //
+                // includeHidden = true in both paths: when the live engine path serves the UI, the
+                // picker pills walk every group (visible + hidden) via
+                // Clash.queryAllProxyGroupNamesIncludingHidden, so the offline preview must match that
+                // universe — otherwise hidden auto subgroups have no rows during the warmup race and
+                // the expanded carriage flashes empty until proxyDetails arrives.
+                engineProxyGroupsPreview(file, snapshot)
+                    ?: ProxyGroupsYamlPreview.parseProxyGroupsPreview(
+                        snapshot,
+                        file.parentFile,
+                        includeHidden = true,
+                    )
             } catch (_: Exception) {
                 emptyMap()
             }
         }
+    }
+
+    /**
+     * Engine-resolved membership for the offline preview, or null when mihomo cannot parse the
+     * config (caller falls back to the Kotlin preview).
+     *
+     * `staticProxies` still comes from the snapshot: it must stay the *declared* `proxies:` list,
+     * never the expanded one, because the picker's 1-hop heuristic uses it to tell a pure dispatch
+     * shell from a group whose members are flat only because of `include-all`.
+     */
+    private fun engineProxyGroupsPreview(
+        file: File,
+        snapshot: ProfileSnapshot,
+    ): Map<String, ProxyGroupPreviewRow>? {
+        val resolved = runCatching { Clash.resolveProxyGroups(file.readText()) }.getOrNull()
+            ?: return null
+
+        val declaredByName = HashMap<String, List<String>>(snapshot.proxyGroups.size)
+        for (group in snapshot.proxyGroups) {
+            val name = (group["name"] as? JsonPrimitive)?.contentOrNull?.trim().orEmpty()
+            if (name.isEmpty()) continue
+            declaredByName[name] = (group["proxies"] as? JsonArray)
+                .orEmpty()
+                .mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.trim()?.takeIf(String::isNotEmpty) }
+        }
+
+        return resolved.associate { group ->
+            group.name to ProxyGroupPreviewRow(
+                type = engineGroupType(group.type),
+                members = group.all,
+                hidden = group.hidden,
+                staticProxies = declaredByName[group.name].orEmpty(),
+            )
+        }
+    }
+
+    /** mihomo marshals adapter types as `Selector` / `URLTest` / …; YAML spells them `url-test`. */
+    private fun engineGroupType(raw: String): Proxy.Type = when (raw.trim().lowercase()) {
+        "selector", "select" -> Proxy.Type.Selector
+        "fallback" -> Proxy.Type.Fallback
+        "urltest", "url-test" -> Proxy.Type.URLTest
+        "loadbalance", "load-balance" -> Proxy.Type.LoadBalance
+        "relay" -> Proxy.Type.Relay
+        else -> Proxy.Type.Selector
     }
 
     override suspend fun readProxyTransports(uuid: UUID): Map<String, ProxyTransportInfo> {

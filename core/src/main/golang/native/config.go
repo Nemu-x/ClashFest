@@ -148,6 +148,17 @@ func parseProfileSnapshotFromBytes(yaml C.c_string) *C.char {
 	return C.CString(snapshot.MarshalJSONFromBytes([]byte(C.GoString(yaml))))
 }
 
+// resolveProxyGroupsFromBytes returns the proxy-group membership the engine itself computes for
+// in-memory YAML (include-all* expanded, use: resolved, filter/exclude-filter/exclude-type
+// applied) so the offline UI preview does not have to re-implement mihomo's group semantics.
+// Empty string on unparseable YAML — callers fall back to their own preview.
+//
+//export resolveProxyGroupsFromBytes
+func resolveProxyGroupsFromBytes(yaml C.c_string) *C.char {
+	defer guard("resolveProxyGroupsFromBytes")()
+	return C.CString(snapshot.ResolvedGroupsJSON([]byte(C.GoString(yaml))))
+}
+
 //export validateProfileBytes
 func validateProfileBytes(yaml C.c_string) *C.char {
 	defer guard("validateProfileBytes")()
