@@ -11,150 +11,63 @@
         android:paddingTop="6dp"
         android:paddingBottom="20dp">
 
-        <!-- Subscription pill -->
+        <!--
+          One identity line, not a card. This sheet opens from a screen that already names the
+          subscription and shows its state, so the old 70dp pill repeated both a third time and
+          pushed the node list down to 75% of the screen height. Name + expiry + status now live
+          on a single 24dp row; the "PROXY GROUP" caption is gone with it (the segmented selector
+          right below is self-evident) and Ping moved into the control row.
+        -->
         <LinearLayout
             android:id="@+id/proxy_sheet_sub_pill"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_subscription_pill"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="14dp">
-
-            <View
-                android:id="@+id/proxy_sheet_sub_avatar"
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_marginEnd="12dp"
-                android:background="@drawable/dot_avatar" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/proxy_sheet_sub_label"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="monospace"
-                    android:letterSpacing="0.12"
-                    android:text="@string/proxy_sheet_active_subscription"
-                    android:textAllCaps="true"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/proxy_sheet_sub_name"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="3dp"
-                    android:ellipsize="end"
-                    android:fontFamily="@font/space_grotesk"
-                    android:maxLines="1"
-                    android:textAppearance="@style/TextAppearance.App.BodyLarge"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textStyle="bold"
-                    tools:text="Atlas Pro · EU/US" />
-
-                <TextView
-                    android:id="@+id/proxy_sheet_sub_expiry"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="3dp"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textAppearance="@style/TextAppearance.App.LabelMedium"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:visibility="gone"
-                    tools:text="14d 22h left"
-                    tools:visibility="visible" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:background="@drawable/bg_status_pill"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="10dp"
-                android:paddingVertical="5dp">
-
-                <View
-                    android:id="@+id/proxy_sheet_sub_status_dot"
-                    android:layout_width="7dp"
-                    android:layout_height="7dp"
-                    android:layout_marginEnd="6dp"
-                    android:background="@drawable/dot_status" />
-
-                <TextView
-                    android:id="@+id/proxy_sheet_sub_status"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textAppearance="@style/TextAppearance.App.LabelMedium"
-                    android:textColor="?attr/colorPrimary"
-                    android:textStyle="bold"
-                    tools:text="Connected" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- PROXY GROUP label -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:paddingVertical="2dp">
 
             <TextView
+                android:id="@+id/proxy_sheet_sub_name"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:fontFamily="monospace"
-                android:letterSpacing="0.12"
-                android:text="@string/proxy_sheet_group_label"
-                android:textAllCaps="true"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="10sp"
-                android:textStyle="bold" />
+                android:ellipsize="end"
+                android:fontFamily="@font/space_grotesk"
+                android:maxLines="1"
+                android:textAppearance="@style/TextAppearance.App.BodyMedium"
+                android:textColor="?attr/colorOnSurface"
+                android:textStyle="bold"
+                tools:text="Atlas Pro · EU/US" />
 
-            <FrameLayout
-                android:id="@+id/proxy_sheet_ping_slot"
+            <TextView
+                android:id="@+id/proxy_sheet_sub_expiry"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textAppearance="@style/TextAppearance.App.LabelSmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:visibility="gone"
+                tools:text="14d 22h left"
+                tools:visibility="visible" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/proxy_sheet_ping_button"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minWidth="0dp"
-                    android:minHeight="0dp"
-                    android:paddingHorizontal="6dp"
-                    android:paddingVertical="2dp"
-                    android:text="@string/profile_ping_all_short"
-                    android:textAllCaps="false"
-                    android:textAppearance="@style/TextAppearance.App.LabelSmall"
-                    android:textColor="?attr/colorPrimary"
-                    app:icon="@drawable/ic_speedometer_ping"
-                    app:iconGravity="textStart"
-                    app:iconPadding="3dp"
-                    app:iconSize="14dp"
-                    app:iconTint="?attr/colorPrimary" />
+            <View
+                android:id="@+id/proxy_sheet_sub_status_dot"
+                android:layout_width="7dp"
+                android:layout_height="7dp"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/dot_status" />
 
-                <ProgressBar
-                    android:id="@+id/proxy_sheet_ping_progress"
-                    style="?android:attr/progressBarStyle"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:layout_gravity="center"
-                    android:indeterminateTint="?attr/colorPrimary"
-                    android:visibility="gone" />
-            </FrameLayout>
+            <TextView
+                android:id="@+id/proxy_sheet_sub_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.App.LabelSmall"
+                android:textColor="?attr/colorPrimary"
+                android:textStyle="bold"
+                tools:text="Connected" />
         </LinearLayout>
 
         <!-- Custom segmented group selector -->
@@ -182,104 +95,128 @@
                 android:padding="3dp" />
         </HorizontalScrollView>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="12dp"
-            android:background="@drawable/bg_proxy_search_pill"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="14dp">
-
-            <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_marginEnd="10dp"
-                android:importantForAccessibility="no"
-                android:src="@drawable/ic_baseline_search"
-                app:tint="?attr/colorOnSurfaceVariant" />
-
-            <EditText
-                android:id="@+id/proxy_sheet_search"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:background="@null"
-                android:hint="@string/profile_proxy_search_hint"
-                android:imeOptions="actionSearch"
-                android:inputType="text"
-                android:maxLines="1"
-                android:paddingHorizontal="0dp"
-                android:paddingVertical="0dp"
-                android:textAppearance="@style/TextAppearance.App.BodyMedium"
-                android:textColor="?attr/colorOnSurface"
-                android:textColorHint="?attr/colorOnSurfaceVariant" />
-
-            <ImageView
-                android:id="@+id/proxy_sheet_search_clear"
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:layout_marginStart="6dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:clickable="true"
-                android:contentDescription="@string/profile_proxy_search_clear"
-                android:focusable="true"
-                android:src="@drawable/ic_baseline_close"
-                android:visibility="gone"
-                app:tint="?attr/colorOnSurfaceVariant" />
-        </LinearLayout>
-
         <!--
-          Sort + filter as two compact dropdown buttons in a single row,
-          replacing the previous two stacked HorizontalScrollView chip rows.
-          Each button shows the current selection and opens a PopupMenu; the
-          filter menu's provider entries are populated at click time.
+          Search, sort, filter and ping on ONE row. Sort and filter used to be full-width tonal
+          buttons on their own row, labelled with the current selection; as icons they cost 44dp
+          instead of a whole row, and the selection stays legible because a non-default choice
+          tints the icon with colorPrimary (see bindSortFilterIcons).
         -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
+            android:gravity="center_vertical"
             android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_proxy_search_pill"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="14dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginEnd="10dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_baseline_search"
+                    app:tint="?attr/colorOnSurfaceVariant" />
+
+                <EditText
+                    android:id="@+id/proxy_sheet_search"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@null"
+                    android:hint="@string/profile_proxy_search_hint"
+                    android:imeOptions="actionSearch"
+                    android:inputType="text"
+                    android:maxLines="1"
+                    android:paddingHorizontal="0dp"
+                    android:paddingVertical="0dp"
+                    android:textAppearance="@style/TextAppearance.App.BodyMedium"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textColorHint="?attr/colorOnSurfaceVariant" />
+
+                <ImageView
+                    android:id="@+id/proxy_sheet_search_clear"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_marginStart="6dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:contentDescription="@string/profile_proxy_search_clear"
+                    android:focusable="true"
+                    android:src="@drawable/ic_baseline_close"
+                    android:visibility="gone"
+                    app:tint="?attr/colorOnSurfaceVariant" />
+            </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/proxy_sheet_sort_button"
-                style="@style/Widget.Material3.Button.TonalButton"
-                android:layout_width="0dp"
+                style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:contentDescription="@string/profile_proxy_sort"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
-                android:gravity="start|center_vertical"
-                android:textAllCaps="false"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="13sp"
                 app:backgroundTint="?attr/colorSurfaceContainerHigh"
                 app:icon="@drawable/ic_baseline_swap_vert"
                 app:iconGravity="textStart"
-                app:iconSize="18dp"
-                app:iconTint="?attr/colorOnSurfaceVariant"
-                tools:text="Config order" />
+                app:iconPadding="0dp"
+                app:iconSize="20dp"
+                app:iconTint="?attr/colorOnSurfaceVariant" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/proxy_sheet_filter_button"
-                style="@style/Widget.Material3.Button.TonalButton"
-                android:layout_width="0dp"
+                style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:layout_marginStart="4dp"
-                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:contentDescription="@string/profile_proxy_filter"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
-                android:gravity="start|center_vertical"
-                android:textAllCaps="false"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="13sp"
                 app:backgroundTint="?attr/colorSurfaceContainerHigh"
                 app:icon="@drawable/ic_baseline_filter_list"
                 app:iconGravity="textStart"
-                app:iconSize="18dp"
-                app:iconTint="?attr/colorOnSurfaceVariant"
-                tools:text="Current group" />
+                app:iconPadding="0dp"
+                app:iconSize="20dp"
+                app:iconTint="?attr/colorOnSurfaceVariant" />
+
+            <FrameLayout
+                android:id="@+id/proxy_sheet_ping_slot"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="6dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/proxy_sheet_ping_button"
+                    style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:contentDescription="@string/profile_ping_all_short"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    app:backgroundTint="?attr/colorSurfaceContainerHigh"
+                    app:icon="@drawable/ic_speedometer_ping"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="20dp"
+                    app:iconTint="?attr/colorPrimary" />
+
+                <ProgressBar
+                    android:id="@+id/proxy_sheet_ping_progress"
+                    style="?android:attr/progressBarStyle"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="center"
+                    android:indeterminateTint="?attr/colorPrimary"
+                    android:visibility="gone" />
+            </FrameLayout>
         </LinearLayout>
 
         <!-- Hidden legacy chip group / type label (kept for binding compat) -->

@@ -598,6 +598,8 @@
     <string name="subscription_docs_security">Безопасность и валидация</string>
     <string name="subscription_docs_consolidated">Диплинки</string>
 
+    <string name="profile_proxy_sort">Сортировка нод</string>
+    <string name="profile_proxy_filter">Фильтр нод</string>
     <string name="profile_proxy_sort_config">Порядок конфига</string>
     <string name="profile_proxy_sort_delay">Задержка</string>
     <string name="profile_proxy_sort_name">Имя</string>

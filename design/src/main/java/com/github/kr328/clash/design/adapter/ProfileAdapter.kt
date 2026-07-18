@@ -32,6 +32,8 @@ import com.github.kr328.clash.service.model.Profile
 import com.github.kr328.clash.service.model.ProxyGroupPreviewRow
 import com.github.kr328.clash.service.model.ProxyTransportInfo
 import com.google.android.material.bottomsheet.BottomSheetBehavior
+import androidx.appcompat.widget.TooltipCompat
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.color.MaterialColors
 import java.util.UUID
 
@@ -929,9 +931,36 @@ class ProfileAdapter(
                     context.getString(R.string.profile_proxy_filter_provider, f.name)
             }
 
+            /**
+             * Sort and filter are icon-only buttons, so the current selection can no longer be read
+             * off a label. Carry it two ways instead: tint the icon with colorPrimary when the
+             * choice is not the default, and put the label in the tooltip / content description so
+             * it stays available to a long-press and to TalkBack.
+             */
             fun updateControlLabels() {
-                sheet.proxySheetSortButton.text = sortLabel(sort)
-                sheet.proxySheetFilterButton.text = filterLabel(filter)
+                fun bind(button: MaterialButton, label: String, active: Boolean) {
+                    val tint = MaterialColors.getColor(
+                        button,
+                        if (active) {
+                            com.google.android.material.R.attr.colorPrimary
+                        } else {
+                            com.google.android.material.R.attr.colorOnSurfaceVariant
+                        },
+                    )
+                    button.iconTint = ColorStateList.valueOf(tint)
+                    button.contentDescription = label
+                    TooltipCompat.setTooltipText(button, label)
+                }
+                bind(
+                    sheet.proxySheetSortButton,
+                    sortLabel(sort),
+                    active = sort != ProxyPickerSort.Config,
+                )
+                bind(
+                    sheet.proxySheetFilterButton,
+                    filterLabel(filter),
+                    active = filter != ProxyPickerFilter.CurrentGroup,
+                )
             }
 
             // The node list is a RecyclerView (virtualized — see O-07). render() references

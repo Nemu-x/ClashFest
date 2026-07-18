@@ -501,6 +501,8 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="docs_url_operator_security">https://github.com/Nemu-x/ClashFest/wiki/Operator-API-Security</string>
     <string name="docs_url_supported_headers">https://github.com/Nemu-x/ClashFest/wiki/Deep-Links</string>
 
+    <string name="profile_proxy_sort">Sort nodes</string>
+    <string name="profile_proxy_filter">Filter nodes</string>
     <string name="profile_proxy_sort_config">Config order</string>
     <string name="profile_proxy_sort_delay">Delay</string>
     <string name="profile_proxy_sort_name">Name</string>
