@@ -193,10 +193,15 @@ object Clash {
         return Bridge.nativePatchSelector(selector, name)
     }
 
+    /**
+     * @param viaProxy route the download through the tunnel with rule matching (the engine default).
+     *        False forces a direct dial, for subscriptions that are only reachable off-tunnel.
+     */
     fun fetchAndValid(
         path: File,
         url: String,
         force: Boolean,
+        viaProxy: Boolean = true,
         subscriptionHeadersJson: String = SubscriptionDeviceHeaders.toJson(Global.application),
         reportStatus: (FetchStatus) -> Unit,
     ): CompletableDeferred<Unit> {
@@ -222,6 +227,7 @@ object Clash {
                 path.absolutePath,
                 url,
                 force,
+                viaProxy,
                 subscriptionHeadersJson,
             )
         }

@@ -1211,4 +1211,6 @@
     <string name="local_proxy_field_username">Логин</string>
     <string name="local_proxy_field_password">Пароль</string>
     <string name="local_proxy_copied_fmt">%1$s скопирован</string>
+    <string name="subscription_update_via_proxy">Обновлять через прокси</string>
+    <string name="subscription_update_via_proxy_summary">Предпочитаемый маршрут для загрузки этой подписки: через туннель, по вашим правилам. Выключите, чтобы сначала пробовать прямое подключение. В любом случае, если первый маршрут не сработает, второй будет использован автоматически. Применится со следующего обновления.</string>
 </resources>

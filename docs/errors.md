@@ -286,7 +286,28 @@ available in the `fetchProviders` closure, so this is cheaply fixable.
 | `E-10` | Body downloaded but blank | "server returned an empty response — try again later" |
 | `E-11` | Body is an HTML error/rate-limit page | "server returned a web page, not a config" |
 | `E-20` | Nothing downloaded + network-reach failure (DNS/TLS/connect timeout, host blocked) | "couldn't reach the subscription server — check your connection / host may be blocked" |
+| `E-40` | `x-hwid-limit` / `x-hwid-max-devices-reached` on a failed update | "this device was refused because the subscription has reached its device limit" (+ `support-url` when present) |
+| `E-41` | `subscription-userinfo` carries an `expire=` already in the past, on a failed update | "your subscription expired on YYYY-MM-DD — renew it, then update again" |
+| `E-21` | Server answered with a non-2xx status (wording varies by code: 401/402 account, 403/451 refused on both routes, 404/410 dead link, 5xx panel trouble) | "the subscription server rejected your account (HTTP 401) — re-import from your dashboard" |
 | `E-30` | Body is an age armor the engine couldn't decrypt (missing/wrong key) | "subscription is age-encrypted — import the full link from your dashboard, or set the profile's age secret key" |
+
+`E-40`/`E-41` come from the response headers the Go fetch snapshots into the staging
+directory. They are checked **before** everything else, including before a Layer 3 engine
+error is passed through: an expired panel typically serves a *valid* YAML with its proxies
+stripped out, so the engine reports `proxy 'X' not found` and the user goes hunting for a
+config problem they cannot fix. Measured on a real expired subscription — the panel sent
+`expire=` one day in the past while the app blamed a missing node. The engine's precise
+message stays attached as the exception's `cause`.
+
+Both are **explanatory only**. A panel that serves a working config while flagging the
+account is not refusing anything, and manufacturing an error out of that flag would break a
+live profile over a stale header — so neither code can turn a successful update into a
+failure. (The reference header table other clients implement does make `x-hwid-limit: true`
+fail an import outright; that is a deliberate divergence.)
+
+The staging snapshot is rewritten — or removed — on the failure path too, because staging is
+seeded with a copy of the existing profile: a leftover snapshot from the last successful
+download would otherwise explain today's failure with last week's headers.
 
 `E-52` (provider-init timeout at activation) is **not** implemented: with B deferred,
 those failures stay non-fatal log lines (`initial rule provider … error`), not surfaced

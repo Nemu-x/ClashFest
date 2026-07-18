@@ -44,6 +44,12 @@ class PropertiesActivity : BaseActivity<PropertiesDesign>() {
         design.strictUserAgent = originalStrictUserAgent
         design.setOnStrictUserAgentChanged { strictUserAgent = it }
         design.subscriptionSourceLocked = ServiceStore(this).subscriptionShareLinksLockedFor(original.uuid)
+        // Persisted immediately rather than on save: it only affects the next download, and losing
+        // it because the user backed out of an unrelated edit would be surprising.
+        design.updateViaProxy = ServiceStore(this).subscriptionUpdateViaProxy(original.uuid)
+        design.setOnUpdateViaProxyChanged {
+            ServiceStore(this).setSubscriptionUpdateViaProxy(original.uuid, it)
+        }
 
         setContentDesign(design)
 

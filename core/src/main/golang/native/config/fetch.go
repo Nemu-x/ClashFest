@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,10 +17,13 @@ import (
 	"time"
 
 	"cfa/native/app"
+
+	"github.com/metacubex/mihomo/component/dialer"
 	"cfa/native/config/fetchheaders"
 
 	clashHttp "github.com/metacubex/mihomo/component/http"
 	"github.com/metacubex/mihomo/config"
+	"github.com/metacubex/mihomo/log"
 )
 
 type Status struct {
@@ -35,21 +39,158 @@ type providerFetchTask struct {
 	path string
 }
 
-func openUrl(ctx context.Context, url string, includeSubscriptionHeaders bool) (io.ReadCloser, map[string][]string, error) {
+// route describes how a download should reach the server.
+//
+// viaProxy sends the request through the tunnel with rule matching: HttpRequest dials via
+// inner.HandleTcp unless an explicit dialer is passed (see component/http/http.go:77-84), so
+// "through the tunnel" is the library default and a plain dialer is the only way out. That plain
+// dialer still runs through dialer.DefaultSocketHook, so the socket is protected — protecting a
+// socket bypasses the tun, it does not bypass rule matching.
+//
+// Note this used to be implicitly state-dependent: with no config running, rule matching lands on
+// DIRECT anyway, so a manual import while disconnected went out directly while the scheduled
+// auto-update — same code path, tunnel up — went through the selected node. Issue #178 is that
+// second case, on a panel that only answers off-tunnel.
+type route struct {
+	// viaProxy is the *preferred* route, not the only one — see fallback.
+	viaProxy bool
+	// fallback retries once on the other route when the failure looks like the route was the
+	// problem (see shouldTryOtherRoute). Both directions are useful: a panel that whitelists the
+	// home IP answers only off-tunnel, while a panel whose domain is DPI-blocked answers only
+	// through it. Set for the subscription only — providers are best-effort and fetched six at a
+	// time, so doubling their requests buys nothing.
+	fallback bool
+}
+
+func (r route) other() route {
+	return route{viaProxy: !r.viaProxy, fallback: false}
+}
+
+func (r route) name() string {
+	if r.viaProxy {
+		return "proxy"
+	}
+	return "direct"
+}
+
+// httpStatusError is a non-2xx response. It has to be an error: HttpRequest only fails on transport
+// problems, so without this check a 403 error page is written to disk as config.yaml and only
+// surfaces much later as a confusing YAML parse failure.
+type httpStatusError struct {
+	code   int
+	status string
+	// header of the refusal. A panel that rejects an expired plan or a device over its HWID limit
+	// says so in the headers of the very response it refuses with, so these are what turn a bare
+	// "HTTP 403" into an actionable reason — see the failure path in FetchAndValid.
+	header map[string][]string
+}
+
+func (e httpStatusError) Error() string {
+	return fmt.Sprintf("server returned HTTP %s", e.status)
+}
+
+func openUrl(ctx context.Context, url string, includeSubscriptionHeaders bool, viaProxy bool) (io.ReadCloser, map[string][]string, error) {
 	base := http.Header{"User-Agent": {"ClashMetaForAndroid/" + app.VersionName()}}
 	hdr := base
 	if includeSubscriptionHeaders {
 		hdr = app.MergeSubscriptionFetchHeaders(base)
 	}
-	response, err := clashHttp.HttpRequest(ctx, url, http.MethodGet, hdr, nil)
+	var options []clashHttp.Option
+	if !viaProxy {
+		options = append(options, clashHttp.WithDialer(dialer.NewDialer()))
+	}
+	response, err := clashHttp.HttpRequest(ctx, url, http.MethodGet, hdr, nil, options...)
 
 	if err != nil {
 		return nil, nil, err
 	}
 
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		_ = response.Body.Close()
+		return nil, nil, httpStatusError{
+			code:   response.StatusCode,
+			status: response.Status,
+			header: response.Header,
+		}
+	}
+
 	// Plain map type: mihomo's forked metacubex/http.Header and net/http.Header
 	// are distinct named types over the same underlying map.
 	return response.Body, response.Header, nil
+}
+
+// routeFirstAttemptTimeout caps the preferred route when a fallback is available, so a route that
+// hangs until the caller's overall budget expires can't starve the second attempt. Without it a
+// dead node burns all 60s of subscriptionFetchTimeout and the user watches "Updating…" twice as
+// long for a result the fallback could have produced in seconds.
+const routeFirstAttemptTimeout = 25 * time.Second
+
+// shouldTryOtherRoute reports whether err suggests the *route* was the problem, rather than the
+// subscription itself. Being wrong here is not free: an unnecessary direct retry leaks the panel's
+// hostname (DNS query + TLS SNI) to the local network, which is exactly what routing through the
+// tunnel avoids. So the HTTP side is an allowlist, not a denylist.
+func shouldTryOtherRoute(err error) bool {
+	var status httpStatusError
+	if errors.As(err, &status) {
+		// We reached the panel and it refused *this request*: 403 is what an IP-whitelisting or
+		// geo-blocking panel answers to an unexpected exit IP, 451 its policy-blocked cousin.
+		// Everything else is about the subscription, not the path to it — 401 is a bad token,
+		// 404 a dead link, 5xx a broken panel — and retrying elsewhere only leaks the hostname.
+		return status.code == http.StatusForbidden || status.code == http.StatusUnavailableForLegalReasons
+	}
+	// Transport-level: refused, reset, DNS failure, TLS error, deadline exceeded. All route-shaped.
+	return true
+}
+
+// openRoutedUrl opens url on r's preferred route, falling back once to the other one.
+//
+// The fallback covers the two dead ends of a single fixed route: with the tunnel preferred, a
+// subscription that can only be fetched off-tunnel is unreachable — and worse, a profile whose
+// nodes are all dead can't be refreshed, because the refresh goes through the dead nodes. With
+// direct preferred, a DPI-blocked panel is unreachable. Only the *open* is retried; a body that
+// dies mid-transfer is left to the caller's normal error path.
+func openRoutedUrl(ctx context.Context, url string, includeSubscriptionHeaders bool, r route) (io.ReadCloser, map[string][]string, error) {
+	if !r.fallback {
+		return openUrl(ctx, url, includeSubscriptionHeaders, r.viaProxy)
+	}
+
+	first, cancelFirst := context.WithTimeout(ctx, routeFirstAttemptTimeout)
+	reader, header, err := openUrl(first, url, includeSubscriptionHeaders, r.viaProxy)
+	if err == nil {
+		// The body is read later, by fetch — cancelling now would truncate it. Hand the cancel
+		// to Close instead, which fetch defers.
+		return cancelingReadCloser{ReadCloser: reader, cancel: cancelFirst}, header, nil
+	}
+	cancelFirst()
+
+	if !shouldTryOtherRoute(err) {
+		return nil, nil, err
+	}
+
+	alt := r.other()
+	// Logged rather than silent: falling back to direct means the hostname just went out over the
+	// local network, and a user who cares needs to be able to see that it happened.
+	log.Warnln("Subscription fetch via %s failed (%s), retrying %s", r.name(), err.Error(), alt.name())
+
+	reader, header, altErr := openUrl(ctx, url, includeSubscriptionHeaders, alt.viaProxy)
+	if altErr != nil {
+		return nil, nil, fmt.Errorf("%s: %w (%s: %v)", r.name(), err, alt.name(), altErr)
+	}
+
+	log.Infoln("Subscription fetch succeeded via %s", alt.name())
+
+	return reader, header, nil
+}
+
+// cancelingReadCloser releases a request-scoped context once the body is closed.
+type cancelingReadCloser struct {
+	io.ReadCloser
+	cancel context.CancelFunc
+}
+
+func (c cancelingReadCloser) Close() error {
+	defer c.cancel()
+	return c.ReadCloser.Close()
 }
 
 func openContent(url string) (io.ReadCloser, error) {
@@ -76,7 +217,7 @@ const (
 // and on error) — the subscription fetch persists them via [writeFetchHeaders]
 // so the Kotlin side can read subscription-userinfo / X-Brand-* / naming
 // headers without issuing a second GET of its own.
-func fetch(url *U.URL, file string, timeout time.Duration, includeSubscriptionHeaders bool) (map[string][]string, error) {
+func fetch(url *U.URL, file string, timeout time.Duration, includeSubscriptionHeaders bool, r route) (map[string][]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -86,7 +227,7 @@ func fetch(url *U.URL, file string, timeout time.Duration, includeSubscriptionHe
 
 	switch url.Scheme {
 	case "http", "https":
-		reader, header, err = openUrl(ctx, url.String(), includeSubscriptionHeaders)
+		reader, header, err = openRoutedUrl(ctx, url.String(), includeSubscriptionHeaders, r)
 	case "content":
 		reader, err = openContent(url.String())
 	default:
@@ -152,6 +293,11 @@ func FetchAndValid(
 	path string,
 	url string,
 	force bool,
+	// viaProxy is the user's preferred route (Profile -> Update via proxy, on by default): through
+	// the tunnel with rule matching, or a direct dial for subscriptions that are only reachable
+	// off-tunnel (issue #178). Either way the other route is tried once if the first fails in a
+	// route-shaped way — see [route].
+	viaProxy bool,
 	reportStatus func(string),
 ) error {
 	configPath := P.Join(path, "config.yaml")
@@ -187,8 +333,24 @@ func FetchAndValid(
 
 		reportStatus(string(bytes))
 
-		header, err := fetch(parsed, configPath, subscriptionFetchTimeout, true)
+		header, err := fetch(parsed, configPath, subscriptionFetchTimeout, true, route{viaProxy: viaProxy, fallback: true})
 		if err != nil {
+			// Keep the refusal's headers: a panel answers "expired plan" / "device limit reached"
+			// in the headers of the response it refuses with, and without them the Kotlin side can
+			// only report the status code. Safe to write here — [path] is the staging directory,
+			// discarded on failure, so this never clobbers the live profile's snapshot.
+			//
+			// Unconditional, because the staging directory is seeded with a COPY of the existing
+			// profile: a stale snapshot from the last successful download is already sitting there,
+			// and leaving it would let the classifier explain today's failure with last week's
+			// headers. Writing nil removes it, so a snapshot present after a failed fetch always
+			// belongs to that fetch.
+			var status httpStatusError
+			if errors.As(err, &status) {
+				writeFetchHeaders(path, status.header)
+			} else {
+				writeFetchHeaders(path, nil)
+			}
 			return err
 		}
 
@@ -364,7 +526,7 @@ func fetchProviders(rawCfg *config.RawConfig, force bool, reportStatus func(stri
 			// fetch persists them, see writeFetchHeaders).
 			// Device-identifying subscription headers are scoped to the subscription
 			// origin. Providers may be controlled by unrelated third parties.
-			_, _ = fetch(t.url, t.path, providerFetchTimeout, false)
+			_, _ = fetch(t.url, t.path, providerFetchTimeout, false, route{})
 
 			current := atomic.AddInt32(&done, 1)
 			bytes, _ := json.Marshal(&Status{

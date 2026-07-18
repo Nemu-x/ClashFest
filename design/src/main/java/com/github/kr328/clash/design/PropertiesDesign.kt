@@ -46,6 +46,8 @@ class PropertiesDesign(context: Context) : Design<PropertiesDesign.Request>(cont
     private var userAgentChangeListener: ((String) -> Unit)? = null
     private var strictUserAgentValue: Boolean = false
     private var strictUserAgentChangeListener: ((Boolean) -> Unit)? = null
+    private var updateViaProxyValue: Boolean = true
+    private var updateViaProxyChangeListener: ((Boolean) -> Unit)? = null
     private var userAgentPreset: UserAgentPreset = UserAgentPreset.Default
 
     /** Operator policy: disallow editing subscription URL (still allows name/interval). */
@@ -109,6 +111,23 @@ class PropertiesDesign(context: Context) : Design<PropertiesDesign.Request>(cont
 
     fun setOnStrictUserAgentChanged(listener: (Boolean) -> Unit) {
         strictUserAgentChangeListener = listener
+    }
+
+    /**
+     * Route this subscription's download through the tunnel (the engine default). Off forces a
+     * direct dial for subscriptions that are only reachable off-tunnel.
+     */
+    var updateViaProxy: Boolean
+        get() = updateViaProxyValue
+        set(value) {
+            updateViaProxyValue = value
+            if (binding.switchUpdateViaProxy.isChecked != value) {
+                binding.switchUpdateViaProxy.isChecked = value
+            }
+        }
+
+    fun setOnUpdateViaProxyChanged(listener: (Boolean) -> Unit) {
+        updateViaProxyChangeListener = listener
     }
 
     suspend fun withProcessing(executeTask: suspend (suspend (FetchStatus) -> Unit) -> Unit) {
@@ -236,6 +255,11 @@ class PropertiesDesign(context: Context) : Design<PropertiesDesign.Request>(cont
             if (strictUserAgentValue == checked) return@setOnCheckedChangeListener
             strictUserAgentValue = checked
             strictUserAgentChangeListener?.invoke(checked)
+        }
+        binding.switchUpdateViaProxy.setOnCheckedChangeListener { _, checked ->
+            if (updateViaProxyValue == checked) return@setOnCheckedChangeListener
+            updateViaProxyValue = checked
+            updateViaProxyChangeListener?.invoke(checked)
         }
         applyUserAgentVisibility()
     }
