@@ -79,6 +79,10 @@ func (r route) name() string {
 type httpStatusError struct {
 	code   int
 	status string
+	// header of the refusal. A panel that rejects an expired plan or a device over its HWID limit
+	// says so in the headers of the very response it refuses with, so these are what turn a bare
+	// "HTTP 403" into an actionable reason — see the failure path in FetchAndValid.
+	header map[string][]string
 }
 
 func (e httpStatusError) Error() string {
@@ -103,7 +107,11 @@ func openUrl(ctx context.Context, url string, includeSubscriptionHeaders bool, v
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		_ = response.Body.Close()
-		return nil, nil, httpStatusError{code: response.StatusCode, status: response.Status}
+		return nil, nil, httpStatusError{
+			code:   response.StatusCode,
+			status: response.Status,
+			header: response.Header,
+		}
 	}
 
 	// Plain map type: mihomo's forked metacubex/http.Header and net/http.Header
@@ -327,6 +335,22 @@ func FetchAndValid(
 
 		header, err := fetch(parsed, configPath, subscriptionFetchTimeout, true, route{viaProxy: viaProxy, fallback: true})
 		if err != nil {
+			// Keep the refusal's headers: a panel answers "expired plan" / "device limit reached"
+			// in the headers of the response it refuses with, and without them the Kotlin side can
+			// only report the status code. Safe to write here — [path] is the staging directory,
+			// discarded on failure, so this never clobbers the live profile's snapshot.
+			//
+			// Unconditional, because the staging directory is seeded with a COPY of the existing
+			// profile: a stale snapshot from the last successful download is already sitting there,
+			// and leaving it would let the classifier explain today's failure with last week's
+			// headers. Writing nil removes it, so a snapshot present after a failed fetch always
+			// belongs to that fetch.
+			var status httpStatusError
+			if errors.As(err, &status) {
+				writeFetchHeaders(path, status.header)
+			} else {
+				writeFetchHeaders(path, nil)
+			}
 			return err
 		}
 
