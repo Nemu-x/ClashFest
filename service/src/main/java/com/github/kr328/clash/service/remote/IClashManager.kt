@@ -27,7 +27,12 @@ interface IClashManager {
 
     suspend fun healthCheck(group: String)
 
-    suspend fun healthCheckPerProxy(group: String, observer: IProxyDelayObserver)
+    /**
+     * @param testUrl one-shot latency target the user typed, or blank to use each provider's
+     *        configured health-check URL. Never persisted; the automatic url-test timers are
+     *        unaffected.
+     */
+    suspend fun healthCheckPerProxy(group: String, testUrl: String, observer: IProxyDelayObserver)
 
     fun healthCheckAll()
     suspend fun updateProvider(type: Provider.Type, name: String)

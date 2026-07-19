@@ -34,6 +34,11 @@ import com.github.kr328.clash.service.model.ProxyTransportInfo
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import androidx.appcompat.widget.TooltipCompat
 import com.google.android.material.button.MaterialButton
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.google.android.material.color.MaterialColors
 import java.util.UUID
 
@@ -42,7 +47,7 @@ class ProfileAdapter(
     private val onMenuClicked: (Profile, View) -> Unit,
     private val onExpandToggle: (Profile) -> Unit = {},
     private val onProxyNodeSelected: (Profile, String, String) -> Unit = { _, _, _ -> },
-    private val onPingAll: (Profile, String, List<String>) -> Unit = { _, _, _ -> },
+    private val onPingAll: (Profile, String, List<String>, String) -> Unit = { _, _, _, _ -> },
     private val onForceUpdate: (Profile) -> Unit = {},
     private val onProxyYamlDetail: (profile: Profile, groupName: String, proxyName: String) -> Unit =
         { _, _, _ -> },
@@ -59,6 +64,8 @@ class ProfileAdapter(
     private var proxyGroupNames: List<String> = emptyList()
     /** The `excludeNotSelectable` setting [proxyGroupNames] was queried with — see [setProxyContext]. */
     private var excludeNotSelectable: Boolean = false
+    /** Prefill for the latency-target dialog; the measurement target itself is never sticky. */
+    private var lastLatencyTarget: String = ""
     private var proxyDetails: Map<String, ProxyGroup> = emptyMap()
     private var activeProfileUuid: UUID? = null
     private var clashRunning: Boolean = false
@@ -759,6 +766,63 @@ class ProfileAdapter(
         ).withSelectionOverlay(profile.uuid, groupName)
     }
 
+    /**
+     * Asks for a one-shot latency target and hands back a URL ready for URLTest.
+     *
+     * The last entry is remembered only to prefill the field — the measurement itself is never
+     * sticky, so closing the dialog leaves the next tap measuring the default target as before.
+     */
+    private fun showLatencyTargetDialog(context: Context, onConfirm: (String) -> Unit) {
+        val view = context.layoutInflater.inflate(R.layout.dialog_latency_target, null, false)
+        val inputLayout = view.findViewById<TextInputLayout>(R.id.latency_target_input_layout)
+        val input = view.findViewById<TextInputEditText>(R.id.latency_target_input)
+        input.setText(lastLatencyTarget)
+        input.setSelection(input.text?.length ?: 0)
+
+        val dialog = MaterialAlertDialogBuilder(context)
+            .setView(view)
+            .setPositiveButton(R.string.latency_target_run, null)
+            .setNegativeButton(R.string.cancel, null)
+            .create()
+
+        // Validate without dismissing: setPositiveButton's own listener always closes, which would
+        // throw the typed text away on a typo.
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val url = normalizeLatencyTarget(input.text?.toString().orEmpty())
+                if (url == null) {
+                    inputLayout.error = context.getString(R.string.latency_target_invalid)
+                    return@setOnClickListener
+                }
+                lastLatencyTarget = input.text?.toString()?.trim().orEmpty()
+                dialog.dismiss()
+                onConfirm(url)
+            }
+        }
+        dialog.show()
+    }
+
+    /**
+     * Turns what a person types into something URLTest can dial, or null if it cannot.
+     *
+     * People type "youtube.com", so a missing scheme is assumed to be https rather than rejected.
+     * A bare host with no dot ("localhost", or a half-typed name) is refused: URLTest would hang
+     * until the timeout and report every proxy as dead, which reads as a bug in the app rather
+     * than a typo.
+     */
+    internal fun normalizeLatencyTarget(raw: String): String? {
+        val text = raw.trim()
+        if (text.isEmpty()) return null
+        val withScheme = if (text.startsWith("http://") || text.startsWith("https://")) {
+            text
+        } else {
+            "https://$text"
+        }
+        val host = runCatching { java.net.URI(withScheme).host }.getOrNull()
+        if (host.isNullOrBlank() || !host.contains('.')) return null
+        return withScheme
+    }
+
     private fun proxySelectionKey(uuid: UUID, groupName: String): String =
         "${uuid}|${groupName}"
 
@@ -1083,9 +1147,12 @@ class ProfileAdapter(
             val pinging = states.pingingUuid == profile.uuid
             sheet.proxySheetPingProgress.visibility = if (pinging) View.VISIBLE else View.GONE
             sheet.proxySheetPingButton.visibility = if (pinging) View.INVISIBLE else View.VISIBLE
-            sheet.proxySheetPingButton.setOnClickListener {
+            // Resolves what a ping would cover right now: the rows the user can actually see in
+            // the current group, falling back to the group's own members when the list has not
+            // been laid out yet. Shared by the tap and the long press so both measure the same set.
+            fun pingTargets(): Pair<String, List<String>>? {
                 val currentIndex = selectedGroupIndex[profile.uuid] ?: 0
-                val groupName = groupNames.getOrNull(currentIndex) ?: return@setOnClickListener
+                val groupName = groupNames.getOrNull(currentIndex) ?: return null
                 val names = visibleRows()
                     .filter { it.groupIndex == currentIndex }
                     .map { it.proxy.name }
@@ -1096,10 +1163,41 @@ class ProfileAdapter(
                             ?.map { it.name }
                             .orEmpty()
                     }
-                if (names.isEmpty()) return@setOnClickListener
+                if (names.isEmpty()) return null
+                return groupName to names
+            }
+
+            fun startPing(groupName: String, names: List<String>, testUrl: String) {
                 lastPingAllAt[profile.uuid] = System.currentTimeMillis()
-                onPingAll(profile, groupName, names)
+                onPingAll(profile, groupName, names, testUrl)
                 sheet.root.post(refreshRunnable)
+            }
+
+            sheet.proxySheetPingButton.setOnClickListener {
+                val (groupName, names) = pingTargets() ?: return@setOnClickListener
+                startPing(groupName, names, "")
+            }
+            // Long press picks a different target for one run. Deliberately not a setting: the
+            // default check URL is what the subscription tuned its own auto-switching around, so
+            // making a custom host permanent here would quietly change what "fastest" means.
+            //
+            // Targets are resolved on confirm, not here. Resolving up front meant that whenever the
+            // current group had no rows to measure the gesture returned silently, which from the
+            // outside is indistinguishable from a long press that does not work at all.
+            sheet.proxySheetPingButton.setOnLongClickListener {
+                showLatencyTargetDialog(sheet.root.context) { url ->
+                    val targets = pingTargets()
+                    if (targets == null) {
+                        Toast.makeText(
+                            sheet.root.context,
+                            R.string.latency_target_nothing_to_test,
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                        return@showLatencyTargetDialog
+                    }
+                    startPing(targets.first, targets.second, url)
+                }
+                true
             }
 
             sheet.proxySheetSearch.addTextChangedListener { editable ->
@@ -1617,7 +1715,7 @@ class ProfileAdapter(
         pingView.setOnClickListener {
             pingingGroupByUuid[profile.uuid] = groupName
             val names = proxyGroupForRow(profile, groupName)?.proxies?.map { it.name }.orEmpty()
-            onPingAll(profile, groupName, names)
+            onPingAll(profile, groupName, names, "")
         }
 
         header.setOnClickListener {

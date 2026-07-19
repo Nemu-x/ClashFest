@@ -333,11 +333,12 @@ class MainActivity : BaseActivity<MainDesign>() {
      * refreshRuntimeGroupDetails — per-proxy push only carries the delay
      * measurement itself.
      */
-    private suspend fun runPerProxyHealthCheck(group: String) {
+    private suspend fun runPerProxyHealthCheck(group: String, testUrl: String = "") {
         runCatching {
             withClash {
                 healthCheckPerProxy(
                     group,
+                    testUrl,
                     object : IProxyDelayObserver {
                         override fun onDelay(
                             grp: String,
@@ -870,7 +871,7 @@ class MainActivity : BaseActivity<MainDesign>() {
                     }
                 }
 
-                design.profilePingAllRequests.onReceive { (profile, group, nodeNames) ->
+                design.profilePingAllRequests.onReceive { (profile, group, nodeNames, testUrl) ->
                     launch {
                         try {
                             design.setPingingProfile(profile.uuid)
@@ -897,7 +898,7 @@ class MainActivity : BaseActivity<MainDesign>() {
                                     design.patchProxyDetails(primed)
                                 }
                                 val jobs = groupsToRefresh.map { groupName ->
-                                    launch { runPerProxyHealthCheck(groupName) }
+                                    launch { runPerProxyHealthCheck(groupName, testUrl) }
                                 }
                                 jobs.forEach { it.join() }
                                 // Closing refresh captures `now` / `alive` fields the per-proxy

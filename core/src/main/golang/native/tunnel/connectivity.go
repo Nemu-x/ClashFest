@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -154,8 +155,17 @@ func CancelHealthChecks() {
 //
 // errMsg is empty on success, otherwise carries the proxy's URLTest error
 // reason; delayMs is meaningful only when errMsg == "".
+// testURL, when non-empty, replaces the provider's configured health-check URL for THIS run only.
+// It is a one-shot measurement target the user typed, not a setting: nothing is persisted engine-side
+// and the automatic url-test/fallback timers keep using the subscription's own URL, because those are
+// driven by mihomo itself from the group config.
+//
+// Note what changes with a custom target. The default is a `generate_204` endpoint, which answers with
+// an empty body, so the number is close to a round trip. An arbitrary site returns a real page and may
+// negotiate TLS, so its figure is legitimately higher — it is still latency, never throughput.
 func HealthCheckWithCallback(
 	name string,
+	testURL string,
 	onDelay func(proxyName string, delayMs int, errMsg string),
 ) string {
 	p := tunnel.Proxies()[name]
@@ -170,10 +180,15 @@ func HealthCheckWithCallback(
 	// Bound concurrent URLTests across the whole group, not per provider —
 	// a kaso-style config can stack several providers behind one group and
 	// each one's leaf count adds to the outgoing socket pressure.
+	override := strings.TrimSpace(testURL)
+
 	eg := new(errgroup.Group)
 	eg.SetLimit(perGroupConcurrencyLimit)
 	for _, prov := range g.Providers() {
-		url := prov.HealthCheckURL()
+		url := override
+		if url == "" {
+			url = prov.HealthCheckURL()
+		}
 		if url == "" {
 			url = defaultHealthCheckURL
 		}

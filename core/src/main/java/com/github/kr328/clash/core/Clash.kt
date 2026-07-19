@@ -161,8 +161,15 @@ object Clash {
      * single UI patch fires per proxy at its natural resolution time
      * instead of every poll tick.
      */
+    /**
+     * @param testUrl one-shot override for the health-check target. Blank keeps each provider's
+     *        configured URL (the normal case). A custom target measures latency to that host and
+     *        nothing else: it does not change the automatic url-test timers, which mihomo drives
+     *        from the group config, and it never reports throughput.
+     */
     fun healthCheckPerProxy(
         name: String,
+        testUrl: String = "",
         onProxyDelay: (proxyName: String, delayMs: Int, errMsg: String) -> Unit,
     ): CompletableDeferred<Unit> {
         val deferred = CompletableDeferred<Unit>()
@@ -181,6 +188,7 @@ object Clash {
                 }
             },
             name,
+            testUrl,
         )
         return deferred
     }

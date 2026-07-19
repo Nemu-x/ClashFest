@@ -217,13 +217,15 @@ Java_com_github_kr328_clash_core_bridge_Bridge_nativeHealthCheck(JNIEnv *env, jo
 JNIEXPORT void JNICALL
 Java_com_github_kr328_clash_core_bridge_Bridge_nativeHealthCheckWithCallback(JNIEnv *env, jobject thiz,
                                                                               jobject callback,
-                                                                              jstring name) {
+                                                                              jstring name,
+                                                                              jstring test_url) {
     TRACE_METHOD();
 
     jobject _callback = new_global(callback);
     scoped_string _name = get_string(name);
+    scoped_string _test_url = get_string(test_url);
 
-    healthCheckWithCallback(_callback, _name);
+    healthCheckWithCallback(_callback, _name, _test_url);
 }
 
 JNIEXPORT void JNICALL
