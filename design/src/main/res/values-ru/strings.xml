@@ -1215,4 +1215,11 @@
     <string name="local_proxy_copied_fmt">%1$s скопирован</string>
     <string name="subscription_update_via_proxy">Обновлять через прокси</string>
     <string name="subscription_update_via_proxy_summary">Предпочитаемый маршрут для загрузки этой подписки: через туннель, по вашим правилам. Выключите, чтобы сначала пробовать прямое подключение. В любом случае, если первый маршрут не сработает, второй будет использован автоматически. Применится со следующего обновления.</string>
+    <string name="latency_target_title">Цель теста задержки</string>
+    <string name="latency_target_summary">Измерить задержку до нужного вам сайта вместо стандартного адреса проверки. Только для этого теста.</string>
+    <string name="latency_target_hint">Сайт или URL</string>
+    <string name="latency_target_note">Это задержка, а не скорость скачивания. Настоящая страница отвечает медленнее пустого ответа по умолчанию, поэтому числа будут выше.</string>
+    <string name="latency_target_invalid">Введите сайт, например example.com</string>
+    <string name="latency_target_run">Проверить</string>
+    <string name="latency_target_nothing_to_test">В этой группе нечего проверять</string>
 </resources>

@@ -128,7 +128,18 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     val profileMenuRequests = Channel<Pair<Profile, View>>(Channel.UNLIMITED)
     val profileEditRequests = Channel<Profile>(Channel.UNLIMITED)
     val patchHomeProxyRequests = Channel<Triple<Profile, String, String>>(Channel.CONFLATED)
-    val profilePingAllRequests = Channel<Triple<Profile, String, List<String>>>(Channel.UNLIMITED)
+    /**
+     * A ping-all request. Was a Triple until the custom latency target arrived; [testUrl] is blank
+     * for a normal tap and carries a one-shot host when the user long-pressed and typed one.
+     */
+    data class PingAllRequest(
+        val profile: Profile,
+        val group: String,
+        val proxyNames: List<String>,
+        val testUrl: String = "",
+    )
+
+    val profilePingAllRequests = Channel<PingAllRequest>(Channel.UNLIMITED)
     val profileForceUpdateRequests = Channel<Profile>(Channel.UNLIMITED)
     val profileProxyYamlRequests = Channel<Triple<Profile, String, String>>(Channel.UNLIMITED)
     /** Fires when user expands/collapses any profile panel so the host can reload proxy previews. */
@@ -251,7 +262,9 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         { profile, group, proxyName ->
             patchHomeProxyRequests.trySend(Triple(profile, group, proxyName))
         },
-        { profile, group, proxyNames -> profilePingAllRequests.trySend(Triple(profile, group, proxyNames)) },
+        { profile, group, proxyNames, testUrl ->
+            profilePingAllRequests.trySend(PingAllRequest(profile, group, proxyNames, testUrl))
+        },
         { profile -> profileForceUpdateRequests.trySend(profile) },
         { profile, group, proxy -> profileProxyYamlRequests.trySend(Triple(profile, group, proxy)) },
         { profile, group -> profileVisibleGroupChanged.trySend(profile to group) },
@@ -269,7 +282,9 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         { profile, group, proxyName ->
             patchHomeProxyRequests.trySend(Triple(profile, group, proxyName))
         },
-        { profile, group, proxyNames -> profilePingAllRequests.trySend(Triple(profile, group, proxyNames)) },
+        { profile, group, proxyNames, testUrl ->
+            profilePingAllRequests.trySend(PingAllRequest(profile, group, proxyNames, testUrl))
+        },
         { profile ->
             if (profile.imported && profile.type != Profile.Type.File) {
                 profileForceUpdateRequests.trySend(profile)

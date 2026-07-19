@@ -176,14 +176,14 @@ class ClashManager(private val context: Context) : IClashManager,
         return Clash.healthCheck(group).await()
     }
 
-    override suspend fun healthCheckPerProxy(group: String, observer: IProxyDelayObserver) {
+    override suspend fun healthCheckPerProxy(group: String, testUrl: String, observer: IProxyDelayObserver) {
         // JNI fires onProxyDelay from arbitrary worker threads. AIDL stubs are
         // not thread-safe across simultaneous calls, so the observer must
         // tolerate concurrent onDelay() — IPC marshals them serially through
         // the binder transaction queue, but a DeadObjectException from a
         // crashed activity must not kill the whole health-check pipeline.
         val finalErr: String? = runCatching {
-            Clash.healthCheckPerProxy(group) { name, ms, err ->
+            Clash.healthCheckPerProxy(group, testUrl) { name, ms, err ->
                 runCatching { observer.onDelay(group, name, ms, err) }
             }.await()
             null
