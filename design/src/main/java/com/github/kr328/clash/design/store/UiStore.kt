@@ -163,7 +163,10 @@ class UiStore(context: Context) {
         defaultValue = false,
     )
 
-    /** True once the one-time RU bypass prompt has been shown and explicitly answered. */
+    /**
+     * True once the one-time bypass-preset prompt has been shown and
+     * explicitly answered. Key kept from the RU-only era for migration.
+     */
     var ruBypassPromptHandled: Boolean by store.boolean(
         key = "ru_bypass_prompt_handled",
         defaultValue = false,

@@ -1,0 +1,38 @@
+{
+  "id": "ir",
+  "version": 1,
+  "title": "Iran",
+  "prefixes": [
+    "ir."
+  ],
+  "packages": [
+    "cab.snapp.driver",
+    "cab.snapp.passenger",
+    "com.adpdigital.mbs.ayande",
+    "com.alopeyk.courier",
+    "com.alopeyk.customer",
+    "com.aparat",
+    "com.aparat.filimo",
+    "com.digikala",
+    "com.digikala.firebolt",
+    "com.farsitel.bazaar",
+    "com.fidibo.app",
+    "com.gapafzar.messenger",
+    "com.mydigipay.app",
+    "com.mydigipay.app.android",
+    "com.pmb.mobile",
+    "com.sabaidea.aparat",
+    "com.sabaidea.filimo",
+    "com.zoodfood.android",
+    "ir.alibaba",
+    "ir.balad",
+    "ir.basalam.app",
+    "ir.divar",
+    "ir.eitaa.messenger",
+    "ir.filmnet.android",
+    "ir.nasim",
+    "mobi.mmdt.ott",
+    "net.iGap",
+    "taxi.tap30.passenger"
+  ]
+}

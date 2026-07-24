@@ -27,8 +27,10 @@ gradle-app.setting
 /core/src/premium/golang/.idea/*
 !/core/src/premium/golang/.idea/codeStyles
 
-# Ignore builtin geofiles (fetched at build time from a pinned, checksum-verified source)
-app/src/main/assets
+# Ignore builtin geofiles (fetched at build time from a pinned, checksum-verified source),
+# but keep hand-maintained data like bypass presets tracked.
+app/src/main/assets/*
+!app/src/main/assets/bypass_presets/
 
 # KeyStore
 signing.properties

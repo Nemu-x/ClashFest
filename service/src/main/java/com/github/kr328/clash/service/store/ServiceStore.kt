@@ -40,12 +40,12 @@ class ServiceStore(context: Context) {
     )
 
     /**
-     * `true` after we have seeded [accessControlPackages] with the default
-     * Russian bypass list (банки/госуслуги/связь/маркетплейсы) on first switch
-     * to [AccessControlMode.DenySelected]. Prevents repeatedly clobbering the
-     * user's manual edits.
+     * `true` after [accessControlPackages] has been seeded from a regional
+     * bypass preset (or edited manually). Prevents repeatedly clobbering the
+     * user's edits with preset prompts. Key kept from the RU-only era for
+     * migration.
      */
-    var russianBypassSeeded by store.boolean(
+    var bypassPresetSeeded by store.boolean(
         key = "russian_bypass_seeded",
         defaultValue = false
     )

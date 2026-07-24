@@ -9,6 +9,9 @@
     <item
         android:id="@+id/select_invert"
         android:title="@string/select_invert" />
+    <item
+        android:id="@+id/apply_bypass_preset"
+        android:title="@string/apply_bypass_preset" />
 
     <item android:title="@string/filter">
         <menu>
