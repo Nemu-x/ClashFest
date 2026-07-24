@@ -123,6 +123,24 @@ class ProfileManager(private val context: Context) : IProfileManager,
     private data class CachedSnapshot(val lastModified: Long, val snapshot: ProfileSnapshot)
     private val snapshotCache = LinkedHashMap<UUID, CachedSnapshot>()
     private val snapshotCacheLock = Any()
+
+    /**
+     * In-memory cache of the engine-resolved proxy-group preview keyed by
+     * profile UUID, mirroring [snapshotCache]. [engineProxyGroupsPreview] runs
+     * mihomo's full ParseRawConfig over config.yaml through JNI — far heavier
+     * than the snapshot parse — and the dashboard ticker calls it every ~2s per
+     * previewed profile, so without this the resolve dominated CPU/battery on
+     * heavy subscriptions while the app was open. Invalidated by config.yaml
+     * lastModified like the snapshot; the `null` result (engine could not
+     * parse → Kotlin fallback) is cached too, so an unparsable config is not
+     * re-resolved every tick.
+     */
+    private data class CachedEnginePreview(
+        val lastModified: Long,
+        val preview: Map<String, ProxyGroupPreviewRow>?,
+    )
+    private val enginePreviewCache = LinkedHashMap<UUID, CachedEnginePreview>()
+    private val enginePreviewCacheLock = Any()
     // Serializes nextProfileOrder() + Pending insert pairs. Without it, two concurrent
     // imports (e.g. auto-update + manual click) can both read the same MAX(profileOrder)
     // and produce duplicate ordering values that compare non-deterministically.
@@ -196,6 +214,9 @@ class ProfileManager(private val context: Context) : IProfileManager,
     private fun invalidateSnapshotCache(uuid: UUID) {
         synchronized(snapshotCacheLock) {
             snapshotCache.remove(uuid)
+        }
+        synchronized(enginePreviewCacheLock) {
+            enginePreviewCache.remove(uuid)
         }
     }
 
@@ -617,7 +638,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
                 // Clash.queryAllProxyGroupNamesIncludingHidden, so the offline preview must match that
                 // universe — otherwise hidden auto subgroups have no rows during the warmup race and
                 // the expanded carriage flashes empty until proxyDetails arrives.
-                engineProxyGroupsPreview(file, snapshot)
+                engineProxyGroupsPreview(uuid, file, snapshot)
                     ?: ProxyGroupsYamlPreview.parseProxyGroupsPreview(
                         snapshot,
                         file.parentFile,
@@ -637,7 +658,39 @@ class ProfileManager(private val context: Context) : IProfileManager,
      * never the expanded one, because the picker's 1-hop heuristic uses it to tell a pure dispatch
      * shell from a group whose members are flat only because of `include-all`.
      */
+    /**
+     * Cache wrapper over [engineProxyGroupsPreviewUncached]: reuses the resolved preview while
+     * config.yaml's lastModified is unchanged, so the dashboard ticker's ~2s cadence no longer
+     * re-runs mihomo's full parse on every tick (the 0.10.1 battery regression). Both a resolved
+     * map AND a `null` (engine could not parse) are cached — an unparsable config falls back to
+     * the Kotlin preview once, not every tick.
+     */
     private fun engineProxyGroupsPreview(
+        uuid: UUID,
+        file: File,
+        snapshot: ProfileSnapshot,
+    ): Map<String, ProxyGroupPreviewRow>? {
+        val lastMod = file.lastModified()
+        synchronized(enginePreviewCacheLock) {
+            val cached = enginePreviewCache[uuid]
+            if (cached != null && cached.lastModified == lastMod) {
+                // LRU touch — promote to most-recently-used.
+                enginePreviewCache.remove(uuid)
+                enginePreviewCache[uuid] = cached
+                return cached.preview
+            }
+        }
+        val computed = engineProxyGroupsPreviewUncached(file, snapshot)
+        synchronized(enginePreviewCacheLock) {
+            enginePreviewCache[uuid] = CachedEnginePreview(lastMod, computed)
+            while (enginePreviewCache.size > SNAPSHOT_CACHE_MAX) {
+                enginePreviewCache.remove(enginePreviewCache.keys.first())
+            }
+        }
+        return computed
+    }
+
+    private fun engineProxyGroupsPreviewUncached(
         file: File,
         snapshot: ProfileSnapshot,
     ): Map<String, ProxyGroupPreviewRow>? {

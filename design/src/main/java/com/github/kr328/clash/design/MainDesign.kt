@@ -119,6 +119,9 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
 
     private companion object {
         private val DEFAULT_TABS = listOf(MainTab.Home, MainTab.Profiles, MainTab.Routing, MainTab.Settings)
+
+        /** ~30fps gate for the ambient power animations (33ms between rendered frames). */
+        private const val AMBIENT_MIN_FRAME_NS = 33_000_000L
     }
 
     /** Set by MainActivity to react to taps on the in-header update badge. */
@@ -169,7 +172,19 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     private var powerHaloBreathAnimator: ValueAnimator? = null
     private var powerRingInnerBreathAnimator: ValueAnimator? = null
     private var powerRingOuterBreathAnimator: ValueAnimator? = null
-    private var powerSweepAnimator: android.animation.ObjectAnimator? = null
+    private var powerSweepAnimator: ValueAnimator? = null
+
+    /**
+     * The three ambient power effects (button breath, halo breath, conic sweep) are driven by a
+     * SINGLE animator that ticks the clock; each vsync we derive all three values from elapsed
+     * time. This replaced three separate INFINITE ValueAnimators — a method trace showed their
+     * per-vsync machinery (Keyframe/clampFraction ×3) dominating the main thread on the connected
+     * dashboard. One driver = one machinery pass, and all view writes land in a single frame gate
+     * (~30fps) so the redraw fires once, not three staggered times. Visual output is identical:
+     * the formulas reproduce each animator's period, interpolator and phase exactly.
+     */
+    private var ambientStartNs = 0L
+    private var lastAmbientFrameNs = 0L
 
     /**
      * Tracks the running flag the breath animators were last spun up for, so
@@ -929,40 +944,36 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         innerRing.alpha = 0.0f
         halo.alpha = 0.20f
 
-        // Button: gentle scale breath (epicentre).
-        powerBreathAnimator = ValueAnimator.ofFloat(1.0f, 1.04f).apply {
+        // One driver ticks the clock; the gated listener derives button scale (breath, 2.6s
+        // REVERSE accel-decel), halo alpha (same, +120ms phase) and sweep rotation (4.6s linear)
+        // from elapsed time — reproducing the three former animators without their per-vsync cost.
+        val breath = AccelerateDecelerateInterpolator()
+        val sweep = binding.powerSweep
+        ambientStartNs = System.nanoTime()
+        lastAmbientFrameNs = 0L
+        powerBreathAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = period
-            repeatCount = ValueAnimator.INFINITE
-            repeatMode = ValueAnimator.REVERSE
-            interpolator = AccelerateDecelerateInterpolator()
-            addUpdateListener { animator ->
-                val v = animator.animatedValue as Float
-                button.scaleX = v
-                button.scaleY = v
-            }
-            start()
-        }
-        // The single soft glow: halo alpha breathes under the button, slightly phase-shifted.
-        powerHaloBreathAnimator = ValueAnimator.ofFloat(0.20f, 0.40f).apply {
-            duration = period
-            startDelay = 120L
-            repeatCount = ValueAnimator.INFINITE
-            repeatMode = ValueAnimator.REVERSE
-            interpolator = AccelerateDecelerateInterpolator()
-            addUpdateListener { animator ->
-                halo.alpha = animator.animatedValue as Float
-            }
-            start()
-        }
-        // Soft conic shimmer slowly rotating around the orb — a subtle premium glint (kept quiet
-        // on purpose; louder "alive" effects read cheap on the orb).
-        powerSweepAnimator = android.animation.ObjectAnimator.ofFloat(
-            binding.powerSweep, View.ROTATION, 0f, 360f,
-        ).apply {
-            duration = 4600L
             repeatCount = ValueAnimator.INFINITE
             repeatMode = ValueAnimator.RESTART
             interpolator = android.view.animation.LinearInterpolator()
+            addUpdateListener {
+                val now = System.nanoTime()
+                if (now - lastAmbientFrameNs < AMBIENT_MIN_FRAME_NS) return@addUpdateListener
+                lastAmbientFrameNs = now
+                val elapsedMs = (now - ambientStartNs) / 1_000_000L
+                // REVERSE triangle over 2*period, accel-decel on each half — matches ofFloat REVERSE.
+                fun breathe(ms: Long): Float {
+                    if (ms < 0) return 0f
+                    val cyc = ms % (2 * period)
+                    val tri = if (cyc < period) cyc.toFloat() / period else (2 * period - cyc).toFloat() / period
+                    return breath.getInterpolation(tri)
+                }
+                val s = 1.0f + 0.04f * breathe(elapsedMs)
+                button.scaleX = s
+                button.scaleY = s
+                halo.alpha = 0.20f + 0.20f * breathe(elapsedMs - 120L)
+                sweep.rotation = (elapsedMs % 4600L).toFloat() / 4600f * 360f
+            }
             start()
         }
     }
