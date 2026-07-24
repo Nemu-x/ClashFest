@@ -531,7 +531,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
 
         ProfileProcessor.delete(context, uuid)
         BrandRefresh.onProfileDeleted(context, uuid)
-        store.clearSubscriptionShareLinksLockedFor(uuid)
+        store.clearSubscriptionPoliciesFor(uuid)
         invalidateSnapshotCache(uuid)
     }
 

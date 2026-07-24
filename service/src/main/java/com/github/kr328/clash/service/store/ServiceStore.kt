@@ -224,10 +224,6 @@ class ServiceStore(context: Context) {
         }.apply()
     }
 
-    fun clearSubscriptionShareLinksLockedFor(uuid: UUID) {
-        rawPrefs.edit().remove("subscription_share_links_locked_$uuid").apply()
-    }
-
     /**
      * Per-profile operator-forced TUN stack from the `X-Network-Stack` subscription header
      * (system/gvisor/mixed = lock; `auto` = don't lock). Travels per subscription like the
@@ -241,6 +237,47 @@ class ServiceStore(context: Context) {
             if (value.isNullOrBlank()) e.remove("subscription_network_stack_$uuid")
             else e.putString("subscription_network_stack_$uuid", value)
         }.apply()
+    }
+
+    /**
+     * Per-profile operator-recommended bypass preset id from the `X-Bypass-Preset`
+     * subscription header. Only a *recommendation*: the client offers it once with an
+     * explicit confirm and never auto-applies (per-app bypass = traffic outside the
+     * tunnel, a user decision). null when the operator didn't send it.
+     */
+    fun subscriptionBypassPresetFor(uuid: UUID): String? =
+        rawPrefs.getString("subscription_bypass_preset_$uuid", null)
+
+    fun setSubscriptionBypassPresetFor(uuid: UUID, value: String?) {
+        rawPrefs.edit().also { e ->
+            if (value.isNullOrBlank()) e.remove("subscription_bypass_preset_$uuid")
+            else e.putString("subscription_bypass_preset_$uuid", value)
+        }.apply()
+    }
+
+    /**
+     * The preset id whose operator recommendation was already offered (and answered)
+     * for this profile — the offer shows once per (profile, preset id); a changed
+     * header value re-offers once.
+     */
+    fun subscriptionBypassPresetOfferedFor(uuid: UUID): String? =
+        rawPrefs.getString("subscription_bypass_preset_offered_$uuid", null)
+
+    fun setSubscriptionBypassPresetOfferedFor(uuid: UUID, value: String?) {
+        rawPrefs.edit().also { e ->
+            if (value.isNullOrBlank()) e.remove("subscription_bypass_preset_offered_$uuid")
+            else e.putString("subscription_bypass_preset_offered_$uuid", value)
+        }.apply()
+    }
+
+    /** Drops every per-profile operator policy on profile delete. */
+    fun clearSubscriptionPoliciesFor(uuid: UUID) {
+        rawPrefs.edit()
+            .remove("subscription_share_links_locked_$uuid")
+            .remove("subscription_network_stack_$uuid")
+            .remove("subscription_bypass_preset_$uuid")
+            .remove("subscription_bypass_preset_offered_$uuid")
+            .apply()
     }
 
     /**

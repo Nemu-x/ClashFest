@@ -998,6 +998,8 @@
     <string name="bypass_preset_sheet_subtitle">将所选地区的已安装应用(银行、政务、电商、运营商)加入绕过列表——它们将绕过 VPN 直接联网。你手动选择的应用会保留;可随时重新应用以纳入新应用。</string>
     <string name="bypass_preset_option">%1$s — %2$d 个应用</string>
     <string name="apply_bypass_preset">应用绕过预设…</string>
+    <string name="bypass_operator_prompt_title">服务商推荐</string>
+    <string name="bypass_operator_prompt_message">你的服务商推荐“%2$s”绕过预设。找到 %1$d 个已安装应用——让它们直接走运营商网络、绕过 VPN 隧道?你手动选择的应用会保留。之后可在“路由 → 按应用”中编辑列表。</string>
     <string name="rule_action_disable">禁用</string>
     <string name="rule_action_enable">启用</string>
     <string name="rule_action_restore">恢复</string>
