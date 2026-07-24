@@ -61,6 +61,7 @@ import com.github.kr328.clash.service.model.ProxyGroupPreviewRow
 import com.github.kr328.clash.service.remote.IProxyDelayObserver
 import com.github.kr328.clash.service.store.ServiceStore
 import com.github.kr328.clash.service.util.importedDir
+import com.github.kr328.clash.util.BypassPreset
 import com.github.kr328.clash.util.BypassPresets
 import com.github.kr328.clash.util.GitHubReleaseUpdate
 import com.github.kr328.clash.util.UpdateApkVerifier
@@ -1899,30 +1900,110 @@ class MainActivity : BaseActivity<MainDesign>() {
     }
 
     /**
-     * When the per-app exclusion list is empty, offer to seed it from the
-     * bypass preset with the most installed matches before starting the
-     * tunnel. Skip still starts VPN; cancel does not. If no preset clears the
-     * match threshold we do not ask (and keep the prompt un-handled, so a
-     * user who installs regional apps later still gets a single offer).
+     * Pre-start bypass offer, two sources in priority order:
+     *
+     * 1. Operator recommendation (`X-Bypass-Preset` header, stored per profile) — offered
+     *    once per (profile, preset id) even if the generic prompt was already answered;
+     *    a changed header value re-offers once. Never auto-applied.
+     * 2. Generic one-time seed: when the per-app exclusion list is empty, the preset with
+     *    the most installed matches (threshold ≥3). If nothing clears the threshold we do
+     *    not ask and keep the prompt un-handled, so a user who installs regional apps
+     *    later still gets a single offer.
+     *
+     * Skip still starts VPN; cancel does not.
      */
     private suspend fun maybePromptRuBypass(): Boolean {
         val service = ServiceStore(this)
+
+        val operator = withContext(Dispatchers.IO) { operatorRecommendedPreset(service) }
+        if (operator != null) {
+            val (preset, installedApps) = operator
+            return promptBypassPreset(service, preset, installedApps, fromOperator = true)
+        }
+
         if (uiStore.ruBypassPromptHandled) return true
         val best = withContext(Dispatchers.IO) {
             if (service.accessControlPackages.isNotEmpty()) null
             else BypassPresets.bestInstalled(this@MainActivity, packageManager)
         } ?: return true
         val (preset, installedApps) = best
+        return promptBypassPreset(service, preset, installedApps, fromOperator = false)
+    }
+
+    /**
+     * Unanswered operator recommendation for the active profile, resolved to a bundled
+     * preset with its installed matches.
+     *
+     * The "offered" marker encodes WHEN we last asked, so a growing list can re-offer:
+     * - `Apply` stores `<id>:<preset.version>` — bumping the bundled preset's `version`
+     *   (i.e. we shipped more apps in that list) makes the marker stale and re-offers once.
+     * - `Skip` stores `<id>:skip` — version-independent, so a user who declined is never
+     *   nagged again for that region no matter how the list grows.
+     * A different preset id from the operator (`ru`→`cn`) never matches either marker, so
+     * it always offers. Unknown ids and zero-match presets are consumed as skip.
+     */
+    private suspend fun operatorRecommendedPreset(
+        service: ServiceStore,
+    ): Pair<BypassPreset, Set<String>>? {
+        val active = runCatching { withProfile { queryActive() } }.getOrNull() ?: return null
+        val recommended = service.subscriptionBypassPresetFor(active.uuid) ?: return null
+
+        val preset = BypassPresets.load(this).firstOrNull { it.id == recommended }
+        val installed = preset?.installed(packageManager).orEmpty()
+        if (preset == null || installed.isEmpty()) {
+            service.setSubscriptionBypassPresetOfferedFor(active.uuid, bypassSkipMarker(recommended))
+            return null
+        }
+
+        val offered = service.subscriptionBypassPresetOfferedFor(active.uuid)
+        if (offered == bypassAppliedMarker(preset) || offered == bypassSkipMarker(recommended)) {
+            return null
+        }
+        return preset to installed
+    }
+
+    private fun bypassAppliedMarker(preset: BypassPreset): String = "${preset.id}:${preset.version}"
+    private fun bypassSkipMarker(presetId: String): String = "$presetId:skip"
+
+    private suspend fun promptBypassPreset(
+        service: ServiceStore,
+        preset: BypassPreset,
+        installedApps: Set<String>,
+        fromOperator: Boolean,
+    ): Boolean {
         val title = BypassPresets.displayTitle(this, preset)
 
+        suspend fun markAnswered(applied: Boolean) {
+            if (fromOperator) {
+                val marker = if (applied) bypassAppliedMarker(preset) else bypassSkipMarker(preset.id)
+                withContext(Dispatchers.IO) {
+                    runCatching { withProfile { queryActive() } }.getOrNull()?.let {
+                        service.setSubscriptionBypassPresetOfferedFor(it.uuid, marker)
+                    }
+                }
+            } else {
+                uiStore.ruBypassPromptHandled = true
+            }
+        }
+
         return suspendCancellableCoroutine { cont ->
+            val body = if (fromOperator) {
+                getString(R.string.bypass_operator_prompt_message, installedApps.size, title)
+            } else {
+                getString(R.string.bypass_prompt_message, installedApps.size, title)
+            }
             val message = buildString {
-                append(getString(R.string.bypass_prompt_message, installedApps.size, title))
+                append(body)
                 append("\n\n")
                 append(getString(R.string.bypass_prompt_tile_note))
             }
+            val dialogTitle = if (fromOperator) {
+                getString(R.string.bypass_operator_prompt_title)
+            } else {
+                getString(R.string.bypass_prompt_title, title)
+            }
             val dialog = MaterialAlertDialogBuilder(themedContext)
-                .setTitle(getString(R.string.bypass_prompt_title, title))
+                .setTitle(dialogTitle)
                 .setMessage(message)
                 .setPositiveButton(R.string.bypass_prompt_apply) { d, _ ->
                     d.dismiss()
@@ -1930,7 +2011,7 @@ class MainActivity : BaseActivity<MainDesign>() {
                         val count = withContext(Dispatchers.IO) {
                             BypassPresets.applyToStore(service, packageManager, preset)
                         }
-                        uiStore.ruBypassPromptHandled = true
+                        markAnswered(applied = true)
                         if (count > 0) {
                             Toast.makeText(
                                 this@MainActivity,
@@ -1943,8 +2024,10 @@ class MainActivity : BaseActivity<MainDesign>() {
                 }
                 .setNegativeButton(R.string.bypass_prompt_skip) { d, _ ->
                     d.dismiss()
-                    uiStore.ruBypassPromptHandled = true
-                    if (cont.isActive) cont.resumeWith(Result.success(true))
+                    launch {
+                        markAnswered(applied = false)
+                        if (cont.isActive) cont.resumeWith(Result.success(true))
+                    }
                 }
                 .setOnCancelListener {
                     if (cont.isActive) cont.resumeWith(Result.success(false))
@@ -2093,6 +2176,14 @@ class MainActivity : BaseActivity<MainDesign>() {
         // "unlock". Applied at TUN open by TunStackResolver, independent of branding.
         meta.networkStack?.let {
             ServiceStore(this).setSubscriptionNetworkStackFor(active.uuid, it)
+        }
+        // Operator bypass-preset recommendation (X-Bypass-Preset). Stored only — the offer
+        // dialog rides the pre-start bypass prompt; `none` withdraws the recommendation.
+        meta.bypassPreset?.let {
+            ServiceStore(this).setSubscriptionBypassPresetFor(
+                active.uuid,
+                it.takeUnless { v -> v == "none" },
+            )
         }
         uiStore.subscriptionHwidActive = meta.hwidActive?.toString().orEmpty()
         uiStore.subscriptionHwidNotSupported = meta.hwidNotSupported?.toString().orEmpty()
