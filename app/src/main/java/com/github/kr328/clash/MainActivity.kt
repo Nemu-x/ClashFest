@@ -56,13 +56,12 @@ import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.design.util.showExceptionToast
 import com.github.kr328.clash.remote.Remote
 import com.github.kr328.clash.remote.StatusClient
-import com.github.kr328.clash.service.model.AccessControlMode
 import com.github.kr328.clash.service.model.Profile
 import com.github.kr328.clash.service.model.ProxyGroupPreviewRow
 import com.github.kr328.clash.service.remote.IProxyDelayObserver
 import com.github.kr328.clash.service.store.ServiceStore
 import com.github.kr328.clash.service.util.importedDir
-import com.github.kr328.clash.util.RussianBypassDefaults
+import com.github.kr328.clash.util.BypassPresets
 import com.github.kr328.clash.util.GitHubReleaseUpdate
 import com.github.kr328.clash.util.UpdateApkVerifier
 import com.github.kr328.clash.util.AppUpdateChecker
@@ -1900,48 +1899,49 @@ class MainActivity : BaseActivity<MainDesign>() {
     }
 
     /**
-     * When the per-app exclusion list is empty, offer to seed it with installed
-     * Russian apps before starting the tunnel. Skip still starts VPN; cancel does not.
+     * When the per-app exclusion list is empty, offer to seed it from the
+     * bypass preset with the most installed matches before starting the
+     * tunnel. Skip still starts VPN; cancel does not. If no preset clears the
+     * match threshold we do not ask (and keep the prompt un-handled, so a
+     * user who installs regional apps later still gets a single offer).
      */
     private suspend fun maybePromptRuBypass(): Boolean {
         val service = ServiceStore(this)
         if (uiStore.ruBypassPromptHandled) return true
-        val packages = withContext(Dispatchers.IO) { service.accessControlPackages }
-        if (packages.isNotEmpty()) return true
+        val best = withContext(Dispatchers.IO) {
+            if (service.accessControlPackages.isNotEmpty()) null
+            else BypassPresets.bestInstalled(this@MainActivity, packageManager)
+        } ?: return true
+        val (preset, installedApps) = best
+        val title = BypassPresets.displayTitle(this, preset)
 
         return suspendCancellableCoroutine { cont ->
             val message = buildString {
-                append(getString(R.string.ru_bypass_prompt_message))
+                append(getString(R.string.bypass_prompt_message, installedApps.size, title))
                 append("\n\n")
-                append(getString(R.string.ru_bypass_prompt_tile_note))
+                append(getString(R.string.bypass_prompt_tile_note))
             }
             val dialog = MaterialAlertDialogBuilder(themedContext)
-                .setTitle(R.string.ru_bypass_prompt_title)
+                .setTitle(getString(R.string.bypass_prompt_title, title))
                 .setMessage(message)
-                .setPositiveButton(R.string.ru_bypass_prompt_apply) { d, _ ->
+                .setPositiveButton(R.string.bypass_prompt_apply) { d, _ ->
                     d.dismiss()
                     launch {
                         val count = withContext(Dispatchers.IO) {
-                            val seed = RussianBypassDefaults.installed(packageManager)
-                            if (seed.isNotEmpty()) {
-                                service.accessControlPackages = seed
-                                service.accessControlMode = AccessControlMode.DenySelected
-                                service.russianBypassSeeded = true
-                            }
-                            seed.size
+                            BypassPresets.applyToStore(service, packageManager, preset)
                         }
                         uiStore.ruBypassPromptHandled = true
                         if (count > 0) {
                             Toast.makeText(
                                 this@MainActivity,
-                                getString(R.string.ru_bypass_prompt_seeded, count),
+                                getString(R.string.bypass_preset_seeded, count),
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
                         if (cont.isActive) cont.resumeWith(Result.success(true))
                     }
                 }
-                .setNegativeButton(R.string.ru_bypass_prompt_skip) { d, _ ->
+                .setNegativeButton(R.string.bypass_prompt_skip) { d, _ ->
                     d.dismiss()
                     uiStore.ruBypassPromptHandled = true
                     if (cont.isActive) cont.resumeWith(Result.success(true))

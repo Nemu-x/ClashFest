@@ -15,7 +15,9 @@ import com.github.kr328.clash.design.model.AppInfo
 import com.github.kr328.clash.design.util.toAppInfo
 import com.github.kr328.clash.service.model.AccessControlMode
 import com.github.kr328.clash.service.store.ServiceStore
-import com.github.kr328.clash.util.RussianBypassDefaults
+import com.github.kr328.clash.util.BypassPreset
+import com.github.kr328.clash.util.BypassPresets
+import com.github.kr328.clash.util.showBypassPresetSheet
 import com.github.kr328.clash.util.startClashService
 import com.github.kr328.clash.util.stopClashService
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -59,7 +61,7 @@ class AccessControlActivity : BaseActivity<AccessControlDesign>() {
                 service.accessControlPackages = selected
                 service.accessControlMode = currentMode
                 if (changedPackages || changedMode) {
-                    service.russianBypassSeeded = true
+                    service.bypassPresetSeeded = true
                 }
                 if (clashRunning && (changedPackages || changedMode)) {
                     stopClashService()
@@ -77,9 +79,26 @@ class AccessControlActivity : BaseActivity<AccessControlDesign>() {
 
         design.setMode(currentMode)
         design.requests.send(AccessControlDesign.Request.ReloadApps)
-        maybePromptRussianBypass(service, design, selected) { mode ->
-            currentMode = mode
+
+        // Merges the preset into the on-screen selection only; persist + VPN
+        // restart ride the regular defer-save above, exactly like manual edits.
+        suspend fun applyPreset(preset: BypassPreset) {
+            val added = withContext(Dispatchers.IO) {
+                val before = selected.size
+                selected.addAll(preset.installed(packageManager))
+                selected.size - before
+            }
+            currentMode = AccessControlMode.DenySelected
+            design.setMode(currentMode)
+            design.patchApps(loadApps(selected))
+            Toast.makeText(
+                this@AccessControlActivity,
+                getString(R.string.bypass_preset_seeded, added),
+                Toast.LENGTH_SHORT
+            ).show()
         }
+
+        maybePromptBypassPreset(service) { applyPreset(it) }
 
         while (isActive) {
             select<Unit> {
@@ -153,51 +172,56 @@ class AccessControlActivity : BaseActivity<AccessControlDesign>() {
 
                             clipboard?.setPrimaryClip(data)
                         }
+
+                        AccessControlDesign.Request.ApplyPreset -> {
+                            showPresetPicker(design) { applyPreset(it) }
+                        }
                     }
                 }
             }
         }
     }
 
-    private suspend fun maybePromptRussianBypass(
+    /**
+     * One-time offer on first visit: suggest the preset with the most
+     * installed matches. Installed apps beat SIM/locale as a region signal,
+     * and never auto-apply — an emigrant may want banks inside the tunnel.
+     */
+    private suspend fun maybePromptBypassPreset(
         service: ServiceStore,
-        design: AccessControlDesign,
-        selected: MutableSet<String>,
-        setMode: (AccessControlMode) -> Unit,
+        apply: suspend (BypassPreset) -> Unit,
     ) {
-        val shouldPrompt = withContext(Dispatchers.IO) {
-            !service.russianBypassSeeded && service.accessControlPackages.isEmpty()
-        }
-        if (!shouldPrompt) return
+        val best = withContext(Dispatchers.IO) {
+            if (service.bypassPresetSeeded || service.accessControlPackages.isNotEmpty()) null
+            else BypassPresets.bestInstalled(this@AccessControlActivity, packageManager)
+        } ?: return
+        val (preset, installedApps) = best
+        val title = BypassPresets.displayTitle(this, preset)
 
         MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.ru_bypass_routing_prompt_title)
-            .setMessage(R.string.ru_bypass_routing_prompt_message)
-            .setPositiveButton(R.string.ru_bypass_routing_prompt_apply) { _, _ ->
-                launch {
-                    val count = withContext(Dispatchers.IO) {
-                        val before = selected.size
-                        selected.addAll(RussianBypassDefaults.installed(packageManager))
-                        service.accessControlMode = AccessControlMode.DenySelected
-                        service.accessControlPackages = selected
-                        service.russianBypassSeeded = true
-                        selected.size - before
-                    }
-                    val mode = AccessControlMode.DenySelected
-                    setMode(mode)
-                    design.setMode(mode)
-                    design.patchApps(loadApps(selected))
-                    if (count > 0) {
-                        Toast.makeText(
-                            this@AccessControlActivity,
-                            getString(R.string.ru_bypass_prompt_seeded, count),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
+            .setTitle(getString(R.string.bypass_prompt_title, title))
+            .setMessage(getString(R.string.bypass_prompt_message, installedApps.size, title))
+            .setPositiveButton(R.string.bypass_prompt_apply) { _, _ ->
+                launch { apply(preset) }
             }
-            .setNegativeButton(R.string.ru_bypass_routing_prompt_later, null)
+            .setNegativeButton(R.string.bypass_preset_later, null)
             .show()
+    }
+
+    private suspend fun showPresetPicker(
+        design: AccessControlDesign,
+        apply: suspend (BypassPreset) -> Unit,
+    ) {
+        val presets = withContext(Dispatchers.IO) {
+            BypassPresets.load(this@AccessControlActivity)
+                .map { it to it.installed(packageManager).size }
+                .sortedByDescending { it.second }
+        }
+        if (presets.isEmpty()) return
+
+        showBypassPresetSheet(design, presets) { preset ->
+            launch { apply(preset) }
+        }
     }
 
     private suspend fun loadApps(selected: Set<String>): List<AppInfo> =

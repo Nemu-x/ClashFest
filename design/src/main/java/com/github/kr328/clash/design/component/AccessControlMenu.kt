@@ -63,6 +63,9 @@ class AccessControlMenu(
 
                 requests.trySend(Request.ReloadApps)
             }
+            R.id.apply_bypass_preset -> {
+                requests.trySend(Request.ApplyPreset)
+            }
             R.id.import_from_clipboard -> {
                 requests.trySend(Request.Import)
             }
