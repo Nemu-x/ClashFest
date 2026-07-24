@@ -119,6 +119,9 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
 
     private companion object {
         private val DEFAULT_TABS = listOf(MainTab.Home, MainTab.Profiles, MainTab.Routing, MainTab.Settings)
+
+        /** ~30fps gate for the ambient power animations (33ms between rendered frames). */
+        private const val AMBIENT_MIN_FRAME_NS = 33_000_000L
     }
 
     /** Set by MainActivity to react to taps on the in-header update badge. */
@@ -169,7 +172,18 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     private var powerHaloBreathAnimator: ValueAnimator? = null
     private var powerRingInnerBreathAnimator: ValueAnimator? = null
     private var powerRingOuterBreathAnimator: ValueAnimator? = null
-    private var powerSweepAnimator: android.animation.ObjectAnimator? = null
+    private var powerSweepAnimator: ValueAnimator? = null
+
+    /**
+     * Frame gate for the ambient power animations. The animators tick every vsync (120Hz on
+     * modern panels), but a 2.6s breath / 4.6s sweep carries no visible detail at 120fps — so we
+     * only push the scale/alpha/rotation (which triggers the redraw) at ~30fps. Cuts the connected
+     * dashboard's continuous full-screen redraw ~4x with no perceptible change. Per-animator
+     * timestamps so each throttles independently.
+     */
+    private var lastBreathFrameNs = 0L
+    private var lastHaloFrameNs = 0L
+    private var lastSweepFrameNs = 0L
 
     /**
      * Tracks the running flag the breath animators were last spun up for, so
@@ -936,6 +950,9 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             repeatMode = ValueAnimator.REVERSE
             interpolator = AccelerateDecelerateInterpolator()
             addUpdateListener { animator ->
+                val now = System.nanoTime()
+                if (now - lastBreathFrameNs < AMBIENT_MIN_FRAME_NS) return@addUpdateListener
+                lastBreathFrameNs = now
                 val v = animator.animatedValue as Float
                 button.scaleX = v
                 button.scaleY = v
@@ -950,19 +967,26 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             repeatMode = ValueAnimator.REVERSE
             interpolator = AccelerateDecelerateInterpolator()
             addUpdateListener { animator ->
+                val now = System.nanoTime()
+                if (now - lastHaloFrameNs < AMBIENT_MIN_FRAME_NS) return@addUpdateListener
+                lastHaloFrameNs = now
                 halo.alpha = animator.animatedValue as Float
             }
             start()
         }
         // Soft conic shimmer slowly rotating around the orb — a subtle premium glint (kept quiet
         // on purpose; louder "alive" effects read cheap on the orb).
-        powerSweepAnimator = android.animation.ObjectAnimator.ofFloat(
-            binding.powerSweep, View.ROTATION, 0f, 360f,
-        ).apply {
+        powerSweepAnimator = ValueAnimator.ofFloat(0f, 360f).apply {
             duration = 4600L
             repeatCount = ValueAnimator.INFINITE
             repeatMode = ValueAnimator.RESTART
             interpolator = android.view.animation.LinearInterpolator()
+            addUpdateListener { animator ->
+                val now = System.nanoTime()
+                if (now - lastSweepFrameNs < AMBIENT_MIN_FRAME_NS) return@addUpdateListener
+                lastSweepFrameNs = now
+                binding.powerSweep.rotation = animator.animatedValue as Float
+            }
             start()
         }
     }
