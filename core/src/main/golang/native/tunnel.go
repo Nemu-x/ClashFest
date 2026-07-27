@@ -136,6 +136,26 @@ func healthCheckAll() {
 	tunnel.HealthCheckAll()
 }
 
+//export healthCheckAutoGroups
+func healthCheckAutoGroups(completable unsafe.Pointer) {
+	go func() {
+		completed := false
+		defer func() {
+			if r := recover(); r != nil {
+				logRecover("healthCheckAutoGroups", r)
+				if !completed {
+					C.complete(completable, marshalString(fmt.Sprintf("native panic: %v", r)))
+				}
+			}
+		}()
+
+		tunnel.HealthCheckAutoGroups()
+
+		C.complete(completable, nil)
+		completed = true
+	}()
+}
+
 //export patchSelector
 func patchSelector(selector, name C.c_string) C.int {
 	defer guard("patchSelector")()

@@ -10,6 +10,7 @@ import (
 
 	"github.com/metacubex/mihomo/adapter/outboundgroup"
 	"github.com/metacubex/mihomo/common/utils"
+	C "github.com/metacubex/mihomo/constant"
 	"github.com/metacubex/mihomo/constant/provider"
 	"github.com/metacubex/mihomo/log"
 	"github.com/metacubex/mihomo/tunnel"
@@ -122,6 +123,92 @@ func HealthCheckAll() {
 			HealthCheck(group)
 		}(g)
 	}
+}
+
+// selfRoutingGroup reports whether a group picks its own outbound and therefore
+// gains something from a forced probe. `select` groups don't: the user pinned a
+// node by hand and the group will keep using it no matter what the probe says,
+// so testing them only burns radio for delay numbers nobody is looking at (the
+// screen is usually off when this runs). Relay is a fixed chain, same story.
+func selfRoutingGroup(t C.AdapterType) bool {
+	switch t {
+	case C.URLTest, C.Fallback, C.LoadBalance:
+		return true
+	default:
+		return false
+	}
+}
+
+// HealthCheckAutoGroups probes exactly what a default-network switch can actually
+// re-route: the url-test / fallback / load-balance groups, each backing provider
+// hit exactly once.
+//
+// This replaces "walk every group name and call HealthCheck on it", which was
+// doubly wasteful. First, it included `select` and relay groups, which cannot
+// re-route (see selfRoutingGroup). Second, and worse, HealthCheck(group) probes
+// every provider *of that group*, so a provider shared by N groups — the normal
+// shape of a subscription where several groups `use:` the same provider — was
+// url-tested N times, meaning every node in it was dialed N times per switch.
+// mihomo's own singledo only dedups concurrent checks *within* one provider, so
+// it could not save us here.
+//
+// Deduplication is by provider name, which is safe: mihomo keeps providers in a
+// map keyed by name (tunnel.Providers()), so names are unique by construction.
+//
+// Note what this does NOT dedup: two groups that each inline their own `proxies:`
+// list get two distinct compatible providers, and a node listed in both is still
+// probed twice. Deduplicating down to individual nodes would mean running URLTest
+// ourselves instead of provider.HealthCheck(), which would silently drop the extra
+// health-check URLs that groups register on a shared provider (HealthCheck.extra)
+// — a correctness loss for a smaller win. Left as is deliberately.
+//
+// Returns (groups probed, providers probed) for logging.
+func HealthCheckAutoGroups() (int, int) {
+	seen := make(map[string]struct{})
+	targets := make([]provider.ProxyProvider, 0, 4)
+	groups := 0
+
+	proxies := tunnel.Proxies()
+
+	for _, name := range QueryAllProxyGroupNamesIncludingHidden() {
+		p := proxies[name]
+		if p == nil || !selfRoutingGroup(p.Type()) {
+			continue
+		}
+
+		g, ok := p.Adapter().(outboundgroup.ProxyGroup)
+		if !ok {
+			continue
+		}
+
+		groups++
+
+		for _, prov := range g.Providers() {
+			if _, dup := seen[prov.Name()]; dup {
+				continue
+			}
+			seen[prov.Name()] = struct{}{}
+			targets = append(targets, prov)
+		}
+	}
+
+	wg := &sync.WaitGroup{}
+
+	for _, prov := range targets {
+		wg.Add(1)
+
+		go func(pr provider.ProxyProvider) {
+			defer wg.Done()
+
+			pr.HealthCheck()
+		}(prov)
+	}
+
+	wg.Wait()
+
+	log.Infoln("[APP] Network switch health check: %d self-routing groups -> %d providers", groups, len(targets))
+
+	return groups, len(targets)
 }
 
 // CancelHealthChecks cancels the health-check context of every live proxy provider (subscription

@@ -54,8 +54,25 @@ class NetworkObserveModule(service: Service) : Module<Network?>(service) {
         @Volatile var losingMs: Long = 0,
         @Volatile var dnsList: List<InetAddress> = emptyList(),
         @Volatile var capabilities: NetworkCapabilities? = null,
+        /** Last [routingSignature] we acted on, so pure signal/bandwidth chirps can be dropped. */
+        @Volatile var routingSignature: String? = null,
     ) {
         fun isAvailable(): Boolean = losingMs < System.currentTimeMillis()
+    }
+
+    /**
+     * The part of a network's capabilities that can change where traffic should go. Cellular
+     * connections report onCapabilitiesChanged constantly as link bandwidth and signal strength
+     * are re-estimated; every one of those used to wake the module, burn a 180ms coalescing
+     * window and cost a getLinkProperties IPC, only for the DNS list to come back identical.
+     */
+    private fun NetworkCapabilities.routingSignature(): String {
+        val transports = TRACKED_TRANSPORTS.filter(::hasTransport).joinToString(",")
+        val validated = hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        val notVpn = hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+        val notRestricted = hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
+
+        return "$transports|$validated|$notVpn|$notRestricted"
     }
 
     private val networkInfos = ConcurrentHashMap<Network, NetworkInfo>()
@@ -95,8 +112,19 @@ class NetworkObserveModule(service: Service) : Module<Network?>(service) {
         }
 
         override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+            val info = networkInfos[network]
+            // Always keep the freshest capabilities — networkToInt() prioritises networks off them.
+            info?.capabilities = networkCapabilities
+
+            val signature = runCatching { networkCapabilities.routingSignature() }.getOrNull()
+            if (info != null && signature != null && signature == info.routingSignature) {
+                // Bandwidth/signal chirp on an otherwise unchanged network: nothing downstream
+                // can act on it, so don't wake the select loop for it.
+                return
+            }
+            info?.routingSignature = signature
+
             Log.i("NetworkObserve onCapabilitiesChanged")
-            networkInfos[network]?.capabilities = networkCapabilities
             networks.trySend(network)
         }
 
@@ -272,27 +300,19 @@ class NetworkObserveModule(service: Service) : Module<Network?>(service) {
         service.sendConnectionsChanged()
         Log.i("NetworkObserve preferred network switched -> $network: closed $closed stale connections")
 
+        // Probe only what a switch can actually re-route, with each provider hit once. The
+        // previous version health-checked EVERY group name including hidden ones, which
+        // re-tested a shared provider once per referencing group — on a normal subscription
+        // that is the same nodes dialed 5-15x per switch, screen off included. Closing the
+        // stale connections above is what actually fixes "VPN on, nothing loads"; the probe
+        // only shortens the window before auto groups converge. See Clash.healthCheckAutoGroups.
         launch {
             try {
-                val groups = Clash.queryAllGroupNamesIncludingHidden()
-                val checks = groups.map { it to Clash.healthCheck(it) }
-                var failures = 0
-                checks.forEach { (name, check) ->
-                    try {
-                        check.await()
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        failures++
-                        Log.w("NetworkObserve health check failed for group $name", e)
-                    }
-                }
-
-                Log.i("NetworkObserve health checks completed: ${groups.size - failures}/${groups.size}")
+                Clash.healthCheckAutoGroups().await()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Log.w("NetworkObserve could not start group health checks", e)
+                Log.w("NetworkObserve auto-group health check failed", e)
             }
             service.sendConnectionsChanged()
         }
@@ -358,6 +378,26 @@ class NetworkObserveModule(service: Service) : Module<Network?>(service) {
 
                 Log.i("NetworkObserve dns = []")
                 Clash.notifyDnsChanged(emptyList())
+            }
+        }
+    }
+
+    private companion object {
+        /**
+         * Transports that change how traffic is routed. Kept in sync with the ones
+         * [networkToInt] scores; anything else lands in its `else` bucket anyway.
+         */
+        private val TRACKED_TRANSPORTS = buildList {
+            add(NetworkCapabilities.TRANSPORT_WIFI)
+            add(NetworkCapabilities.TRANSPORT_ETHERNET)
+            add(NetworkCapabilities.TRANSPORT_BLUETOOTH)
+            add(NetworkCapabilities.TRANSPORT_CELLULAR)
+            add(NetworkCapabilities.TRANSPORT_VPN)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                add(NetworkCapabilities.TRANSPORT_USB)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                add(NetworkCapabilities.TRANSPORT_SATELLITE)
             }
         }
     }
