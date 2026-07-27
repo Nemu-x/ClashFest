@@ -197,6 +197,19 @@ object Clash {
         Bridge.nativeHealthCheckAll()
     }
 
+    /**
+     * Probe only the groups that can re-route on their own (url-test / fallback /
+     * load-balance), hitting each backing provider exactly once. Used on a
+     * default-network switch, where the old "health-check every group name" walk
+     * re-tested a shared provider once per group referencing it.
+     * See tunnel.HealthCheckAutoGroups.
+     */
+    fun healthCheckAutoGroups(): CompletableDeferred<Unit> {
+        return CompletableDeferred<Unit>().apply {
+            Bridge.nativeHealthCheckAutoGroups(this)
+        }
+    }
+
     fun patchSelector(selector: String, name: String): Boolean {
         return Bridge.nativePatchSelector(selector, name)
     }
