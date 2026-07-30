@@ -13,6 +13,7 @@ import com.github.kr328.clash.design.databinding.DesignThemeSettingsBinding
 import com.github.kr328.clash.design.model.DarkMode
 import com.github.kr328.clash.design.model.HomeBackgroundStyle
 import com.github.kr328.clash.design.model.ThemePalette
+import com.github.kr328.clash.design.model.ThemeFontWeight
 import com.github.kr328.clash.design.model.ThemeTextScale
 import com.github.kr328.clash.design.store.UiStore
 import com.github.kr328.clash.design.util.layoutInflater
@@ -63,6 +64,7 @@ class ThemeSettingsDesign(
         setupPalettes()
         setupTrueBlack()
         setupTextScale()
+        setupFontWeight()
         setupHomeBackground()
         setupReset()
     }
@@ -407,6 +409,27 @@ class ThemeSettingsDesign(
                 R.id.text_scale_large -> ThemeTextScale.Large
                 R.id.text_scale_extra -> ThemeTextScale.ExtraLarge
                 else -> ThemeTextScale.Default
+            }
+            recreateAll()
+        }
+    }
+
+    private fun setupFontWeight() {
+        binding.fontWeightGroup.check(
+            when (uiStore.themeFontWeight) {
+                ThemeFontWeight.Default -> R.id.font_weight_default
+                ThemeFontWeight.Medium -> R.id.font_weight_medium
+                ThemeFontWeight.SemiBold -> R.id.font_weight_semibold
+                ThemeFontWeight.Bold -> R.id.font_weight_bold
+            }
+        )
+        binding.fontWeightGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            uiStore.themeFontWeight = when (checkedId) {
+                R.id.font_weight_medium -> ThemeFontWeight.Medium
+                R.id.font_weight_semibold -> ThemeFontWeight.SemiBold
+                R.id.font_weight_bold -> ThemeFontWeight.Bold
+                else -> ThemeFontWeight.Default
             }
             recreateAll()
         }

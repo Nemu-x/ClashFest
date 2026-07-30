@@ -9,6 +9,7 @@ import com.github.kr328.clash.design.model.AppLanguage
 import com.github.kr328.clash.design.model.DarkMode
 import com.github.kr328.clash.design.model.HomeBackgroundStyle
 import com.github.kr328.clash.design.model.ProfileSortMode
+import com.github.kr328.clash.design.model.ThemeFontWeight
 import com.github.kr328.clash.design.model.ThemePalette
 import com.github.kr328.clash.design.model.ThemeTextScale
 
@@ -67,6 +68,13 @@ class UiStore(context: Context) {
         key = "theme_text_scale",
         defaultValue = ThemeTextScale.Default,
         values = ThemeTextScale.values(),
+    )
+
+    /** UI font weight (#195). See [ThemeFontWeight] for the variable-font / API 26 caveats. */
+    var themeFontWeight: ThemeFontWeight by store.enum(
+        key = "theme_font_weight",
+        defaultValue = ThemeFontWeight.Default,
+        values = ThemeFontWeight.values(),
     )
 
     /** User-selected app language; `System` follows the device locale. */

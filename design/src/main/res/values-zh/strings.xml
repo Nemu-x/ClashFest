@@ -1051,6 +1051,11 @@
     <string name="theme_settings">主题</string>
     <string name="theme_text_default">100%</string>
     <string name="theme_text_extra">120%</string>
+    <string name="theme_font_weight">字体粗细</string>
+    <string name="theme_font_weight_default">常规</string>
+    <string name="theme_font_weight_medium">中等</string>
+    <string name="theme_font_weight_semibold">半粗</string>
+    <string name="theme_font_weight_bold">加粗</string>
     <string name="theme_text_large">110%</string>
     <string name="theme_text_scale">文字大小</string>
     <string name="theme_text_small">90%</string>
