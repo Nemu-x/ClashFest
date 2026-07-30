@@ -1012,6 +1012,11 @@
     <string name="theme_text_default">100%</string>
     <string name="theme_text_large">110%</string>
     <string name="theme_text_extra">120%</string>
+    <string name="theme_font_weight">Насыщенность шрифта</string>
+    <string name="theme_font_weight_default">Обычный</string>
+    <string name="theme_font_weight_medium">Средний</string>
+    <string name="theme_font_weight_semibold">Полужирный</string>
+    <string name="theme_font_weight_bold">Жирный</string>
     <string name="theme_reset">Сбросить тему</string>
     <string name="theme_palette_clash">ClashFest</string>
     <string name="theme_palette_blue">Синяя</string>

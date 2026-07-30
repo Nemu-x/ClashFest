@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Same Manrope variable file as @font/manrope, pinned to wght 500 (#195).
+  fontVariationSettings is API 26+; older devices ignore it and render the regular weight.
+-->
+<font-family xmlns:android="http://schemas.android.com/apk/res/android">
+    <font
+        android:font="@font/manrope"
+        android:fontStyle="normal"
+        android:fontVariationSettings="'wght' 500"
+        android:fontWeight="500" />
+</font-family>

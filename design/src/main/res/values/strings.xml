@@ -1135,6 +1135,11 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="theme_text_default">100%</string>
     <string name="theme_text_large">110%</string>
     <string name="theme_text_extra">120%</string>
+    <string name="theme_font_weight">Font weight</string>
+    <string name="theme_font_weight_default">Regular</string>
+    <string name="theme_font_weight_medium">Medium</string>
+    <string name="theme_font_weight_semibold">Semibold</string>
+    <string name="theme_font_weight_bold">Bold</string>
     <string name="theme_reset">Reset theme</string>
     <string name="theme_palette_clash">ClashFest</string>
     <string name="theme_palette_blue">Blue</string>
