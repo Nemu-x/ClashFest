@@ -1553,6 +1553,10 @@ class MainActivity : BaseActivity<MainDesign>() {
     }
 
     private fun shouldAutoRefreshBeforeStart(profile: Profile): Boolean {
+        // Opt-out (#197): people on flaky or slow panels would rather connect now with the config
+        // they already have than wait on a refresh they did not ask for. Scheduled updates
+        // (ProfileReceiver alarms) are unaffected — this only governs the Connect tap.
+        if (!uiStore.updateProfileBeforeConnect) return false
         if (profile.type != Profile.Type.Url || profile.source.isBlank()) return false
         val now = System.currentTimeMillis()
         val last = profile.updatedAt.takeIf { it > 0L } ?: return true
