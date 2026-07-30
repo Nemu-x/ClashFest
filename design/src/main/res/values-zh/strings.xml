@@ -134,6 +134,8 @@
     <string name="show_traffic_summary">在通知中自动刷新流量</string>
     <string name="allow_clash_auto_restart">允许 Clash 自动重启</string>
     <string name="auto_restart">自动重启</string>
+    <string name="update_before_connect_title">连接前更新订阅</string>
+    <string name="update_before_connect_summary">点击“连接”时刷新过期的订阅。关闭后将直接使用已保存的配置连接 — 定时更新仍会照常运行。</string>
     <string name="stopped">已停止</string>
     <string name="help">帮助</string>
     <string name="tap_to_start">点此启动</string>

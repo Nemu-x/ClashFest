@@ -656,6 +656,8 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
 
     <string name="auto_restart">Auto Restart</string>
     <string name="allow_clash_auto_restart">Allow clash auto restart</string>
+    <string name="update_before_connect_title">Update subscription before connecting</string>
+    <string name="update_before_connect_summary">Refresh a stale subscription when you tap Connect. Turn off to connect straight away with the saved config — scheduled updates still run.</string>
 
     <string name="route_system_traffic">Route System Traffic</string>
     <string name="routing_via_vpn_service">Auto routing all system traffic via VpnService</string>

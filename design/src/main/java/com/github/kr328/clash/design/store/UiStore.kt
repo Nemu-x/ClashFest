@@ -92,6 +92,18 @@ class UiStore(context: Context) {
         defaultValue = false,
     )
 
+    /**
+     * Whether tapping Connect may refresh a stale subscription first (#197).
+     *
+     * ON by default — that is the behaviour every existing install already has, and a silently
+     * stale subscription is the worse failure mode for most people. Turning it off makes Connect
+     * start the saved config immediately; the profile still refreshes on its own schedule.
+     */
+    var updateProfileBeforeConnect: Boolean by store.boolean(
+        key = "update_profile_before_connect",
+        defaultValue = true,
+    )
+
     /** Experimental gate for the per-profile DNS & Hosts editor (OFF by default). */
     var dnsHostsEnabled: Boolean by store.boolean(
         key = "dns_hosts_enabled",

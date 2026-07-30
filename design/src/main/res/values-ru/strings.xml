@@ -510,6 +510,8 @@
 
     <string name="auto_restart">Автоматический перезапуск</string>
     <string name="allow_clash_auto_restart">Разрешить Clash автоматически перезапускаться</string>
+    <string name="update_before_connect_title">Обновлять подписку перед подключением</string>
+    <string name="update_before_connect_summary">Обновлять устаревшую подписку при нажатии «Подключить». Выключите, чтобы подключаться сразу с сохранённой конфигурацией — обновления по расписанию продолжат работать.</string>
 
     <string name="route_system_traffic">Маршрутизировать системный трафик</string>
     <string name="routing_via_vpn_service">Автоматически маршрутизировать весь системный трафик через VPN</string>
