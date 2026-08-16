@@ -895,7 +895,7 @@
     <string name="main_open_logs_summary">连接失败时的诊断信息</string>
     <string name="main_open_settings_summary">主题、网络、更新及高级选项</string>
     <string name="main_open_subscription_identity_summary">HWID、clashfest:// 方案与复制按钮</string>
-    <string name="main_open_theme_summary">深色模式、配色与文字大小</string>
+    <string name="main_open_theme_summary">深色模式、配色、文字大小与字体粗细</string>
     <string name="main_power_hint_start">点击连接</string>
     <string name="main_power_hint_stop">点击断开</string>
     <string name="main_power_start">连接</string>

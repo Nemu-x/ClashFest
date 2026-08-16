@@ -109,7 +109,7 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="advanced_hub_network_summary">VPN, routing hardening and DNS</string>
     <string name="settings_geo">Geo</string>
     <string name="main_open_settings_summary">Theme, network, updates and advanced options</string>
-    <string name="main_open_theme_summary">Dark mode, palette and text scale</string>
+    <string name="main_open_theme_summary">Dark mode, palette, text scale and font weight</string>
     <string name="main_open_language_summary">Change app language without opening deep settings</string>
     <string name="main_open_subscription_identity_summary">HWID, clashfest:// scheme and copy buttons</string>
     <string name="main_open_about_summary">Version info and update check</string>
