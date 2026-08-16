@@ -195,7 +195,7 @@
     <string name="advanced_hub_network_summary">VPN, безопасность и DNS</string>
     <string name="settings_geo">Геоданные</string>
     <string name="main_open_settings_summary">Тема, сеть, обновления и расширенные параметры</string>
-    <string name="main_open_theme_summary">Темная тема, палитра и масштаб текста</string>
+    <string name="main_open_theme_summary">Темная тема, палитра, масштаб текста и насыщенность шрифта</string>
     <string name="main_open_language_summary">Смена языка без глубокого перехода в настройки</string>
     <string name="main_open_about_summary">Версия приложения, версия core и проверка обновлений</string>
 
