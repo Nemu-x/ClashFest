@@ -48,8 +48,10 @@ data class Proxy(
         Sudoku(false),
         Masque(false),
         TrustTunnel(false),
+        ShadowQuic(false),
         OpenVPN(false),
         Tailscale(false),
+        ZeroTier(false),
         GostRelay(false),
 
 
@@ -64,11 +66,17 @@ data class Proxy(
         /**
          * Decodes adapter-type names the app does not know yet to [Unknown]
          * instead of throwing. mihomo grows outbound types faster than this
-         * enum tracks them (Rematch arrived in v1.19.28; OpenVPN, Tailscale
-         * and GostRelay were already missing) — with the default enum
-         * serializer a group containing a single member of an untracked type
-         * failed the whole [com.github.kr328.clash.core.Clash.queryGroup]
-         * decode with a SerializationException and blanked the proxy screen.
+         * enum tracks them — with the default enum serializer a group
+         * containing a single member of an untracked type failed the whole
+         * [com.github.kr328.clash.core.Clash.queryGroup] decode with a
+         * SerializationException and blanked the proxy screen.
+         *
+         * The entries above mirror `AdapterType.String()` in the engine
+         * (`core/src/foss/golang/clash/constant/adapters.go`) and are in sync
+         * as of mihomo v1.19.30. Matching is case-insensitive, so only the
+         * spelling has to line up. Re-check that file after every core bump:
+         * an untracked type still works and stays selectable, it just renders
+         * without a protocol chip (`showBadge = typeName != "Unknown"`).
          */
         internal object FallbackSerializer : KSerializer<Type> {
             override val descriptor =
