@@ -291,6 +291,33 @@ available in the `fetchProviders` closure, so this is cheaply fixable.
 | `E-21` | Server answered with a non-2xx status (wording varies by code: 401/402 account, 403/451 refused on both routes, 404/410 dead link, 5xx panel trouble) | "the subscription server rejected your account (HTTP 401) — re-import from your dashboard" |
 | `E-30` | Body is an age armor the engine couldn't decrypt (missing/wrong key) | "subscription is age-encrypted — import the full link from your dashboard, or set the profile's age secret key" |
 
+### Stable error codes — user config script (`ConfigScriptError`)
+
+A separate family, because these do not come from fetching anything: they happen at **compose**
+time, when the user's JS script runs over the composed config
+(`native/config/configscript`, surfaced as `ConfigScriptError`). The engine returns a stable
+sentinel string; the UI maps it to a code and its own wording, and never shows the raw engine
+message — that goes to the log.
+
+| Code | Engine sentinel | Condition | Message gist |
+|---|---|---|---|
+| `E-60` | `script-compile` | The script does not parse | "your script has a syntax error" |
+| `E-61` | `script-no-main` | Parses, but never defines `main` | "the script must define `function main(config)`" |
+| `E-62` | `script-runtime` | `main()` threw | "your script stopped with an error" |
+| `E-63` | `script-bad-value` | `main()` returned nothing, or not an object | "the script must `return config`" |
+| `E-64` | `script-timeout` | `main()` ran past the engine cap (3s) — in practice a runaway loop | "your script took too long and was stopped" |
+| `E-65` | `script-too-large` | The returned document is implausibly large | "the script produced too large a config" |
+
+**A failing script never costs the user a working tunnel.** Both compose call sites catch it,
+recompose with the script dropped, and keep everything else in the layer: a scheduled
+subscription refresh has nobody watching it, and refusing to update because a script broke would
+be a worse outcome than updating without it. The code is logged either way.
+
+**Operator lock.** When the subscription sends `X-Brand-Lock-Config-Script: true`, scripts are
+skipped at compose time and the editor is not offered — a script can rewrite `proxies`, `dns` and
+`rules` wholesale, which would otherwise be a way around operator policy. Enforcement is at
+compose, not just in the UI, so a script saved before the operator set the flag stops running too.
+
 `E-40`/`E-41` come from the response headers the Go fetch snapshots into the staging
 directory. They are checked **before** everything else, including before a Layer 3 engine
 error is passed through: an expired panel typically serves a *valid* YAML with its proxies

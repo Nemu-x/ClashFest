@@ -6,6 +6,8 @@ import com.github.kr328.clash.common.util.AgeKeyUrl
 import com.github.kr328.clash.common.util.SubscriptionNameGuesser
 import com.github.kr328.clash.common.util.SubscriptionUsage
 import com.github.kr328.clash.core.Clash
+import com.github.kr328.clash.core.model.ConfigScriptError
+import com.github.kr328.clash.core.model.ConfigScriptResult
 import com.github.kr328.clash.core.model.ProfileSnapshot
 import com.github.kr328.clash.core.model.Proxy
 import kotlinx.serialization.json.JsonArray
@@ -28,6 +30,10 @@ import com.github.kr328.clash.service.model.YamlPreview
 import com.github.kr328.clash.service.remote.IFetchObserver
 import com.github.kr328.clash.service.remote.IProfileManager
 import com.github.kr328.clash.service.store.ServiceStore
+import com.github.kr328.clash.service.model.ConfigScriptFailure
+import com.github.kr328.clash.service.model.ConfigScriptState
+import com.github.kr328.clash.service.util.ConfigScriptPolicy
+import com.github.kr328.clash.service.util.UserScript
 import com.github.kr328.clash.service.util.DnsHostsConfig
 import com.github.kr328.clash.service.util.DnsHostsYamlEdit
 import com.github.kr328.clash.service.util.TunnelsConfig
@@ -775,6 +781,80 @@ class ProfileManager(private val context: Context) : IProfileManager,
             } catch (_: Exception) {
                 null
             }
+        }
+    }
+
+    override suspend fun readConfigScript(uuid: UUID): ConfigScriptState {
+        return withContext(Dispatchers.IO) {
+            val layer = userLayerStore.load(uuid)
+            ConfigScriptState(
+                source = layer.script?.source.orEmpty(),
+                enabled = layer.script?.enabled ?: true,
+                locked = ConfigScriptPolicy.isLocked(context, uuid),
+            )
+        }
+    }
+
+    override suspend fun checkConfigScript(uuid: UUID, source: String): ConfigScriptFailure? {
+        return withContext(Dispatchers.IO) {
+            if (source.isBlank()) return@withContext null
+            // Dry-run against the config the engine is actually holding for this profile, so the
+            // check exercises the user's real data — a script can be valid JS and still blow up on
+            // a key this particular subscription does not have.
+            val current = File(context.importedDir, "$uuid/config.yaml")
+                .takeIf { it.isFile }
+                ?.let { runCatching { it.readText() }.getOrNull() }
+                .orEmpty()
+            val name = ImportedDao().queryByUUID(uuid)?.name.orEmpty()
+            when (val r = Clash.applyConfigScript(current, source, name)) {
+                is ConfigScriptResult.Success -> null
+                is ConfigScriptResult.Failure -> ConfigScriptFailure(r.error, r.message)
+            }
+        }
+    }
+
+    override suspend fun writeConfigScript(
+        uuid: UUID,
+        source: String,
+        enabled: Boolean,
+    ): ConfigScriptFailure? {
+        return withContext(Dispatchers.IO) {
+            if (ImportedDao().queryByUUID(uuid) == null) return@withContext null
+            if (ConfigScriptPolicy.isLocked(context, uuid)) {
+                // Belt and braces: the editor is read-only under an operator lock, but a save must
+                // not get through even if that check is ever bypassed.
+                return@withContext ConfigScriptFailure(
+                    ConfigScriptError.Runtime,
+                    "config scripts are disabled by the subscription operator",
+                )
+            }
+            // Refuse to store a script that cannot run — otherwise the profile silently carries a
+            // broken script that gets dropped on every compose, and the user is never told again.
+            if (enabled && source.isNotBlank()) {
+                checkConfigScript(uuid, source)?.let { return@withContext it }
+            }
+
+            userLayerStore.update(uuid) { layer ->
+                if (source.isBlank()) {
+                    layer.copy(script = null)
+                } else {
+                    layer.copy(script = UserScript(source = source, enabled = enabled))
+                }
+            }
+            // Re-compose so the change is live now rather than at the next update or VPN start.
+            runCatching {
+                ProfileOverlay.refreshFromStore(
+                    profileDir = File(context.importedDir, uuid.toString()),
+                    uuid = uuid,
+                    importedDir = context.importedDir,
+                    store = store,
+                    scriptRunner = ConfigScriptPolicy.runnerFor(
+                        context, uuid, ImportedDao().queryByUUID(uuid)?.name.orEmpty(),
+                    ),
+                )
+            }.onFailure { Log.w("ConfigScript: overlay refresh failed for $uuid", it) }
+            context.sendProfileChanged(uuid)
+            null
         }
     }
 

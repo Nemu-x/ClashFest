@@ -1,6 +1,6 @@
 module foss
 
-go 1.20
+go 1.25
 
 require cfa v0.0.0
 

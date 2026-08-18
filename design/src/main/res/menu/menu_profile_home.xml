@@ -16,6 +16,9 @@
         android:id="@+id/profile_menu_view_config"
         android:title="@string/profile_menu_view_config" />
     <item
+        android:id="@+id/profile_menu_config_script"
+        android:title="@string/profile_menu_config_script" />
+    <item
         android:id="@+id/profile_menu_duplicate"
         android:title="@string/duplicate" />
     <item

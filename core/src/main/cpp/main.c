@@ -316,6 +316,21 @@ Java_com_github_kr328_clash_core_bridge_Bridge_nativeResolveProxyGroupsFromBytes
 }
 
 JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeApplyConfigScript(JNIEnv *env, jobject thiz,
+                                                                       jstring yaml, jstring script,
+                                                                       jstring profile_name) {
+    TRACE_METHOD();
+
+    scoped_string _yaml = get_string(yaml);
+    scoped_string _script = get_string(script);
+    scoped_string _profile_name = get_string(profile_name);
+
+    scoped_string response = applyConfigScript(_yaml, _script, _profile_name);
+
+    return new_string(response);
+}
+
+JNIEXPORT jstring JNICALL
 Java_com_github_kr328_clash_core_bridge_Bridge_nativeValidateProfileBytes(JNIEnv *env, jobject thiz,
                                                                           jstring yaml) {
     TRACE_METHOD();

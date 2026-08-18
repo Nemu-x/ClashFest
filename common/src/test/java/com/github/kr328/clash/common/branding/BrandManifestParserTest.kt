@@ -211,4 +211,52 @@ class BrandManifestParserTest {
         assertNull(m.logoUrl)
         assertTrue(m.isEmpty())
     }
+
+    // --- Operator policy: X-Brand-Lock-Config-Script ---
+    // A user config script rewrites proxies / dns / rules wholesale, so on a managed subscription
+    // it is a way around operator policy. Like hide-global-mode this is a restriction, not a skin,
+    // and therefore must apply without X-Branding-Enabled and survive the kill-switch.
+
+    @Test
+    fun lockConfigScript_appliesWithoutBrandingEnabled() {
+        val m = parse(mapOf(BrandHeaders.LOCK_CONFIG_SCRIPT to "true"))
+        assertEquals(true, m.lockConfigScript)
+        assertTrue(m.hasPolicy())
+        assertTrue("policy alone must not brand the app", !m.hasBrandIdentity())
+    }
+
+    @Test
+    fun lockConfigScript_survivesBrandingKillSwitch() {
+        val m = parse(
+            mapOf(
+                BrandHeaders.BRANDING_ENABLED to "false",
+                BrandHeaders.LOCK_CONFIG_SCRIPT to "true",
+                BrandHeaders.NAME to "Example VPN",
+            )
+        )
+        assertEquals("policy must outlive X-Branding-Enabled: false", true, m.lockConfigScript)
+        assertTrue(m.hasPolicy())
+        assertEquals("cosmetic identity must be dropped", null, m.name)
+    }
+
+    @Test
+    fun lockConfigScript_absentOrFalse_doesNotLock() {
+        assertEquals(null, parse(emptyMap()).lockConfigScript)
+        val explicit = parse(mapOf(BrandHeaders.LOCK_CONFIG_SCRIPT to "false"))
+        assertEquals(false, explicit.lockConfigScript)
+        assertTrue("false must not count as policy", !explicit.hasPolicy())
+    }
+
+    @Test
+    fun lockConfigScript_readAlongsideFullBranding() {
+        val m = parse(
+            mapOf(
+                BrandHeaders.BRANDING_ENABLED to "true",
+                BrandHeaders.NAME to "Example VPN",
+                BrandHeaders.LOCK_CONFIG_SCRIPT to "true",
+            )
+        )
+        assertEquals(true, m.lockConfigScript)
+        assertEquals("Example VPN", m.name)
+    }
 }

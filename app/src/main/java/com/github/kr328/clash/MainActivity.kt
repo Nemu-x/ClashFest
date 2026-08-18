@@ -1117,6 +1117,12 @@ class MainActivity : BaseActivity<MainDesign>() {
                     startActivity(ProfileConfigActivity::class.intent.setUUID(profile.uuid))
                     true
                 }
+                R.id.profile_menu_config_script -> {
+                    if (profile.imported) {
+                        startActivity(ConfigScriptActivity::class.intent.setUUID(profile.uuid))
+                    }
+                    true
+                }
                 R.id.profile_menu_duplicate -> {
                     launch {
                         val uuid = withProfile { clone(profile.uuid) }

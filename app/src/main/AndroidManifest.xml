@@ -253,6 +253,12 @@
             android:exported="false"
             android:label="@string/profile_menu_view_config" />
         <activity
+            android:name=".ConfigScriptActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/config_script_title"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".ProxyProvidersEditorActivity"
             android:configChanges="uiMode"
             android:exported="false"

@@ -37,6 +37,7 @@ object ProfileComposer {
         layer: UserLayer,
         geoDataUrls: GeoDataUrls,
         hardeningMode: ProxyHardeningMode,
+        scriptRunner: ConfigScriptRunner = ConfigScriptRunner.Disabled,
     ): Boolean {
         val base = subscriptionFile(profileDir)
         if (!base.isFile) {
@@ -44,7 +45,14 @@ object ProfileComposer {
             return false
         }
         val fetched = base.readText()
-        val composed = ConfigComposer.compose(fetched, layer, geoDataUrls, hardeningMode)
+        // A broken user script must not cost the user a working tunnel: compose without it and
+        // carry on. The failure is logged with its stable code so the editor can surface it.
+        val composed = try {
+            ConfigComposer.compose(fetched, layer, geoDataUrls, hardeningMode, scriptRunner)
+        } catch (e: ConfigScriptException) {
+            Log.w("ProfileComposer: user script failed (${e.error.code}) in ${profileDir.name}, composing without it: ${e.message}")
+            ConfigComposer.compose(fetched, layer.copy(script = null), geoDataUrls, hardeningMode)
+        }
         File(profileDir, CONFIG_FILE).writeText(composed)
 
         // proxy-chain targets that live in proxy-provider files (not in config.yaml `proxies:`) are
