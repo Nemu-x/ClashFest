@@ -370,6 +370,35 @@ object Clash {
     }
 
     /**
+     * Runs a user config script over [yaml] and returns the rewritten document, or the
+     * reason it could not run.
+     *
+     * The script defines `function main(config) { ...; return config }` and gets the whole
+     * config as a plain JS object — the de-facto contract across Clash clients, so scripts
+     * written elsewhere work here unchanged. A blank [script] is a no-op.
+     *
+     * This runs in the engine rather than in Kotlin on purpose: the YAML is parsed and
+     * re-serialised by the library the core loads configs with, so the round trip cannot
+     * drift from the engine's own dialect.
+     *
+     * No disk I/O, no network — but a script is user code, so call it off the main thread.
+     */
+    fun applyConfigScript(yaml: String, script: String, profileName: String): ConfigScriptResult {
+        if (script.isBlank()) return ConfigScriptResult.Success(yaml)
+        val raw = Bridge.nativeApplyConfigScript(yaml, script, profileName)
+        val decoded = runCatching { ConfigScriptJson.decodeFromString<ConfigScriptEnvelope>(raw) }.getOrNull()
+            ?: return ConfigScriptResult.Failure(ConfigScriptError.Runtime, "malformed bridge response")
+        return if (decoded.ok) {
+            ConfigScriptResult.Success(decoded.yaml.orEmpty())
+        } else {
+            ConfigScriptResult.Failure(
+                ConfigScriptError.fromCode(decoded.code),
+                decoded.message.orEmpty(),
+            )
+        }
+    }
+
+    /**
      * Asks the engine for the proxy-group membership it computes for [yaml] — `include-all*`
      * expanded, `use:` resolved, `filter` / `exclude-filter` / `exclude-type` applied — so the
      * offline preview matches what the running tunnel would report.
@@ -402,6 +431,8 @@ object Clash {
         }
         return envelope.snapshot
     }
+
+    private val ConfigScriptJson = Json { ignoreUnknownKeys = true }
 
     private val ProfileSnapshotJson = Json {
         ignoreUnknownKeys = true

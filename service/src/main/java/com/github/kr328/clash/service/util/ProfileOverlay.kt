@@ -30,6 +30,7 @@ object ProfileOverlay {
         geoDataUrls: GeoDataUrls,
         hardeningMode: ProxyHardeningMode,
         parseSnapshot: (File) -> ProfileSnapshot?,
+        scriptRunner: ConfigScriptRunner = ConfigScriptRunner.Disabled,
     ): Boolean {
         ProfileMigration.migrateIfNeeded(
             profileDir = profileDir,
@@ -45,6 +46,7 @@ object ProfileOverlay {
             layer = userLayerStore.load(uuid),
             geoDataUrls = geoDataUrls,
             hardeningMode = hardeningMode,
+            scriptRunner = scriptRunner,
         )
     }
 
@@ -58,6 +60,7 @@ object ProfileOverlay {
         uuid: UUID,
         importedDir: File,
         store: ServiceStore,
+        scriptRunner: ConfigScriptRunner = ConfigScriptRunner.Disabled,
     ): Boolean {
         val rulesStateJson = File(profileDir, "rules_state.json")
             .takeIf { it.isFile }
@@ -78,6 +81,7 @@ object ProfileOverlay {
             ),
             hardeningMode = store.proxyHardeningMode,
             parseSnapshot = { d -> runCatching { Clash.parseProfileSnapshot(d) }.getOrNull() },
+            scriptRunner = scriptRunner,
         )
     }
 }

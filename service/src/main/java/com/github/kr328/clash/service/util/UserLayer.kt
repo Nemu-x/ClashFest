@@ -23,6 +23,7 @@ import java.util.UUID
  *  - [ruleProviders]  user-added rule-providers as the inner-map YAML under `rule-providers:`
  *                     (`RuleProvidersYamlEdit.mergeIntoConfig`; union)
  *  - [proxyChain]     proxy-chain (dialer-proxy) intent: target proxy name → dialer proxy name
+ *  - [script]         the user's JS config script (see [UserScript])
  *
  * Population of the slots (re-pointing the editors) is Group 2.3; composition is Group 3. Until
  * then this type is inert.
@@ -38,6 +39,7 @@ data class UserLayer(
     val ruleProviders: String? = null,
     val relayGroups: List<RelayGroup> = emptyList(),
     val proxyChain: Map<String, String> = emptyMap(),
+    val script: UserScript? = null,
 ) {
     /** True when the user has no edits — nothing to compose on top of the subscription. */
     fun isEmpty(): Boolean =
@@ -48,11 +50,39 @@ data class UserLayer(
             proxyProviders.isNullOrBlank() &&
             ruleProviders.isNullOrBlank() &&
             relayGroups.isEmpty() &&
-            proxyChain.isEmpty()
+            proxyChain.isEmpty() &&
+            (script == null || script.source.isBlank())
 
     companion object {
         const val CURRENT_VERSION = 1
     }
+}
+
+/**
+ * A user-authored JS script that rewrites the composed config, using the de-facto contract
+ * shared across Clash clients:
+ *
+ * ```js
+ * function main(config) { config.dns.enable = true; return config }
+ * ```
+ *
+ * Stored **inside** the layer rather than as a sibling `user_script.js`, so it inherits the
+ * capture/restore the layer already gets on subscription update for free — surviving an update
+ * is the whole point of a user script, and a second file would be one more thing every commit
+ * path has to remember to move. The cost is a JS blob living in JSON, which is unpleasant to
+ * read by hand but is never hand-edited.
+ *
+ * [enabled] is kept separate from an empty [source] so a user can switch a script off while
+ * still keeping the text around.
+ */
+@Serializable
+data class UserScript(
+    val source: String = "",
+    val enabled: Boolean = true,
+) {
+    /** The text to actually run — blank when there is nothing to do. */
+    val effective: String
+        get() = if (enabled) source else ""
 }
 
 /** A user-created `select` proxy-group fed by proxy-providers (the relay feature). */

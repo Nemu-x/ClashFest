@@ -1,6 +1,35 @@
 package com.github.kr328.clash.service.util
 
+import com.github.kr328.clash.core.model.ConfigScriptError
 import com.github.kr328.clash.service.model.ProxyHardeningMode
+
+/**
+ * Runs the user's JS config script. Injected rather than called directly so [ConfigComposer]
+ * stays a pure text-in/text-out function that the JVM unit tests can exercise without an
+ * engine — the real implementation is a native call into mihomo.
+ */
+fun interface ConfigScriptRunner {
+    /**
+     * @return the rewritten document
+     * @throws ConfigScriptException when the script could not produce one
+     */
+    fun apply(yaml: String, script: String): String
+
+    companion object {
+        /** No script support — returns the document untouched. */
+        val Disabled = ConfigScriptRunner { yaml, _ -> yaml }
+    }
+}
+
+/**
+ * A user script failed. Deliberately thrown rather than swallowed: what to do about it is a
+ * call-site decision (an explicit save should surface the error; a background subscription
+ * refresh should keep the last good config), and only the call site knows which it is.
+ */
+class ConfigScriptException(
+    val error: ConfigScriptError,
+    override val message: String,
+) : Exception(message)
 
 /**
  * Builds the config the engine actually receives, the Clash-Verge-Rev way: take the fetched
@@ -30,12 +59,15 @@ object ConfigComposer {
      * @param geoDataUrls   resolved geo-data source URLs (rule rendering needs them); caller pulls
      *                      these from settings so this function stays pure/testable
      * @param hardeningMode strict/compat/off — applied to the composed result
+     * @param scriptRunner  runs [UserLayer.script]; defaults to a no-op so existing callers and
+     *                      the JVM tests keep working without an engine
      */
     fun compose(
         fetchedYaml: String,
         layer: UserLayer,
         geoDataUrls: GeoDataUrls,
         hardeningMode: ProxyHardeningMode,
+        scriptRunner: ConfigScriptRunner = ConfigScriptRunner.Disabled,
     ): String {
         var doc = fetchedYaml
 
@@ -59,6 +91,14 @@ object ConfigComposer {
             // dialer-proxy on `proxies:` in config.yaml; targets inside provider files are replayed
             // file-side on the apply path (no file access here).
             doc = ProxyDialerYamlEdit.applyChainToConfigText(doc, layer.proxyChain)
+        }
+
+        // The user script runs on the fully composed document, so it sees the same config the
+        // engine would have loaded — and *before* hardening, which therefore still gets the last
+        // word. A script must not be able to re-open the loopback/TUN listeners the hardener
+        // closes, or to slip an unsanitised geo URL back in.
+        layer.script?.effective?.takeIf { it.isNotBlank() }?.let {
+            doc = scriptRunner.apply(doc, it)
         }
 
         // Hardening LAST — on everything that will reach the engine.

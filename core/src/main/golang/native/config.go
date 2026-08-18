@@ -11,6 +11,7 @@ import (
 
 	"cfa/native/app"
 	"cfa/native/config"
+	"cfa/native/config/configscript"
 	"cfa/native/snapshot"
 )
 
@@ -157,6 +158,20 @@ func parseProfileSnapshotFromBytes(yaml C.c_string) *C.char {
 func resolveProxyGroupsFromBytes(yaml C.c_string) *C.char {
 	defer guard("resolveProxyGroupsFromBytes")()
 	return C.CString(snapshot.ResolvedGroupsJSON([]byte(C.GoString(yaml))))
+}
+
+// applyConfigScript runs the profile's user script over a composed config. Returns a JSON
+// configscript.Result — the transform can fail in ways the caller has to tell apart (bad
+// syntax, no main(), runaway loop), and a single string is all the bridge carries.
+//
+//export applyConfigScript
+func applyConfigScript(yaml C.c_string, script C.c_string, profileName C.c_string) *C.char {
+	defer guard("applyConfigScript")()
+	return C.CString(configscript.ApplyScriptJSON(
+		[]byte(C.GoString(yaml)),
+		C.GoString(script),
+		C.GoString(profileName),
+	))
 }
 
 //export validateProfileBytes

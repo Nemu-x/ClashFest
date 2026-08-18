@@ -1,5 +1,7 @@
 package com.github.kr328.clash.service.remote
 
+import com.github.kr328.clash.service.model.ConfigScriptFailure
+import com.github.kr328.clash.service.model.ConfigScriptState
 import com.github.kr328.clash.service.model.Profile
 import com.github.kr328.clash.service.model.ProxyGroupPreviewRow
 import com.github.kr328.clash.service.model.ProxyTransportInfo
@@ -77,6 +79,26 @@ interface IProfileManager {
 
     /** Full processed `config.yaml` text for [uuid], or null if missing. Read-only. */
     suspend fun readConfigYaml(uuid: UUID): String?
+
+    /** The profile's user JS script and whether it is switched on. */
+    suspend fun readConfigScript(uuid: UUID): ConfigScriptState
+
+    /**
+     * Stores the script and re-composes `config.yaml` so the change takes effect immediately.
+     *
+     * @return null on success, or the reason the script could not be applied — the caller is
+     *         expected to show it. Nothing is saved when it fails, so the profile never ends up
+     *         carrying a script that cannot run.
+     */
+    suspend fun writeConfigScript(uuid: UUID, source: String, enabled: Boolean): ConfigScriptFailure?
+
+    /**
+     * Dry-runs [source] against the profile's current config without saving anything — the editor
+     * uses this to tell the user what is wrong while they type.
+     *
+     * @return null when the script runs and returns a config, otherwise the reason.
+     */
+    suspend fun checkConfigScript(uuid: UUID, source: String): ConfigScriptFailure?
 
     suspend fun replaceRuleProvidersYaml(uuid: UUID, yaml: String): Boolean
 
