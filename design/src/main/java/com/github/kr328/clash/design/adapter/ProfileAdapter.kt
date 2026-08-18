@@ -696,6 +696,13 @@ class ProfileAdapter(
         return offlinePreviewByProfile[uuid]?.get(name)?.type ?: Proxy.Type.Unknown
     }
 
+    /**
+     * YAML `type:` → [Proxy.Type]. The keys are the engine's **config** spellings from
+     * `adapter/parser.go`, which are not the same as the wire names [Proxy.Type] is
+     * modelled on (`gost-relay` here vs `GostRelay` from `AdapterType.String()`); the
+     * short aliases (`ss`, `hy2`, `wg`, …) are ours, for hand-written configs.
+     * In sync with mihomo v1.19.30 — re-check `parser.go` after every core bump.
+     */
     private fun proxyTypeFromYamlName(raw: String?): Proxy.Type = when (raw?.trim()?.lowercase()) {
         "ss", "shadowsocks" -> Proxy.Type.Shadowsocks
         "ssr", "shadowsocksr" -> Proxy.Type.ShadowsocksR
@@ -708,13 +715,22 @@ class ProfileAdapter(
         "hysteria" -> Proxy.Type.Hysteria
         "hysteria2", "hy2" -> Proxy.Type.Hysteria2
         "tuic" -> Proxy.Type.Tuic
+        "shadowquic" -> Proxy.Type.ShadowQuic
         "wireguard", "wg" -> Proxy.Type.WireGuard
         "ssh" -> Proxy.Type.Ssh
         "mieru" -> Proxy.Type.Mieru
         "anytls" -> Proxy.Type.AnyTLS
+        "sudoku" -> Proxy.Type.Sudoku
         "masque" -> Proxy.Type.Masque
         "trusttunnel" -> Proxy.Type.TrustTunnel
+        "openvpn" -> Proxy.Type.OpenVPN
+        "tailscale" -> Proxy.Type.Tailscale
+        "zerotier" -> Proxy.Type.ZeroTier
+        "gost-relay" -> Proxy.Type.GostRelay
         "direct" -> Proxy.Type.Direct
+        "reject" -> Proxy.Type.Reject
+        "dns" -> Proxy.Type.Dns
+        "rematch" -> Proxy.Type.Rematch
         else -> Proxy.Type.Unknown
     }
 
@@ -2243,14 +2259,22 @@ class ProfileAdapter(
         }
     }
 
+    /**
+     * Keyed on the **enum** name (the caller passes `p.type.name`), so `gostrelay`, not
+     * the config spelling `gost-relay`. Grouping is by protocol family, not by product:
+     * QUIC-based transports share one colour, the tunnel-style outbounds
+     * (wireguard/tailscale/zerotier/openvpn) another, TCP proxy protocols a third.
+     * An unlisted type falls back to grey rather than losing its chip.
+     */
     private fun protocolFamilyColor(typeName: String): Int = when (typeName.lowercase()) {
         "vmess", "vless" -> R.color.proto_vless
         "trojan" -> R.color.proto_trojan
         "hysteria", "hysteria2" -> R.color.proto_hysteria
-        "tuic", "anytls", "masque" -> R.color.proto_tuic
-        "shadowsocks", "shadowsocksr", "snell", "socks5" -> R.color.proto_shadowsocks
-        "http" -> R.color.proto_http
-        "wireguard", "trusttunnel" -> R.color.proto_wireguard
+        "tuic", "anytls", "masque", "shadowquic" -> R.color.proto_tuic
+        "shadowsocks", "shadowsocksr", "snell", "socks5", "mieru", "sudoku", "ssh" ->
+            R.color.proto_shadowsocks
+        "http", "gostrelay" -> R.color.proto_http
+        "wireguard", "trusttunnel", "tailscale", "zerotier", "openvpn" -> R.color.proto_wireguard
         "direct" -> R.color.proto_tcp
         else -> R.color.proto_default
     }

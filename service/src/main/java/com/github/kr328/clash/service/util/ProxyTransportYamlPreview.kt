@@ -109,14 +109,23 @@ object ProxyTransportYamlPreview {
 
     private val HEX_CHARS = "0123456789abcdef".toCharArray()
 
+    /**
+     * `network:` means "transport" for most outbounds (ws / grpc / h2 / xhttp / tcp), but not for
+     * all of them: on a `zerotier` proxy it is the 16-hex ZeroTier network ID, which otherwise
+     * leaks into the transport chip as e.g. `0123456789ABCDEF`. Keyed on the config spelling
+     * (`adapter/parser.go`), so lowercase `zerotier`.
+     */
+    private fun networkIsTransport(type: String?): Boolean =
+        !type.equals("zerotier", ignoreCase = true)
+
     private fun extractTransportInfo(p: JsonObject): ProxyTransportInfo {
-        val network = boundedMetadata(p.stringField("network"))
+        val type = boundedMetadata(p.stringField("type"))
+        val network = if (networkIsTransport(type)) boundedMetadata(p.stringField("network")) else ""
         val tls = p.booleanField("tls")
         // Reality is signalled by a non-empty reality-opts map, with or without
         // explicit tls: true. Mihomo accepts both forms.
         val realityOpts = p["reality-opts"] as? JsonObject
         val reality = realityOpts != null && realityOpts.isNotEmpty()
-        val type = boundedMetadata(p.stringField("type"))
         return ProxyTransportInfo(
             network = network,
             tls = tls,
@@ -126,11 +135,11 @@ object ProxyTransportYamlPreview {
     }
 
     private fun extractTransportInfoFromRaw(p: Map<*, *>): ProxyTransportInfo {
-        val network = boundedMetadata(p["network"] as? String)
+        val type = boundedMetadata(p["type"] as? String)
+        val network = if (networkIsTransport(type)) boundedMetadata(p["network"] as? String) else ""
         val tls = truthy(p["tls"])
         val realityOpts = p["reality-opts"] as? Map<*, *>
         val reality = realityOpts != null && realityOpts.isNotEmpty()
-        val type = boundedMetadata(p["type"] as? String)
         return ProxyTransportInfo(
             network = network,
             tls = tls,
