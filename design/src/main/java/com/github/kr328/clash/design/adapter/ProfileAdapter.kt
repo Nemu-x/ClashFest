@@ -1645,7 +1645,7 @@ class ProfileAdapter(
     private val pingingGroupByUuid = HashMap<UUID, String>()
 
     /**
-     * FlClash-style vertical accordion of proxy-group blocks for the Profiles-tab inline panel.
+     * Vertical accordion of proxy-group blocks for the Profiles-tab inline panel.
      * Each block header toggles its own node list; several can stay open at once.
      */
     private fun renderGroupAccordion(

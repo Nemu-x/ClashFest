@@ -68,8 +68,11 @@ subprojects {
             minSdk = 21
             targetSdk = 35
 
-            versionName = "0.10.2"
-            versionCode = 1002000
+            versionName = "1.0.0"
+            // major * 10_000_000 + minor * 100_000 + patch * 1_000.
+            // Up to 0.10.2 the major was not encoded at all (0.10.2 -> 1_002_000), which would
+            // have made 1.0.0 compute to 0 and break updates — Android requires this to increase.
+            versionCode = 10000000
 
             resValue("string", "release_name", "v$versionName")
             resValue("integer", "release_code", "$versionCode")

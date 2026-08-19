@@ -180,7 +180,7 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="effective_rules_title">Routing Rules</string>
     <string name="effective_rules_intro">Rules from the active profile (YAML order). In Rule mode, Clash walks this list top to bottom. This screen does not show live traffic.</string>
     <string name="effective_rules_count">%d rules in config</string>
-    <string name="effective_rules_connections_hint">For live hosts and proxy chains like Clash Verge, turn the VPN on and watch the core log while you use apps.</string>
+    <string name="effective_rules_connections_hint">To see live hosts and proxy chains, turn the VPN on and watch the core log while you use apps.</string>
     <string name="effective_rules_open_logcat">Open core log</string>
     <string name="effective_rules_no_profile">Select an imported profile first</string>
     <string name="effective_rules_search_hint">Search rules, policies, providers…</string>

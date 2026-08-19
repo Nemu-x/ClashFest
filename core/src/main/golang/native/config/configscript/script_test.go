@@ -66,8 +66,8 @@ func TestApplyScriptPreservesUntouchedKeys(t *testing.T) {
 	}
 }
 
-// The second argument is what Clash Verge Rev passes; scripts written for FlClash take one
-// argument and must keep working.
+// Some clients pass a second argument and some do not; a script that declares one
+// parameter must keep working.
 func TestApplyScriptProfileNameArgument(t *testing.T) {
 	m := run(t, baseConfig, `function main(config, name) { config.mode = name; return config }`)
 	if m["mode"] != "profile" {
