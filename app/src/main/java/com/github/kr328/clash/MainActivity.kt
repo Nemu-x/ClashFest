@@ -1487,9 +1487,9 @@ class MainActivity : BaseActivity<MainDesign>() {
                     // idle=30s). Mihomo health-check writes delays into
                     // proxy.LastDelayForTestUrl synchronously when warmup
                     // finishes; without this re-query the carriage stays blank
-                    // until the timer rolls over. (FlClash side-steps the
-                    // whole class of staleness with a delay event channel —
-                    // see docs/path-b-engine-parsing.md follow-ups.)
+                    // until the timer rolls over. (A delay event channel would
+                    // side-step this whole class of staleness — see
+                    // docs/path-b-engine-parsing.md follow-ups.)
                     if (warmed.isNotEmpty()) {
                         val patches = refreshRuntimeGroupDetails(warmed)
                         if (patches.isNotEmpty()) {

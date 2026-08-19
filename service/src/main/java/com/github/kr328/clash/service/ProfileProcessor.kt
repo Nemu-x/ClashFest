@@ -311,7 +311,7 @@ object ProfileProcessor {
                 if (configFile.isFile) {
                     val fetchedText = configFile.readText()
                     // The freshly fetched subscription is the new canonical base; persist it and
-                    // compose the captured user layer on top (Clash-Verge-Rev style overlay).
+                    // compose the captured user layer on top (overlay model).
                     File(context.processingDir, ProfileComposer.SUBSCRIPTION_FILE).writeText(fetchedText)
                     UserLayerStore.saveAt(context.processingDir, capturedLayer)
                     val geoUrls = GeoDataSources.resolve(

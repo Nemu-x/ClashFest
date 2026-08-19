@@ -32,7 +32,7 @@ class ConfigScriptException(
 ) : Exception(message)
 
 /**
- * Builds the config the engine actually receives, the Clash-Verge-Rev way: take the fetched
+ * Builds the config the engine actually receives, overlay-style: take the fetched
  * subscription **as-is**, apply the user's edit layer on top with non-reconciling merge operations,
  * then harden the composed result. config-overlay-architecture, Group 3.
  *

@@ -420,7 +420,7 @@
     <string name="connections_search_hint">搜索主机、进程、规则…</string>
     <string name="connections_title">连接</string>
     <string name="connections_totals_fmt">↑%1$s · ↓%2$s · %3$d 条</string>
-    <string name="effective_rules_connections_hint">若要查看实时域名与代理链（类似 Clash Verge），请开启 VPN 并在使用应用时查看核心日志。</string>
+    <string name="effective_rules_connections_hint">若要查看实时域名与代理链，请开启 VPN 并在使用应用时查看核心日志。</string>
     <string name="effective_rules_count">配置中共有 %d 条规则</string>
     <string name="effective_rules_intro">来自当前配置文件的规则（YAML 顺序）。规则模式下 Clash 自上而下匹配。本页不显示实时流量。</string>
     <string name="effective_rules_no_profile">请先选择一个已导入的配置</string>

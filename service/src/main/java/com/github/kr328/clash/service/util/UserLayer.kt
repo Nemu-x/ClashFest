@@ -10,7 +10,7 @@ import java.util.UUID
 /**
  * The user's in-app edits for a profile, stored as **intent** separate from the subscription
  * `config.yaml` (config-overlay-architecture, Group 2). This is ClashFest's equivalent of a
- * Clash-Verge-Rev "Merge profile": the subscription stays exactly as fetched, and this layer is
+ * "merge profile": the subscription stays exactly as fetched, and this layer is
  * composed on top at apply time using only non-reconciling operations (Group 3).
  *
  * Each slot reuses an existing serializable edit model where one exists, so the editors can move
