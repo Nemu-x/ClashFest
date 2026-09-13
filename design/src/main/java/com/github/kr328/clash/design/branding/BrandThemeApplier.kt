@@ -253,6 +253,25 @@ object BrandThemeApplier {
             }
             return ctx
         }
+        // Material's wrapper forks its Resources with an EMPTY override configuration, so they
+        // are rebuilt from the process (system) configuration and lose everything the Activity
+        // carries on top: AppCompat's forced night mode and our font-scale override. Every
+        // config-qualified lookup through the wrapper (values-night/themes.xml alias of the
+        // manifest theme, brand_neutral_* colours) then follows the SYSTEM day/night instead of
+        // the app's — with system dark + app light + an accent the Home Settings tab inflated
+        // dark cards on a dark canvas while the seed palette stayed light. Re-stamp the
+        // Activity's configuration onto the fork before its theme is first materialised.
+        val activityConfig = activity.resources.configuration
+        if (wrapped.resources !== activity.resources &&
+            wrapped.resources.configuration != activityConfig
+        ) {
+            @Suppress("DEPRECATION")
+            wrapped.resources.updateConfiguration(activityConfig, activity.resources.displayMetrics)
+            com.github.kr328.clash.common.log.Log.d(
+                "BrandThemeApplier: re-stamped activity configuration onto seeded wrapper " +
+                    "(night=$night)",
+            )
+        }
         // Android 16 (device-verified): Theme.setTo() into the wrapper's forked Resources loses
         // the copied base-theme content — every attr the activity theme provided resolves as
         // missing and inflation crashes on the first `?attr/` lookup. Re-apply the activity's
