@@ -116,6 +116,11 @@ afterEvaluate {
         task.inputs.dir(golangSource)
         task.inputs.property("mihomoCommit", mihomoHead)
         task.inputs.files("src/foss/golang/go.mod", "src/foss/golang/go.sum")
+        // The embedded Root CA bundle (//go:embed in component/ca/config.go).
+        // It is an empty file in the submodule and CI populates it right
+        // before the build (.github/scripts/populate-ca-bundle.sh); track it
+        // so a populated bundle invalidates a stale libclash.so.
+        task.inputs.files("src/foss/golang/clash/component/ca/ca-certificates.crt")
         task.doFirst {
             val command = task.commandLine.map { argument: Any -> argument.toString() }.toMutableList()
             val tagsIndex = command.indexOf("-tags")
