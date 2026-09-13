@@ -92,6 +92,17 @@ class ClashManager(private val context: Context) : IClashManager,
         return Clash.queryOverride(slot)
     }
 
+    /**
+     * Persist the selection and, in **Global** mode only, point [GLOBAL] at the group the user
+     * picked in: there all traffic uses the GLOBAL adapter, so a leaf change inside another group
+     * has no effect until GLOBAL's active child is that group. mihomo builds GLOBAL from the full
+     * proxy list (every node and every group), so a single hop is always enough.
+     *
+     * Never rewrite any other selector. In Rule mode the other groups are routing policy (a
+     * "CN direct" group whose value must stay DIRECT, a "final" group, ...); the former ancestor
+     * walk force-pointed them at the group the user tapped in, persisted that, and made GeoIP /
+     * geosite rules look broken (#205).
+     */
     override fun patchSelector(group: String, name: String): Boolean {
         val ok = Clash.patchSelector(group, name)
         val current = store.activeProfile
@@ -102,56 +113,22 @@ class ClashManager(private val context: Context) : IClashManager,
         }
 
         current?.let { SelectionDao().setSelected(Selection(it, group, name)) }
-        syncSelectorAncestors(current, group)
+        syncGlobalSelector(current, group)
 
-        return ok
+        return true
     }
 
-    private fun syncSelectorAncestors(current: java.util.UUID?, selectedGroup: String) {
+    private fun syncGlobalSelector(current: java.util.UUID?, selectedGroup: String) {
         if (selectedGroup.isBlank() || selectedGroup == "GLOBAL") return
-
-        val groupNames = runCatching { Clash.queryGroupNames(false) }
-            .getOrDefault(emptyList())
-        val queriedGroups = linkedMapOf<String, ProxyGroup>()
-
-        fun queryGroup(name: String): ProxyGroup? {
-            queriedGroups[name]?.let { return it }
-            return runCatching { Clash.queryGroup(name, ProxySort.Default) }
-                .getOrNull()
-                ?.also { queriedGroups[name] = it }
-        }
-
-        val visited = linkedSetOf<String>()
-        var child = selectedGroup
-
-        while (visited.add(child)) {
-            val parent = groupNames.firstNotNullOfOrNull { candidate ->
-                val parentGroup = queryGroup(candidate)
-                if (candidate == "GLOBAL" || candidate == child || parentGroup == null) {
-                    null
-                } else if (parentGroup.proxies.none { it.name == child }) {
-                    null
-                } else {
-                    candidate to parentGroup
-                }
-            } ?: break
-
-            val (parentName, parentGroup) = parent
-            if (parentGroup.type == Proxy.Type.Selector) {
-                if (parentGroup.now != child && !Clash.patchSelector(parentName, child)) break
-                current?.let { SelectionDao().setSelected(Selection(it, parentName, child)) }
-            }
-            child = parentName
-        }
 
         val state = runCatching { Clash.queryTunnelState() }.getOrNull()
         if (state?.mode != TunnelState.Mode.Global) return
 
         val global = runCatching { Clash.queryGroup("GLOBAL", ProxySort.Default) }.getOrNull()
             ?: return
-        if (global.proxies.none { it.name == child } || global.now == child) return
-        if (Clash.patchSelector("GLOBAL", child)) {
-            current?.let { SelectionDao().setSelected(Selection(it, "GLOBAL", child)) }
+        if (global.proxies.none { it.name == selectedGroup } || global.now == selectedGroup) return
+        if (Clash.patchSelector("GLOBAL", selectedGroup)) {
+            current?.let { SelectionDao().setSelected(Selection(it, "GLOBAL", selectedGroup)) }
         }
     }
 
