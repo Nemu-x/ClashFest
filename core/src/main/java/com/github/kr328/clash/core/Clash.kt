@@ -193,6 +193,39 @@ object Clash {
         return deferred
     }
 
+    /**
+     * One-proxy variant of [healthCheckPerProxy]: measures [name] inside [group] (falling back to the
+     * global proxy map when the group does not list it). [onProxyDelay] fires once; the deferred
+     * completes afterwards, or exceptionally when the proxy could not be found.
+     */
+    fun healthCheckProxy(
+        group: String,
+        name: String,
+        testUrl: String = "",
+        onProxyDelay: (proxyName: String, delayMs: Int, errMsg: String) -> Unit,
+    ): CompletableDeferred<Unit> {
+        val deferred = CompletableDeferred<Unit>()
+        Bridge.nativeHealthCheckProxyWithCallback(
+            object : ProxyDelayCallback {
+                override fun report(proxyName: String, delayMs: Int, errMsg: String) {
+                    onProxyDelay(proxyName, delayMs, errMsg)
+                }
+
+                override fun complete(error: String?) {
+                    if (error != null) {
+                        deferred.completeExceptionally(ClashException(error))
+                    } else {
+                        deferred.complete(Unit)
+                    }
+                }
+            },
+            group,
+            name,
+            testUrl,
+        )
+        return deferred
+    }
+
     fun healthCheckAll() {
         Bridge.nativeHealthCheckAll()
     }

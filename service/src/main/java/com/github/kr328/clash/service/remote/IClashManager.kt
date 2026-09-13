@@ -45,4 +45,11 @@ interface IClashManager {
     fun clearOverride(slot: Clash.OverrideSlot)
 
     fun setLogObserver(observer: ILogObserver?)
+
+    /**
+     * Measure a single proxy (tap on its latency capsule). Same observer contract as
+     * [healthCheckPerProxy]: one onDelay, then onComplete. Declared last on purpose: kaidl
+     * numbers binder transactions by declaration order, so appending keeps existing codes stable.
+     */
+    suspend fun healthCheckProxy(group: String, proxy: String, testUrl: String, observer: IProxyDelayObserver)
 }

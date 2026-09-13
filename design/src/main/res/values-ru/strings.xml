@@ -554,6 +554,7 @@
     <string name="profile_expand_proxies">Группы прокси</string>
     <string name="profile_ping_all">Задержка: все узлы</string>
     <string name="profile_ping_all_short">Пинг</string>
+    <string name="proxy_ping_node">Проверить задержку этого узла</string>
     <string name="profile_force_update">Обновить подписку по ссылке</string>
     <string name="profile_active_status">Активна</string>
     <string name="profile_inactive_status">Готова</string>

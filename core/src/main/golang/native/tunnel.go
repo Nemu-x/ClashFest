@@ -130,6 +130,39 @@ func healthCheckWithCallback(callback unsafe.Pointer, name C.c_string, testUrl C
 	}(C.GoString(name), C.GoString(testUrl), callback)
 }
 
+//export healthCheckProxyWithCallback
+func healthCheckProxyWithCallback(callback unsafe.Pointer, group C.c_string, name C.c_string, testUrl C.c_string) {
+	go func(group string, name string, testUrl string, callback unsafe.Pointer) {
+		completed := false
+		defer func() {
+			if r := recover(); r != nil {
+				logRecover("healthCheckProxyWithCallback", r)
+				if !completed {
+					C.proxy_delay_complete(callback, marshalString(fmt.Sprintf("native panic: %v", r)))
+					C.release_object(callback)
+				}
+			}
+		}()
+
+		earlyErr := tunnel.HealthCheckProxyWithCallback(group, name, testUrl, func(proxyName string, delayMs int, errMsg string) {
+			var errCStr *C.char
+			if errMsg != "" {
+				errCStr = marshalString(errMsg)
+			}
+			C.proxy_delay_report(callback, marshalString(proxyName), C.int(delayMs), errCStr)
+		})
+
+		var earlyErrCStr *C.char
+		if earlyErr != "" {
+			earlyErrCStr = marshalString(earlyErr)
+		}
+		C.proxy_delay_complete(callback, earlyErrCStr)
+
+		C.release_object(callback)
+		completed = true
+	}(C.GoString(group), C.GoString(name), C.GoString(testUrl), callback)
+}
+
 //export healthCheckAll
 func healthCheckAll() {
 	defer guard("healthCheckAll")()

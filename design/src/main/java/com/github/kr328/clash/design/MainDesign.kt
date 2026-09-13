@@ -143,6 +143,8 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     )
 
     val profilePingAllRequests = Channel<PingAllRequest>(Channel.UNLIMITED)
+    /** Single-node latency test (tap on a capsule): profile, group, proxy. */
+    val proxyPingNodeRequests = Channel<Triple<Profile, String, String>>(Channel.UNLIMITED)
     val profileForceUpdateRequests = Channel<Profile>(Channel.UNLIMITED)
     val profileProxyYamlRequests = Channel<Triple<Profile, String, String>>(Channel.UNLIMITED)
     /** Fires when user expands/collapses any profile panel so the host can reload proxy previews. */
@@ -283,6 +285,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         { profile -> profileForceUpdateRequests.trySend(profile) },
         { profile, group, proxy -> profileProxyYamlRequests.trySend(Triple(profile, group, proxy)) },
         { profile, group -> profileVisibleGroupChanged.trySend(profile to group) },
+        { profile, group, proxy -> proxyPingNodeRequests.trySend(Triple(profile, group, proxy)) },
         expandOnProfileClick = true,
     )
 
@@ -307,6 +310,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         },
         { profile, group, proxy -> profileProxyYamlRequests.trySend(Triple(profile, group, proxy)) },
         { profile, group -> profileVisibleGroupChanged.trySend(profile to group) },
+        { profile, group, proxy -> proxyPingNodeRequests.trySend(Triple(profile, group, proxy)) },
         expandOnProfileClick = false,
         showServerChooserInCard = true,
         showActivateButton = false,
@@ -1228,6 +1232,14 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         withContext(Dispatchers.Main) {
             profileAdapter.patchSingleProxyDelay(group, proxy, delayMs)
             tabProfileAdapter.patchSingleProxyDelay(group, proxy, delayMs)
+        }
+    }
+
+    /** Drops the "…" of a single-node test that produced no measurement (offline miss, engine error). */
+    suspend fun clearNodePingPending(proxy: String) {
+        withContext(Dispatchers.Main) {
+            profileAdapter.completeNodePing(proxy)
+            tabProfileAdapter.completeNodePing(proxy)
         }
     }
 
