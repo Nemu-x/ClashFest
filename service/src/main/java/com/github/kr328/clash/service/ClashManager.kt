@@ -170,6 +170,24 @@ class ClashManager(private val context: Context) : IClashManager,
         runCatching { observer.onComplete(finalErr) }
     }
 
+    override suspend fun healthCheckProxy(
+        group: String,
+        proxy: String,
+        testUrl: String,
+        observer: IProxyDelayObserver,
+    ) {
+        val finalErr: String? = runCatching {
+            Clash.healthCheckProxy(group, proxy, testUrl) { name, ms, err ->
+                runCatching { observer.onDelay(group, name, ms, err) }
+                    .onFailure { e -> Log.w("ClashManager.healthCheckProxy: observer.onDelay failed", e) }
+            }.await()
+            null
+        }.getOrElse { e ->
+            e.message ?: e::class.simpleName ?: "unknown"
+        }
+        runCatching { observer.onComplete(finalErr) }
+    }
+
     override fun healthCheckAll() {
         Clash.healthCheckAll()
     }

@@ -30,6 +30,7 @@ object Bridge {
     external fun nativeQueryGroup(name: String, sort: String): String?
     external fun nativeHealthCheck(completable: CompletableDeferred<Unit>, name: String)
     external fun nativeHealthCheckWithCallback(callback: ProxyDelayCallback, name: String, testUrl: String)
+    external fun nativeHealthCheckProxyWithCallback(callback: ProxyDelayCallback, group: String, name: String, testUrl: String)
     external fun nativeHealthCheckAll()
     external fun nativeHealthCheckAutoGroups(completable: CompletableDeferred<Unit>)
     external fun nativePatchSelector(selector: String, name: String): Boolean

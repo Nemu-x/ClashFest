@@ -447,6 +447,7 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="profile_expand_proxies">Proxy groups</string>
     <string name="profile_ping_all">Latency test (all nodes)</string>
     <string name="profile_ping_all_short">Ping</string>
+    <string name="proxy_ping_node">Test latency of this node</string>
     <string name="profile_force_update">Update subscription from URL</string>
     <string name="profile_active_status">Active</string>
     <string name="profile_inactive_status">Ready</string>

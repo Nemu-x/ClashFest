@@ -52,6 +52,8 @@ class ProfileAdapter(
     private val onProxyYamlDetail: (profile: Profile, groupName: String, proxyName: String) -> Unit =
         { _, _, _ -> },
     private val onVisibleGroupChanged: (Profile, String) -> Unit = { _, _ -> },
+    /** Tap on a node's latency capsule: measure just that node (profile, group, proxy). */
+    private val onPingNode: (Profile, String, String) -> Unit = { _, _, _ -> },
     private val expandOnProfileClick: Boolean = false,
     private val showServerChooserInCard: Boolean = true,
     private val showActivateButton: Boolean = true,
@@ -88,6 +90,37 @@ class ProfileAdapter(
     // active-card rebind per push froze the UI (the expanded card re-renders every node row each
     // time). We patch the data immediately but coalesce the rebind into one notify per window.
     private val mainHandler = Handler(Looper.getMainLooper())
+
+    /**
+     * Nodes whose single-node latency test is in flight (tap on the capsule). Keyed by proxy name:
+     * the measurement is per proxy, whichever group row it was tapped in. Rows render "…" while
+     * pending; the entry is dropped by the first result for that proxy (engine push or the offline
+     * TCP fallback) or by the safety timeout, so a lost callback can never freeze the capsule.
+     */
+    private val pendingNodePings = HashSet<String>()
+
+    /**
+     * Installed by the open node-picker sheet: re-resolves and rebinds the row of one proxy so a
+     * single-node result lands in the RecyclerView immediately, without waiting for the sheet's
+     * ping-all tick (which only runs while a whole-group test is active).
+     */
+    private var sheetDelayPatcher: ((proxyName: String) -> Unit)? = null
+
+    private fun markNodePingPending(proxyName: String): Boolean {
+        if (!pendingNodePings.add(proxyName)) return false
+        mainHandler.postDelayed({ completeNodePing(proxyName) }, NODE_PING_PENDING_TIMEOUT_MS)
+        return true
+    }
+
+    private fun isNodePingPending(proxyName: String): Boolean = proxyName in pendingNodePings
+
+    /** @return true when [proxyName] was pending (the caller should rebind its row). */
+    fun completeNodePing(proxyName: String): Boolean {
+        if (!pendingNodePings.remove(proxyName)) return false
+        scheduleActiveCardNotify()
+        sheetDelayPatcher?.invoke(proxyName)
+        return true
+    }
     private var activeCardNotifyScheduled = false
     private val activeCardNotifyRunnable = Runnable {
         activeCardNotifyScheduled = false
@@ -444,27 +477,39 @@ class ProfileAdapter(
      */
     fun patchSingleProxyDelay(groupName: String, proxyName: String, delayMs: Int) {
         if (groupName.isBlank() || proxyName.isBlank()) return
-        val active = activeProfileUuid ?: return
+        // A single-node test resolves here too: drop its "…" even when the value did not change,
+        // and only THEN re-resolve the sheet row, so the patcher reads the fresh delay.
+        val wasPending = pendingNodePings.remove(proxyName)
+        val changed = applyProxyDelayPatch(groupName, proxyName, delayMs)
+        if (changed || wasPending) scheduleActiveCardNotify()
+        // Sheet rows are refreshed by the ping-all tick during a group test; the direct patch is
+        // only for the single-node flow, otherwise a 200-node burst would run 200 DiffUtil passes.
+        if (wasPending) sheetDelayPatcher?.invoke(proxyName)
+    }
+
+    /** @return true when [proxyName]'s delay inside [groupName] actually changed. */
+    private fun applyProxyDelayPatch(groupName: String, proxyName: String, delayMs: Int): Boolean {
+        val active = activeProfileUuid ?: return false
         val current = proxyDetails
         val key = if (current.containsKey(groupName)) {
             groupName
         } else {
             // A write path: patching the wrong group's selection is worse than not patching.
-            current.keys.filter { groupsMatchKey(groupName, it) }.singleOrNull() ?: return
+            current.keys.filter { groupsMatchKey(groupName, it) }.singleOrNull() ?: return false
         }
-        val existing = current[key] ?: return
+        val existing = current[key] ?: return false
         val proxyIdx = existing.proxies.indexOfFirst { it.name == proxyName }
-        if (proxyIdx < 0) return
-        if (existing.proxies[proxyIdx].delay == delayMs) return
+        if (proxyIdx < 0) return false
+        if (existing.proxies[proxyIdx].delay == delayMs) return false
         val updatedProxies = existing.proxies.toMutableList().also { list ->
             list[proxyIdx] = list[proxyIdx].copy(delay = delayMs)
         }
         proxyDetails = current.toMutableMap().apply {
             this[key] = existing.copy(proxies = updatedProxies)
         }
-        // Coalesce the rebind: a URL-test fires this once per proxy in a burst; one debounced
-        // notify keeps the latest delays without freezing the main thread on big node lists.
-        scheduleActiveCardNotify()
+        // The caller coalesces the rebind: a URL-test fires this once per proxy in a burst; one
+        // debounced notify keeps the latest delays without freezing the main thread on big lists.
+        return true
     }
 
     fun clearProxyDetails() {
@@ -513,6 +558,10 @@ class ProfileAdapter(
                 standalonePingDelays[key] = ms
                 changed = true
             }
+        }
+        // After the write, so a pending single-node row re-resolves to the fresh value.
+        for (name in results.keys) {
+            if (completeNodePing(name)) changed = true
         }
         if (!changed) return
         val i = profiles.indexOfFirst { it.uuid == uuid }
@@ -1294,7 +1343,27 @@ class ProfileAdapter(
             reportVisibleGroup(profile, groupNames[idx])
 
             sheet.root.post(refreshRunnable)
+            sheetDelayPatcher = { proxyName ->
+                if (dialog.isShowing) {
+                    val list = nodeAdapter.currentList
+                    val idx = list.indexOfFirst { it.proxy.name == proxyName }
+                    if (idx >= 0) {
+                        // Resolve against the LIVE engine detail, not the row's own Proxy snapshot:
+                        // rows are built once per render, so their embedded delay is stale by now.
+                        val row = list[idx]
+                        val fresh = proxyDetails[row.groupName]?.proxies?.firstOrNull { it.name == proxyName }
+                            ?: row.proxy
+                        val patched = list.toMutableList().also { rows ->
+                            rows[idx] = row.copy(proxy = fresh, delayMs = resolveProxyDelay(profile.uuid, fresh))
+                        }
+                        // notifyItemChanged after submitList: DiffUtil skips a row whose delay did
+                        // not change, but its "…" text still has to be replaced by the value.
+                        nodeAdapter.submitList(patched) { nodeAdapter.notifyItemChanged(idx) }
+                    }
+                }
+            }
             dialog.setOnDismissListener {
+                sheetDelayPatcher = null
                 sheet.root.removeCallbacks(refreshRunnable)
                 pendingSearch?.let(sheet.proxySheetSearch::removeCallbacks)
                 pendingSearch = null
@@ -1855,8 +1924,7 @@ class ProfileAdapter(
         val dot = row.findViewById<View>(R.id.latency_dot)
         val delayView = row.findViewById<TextView>(R.id.proxy_delay)
         if (capsule != null && dot != null && delayView != null) {
-            delayView.text = formatDelay(delayMs)
-            applyDelayStyle(capsule, dot, delayView, delayMs, row.context)
+            bindDelayCapsule(capsule, dot, delayView, pickerRow.proxy.name, delayMs)
         }
         val selected = pickerRow.selected
         row.isSelected = selected
@@ -1976,8 +2044,14 @@ class ProfileAdapter(
         val capsule = row.findViewById<View>(R.id.latency_capsule)
         val dot = row.findViewById<View>(R.id.latency_dot)
         val delayView = row.findViewById<TextView>(R.id.proxy_delay)
-        delayView.text = formatDelay(delayMs)
-        applyDelayStyle(capsule, dot, delayView, delayMs, context)
+        bindDelayCapsule(capsule, dot, delayView, p.name, delayMs)
+        // Tap the capsule → measure just this node. The capsule sits inside the clickable row, so
+        // it consumes the touch and the row's select/detail handlers do not fire.
+        capsule.setOnClickListener {
+            if (!markNodePingPending(p.name)) return@setOnClickListener
+            delayView.text = NODE_PING_PENDING_TEXT
+            onPingNode(profile, groupName, p.name)
+        }
 
         val selected = pickerRow.selected
         row.isSelected = selected
@@ -2337,6 +2411,12 @@ class ProfileAdapter(
         }
     }
 
+    /** Latency capsule text + style; a node with a single-node test in flight shows "…". */
+    private fun bindDelayCapsule(capsule: View, dot: View, delayView: TextView, proxyName: String, delayMs: Int) {
+        applyDelayStyle(capsule, dot, delayView, delayMs, capsule.context)
+        delayView.text = if (isNodePingPending(proxyName)) NODE_PING_PENDING_TEXT else formatDelay(delayMs)
+    }
+
     private fun formatDelay(delayMs: Int): String =
         when {
             delayMs in 0..Short.MAX_VALUE -> "${delayMs}ms"
@@ -2490,6 +2570,12 @@ class ProfileAdapter(
     }
 
     private companion object {
+        /** Shown in the latency capsule while a single-node test is in flight. */
+        private const val NODE_PING_PENDING_TEXT = "…"
+
+        /** Longer than any provider health-check timeout we honour; only guards a lost callback. */
+        private const val NODE_PING_PENDING_TIMEOUT_MS = 20_000L
+
         /** Coalesce window for live URL-test delay pushes (one card rebind instead of N). */
         const val ACTIVE_CARD_NOTIFY_DEBOUNCE_MS = 250L
     }
