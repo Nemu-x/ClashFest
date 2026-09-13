@@ -689,35 +689,19 @@
                                 android:textColor="?attr/colorOnSurfaceVariant"
                                 tools:text="Zhapon VPN" />
 
-                            <LinearLayout
+                            <!-- One text, up to two lines: "URL • Days left: 22 • 5.01 GiB / 100 GiB".
+                                 Two side-by-side single-line views squeezed the traffic value into
+                                 a few dp next to the update/support buttons and ellipsised it. -->
+                            <TextView
+                                android:id="@+id/main_active_profile_meta"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal">
-
-                                <TextView
-                                    android:id="@+id/main_active_profile_meta"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:ellipsize="end"
-                                    android:maxLines="1"
-                                    android:textAppearance="@style/TextAppearance.App.BodySmall"
-                                    android:textColor="?attr/colorOnSurfaceVariant"
-                                    tools:text="URL" />
-
-                                <TextView
-                                    android:id="@+id/main_active_profile_usage"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="8dp"
-                                    android:ellipsize="end"
-                                    android:maxLines="1"
-                                    android:gravity="end"
-                                    android:textAppearance="@style/TextAppearance.App.BodySmall"
-                                    android:textColor="?attr/colorOnSurfaceVariant"
-                                    tools:text="310.40 MiB / ∞" />
-                            </LinearLayout>
+                                android:ellipsize="end"
+                                android:maxLines="2"
+                                android:textAppearance="@style/TextAppearance.App.BodySmall"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                tools:text="URL • Days left: 22 • 310.40 MiB / ∞" />
                         </LinearLayout>
 
                         <LinearLayout

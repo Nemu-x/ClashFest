@@ -1067,10 +1067,8 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     private fun renderActiveProfileCard(profile: Profile?) {
         val p = profile
         binding.mainActiveProfileValue.text = p?.name.orEmpty().ifBlank { context.getString(R.string.not_selected) }
-        binding.mainActiveProfileMeta.text = p?.let(::profileMetaLabel).orEmpty()
+        binding.mainActiveProfileMeta.text = p?.let { "${profileMetaLabel(it)} • ${usageLabel(it)}" }.orEmpty()
         binding.mainActiveProfileMeta.visibility = if (p != null) View.VISIBLE else View.GONE
-        binding.mainActiveProfileUsage.text = p?.let(::usageLabel).orEmpty()
-        binding.mainActiveProfileUsage.visibility = if (p != null) View.VISIBLE else View.GONE
         val showUpdate = p?.imported == true && p.type != Profile.Type.File
         binding.mainActiveProfileUpdate.visibility = if (showUpdate) View.VISIBLE else View.GONE
         val showSupport = !resolveSupportUrl().isNullOrBlank()
