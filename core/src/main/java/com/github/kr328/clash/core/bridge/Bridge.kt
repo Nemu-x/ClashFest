@@ -1,5 +1,6 @@
 package com.github.kr328.clash.core.bridge
 
+import android.content.pm.ApplicationInfo
 import android.os.Build
 import android.os.ParcelFileDescriptor
 import androidx.annotation.Keep
@@ -28,14 +29,16 @@ object Bridge {
     external fun nativeQueryAllGroupNamesIncludingHidden(): String
     external fun nativeQueryGroup(name: String, sort: String): String?
     external fun nativeHealthCheck(completable: CompletableDeferred<Unit>, name: String)
-    external fun nativeHealthCheckWithCallback(callback: ProxyDelayCallback, name: String)
+    external fun nativeHealthCheckWithCallback(callback: ProxyDelayCallback, name: String, testUrl: String)
     external fun nativeHealthCheckAll()
+    external fun nativeHealthCheckAutoGroups(completable: CompletableDeferred<Unit>)
     external fun nativePatchSelector(selector: String, name: String): Boolean
     external fun nativeFetchAndValid(
         completable: FetchCallback,
         path: String,
         url: String,
         force: Boolean,
+        viaProxy: Boolean,
         subscriptionHeadersJson: String,
     )
 
@@ -56,7 +59,10 @@ object Bridge {
     external fun nativeValidateProfile(completable: CompletableDeferred<Unit>, path: String)
     external fun nativeParseProfileSnapshot(path: String): String
     external fun nativeParseProfileSnapshotFromBytes(yaml: String): String
+    external fun nativeResolveProxyGroupsFromBytes(yaml: String): String
     external fun nativeValidateProfileBytes(yaml: String): String?
+
+    external fun nativeApplyConfigScript(yaml: String, script: String, profileName: String): String
     external fun nativeQueryProviders(): String
     external fun nativeQueryConnectionsSnapshot(): String
     external fun nativeCloseConnection(id: String): Boolean
@@ -74,7 +80,7 @@ object Bridge {
     external fun nativeSubscribeLogcat(callback: LogcatInterface)
     external fun nativeCoreVersion(): String
 
-    private external fun nativeInit(home: String, versionName: String, sdkVersion: Int)
+    private external fun nativeInit(home: String, versionName: String, sdkVersion: Int, debug: Boolean)
 
     init {
         System.loadLibrary("bridge")
@@ -87,9 +93,13 @@ object Bridge {
         val home = ctx.filesDir.resolve("clash").apply { mkdirs() }.absolutePath
         val versionName = ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "unknown"
         val sdkVersion = Build.VERSION.SDK_INT
+        // Gates how much of the engine's log bus is mirrored into logcat: everything while
+        // developing, warnings and errors only in release. Read off the installed app rather than
+        // BuildConfig so the core module doesn't need one. See shouldForwardToLogcat.
+        val debuggable = (ctx.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
         Log.d("Home = $home")
 
-        nativeInit(home, versionName, sdkVersion)
+        nativeInit(home, versionName, sdkVersion, debuggable)
     }
 }

@@ -352,6 +352,22 @@ wipes cosmetic branding).
 X-Network-Stack: system
 ```
 
+### `X-Bypass-Preset`
+
+| | |
+|---|---|
+| Type | preset id: `ru` \| `ir` \| `cn` (any id bundled in `assets/bypass_presets/`), or `none` |
+| Status | **v1** |
+| Needs `X-Branding-Enabled`? | **No** — operator policy, applies unbranded. |
+| Applied to | *Recommends* a regional per-app bypass preset (apps excluded from the VPN at the system level — local banks, government, marketplaces get the user's real ISP connection). On the next VPN start the client shows a confirm dialog: "Your provider recommends the &lt;region&gt; bypass preset. Found N installed apps — route them outside the VPN tunnel?" |
+| Default | Header absent → keep whatever is stored; `none` → withdraw the recommendation. |
+| Notes | **Recommendation only — never auto-applied.** Per-app bypass exposes the user's real IP to the bypassed apps, so it stays an explicit user decision; the header cannot silently move traffic out of the tunnel. **Re-offer rules:** the client remembers the answer per profile keyed by preset id + the *bundled list version*. If the user **applied** and a later app update ships a larger version of that list (its JSON `version` bumped), the client re-offers once ("list updated, +N apps — add?"). If the user **skipped**, that region is never offered again regardless of list growth. A *different* preset id (`ru`→`cn`) always offers. Applying is additive: the user's manual per-app selection is preserved, and the user can always re-apply or edit via Routing → Per-app → menu → "Apply bypass preset…". Unknown preset ids and presets matching zero installed apps are consumed silently. Stored per-profile (`subscriptionBypassPresetFor(uuid)`), cleared on profile delete. Accepted spellings (case-insensitive): `X-Bypass-Preset`, `bypass-preset`, `bypass_preset`. |
+
+**Example (suggest the Russian bypass list to this subscription's users):**
+```
+X-Bypass-Preset: ru
+```
+
 ### `x-hwid-active` / `x-hwid-not-supported` / `x-hwid-max-devices-reached` / `x-hwid-limit` (existing)
 
 | | |

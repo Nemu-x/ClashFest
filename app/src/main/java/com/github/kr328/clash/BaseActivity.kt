@@ -309,6 +309,15 @@ abstract class BaseActivity<D : Design<*>> : AppCompatActivity(),
             // widgets unambiguously neutral — and re-applies TrueBlack surfaces when pure-black is on
             // (otherwise the neutral pin leaves grey cards on the black canvas).
             com.github.kr328.clash.design.branding.BrandThemeApplier.applyToActivity(this)
+
+            // Font weight last (#195), so the chosen face beats the base theme's. Sloth is skipped
+            // for the same reason it skips palette / dynamic-color / true-black above: it is a
+            // self-contained look. Mirrored in BrandThemeApplier.themedContextFor for MainActivity.
+            if (uiStore.homeBackgroundStyle != HomeBackgroundStyle.Sloth) {
+                com.github.kr328.clash.design.branding.BrandThemeApplier
+                    .fontWeightOverlay(uiStore.themeFontWeight)
+                    ?.let { theme.applyStyle(it, true) }
+            }
         }
 
         applyWindowAppearance(this)

@@ -286,7 +286,55 @@ available in the `fetchProviders` closure, so this is cheaply fixable.
 | `E-10` | Body downloaded but blank | "server returned an empty response — try again later" |
 | `E-11` | Body is an HTML error/rate-limit page | "server returned a web page, not a config" |
 | `E-20` | Nothing downloaded + network-reach failure (DNS/TLS/connect timeout, host blocked) | "couldn't reach the subscription server — check your connection / host may be blocked" |
+| `E-40` | `x-hwid-limit` / `x-hwid-max-devices-reached` on a failed update | "this device was refused because the subscription has reached its device limit" (+ `support-url` when present) |
+| `E-41` | `subscription-userinfo` carries an `expire=` already in the past, on a failed update | "your subscription expired on YYYY-MM-DD — renew it, then update again" |
+| `E-21` | Server answered with a non-2xx status (wording varies by code: 401/402 account, 403/451 refused on both routes, 404/410 dead link, 5xx panel trouble) | "the subscription server rejected your account (HTTP 401) — re-import from your dashboard" |
 | `E-30` | Body is an age armor the engine couldn't decrypt (missing/wrong key) | "subscription is age-encrypted — import the full link from your dashboard, or set the profile's age secret key" |
+
+### Stable error codes — user config script (`ConfigScriptError`)
+
+A separate family, because these do not come from fetching anything: they happen at **compose**
+time, when the user's JS script runs over the composed config
+(`native/config/configscript`, surfaced as `ConfigScriptError`). The engine returns a stable
+sentinel string; the UI maps it to a code and its own wording, and never shows the raw engine
+message — that goes to the log.
+
+| Code | Engine sentinel | Condition | Message gist |
+|---|---|---|---|
+| `E-60` | `script-compile` | The script does not parse | "your script has a syntax error" |
+| `E-61` | `script-no-main` | Parses, but never defines `main` | "the script must define `function main(config)`" |
+| `E-62` | `script-runtime` | `main()` threw | "your script stopped with an error" |
+| `E-63` | `script-bad-value` | `main()` returned nothing, or not an object | "the script must `return config`" |
+| `E-64` | `script-timeout` | `main()` ran past the engine cap (3s) — in practice a runaway loop | "your script took too long and was stopped" |
+| `E-65` | `script-too-large` | The returned document is implausibly large | "the script produced too large a config" |
+
+**A failing script never costs the user a working tunnel.** Both compose call sites catch it,
+recompose with the script dropped, and keep everything else in the layer: a scheduled
+subscription refresh has nobody watching it, and refusing to update because a script broke would
+be a worse outcome than updating without it. The code is logged either way.
+
+**Operator lock.** When the subscription sends `X-Brand-Lock-Config-Script: true`, scripts are
+skipped at compose time and the editor is not offered — a script can rewrite `proxies`, `dns` and
+`rules` wholesale, which would otherwise be a way around operator policy. Enforcement is at
+compose, not just in the UI, so a script saved before the operator set the flag stops running too.
+
+`E-40`/`E-41` come from the response headers the Go fetch snapshots into the staging
+directory. They are checked **before** everything else, including before a Layer 3 engine
+error is passed through: an expired panel typically serves a *valid* YAML with its proxies
+stripped out, so the engine reports `proxy 'X' not found` and the user goes hunting for a
+config problem they cannot fix. Measured on a real expired subscription — the panel sent
+`expire=` one day in the past while the app blamed a missing node. The engine's precise
+message stays attached as the exception's `cause`.
+
+Both are **explanatory only**. A panel that serves a working config while flagging the
+account is not refusing anything, and manufacturing an error out of that flag would break a
+live profile over a stale header — so neither code can turn a successful update into a
+failure. (The reference header table other clients implement does make `x-hwid-limit: true`
+fail an import outright; that is a deliberate divergence.)
+
+The staging snapshot is rewritten — or removed — on the failure path too, because staging is
+seeded with a copy of the existing profile: a leftover snapshot from the last successful
+download would otherwise explain today's failure with last week's headers.
 
 `E-52` (provider-init timeout at activation) is **not** implemented: with B deferred,
 those failures stay non-fatal log lines (`initial rule provider … error`), not surfaced

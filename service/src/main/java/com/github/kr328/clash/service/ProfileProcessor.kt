@@ -20,6 +20,8 @@ import com.github.kr328.clash.service.util.RuleMapper
 import com.github.kr328.clash.service.util.FetchErrorClassifier
 import com.github.kr328.clash.service.util.MergeEngineVerdict
 import com.github.kr328.clash.service.util.ConfigComposer
+import com.github.kr328.clash.service.util.ConfigScriptException
+import com.github.kr328.clash.service.util.ConfigScriptPolicy
 import com.github.kr328.clash.service.util.GeoDataSources
 import com.github.kr328.clash.service.util.ProfileComposer
 import com.github.kr328.clash.service.util.ProfileMigration
@@ -78,6 +80,7 @@ object ProfileProcessor {
                         context.processingDir,
                         snapshot.source,
                         force,
+                        ServiceStore(context).subscriptionUpdateViaProxy(snapshot.uuid),
                         SubscriptionRequestHeaders.toNativeFetchJson(context, userAgentOverride),
                     ) {
                         try {
@@ -98,6 +101,7 @@ object ProfileProcessor {
                         context.processingDir,
                         snapshot.source,
                         force,
+                        ServiceStore(context).subscriptionUpdateViaProxy(snapshot.uuid),
                         SubscriptionRequestHeaders.toNativeFetchJson(context, null),
                     ) {
                         try {
@@ -266,6 +270,7 @@ object ProfileProcessor {
                         context.processingDir,
                         snapshot.source,
                         true,
+                        ServiceStore(context).subscriptionUpdateViaProxy(snapshot.uuid),
                         SubscriptionRequestHeaders.toNativeFetchJson(context, userAgentOverride),
                     ) {
                         try {
@@ -286,6 +291,7 @@ object ProfileProcessor {
                         context.processingDir,
                         snapshot.source,
                         true,
+                        ServiceStore(context).subscriptionUpdateViaProxy(snapshot.uuid),
                         SubscriptionRequestHeaders.toNativeFetchJson(context, null),
                     ) {
                         try {
@@ -305,7 +311,7 @@ object ProfileProcessor {
                 if (configFile.isFile) {
                     val fetchedText = configFile.readText()
                     // The freshly fetched subscription is the new canonical base; persist it and
-                    // compose the captured user layer on top (Clash-Verge-Rev style overlay).
+                    // compose the captured user layer on top (overlay model).
                     File(context.processingDir, ProfileComposer.SUBSCRIPTION_FILE).writeText(fetchedText)
                     UserLayerStore.saveAt(context.processingDir, capturedLayer)
                     val geoUrls = GeoDataSources.resolve(
@@ -315,9 +321,22 @@ object ProfileProcessor {
                         customMmdb = serviceStore.geoDataCustomMmdb,
                         customAsn = serviceStore.geoDataCustomAsn,
                     )
-                    val composed = ConfigComposer.compose(
-                        fetchedText, capturedLayer, geoUrls, serviceStore.proxyHardeningMode,
-                    )
+                    // A user script that stopped working must not stop the subscription from
+                    // updating — a scheduled refresh has nobody watching it. Drop the script for
+                    // this pass and keep everything else; the code is logged for the editor.
+                    val composed = try {
+                        ConfigComposer.compose(
+                            fetchedText, capturedLayer, geoUrls, serviceStore.proxyHardeningMode,
+                            ConfigScriptPolicy.runnerFor(context, snapshot.uuid, snapshot.name),
+                        )
+                    } catch (e: ConfigScriptException) {
+                        Log.w("User script failed (${e.error.code}) for ${snapshot.uuid}; updating without it: ${e.message}")
+                        serviceStore.setUpdateEngineWarning(snapshot.uuid, true)
+                        ConfigComposer.compose(
+                            fetchedText, capturedLayer.copy(script = null), geoUrls,
+                            serviceStore.proxyHardeningMode,
+                        )
+                    }
                     // Runtime engine gate (§config-engine-gate): NEVER apply a config the engine
                     // rejects. If our overlay broke an otherwise-valid subscription, fall back to the
                     // clean fetched subscription so the update still works, and surface that the local

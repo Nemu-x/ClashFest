@@ -35,6 +35,7 @@ class AccessControlDesign(
         Import,
         Export,
         ChangeMode,
+        ApplyPreset,
     }
 
     var pendingMode: AccessControlMode? = null

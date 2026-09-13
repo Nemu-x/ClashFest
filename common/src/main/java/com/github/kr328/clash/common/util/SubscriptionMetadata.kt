@@ -40,6 +40,14 @@ data class SubscriptionMetadata(
      * the system default". null = header absent. An unrecognised value maps to null.
      */
     val networkStack: String? = null,
+    /**
+     * Operator-recommended bypass preset id from `X-Bypass-Preset` (e.g. `ru`, `ir`, `cn` —
+     * must match a preset bundled in `assets/bypass_presets/`). `none` clears a previously
+     * stored recommendation. Never auto-applied: the client only *offers* it once per
+     * (profile, value) with an explicit confirm — per-app bypass moves traffic outside the
+     * tunnel, which must stay a user decision. null = header absent.
+     */
+    val bypassPreset: String? = null,
 ) {
     fun isEmpty(): Boolean =
         supportUrl == null &&
@@ -54,7 +62,8 @@ data class SubscriptionMetadata(
             hwidNotSupported == null &&
             hwidMaxDevicesReached == null &&
             hwidLimit == null &&
-            networkStack == null
+            networkStack == null &&
+            bypassPreset == null
 }
 
 object SubscriptionMetadataFetcher {
@@ -197,6 +206,13 @@ object SubscriptionMetadataFetcher {
                 "X-NetworkStack", "X-NetworkStack-enabled", "x-networkstack-enabled",
             ),
         )
+        val bypassPreset = parseBypassPreset(
+            header(
+                "bypass-preset", "Bypass-Preset",
+                "X-Bypass-Preset", "x-bypass-preset",
+                "bypass_preset",
+            ),
+        )
         val hwidActive = parseBooleanHeader(header("x-hwid-active", "X-HWID-ACTIVE"))
         val hwidNotSupported = parseBooleanHeader(header("x-hwid-not-supported", "X-HWID-NOT-SUPPORTED"))
         val hwidMaxDevicesReached = parseBooleanHeader(
@@ -218,7 +234,19 @@ object SubscriptionMetadataFetcher {
             hwidMaxDevicesReached = hwidMaxDevicesReached,
             hwidLimit = hwidLimit,
             networkStack = networkStack,
+            bypassPreset = bypassPreset,
         )
+    }
+
+    /**
+     * `X-Bypass-Preset` value → lowercase preset id token (or the `none` sentinel), null when
+     * absent/garbage. Existence of the preset is checked by the consumer against the bundled
+     * assets — the parser only guards the shape.
+     */
+    private fun parseBypassPreset(raw: String?): String? {
+        if (raw.isNullOrBlank()) return null
+        val v = raw.trim().lowercase()
+        return v.takeIf { it.length in 1..32 && it.all { c -> c.isLetterOrDigit() || c == '_' || c == '-' } }
     }
 
     /** `X-Network-Stack` value → canonical stack, or null when absent/unrecognised. */

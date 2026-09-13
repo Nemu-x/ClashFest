@@ -6,7 +6,13 @@ import com.github.kr328.clash.common.util.AgeKeyUrl
 import com.github.kr328.clash.common.util.SubscriptionNameGuesser
 import com.github.kr328.clash.common.util.SubscriptionUsage
 import com.github.kr328.clash.core.Clash
+import com.github.kr328.clash.core.model.ConfigScriptError
+import com.github.kr328.clash.core.model.ConfigScriptResult
 import com.github.kr328.clash.core.model.ProfileSnapshot
+import com.github.kr328.clash.core.model.Proxy
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import com.github.kr328.clash.service.data.Database
 import com.github.kr328.clash.service.data.Imported
 import com.github.kr328.clash.service.data.ImportedDao
@@ -24,6 +30,10 @@ import com.github.kr328.clash.service.model.YamlPreview
 import com.github.kr328.clash.service.remote.IFetchObserver
 import com.github.kr328.clash.service.remote.IProfileManager
 import com.github.kr328.clash.service.store.ServiceStore
+import com.github.kr328.clash.service.model.ConfigScriptFailure
+import com.github.kr328.clash.service.model.ConfigScriptState
+import com.github.kr328.clash.service.util.ConfigScriptPolicy
+import com.github.kr328.clash.service.util.UserScript
 import com.github.kr328.clash.service.util.DnsHostsConfig
 import com.github.kr328.clash.service.util.DnsHostsYamlEdit
 import com.github.kr328.clash.service.util.TunnelsConfig
@@ -119,6 +129,24 @@ class ProfileManager(private val context: Context) : IProfileManager,
     private data class CachedSnapshot(val lastModified: Long, val snapshot: ProfileSnapshot)
     private val snapshotCache = LinkedHashMap<UUID, CachedSnapshot>()
     private val snapshotCacheLock = Any()
+
+    /**
+     * In-memory cache of the engine-resolved proxy-group preview keyed by
+     * profile UUID, mirroring [snapshotCache]. [engineProxyGroupsPreview] runs
+     * mihomo's full ParseRawConfig over config.yaml through JNI — far heavier
+     * than the snapshot parse — and the dashboard ticker calls it every ~2s per
+     * previewed profile, so without this the resolve dominated CPU/battery on
+     * heavy subscriptions while the app was open. Invalidated by config.yaml
+     * lastModified like the snapshot; the `null` result (engine could not
+     * parse → Kotlin fallback) is cached too, so an unparsable config is not
+     * re-resolved every tick.
+     */
+    private data class CachedEnginePreview(
+        val lastModified: Long,
+        val preview: Map<String, ProxyGroupPreviewRow>?,
+    )
+    private val enginePreviewCache = LinkedHashMap<UUID, CachedEnginePreview>()
+    private val enginePreviewCacheLock = Any()
     // Serializes nextProfileOrder() + Pending insert pairs. Without it, two concurrent
     // imports (e.g. auto-update + manual click) can both read the same MAX(profileOrder)
     // and produce duplicate ordering values that compare non-deterministically.
@@ -192,6 +220,9 @@ class ProfileManager(private val context: Context) : IProfileManager,
     private fun invalidateSnapshotCache(uuid: UUID) {
         synchronized(snapshotCacheLock) {
             snapshotCache.remove(uuid)
+        }
+        synchronized(enginePreviewCacheLock) {
+            enginePreviewCache.remove(uuid)
         }
     }
 
@@ -527,7 +558,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
 
         ProfileProcessor.delete(context, uuid)
         BrandRefresh.onProfileDeleted(context, uuid)
-        store.clearSubscriptionShareLinksLockedFor(uuid)
+        store.clearSubscriptionPoliciesFor(uuid)
         invalidateSnapshotCache(uuid)
     }
 
@@ -601,22 +632,104 @@ class ProfileManager(private val context: Context) : IProfileManager,
             }
             try {
                 val snapshot = getOrParseSnapshot(uuid, file)
-                // includeHidden = true: when the live engine path serves the
-                // UI, the picker pills walk every group (visible + hidden) via
-                // Clash.queryAllProxyGroupNamesIncludingHidden, so the offline
-                // preview must match that universe — otherwise hidden auto
-                // subgroups have no rows during the warmup race (live data not
-                // ready yet, offline fallback missing the group), and the
-                // expanded carriage flashes empty until proxyDetails arrives.
-                ProxyGroupsYamlPreview.parseProxyGroupsPreview(
-                    snapshot,
-                    file.parentFile,
-                    includeHidden = true,
-                )
+                // Ask the engine first. It resolves include-all* / use: / filter / exclude-filter /
+                // exclude-type exactly as the running tunnel does, so the disconnected UI reports the
+                // same membership as the connected one. The Kotlin preview below re-implements those
+                // semantics and has repeatedly diverged (a filter with a quantifier or lookahead
+                // silently collapsed a group to its declared proxies:; use:-backed groups resolved to
+                // nothing), so it stays only as a fallback for YAML the engine refuses to parse.
+                //
+                // includeHidden = true in both paths: when the live engine path serves the UI, the
+                // picker pills walk every group (visible + hidden) via
+                // Clash.queryAllProxyGroupNamesIncludingHidden, so the offline preview must match that
+                // universe — otherwise hidden auto subgroups have no rows during the warmup race and
+                // the expanded carriage flashes empty until proxyDetails arrives.
+                engineProxyGroupsPreview(uuid, file, snapshot)
+                    ?: ProxyGroupsYamlPreview.parseProxyGroupsPreview(
+                        snapshot,
+                        file.parentFile,
+                        includeHidden = true,
+                    )
             } catch (_: Exception) {
                 emptyMap()
             }
         }
+    }
+
+    /**
+     * Engine-resolved membership for the offline preview, or null when mihomo cannot parse the
+     * config (caller falls back to the Kotlin preview).
+     *
+     * `staticProxies` still comes from the snapshot: it must stay the *declared* `proxies:` list,
+     * never the expanded one, because the picker's 1-hop heuristic uses it to tell a pure dispatch
+     * shell from a group whose members are flat only because of `include-all`.
+     */
+    /**
+     * Cache wrapper over [engineProxyGroupsPreviewUncached]: reuses the resolved preview while
+     * config.yaml's lastModified is unchanged, so the dashboard ticker's ~2s cadence no longer
+     * re-runs mihomo's full parse on every tick (the 0.10.1 battery regression). Both a resolved
+     * map AND a `null` (engine could not parse) are cached — an unparsable config falls back to
+     * the Kotlin preview once, not every tick.
+     */
+    private fun engineProxyGroupsPreview(
+        uuid: UUID,
+        file: File,
+        snapshot: ProfileSnapshot,
+    ): Map<String, ProxyGroupPreviewRow>? {
+        val lastMod = file.lastModified()
+        synchronized(enginePreviewCacheLock) {
+            val cached = enginePreviewCache[uuid]
+            if (cached != null && cached.lastModified == lastMod) {
+                // LRU touch — promote to most-recently-used.
+                enginePreviewCache.remove(uuid)
+                enginePreviewCache[uuid] = cached
+                return cached.preview
+            }
+        }
+        val computed = engineProxyGroupsPreviewUncached(file, snapshot)
+        synchronized(enginePreviewCacheLock) {
+            enginePreviewCache[uuid] = CachedEnginePreview(lastMod, computed)
+            while (enginePreviewCache.size > SNAPSHOT_CACHE_MAX) {
+                enginePreviewCache.remove(enginePreviewCache.keys.first())
+            }
+        }
+        return computed
+    }
+
+    private fun engineProxyGroupsPreviewUncached(
+        file: File,
+        snapshot: ProfileSnapshot,
+    ): Map<String, ProxyGroupPreviewRow>? {
+        val resolved = runCatching { Clash.resolveProxyGroups(file.readText()) }.getOrNull()
+            ?: return null
+
+        val declaredByName = HashMap<String, List<String>>(snapshot.proxyGroups.size)
+        for (group in snapshot.proxyGroups) {
+            val name = (group["name"] as? JsonPrimitive)?.contentOrNull?.trim().orEmpty()
+            if (name.isEmpty()) continue
+            declaredByName[name] = (group["proxies"] as? JsonArray)
+                .orEmpty()
+                .mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.trim()?.takeIf(String::isNotEmpty) }
+        }
+
+        return resolved.associate { group ->
+            group.name to ProxyGroupPreviewRow(
+                type = engineGroupType(group.type),
+                members = group.all,
+                hidden = group.hidden,
+                staticProxies = declaredByName[group.name].orEmpty(),
+            )
+        }
+    }
+
+    /** mihomo marshals adapter types as `Selector` / `URLTest` / …; YAML spells them `url-test`. */
+    private fun engineGroupType(raw: String): Proxy.Type = when (raw.trim().lowercase()) {
+        "selector", "select" -> Proxy.Type.Selector
+        "fallback" -> Proxy.Type.Fallback
+        "urltest", "url-test" -> Proxy.Type.URLTest
+        "loadbalance", "load-balance" -> Proxy.Type.LoadBalance
+        "relay" -> Proxy.Type.Relay
+        else -> Proxy.Type.Selector
     }
 
     override suspend fun readProxyTransports(uuid: UUID): Map<String, ProxyTransportInfo> {
@@ -668,6 +781,80 @@ class ProfileManager(private val context: Context) : IProfileManager,
             } catch (_: Exception) {
                 null
             }
+        }
+    }
+
+    override suspend fun readConfigScript(uuid: UUID): ConfigScriptState {
+        return withContext(Dispatchers.IO) {
+            val layer = userLayerStore.load(uuid)
+            ConfigScriptState(
+                source = layer.script?.source.orEmpty(),
+                enabled = layer.script?.enabled ?: true,
+                locked = ConfigScriptPolicy.isLocked(context, uuid),
+            )
+        }
+    }
+
+    override suspend fun checkConfigScript(uuid: UUID, source: String): ConfigScriptFailure? {
+        return withContext(Dispatchers.IO) {
+            if (source.isBlank()) return@withContext null
+            // Dry-run against the config the engine is actually holding for this profile, so the
+            // check exercises the user's real data — a script can be valid JS and still blow up on
+            // a key this particular subscription does not have.
+            val current = File(context.importedDir, "$uuid/config.yaml")
+                .takeIf { it.isFile }
+                ?.let { runCatching { it.readText() }.getOrNull() }
+                .orEmpty()
+            val name = ImportedDao().queryByUUID(uuid)?.name.orEmpty()
+            when (val r = Clash.applyConfigScript(current, source, name)) {
+                is ConfigScriptResult.Success -> null
+                is ConfigScriptResult.Failure -> ConfigScriptFailure(r.error, r.message)
+            }
+        }
+    }
+
+    override suspend fun writeConfigScript(
+        uuid: UUID,
+        source: String,
+        enabled: Boolean,
+    ): ConfigScriptFailure? {
+        return withContext(Dispatchers.IO) {
+            if (ImportedDao().queryByUUID(uuid) == null) return@withContext null
+            if (ConfigScriptPolicy.isLocked(context, uuid)) {
+                // Belt and braces: the editor is read-only under an operator lock, but a save must
+                // not get through even if that check is ever bypassed.
+                return@withContext ConfigScriptFailure(
+                    ConfigScriptError.Runtime,
+                    "config scripts are disabled by the subscription operator",
+                )
+            }
+            // Refuse to store a script that cannot run — otherwise the profile silently carries a
+            // broken script that gets dropped on every compose, and the user is never told again.
+            if (enabled && source.isNotBlank()) {
+                checkConfigScript(uuid, source)?.let { return@withContext it }
+            }
+
+            userLayerStore.update(uuid) { layer ->
+                if (source.isBlank()) {
+                    layer.copy(script = null)
+                } else {
+                    layer.copy(script = UserScript(source = source, enabled = enabled))
+                }
+            }
+            // Re-compose so the change is live now rather than at the next update or VPN start.
+            runCatching {
+                ProfileOverlay.refreshFromStore(
+                    profileDir = File(context.importedDir, uuid.toString()),
+                    uuid = uuid,
+                    importedDir = context.importedDir,
+                    store = store,
+                    scriptRunner = ConfigScriptPolicy.runnerFor(
+                        context, uuid, ImportedDao().queryByUUID(uuid)?.name.orEmpty(),
+                    ),
+                )
+            }.onFailure { Log.w("ConfigScript: overlay refresh failed for $uuid", it) }
+            context.sendProfileChanged(uuid)
+            null
         }
     }
 

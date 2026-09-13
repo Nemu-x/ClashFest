@@ -3,12 +3,25 @@ package app
 import (
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
 var appVersionName string
 var platformVersion int
 var installedAppsUid = map[int]string{}
+
+// debugBuild gates verbosity that is only worth its cost while developing. Atomic because the
+// core's log-forwarding goroutine starts when the library loads, before coreInit sets this.
+var debugBuild atomic.Bool
+
+func ApplyDebugBuild(debug bool) {
+	debugBuild.Store(debug)
+}
+
+func DebugBuild() bool {
+	return debugBuild.Load()
+}
 
 func ApplyVersionName(versionName string) {
 	appVersionName = versionName

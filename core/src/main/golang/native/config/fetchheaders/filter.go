@@ -22,7 +22,7 @@ var allowlist = map[string]struct{}{
 	"x-brand-terms-url": {}, "x-brand-help-url": {}, "x-brand-status-url": {},
 	"x-brand-renew-url": {}, "x-brand-cabinet-url": {}, "x-brand-user-display-name": {},
 	"x-brand-greeting": {}, "x-brand-hide-routing": {}, "x-brand-hide-global-mode": {},
-	"x-brand-show-operator-tab": {},
+	"x-brand-show-operator-tab": {}, "x-brand-lock-config-script": {},
 }
 
 func Filter(header map[string][]string) map[string]string {

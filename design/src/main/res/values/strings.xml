@@ -109,7 +109,7 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="advanced_hub_network_summary">VPN, routing hardening and DNS</string>
     <string name="settings_geo">Geo</string>
     <string name="main_open_settings_summary">Theme, network, updates and advanced options</string>
-    <string name="main_open_theme_summary">Dark mode, palette and text scale</string>
+    <string name="main_open_theme_summary">Dark mode, palette, text scale and font weight</string>
     <string name="main_open_language_summary">Change app language without opening deep settings</string>
     <string name="main_open_subscription_identity_summary">HWID, clashfest:// scheme and copy buttons</string>
     <string name="main_open_about_summary">Version info and update check</string>
@@ -155,16 +155,22 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="sub_announcement_open_link">Open link</string>
     <string name="sub_announcement_support">Support</string>
     <!-- RU bypass pre-launch prompt -->
-    <string name="ru_bypass_prompt_title">Apply Russian bypass?</string>
-    <string name="ru_bypass_prompt_message">Your per-app exclusion list is empty. Route installed Russian apps (banks, Госуслуги, marketplaces, carriers) directly through your ISP and keep them out of the VPN tunnel? You can edit the list later in Routing → Per-app.</string>
-    <string name="ru_bypass_prompt_tile_note">The Quick Settings tile only starts or stops VPN; it does not change per-app routing.</string>
-    <string name="ru_bypass_prompt_apply">Apply</string>
-    <string name="ru_bypass_prompt_skip">Skip</string>
-    <string name="ru_bypass_prompt_seeded">%1$d Russian apps added to bypass list.</string>
-    <string name="ru_bypass_routing_prompt_title">Set up Russian app bypass?</string>
-    <string name="ru_bypass_routing_prompt_message">ClashFest can switch this screen to bypass mode and select installed Russian apps so they go directly through your ISP. You can edit the list after setup.</string>
-    <string name="ru_bypass_routing_prompt_apply">Set up bypass</string>
-    <string name="ru_bypass_routing_prompt_later">Not now</string>
+    <string name="bypass_preset_title_ru">Russia</string>
+    <string name="bypass_preset_title_ir">Iran</string>
+    <string name="bypass_preset_title_cn">China</string>
+    <string name="bypass_prompt_title">Apply %1$s bypass?</string>
+    <string name="bypass_prompt_message">Found %1$d installed apps from the %2$s list (banks, government, shopping, carriers). Route them directly through your ISP, outside the VPN tunnel? You can edit the list later in Routing → Per-app.</string>
+    <string name="bypass_prompt_tile_note">The Quick Settings tile only starts or stops VPN; it does not change per-app routing.</string>
+    <string name="bypass_prompt_apply">Apply</string>
+    <string name="bypass_prompt_skip">Skip</string>
+    <string name="bypass_preset_seeded">%1$d apps added to bypass list.</string>
+    <string name="bypass_preset_later">Not now</string>
+    <string name="bypass_preset_choose">Bypass preset</string>
+    <string name="bypass_preset_sheet_subtitle">Adds installed apps of the selected region (banks, government, shopping, carriers) to the bypass list — they connect directly, outside the VPN. Apps you picked manually are kept; re-apply anytime to pull in new apps.</string>
+    <string name="bypass_preset_option">%1$s — %2$d apps</string>
+    <string name="apply_bypass_preset">Apply bypass preset…</string>
+    <string name="bypass_operator_prompt_title">Provider recommendation</string>
+    <string name="bypass_operator_prompt_message">Your provider recommends the %2$s bypass preset. Found %1$d installed apps — route them directly through your ISP, outside the VPN tunnel? Apps you picked manually are kept. You can edit the list later in Routing → Per-app.</string>
     <string name="sub_meta_lock_user">Ignore operator overrides</string>
     <string name="sub_meta_lock_user_summary">Don’t let the subscription server overwrite locally edited support URL or announcement.</string>
     <string name="per_app_mode_all">All apps</string>
@@ -174,7 +180,7 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="effective_rules_title">Routing Rules</string>
     <string name="effective_rules_intro">Rules from the active profile (YAML order). In Rule mode, Clash walks this list top to bottom. This screen does not show live traffic.</string>
     <string name="effective_rules_count">%d rules in config</string>
-    <string name="effective_rules_connections_hint">For live hosts and proxy chains like Clash Verge, turn the VPN on and watch the core log while you use apps.</string>
+    <string name="effective_rules_connections_hint">To see live hosts and proxy chains, turn the VPN on and watch the core log while you use apps.</string>
     <string name="effective_rules_open_logcat">Open core log</string>
     <string name="effective_rules_no_profile">Select an imported profile first</string>
     <string name="effective_rules_search_hint">Search rules, policies, providers…</string>
@@ -501,6 +507,8 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="docs_url_operator_security">https://github.com/Nemu-x/ClashFest/wiki/Operator-API-Security</string>
     <string name="docs_url_supported_headers">https://github.com/Nemu-x/ClashFest/wiki/Deep-Links</string>
 
+    <string name="profile_proxy_sort">Sort nodes</string>
+    <string name="profile_proxy_filter">Filter nodes</string>
     <string name="profile_proxy_sort_config">Config order</string>
     <string name="profile_proxy_sort_delay">Delay</string>
     <string name="profile_proxy_sort_name">Name</string>
@@ -648,6 +656,8 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
 
     <string name="auto_restart">Auto Restart</string>
     <string name="allow_clash_auto_restart">Allow clash auto restart</string>
+    <string name="update_before_connect_title">Update subscription before connecting</string>
+    <string name="update_before_connect_summary">Refresh a stale subscription when you tap Connect. Turn off to connect straight away with the saved config — scheduled updates still run.</string>
 
     <string name="route_system_traffic">Route System Traffic</string>
     <string name="routing_via_vpn_service">Auto routing all system traffic via VpnService</string>
@@ -934,6 +944,25 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="proxy_providers_merged_removed_ok">Group removed from config.</string>
     <string name="profile_menu_subscription_sources">Subscription sources</string>
     <string name="profile_menu_view_config">View config</string>
+    <string name="profile_menu_config_script">Config script</string>
+    <string name="config_script_title">Config script</string>
+    <string name="config_script_summary">JavaScript that rewrites the config of this profile before it reaches the engine.</string>
+    <string name="config_script_hint">No script yet — tap Insert template to start from a working example.</string>
+    <string name="config_script_enable">Run this script</string>
+    <string name="config_script_save">Save</string>
+    <string name="config_script_check">Check</string>
+    <string name="config_script_reset">Insert template</string>
+    <string name="config_script_ok">Script runs — no problems found</string>
+    <string name="config_script_saved">Script saved and applied</string>
+    <string name="config_script_locked">Your subscription provider does not allow config scripts. The script below is kept, but is not running.</string>
+    <string name="config_script_discard_title">Discard changes?</string>
+    <string name="config_script_discard_message">The script has unsaved changes.</string>
+    <string name="config_script_error_compile">Syntax error — the script could not be parsed (E-60)</string>
+    <string name="config_script_error_no_main">The script must define function main(config) (E-61)</string>
+    <string name="config_script_error_runtime">The script stopped with an error (E-62)</string>
+    <string name="config_script_error_bad_value">main() must return the config object (E-63)</string>
+    <string name="config_script_error_timeout">The script took too long and was stopped (E-64)</string>
+    <string name="config_script_error_too_large">The script produced too large a config (E-65)</string>
     <string name="profile_config_empty">This profile has no generated config yet.</string>
     <string name="profile_config_copy">Copy config</string>
     <string name="profile_config_download">Download config</string>
@@ -1125,6 +1154,11 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="theme_text_default">100%</string>
     <string name="theme_text_large">110%</string>
     <string name="theme_text_extra">120%</string>
+    <string name="theme_font_weight">Font weight</string>
+    <string name="theme_font_weight_default">Regular</string>
+    <string name="theme_font_weight_medium">Medium</string>
+    <string name="theme_font_weight_semibold">Semibold</string>
+    <string name="theme_font_weight_bold">Bold</string>
     <string name="theme_reset">Reset theme</string>
     <string name="theme_palette_clash">ClashFest</string>
     <string name="theme_palette_blue">Blue</string>
@@ -1199,4 +1233,32 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="age_key_generate">Generate</string>
     <string name="age_key_to_public">From secret</string>
     <string name="age_key_copy">Copy</string>
+    <string name="local_proxy">Local proxy</string>
+    <string name="local_proxy_enable">Enable local proxy</string>
+    <string name="local_proxy_enable_summary">Expose a password-protected SOCKS/HTTP listener on loopback. Off by default: other apps could otherwise bypass your per-app routing rules.</string>
+    <string name="local_proxy_port">Local proxy port</string>
+    <string name="local_proxy_credentials">Local proxy credentials</string>
+    <string name="local_proxy_credentials_summary">Enable the local proxy to get an address and credentials</string>
+    <string name="local_proxy_reveal_subtitle">Confirm to show the proxy password</string>
+    <string name="local_proxy_not_ready">Credentials are created the next time the VPN connects. Enable the local proxy, connect once, then come back.</string>
+    <string name="local_proxy_copy_url">Copy URL</string>
+    <string name="local_proxy_details_fmt">Host: %1$s
+Port: %2$d
+Username: %3$s
+Password: %4$s</string>
+    <string name="local_proxy_copy_password">Copy password</string>
+    <string name="local_proxy_field_host">Host</string>
+    <string name="local_proxy_field_port">Port</string>
+    <string name="local_proxy_field_username">Username</string>
+    <string name="local_proxy_field_password">Password</string>
+    <string name="local_proxy_copied_fmt">%1$s copied</string>
+    <string name="subscription_update_via_proxy">Update via proxy</string>
+    <string name="subscription_update_via_proxy_summary">Preferred route for downloading this subscription: through the tunnel, following your rules. Turn off to try a direct connection first. Either way the other route is tried automatically if the first one fails. Applies to the next update.</string>
+    <string name="latency_target_title">Latency test target</string>
+    <string name="latency_target_summary">Measure latency to a site of your choice instead of the default check URL. Applies to this test only.</string>
+    <string name="latency_target_hint">Site or URL</string>
+    <string name="latency_target_note">Latency only, not download speed. A real page answers slower than the default empty response, so expect higher numbers.</string>
+    <string name="latency_target_invalid">Enter a site like example.com</string>
+    <string name="latency_target_run">Test</string>
+    <string name="latency_target_nothing_to_test">No nodes to test in this group</string>
 </resources>

@@ -15,14 +15,15 @@
 JNIEXPORT void JNICALL
 Java_com_github_kr328_clash_core_bridge_Bridge_nativeInit(JNIEnv *env, jobject thiz,
                                                           jstring home,
-                                                          jstring version_name, jint sdk_version) {
+                                                          jstring version_name, jint sdk_version,
+                                                          jboolean debug) {
     TRACE_METHOD();
 
     scoped_string _home = get_string(home);
     scoped_string _version_name = get_string(version_name);
     char* _git_version = make_String(GIT_VERSION);
 
-    coreInit(_home, _version_name, _git_version, sdk_version);
+    coreInit(_home, _version_name, _git_version, sdk_version, (int) debug);
 }
 
 JNIEXPORT void JNICALL
@@ -217,13 +218,15 @@ Java_com_github_kr328_clash_core_bridge_Bridge_nativeHealthCheck(JNIEnv *env, jo
 JNIEXPORT void JNICALL
 Java_com_github_kr328_clash_core_bridge_Bridge_nativeHealthCheckWithCallback(JNIEnv *env, jobject thiz,
                                                                               jobject callback,
-                                                                              jstring name) {
+                                                                              jstring name,
+                                                                              jstring test_url) {
     TRACE_METHOD();
 
     jobject _callback = new_global(callback);
     scoped_string _name = get_string(name);
+    scoped_string _test_url = get_string(test_url);
 
-    healthCheckWithCallback(_callback, _name);
+    healthCheckWithCallback(_callback, _name, _test_url);
 }
 
 JNIEXPORT void JNICALL
@@ -231,6 +234,16 @@ Java_com_github_kr328_clash_core_bridge_Bridge_nativeHealthCheckAll(JNIEnv *env,
     TRACE_METHOD();
 
     healthCheckAll();
+}
+
+JNIEXPORT void JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeHealthCheckAutoGroups(JNIEnv *env, jobject thiz,
+                                                                          jobject completable) {
+    TRACE_METHOD();
+
+    jobject _completable = new_global(completable);
+
+    healthCheckAutoGroups(_completable);
 }
 
 JNIEXPORT jboolean JNICALL
@@ -286,6 +299,33 @@ Java_com_github_kr328_clash_core_bridge_Bridge_nativeParseProfileSnapshotFromByt
     scoped_string _yaml = get_string(yaml);
 
     scoped_string response = parseProfileSnapshotFromBytes(_yaml);
+
+    return new_string(response);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeResolveProxyGroupsFromBytes(JNIEnv *env, jobject thiz,
+                                                                                  jstring yaml) {
+    TRACE_METHOD();
+
+    scoped_string _yaml = get_string(yaml);
+
+    scoped_string response = resolveProxyGroupsFromBytes(_yaml);
+
+    return new_string(response);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeApplyConfigScript(JNIEnv *env, jobject thiz,
+                                                                       jstring yaml, jstring script,
+                                                                       jstring profile_name) {
+    TRACE_METHOD();
+
+    scoped_string _yaml = get_string(yaml);
+    scoped_string _script = get_string(script);
+    scoped_string _profile_name = get_string(profile_name);
+
+    scoped_string response = applyConfigScript(_yaml, _script, _profile_name);
 
     return new_string(response);
 }
@@ -392,6 +432,7 @@ Java_com_github_kr328_clash_core_bridge_Bridge_nativeFetchAndValid(JNIEnv *env, 
                                                                    jobject callback,
                                                                    jstring path,
                                                                    jstring url, jboolean force,
+                                                                   jboolean viaProxy,
                                                                    jstring headersJson) {
     TRACE_METHOD();
 
@@ -406,7 +447,7 @@ Java_com_github_kr328_clash_core_bridge_Bridge_nativeFetchAndValid(JNIEnv *env, 
     }
     scoped_string _headers = _headers_raw;
 
-    fetchAndValid(_completable, _path, _url, force, _headers);
+    fetchAndValid(_completable, _path, _url, force, viaProxy, _headers);
 }
 
 JNIEXPORT void JNICALL

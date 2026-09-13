@@ -56,13 +56,13 @@ import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.design.util.showExceptionToast
 import com.github.kr328.clash.remote.Remote
 import com.github.kr328.clash.remote.StatusClient
-import com.github.kr328.clash.service.model.AccessControlMode
 import com.github.kr328.clash.service.model.Profile
 import com.github.kr328.clash.service.model.ProxyGroupPreviewRow
 import com.github.kr328.clash.service.remote.IProxyDelayObserver
 import com.github.kr328.clash.service.store.ServiceStore
 import com.github.kr328.clash.service.util.importedDir
-import com.github.kr328.clash.util.RussianBypassDefaults
+import com.github.kr328.clash.util.BypassPreset
+import com.github.kr328.clash.util.BypassPresets
 import com.github.kr328.clash.util.GitHubReleaseUpdate
 import com.github.kr328.clash.util.UpdateApkVerifier
 import com.github.kr328.clash.util.AppUpdateChecker
@@ -333,11 +333,12 @@ class MainActivity : BaseActivity<MainDesign>() {
      * refreshRuntimeGroupDetails — per-proxy push only carries the delay
      * measurement itself.
      */
-    private suspend fun runPerProxyHealthCheck(group: String) {
+    private suspend fun runPerProxyHealthCheck(group: String, testUrl: String = "") {
         runCatching {
             withClash {
                 healthCheckPerProxy(
                     group,
+                    testUrl,
                     object : IProxyDelayObserver {
                         override fun onDelay(
                             grp: String,
@@ -870,7 +871,7 @@ class MainActivity : BaseActivity<MainDesign>() {
                     }
                 }
 
-                design.profilePingAllRequests.onReceive { (profile, group, nodeNames) ->
+                design.profilePingAllRequests.onReceive { (profile, group, nodeNames, testUrl) ->
                     launch {
                         try {
                             design.setPingingProfile(profile.uuid)
@@ -897,7 +898,7 @@ class MainActivity : BaseActivity<MainDesign>() {
                                     design.patchProxyDetails(primed)
                                 }
                                 val jobs = groupsToRefresh.map { groupName ->
-                                    launch { runPerProxyHealthCheck(groupName) }
+                                    launch { runPerProxyHealthCheck(groupName, testUrl) }
                                 }
                                 jobs.forEach { it.join() }
                                 // Closing refresh captures `now` / `alive` fields the per-proxy
@@ -1114,6 +1115,12 @@ class MainActivity : BaseActivity<MainDesign>() {
                 }
                 R.id.profile_menu_view_config -> {
                     startActivity(ProfileConfigActivity::class.intent.setUUID(profile.uuid))
+                    true
+                }
+                R.id.profile_menu_config_script -> {
+                    if (profile.imported) {
+                        startActivity(ConfigScriptActivity::class.intent.setUUID(profile.uuid))
+                    }
                     true
                 }
                 R.id.profile_menu_duplicate -> {
@@ -1480,9 +1487,9 @@ class MainActivity : BaseActivity<MainDesign>() {
                     // idle=30s). Mihomo health-check writes delays into
                     // proxy.LastDelayForTestUrl synchronously when warmup
                     // finishes; without this re-query the carriage stays blank
-                    // until the timer rolls over. (FlClash side-steps the
-                    // whole class of staleness with a delay event channel —
-                    // see docs/path-b-engine-parsing.md follow-ups.)
+                    // until the timer rolls over. (A delay event channel would
+                    // side-step this whole class of staleness — see
+                    // docs/path-b-engine-parsing.md follow-ups.)
                     if (warmed.isNotEmpty()) {
                         val patches = refreshRuntimeGroupDetails(warmed)
                         if (patches.isNotEmpty()) {
@@ -1552,6 +1559,10 @@ class MainActivity : BaseActivity<MainDesign>() {
     }
 
     private fun shouldAutoRefreshBeforeStart(profile: Profile): Boolean {
+        // Opt-out (#197): people on flaky or slow panels would rather connect now with the config
+        // they already have than wait on a refresh they did not ask for. Scheduled updates
+        // (ProfileReceiver alarms) are unaffected — this only governs the Connect tap.
+        if (!uiStore.updateProfileBeforeConnect) return false
         if (profile.type != Profile.Type.Url || profile.source.isBlank()) return false
         val now = System.currentTimeMillis()
         val last = profile.updatedAt.takeIf { it > 0L } ?: return true
@@ -1899,51 +1910,134 @@ class MainActivity : BaseActivity<MainDesign>() {
     }
 
     /**
-     * When the per-app exclusion list is empty, offer to seed it with installed
-     * Russian apps before starting the tunnel. Skip still starts VPN; cancel does not.
+     * Pre-start bypass offer, two sources in priority order:
+     *
+     * 1. Operator recommendation (`X-Bypass-Preset` header, stored per profile) — offered
+     *    once per (profile, preset id) even if the generic prompt was already answered;
+     *    a changed header value re-offers once. Never auto-applied.
+     * 2. Generic one-time seed: when the per-app exclusion list is empty, the preset with
+     *    the most installed matches (threshold ≥3). If nothing clears the threshold we do
+     *    not ask and keep the prompt un-handled, so a user who installs regional apps
+     *    later still gets a single offer.
+     *
+     * Skip still starts VPN; cancel does not.
      */
     private suspend fun maybePromptRuBypass(): Boolean {
         val service = ServiceStore(this)
+
+        val operator = withContext(Dispatchers.IO) { operatorRecommendedPreset(service) }
+        if (operator != null) {
+            val (preset, installedApps) = operator
+            return promptBypassPreset(service, preset, installedApps, fromOperator = true)
+        }
+
         if (uiStore.ruBypassPromptHandled) return true
-        val packages = withContext(Dispatchers.IO) { service.accessControlPackages }
-        if (packages.isNotEmpty()) return true
+        val best = withContext(Dispatchers.IO) {
+            if (service.accessControlPackages.isNotEmpty()) null
+            else BypassPresets.bestInstalled(this@MainActivity, packageManager)
+        } ?: return true
+        val (preset, installedApps) = best
+        return promptBypassPreset(service, preset, installedApps, fromOperator = false)
+    }
+
+    /**
+     * Unanswered operator recommendation for the active profile, resolved to a bundled
+     * preset with its installed matches.
+     *
+     * The "offered" marker encodes WHEN we last asked, so a growing list can re-offer:
+     * - `Apply` stores `<id>:<preset.version>` — bumping the bundled preset's `version`
+     *   (i.e. we shipped more apps in that list) makes the marker stale and re-offers once.
+     * - `Skip` stores `<id>:skip` — version-independent, so a user who declined is never
+     *   nagged again for that region no matter how the list grows.
+     * A different preset id from the operator (`ru`→`cn`) never matches either marker, so
+     * it always offers. Unknown ids and zero-match presets are consumed as skip.
+     */
+    private suspend fun operatorRecommendedPreset(
+        service: ServiceStore,
+    ): Pair<BypassPreset, Set<String>>? {
+        val active = runCatching { withProfile { queryActive() } }.getOrNull() ?: return null
+        val recommended = service.subscriptionBypassPresetFor(active.uuid) ?: return null
+
+        val preset = BypassPresets.load(this).firstOrNull { it.id == recommended }
+        val installed = preset?.installed(packageManager).orEmpty()
+        if (preset == null || installed.isEmpty()) {
+            service.setSubscriptionBypassPresetOfferedFor(active.uuid, bypassSkipMarker(recommended))
+            return null
+        }
+
+        val offered = service.subscriptionBypassPresetOfferedFor(active.uuid)
+        if (offered == bypassAppliedMarker(preset) || offered == bypassSkipMarker(recommended)) {
+            return null
+        }
+        return preset to installed
+    }
+
+    private fun bypassAppliedMarker(preset: BypassPreset): String = "${preset.id}:${preset.version}"
+    private fun bypassSkipMarker(presetId: String): String = "$presetId:skip"
+
+    private suspend fun promptBypassPreset(
+        service: ServiceStore,
+        preset: BypassPreset,
+        installedApps: Set<String>,
+        fromOperator: Boolean,
+    ): Boolean {
+        val title = BypassPresets.displayTitle(this, preset)
+
+        suspend fun markAnswered(applied: Boolean) {
+            if (fromOperator) {
+                val marker = if (applied) bypassAppliedMarker(preset) else bypassSkipMarker(preset.id)
+                withContext(Dispatchers.IO) {
+                    runCatching { withProfile { queryActive() } }.getOrNull()?.let {
+                        service.setSubscriptionBypassPresetOfferedFor(it.uuid, marker)
+                    }
+                }
+            } else {
+                uiStore.ruBypassPromptHandled = true
+            }
+        }
 
         return suspendCancellableCoroutine { cont ->
+            val body = if (fromOperator) {
+                getString(R.string.bypass_operator_prompt_message, installedApps.size, title)
+            } else {
+                getString(R.string.bypass_prompt_message, installedApps.size, title)
+            }
             val message = buildString {
-                append(getString(R.string.ru_bypass_prompt_message))
+                append(body)
                 append("\n\n")
-                append(getString(R.string.ru_bypass_prompt_tile_note))
+                append(getString(R.string.bypass_prompt_tile_note))
+            }
+            val dialogTitle = if (fromOperator) {
+                getString(R.string.bypass_operator_prompt_title)
+            } else {
+                getString(R.string.bypass_prompt_title, title)
             }
             val dialog = MaterialAlertDialogBuilder(themedContext)
-                .setTitle(R.string.ru_bypass_prompt_title)
+                .setTitle(dialogTitle)
                 .setMessage(message)
-                .setPositiveButton(R.string.ru_bypass_prompt_apply) { d, _ ->
+                .setPositiveButton(R.string.bypass_prompt_apply) { d, _ ->
                     d.dismiss()
                     launch {
                         val count = withContext(Dispatchers.IO) {
-                            val seed = RussianBypassDefaults.installed(packageManager)
-                            if (seed.isNotEmpty()) {
-                                service.accessControlPackages = seed
-                                service.accessControlMode = AccessControlMode.DenySelected
-                                service.russianBypassSeeded = true
-                            }
-                            seed.size
+                            BypassPresets.applyToStore(service, packageManager, preset)
                         }
-                        uiStore.ruBypassPromptHandled = true
+                        markAnswered(applied = true)
                         if (count > 0) {
                             Toast.makeText(
                                 this@MainActivity,
-                                getString(R.string.ru_bypass_prompt_seeded, count),
+                                getString(R.string.bypass_preset_seeded, count),
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
                         if (cont.isActive) cont.resumeWith(Result.success(true))
                     }
                 }
-                .setNegativeButton(R.string.ru_bypass_prompt_skip) { d, _ ->
+                .setNegativeButton(R.string.bypass_prompt_skip) { d, _ ->
                     d.dismiss()
-                    uiStore.ruBypassPromptHandled = true
-                    if (cont.isActive) cont.resumeWith(Result.success(true))
+                    launch {
+                        markAnswered(applied = false)
+                        if (cont.isActive) cont.resumeWith(Result.success(true))
+                    }
                 }
                 .setOnCancelListener {
                     if (cont.isActive) cont.resumeWith(Result.success(false))
@@ -2092,6 +2186,14 @@ class MainActivity : BaseActivity<MainDesign>() {
         // "unlock". Applied at TUN open by TunStackResolver, independent of branding.
         meta.networkStack?.let {
             ServiceStore(this).setSubscriptionNetworkStackFor(active.uuid, it)
+        }
+        // Operator bypass-preset recommendation (X-Bypass-Preset). Stored only — the offer
+        // dialog rides the pre-start bypass prompt; `none` withdraws the recommendation.
+        meta.bypassPreset?.let {
+            ServiceStore(this).setSubscriptionBypassPresetFor(
+                active.uuid,
+                it.takeUnless { v -> v == "none" },
+            )
         }
         uiStore.subscriptionHwidActive = meta.hwidActive?.toString().orEmpty()
         uiStore.subscriptionHwidNotSupported = meta.hwidNotSupported?.toString().orEmpty()

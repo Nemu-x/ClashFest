@@ -44,19 +44,6 @@
                     android:textStyle="bold"
                     tools:text="Proxies" />
 
-                <TextView
-                    android:id="@+id/group_block_type"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:background="@drawable/bg_m3_status_chip_neutral"
-                    android:paddingHorizontal="7dp"
-                    android:paddingVertical="2dp"
-                    android:textAppearance="@style/TextAppearance.App.LabelSmall"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:visibility="gone"
-                    tools:text="Selector"
-                    tools:visibility="visible" />
             </LinearLayout>
 
             <TextView

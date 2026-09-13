@@ -79,6 +79,18 @@ data class BrandManifest(
     val hideGlobalMode: Boolean? = null,
 
     /**
+     * Operator POLICY, like [hideGlobalMode] and read the same way (directly, never gated by
+     * `X-Branding-Enabled`): forbid user config scripts on this subscription.
+     *
+     * A config script can rewrite anything — `proxies`, `dns`, `rules` — so on an operator-managed
+     * subscription it is a hole straight through whatever policy the operator set. When true the
+     * editor is not offered and any script already stored on the profile is skipped at compose
+     * time, so flipping the header off later does not silently resurrect an old script.
+     * See [BrandHeaders.LOCK_CONFIG_SCRIPT].
+     */
+    val lockConfigScript: Boolean? = null,
+
+    /**
      * Master switch — explicit opt-in. Branding only applies when the
      * operator sends `X-Branding-Enabled: true`. Absent header / `false` /
      * `null` all mean "do not brand this subscription", regardless of any
@@ -107,6 +119,7 @@ data class BrandManifest(
             hideRouting == null &&
             hideGlobalMode == null &&
             showOperatorTab == null &&
+            lockConfigScript == null &&
             enabled == null
 
     /**
@@ -132,12 +145,12 @@ data class BrandManifest(
 
     /**
      * True when the manifest carries an operator POLICY flag that applies WITHOUT branding being
-     * enabled (currently only [hideGlobalMode]). Unlike [hasBrandIdentity], this ignores
+     * enabled ([hideGlobalMode], [lockConfigScript]). Unlike [hasBrandIdentity], this ignores
      * `X-Branding-Enabled` — policy is operator control, not cosmetic branding. The store and read
      * paths surface a manifest when this is true even if there's no visual brand, and it survives
      * the `X-Branding-Enabled: false` kill-switch.
      */
-    fun hasPolicy(): Boolean = hideGlobalMode == true
+    fun hasPolicy(): Boolean = hideGlobalMode == true || lockConfigScript == true
 
     /**
      * Pick the right logo URL for the user's current theme.

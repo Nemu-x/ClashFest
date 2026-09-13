@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"runtime/debug"
 
+	"cfa/native/app"
 	"cfa/native/config"
 	"cfa/native/delegate"
 	"cfa/native/tunnel"
@@ -23,12 +24,15 @@ func main() {
 }
 
 //export coreInit
-func coreInit(home, versionName, gitVersion C.c_string, sdkVersion C.int) {
+func coreInit(home, versionName, gitVersion C.c_string, sdkVersion C.int, debug C.int) {
 	defer guard("coreInit")()
 	h := C.GoString(home)
 	v := C.GoString(versionName)
 	g := C.GoString(gitVersion)
 	s := int(sdkVersion)
+
+	// Set before delegate.Init so the very first core log lines are already gated correctly.
+	app.ApplyDebugBuild(debug != 0)
 
 	delegate.Init(h, v, g, s)
 

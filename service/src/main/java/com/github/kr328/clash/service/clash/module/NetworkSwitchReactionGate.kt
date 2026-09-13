@@ -9,7 +9,18 @@ internal data class NetworkSwitchReactionDecision<T : Any>(
 internal class NetworkSwitchReactionGate<T : Any>(
     private val startedAt: Long,
     private val startupGraceMs: Long = 5_000L,
-    private val flapGuardMs: Long = 3_000L,
+    /**
+     * Minimum spacing between two full reactions, nudged 3s -> 5s so a single network change
+     * that arrives as a burst of callbacks (available -> losing -> capabilities, which can
+     * straggle over a couple of seconds) reacts once instead of twice.
+     *
+     * Deliberately NOT larger. A wider guard was tried while chasing a battery report, on the
+     * theory that repeated reactions were burning radio; measurement showed the drain came from
+     * the subscription's own url-test timers, not from here, and stretching the guard only made
+     * the phone slower to recover after a real Wi-Fi <-> cellular switch — the exact wait this
+     * feature exists to remove.
+     */
+    private val flapGuardMs: Long = 5_000L,
 ) {
     private var initialized = false
     private var observed: T? = null

@@ -8,6 +8,8 @@ import (
 	"time"
 	"unsafe"
 
+	"cfa/native/app"
+
 	"github.com/metacubex/mihomo/log"
 )
 
@@ -17,12 +19,43 @@ type message struct {
 	Time    int64  `json:"time"`
 }
 
+// shouldForwardToLogcat decides whether an engine log line earns an Android logcat write.
+//
+// Every forwarded line costs a CString malloc, a JNI hop, a write syscall into logd and a free.
+// mihomo emits one INFO line per connection and logs DNS activity at DEBUG, so on a busy device
+// this used to be thousands of lines a minute in release builds, for output nobody reads. It is
+// not only CPU: the upstream log channel is unbuffered ahead of a 200-slot subscriber queue, so
+// a slow consumer here backpressures into whichever tunnel goroutine emitted the line.
+//
+// Note the level check was missing entirely before — sibling subscribeLogcat has always applied
+// one, so `Debugln` output was reaching logcat even at `log-level: info`.
+//
+// Debug builds keep the firehose (minus what the configured level already suppresses), which is
+// what makes `adb logcat` worth reading while developing. Release builds forward warnings, errors
+// and our own "[APP]" breadcrumbs. The in-app log screen is unaffected: it runs off
+// subscribeLogcat, which does its own filtering.
+func shouldForwardToLogcat(msg log.Event) bool {
+	if strings.HasPrefix(msg.Payload, "[APP]") {
+		return true
+	}
+
+	if msg.LogLevel < log.Level() {
+		return false
+	}
+
+	return app.DebugBuild() || msg.LogLevel >= log.WARNING
+}
+
 func init() {
 	go func() {
 		sub := log.Subscribe()
 		defer log.UnSubscribe(sub)
 
 		for msg := range sub {
+			if !shouldForwardToLogcat(msg) {
+				continue
+			}
+
 			cPayload := C.CString(msg.Payload)
 
 			switch msg.LogLevel {

@@ -46,6 +46,13 @@ class AppSettingsDesign(
                 summary = R.string.allow_clash_auto_restart,
             )
 
+            switch(
+                value = uiStore::updateProfileBeforeConnect,
+                icon = R.drawable.ic_baseline_update,
+                title = R.string.update_before_connect_title,
+                summary = R.string.update_before_connect_summary,
+            )
+
             category(R.string.interface_)
 
             selectableList(

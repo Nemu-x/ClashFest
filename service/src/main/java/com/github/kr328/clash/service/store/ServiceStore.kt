@@ -40,12 +40,12 @@ class ServiceStore(context: Context) {
     )
 
     /**
-     * `true` after we have seeded [accessControlPackages] with the default
-     * Russian bypass list (банки/госуслуги/связь/маркетплейсы) on first switch
-     * to [AccessControlMode.DenySelected]. Prevents repeatedly clobbering the
-     * user's manual edits.
+     * `true` after [accessControlPackages] has been seeded from a regional
+     * bypass preset (or edited manually). Prevents repeatedly clobbering the
+     * user's edits with preset prompts. Key kept from the RU-only era for
+     * migration.
      */
-    var russianBypassSeeded by store.boolean(
+    var bypassPresetSeeded by store.boolean(
         key = "russian_bypass_seeded",
         defaultValue = false
     )
@@ -69,6 +69,38 @@ class ServiceStore(context: Context) {
     var allowIpv6 by store.boolean(
         key = "allow_ipv6",
         defaultValue = false
+    )
+
+    /**
+     * User opted into a reachable local SOCKS/HTTP listener on loopback (Settings -> Network ->
+     * Local proxy). Off by default: [proxyHardeningMode] Strict disables every local listener so
+     * other apps cannot bypass the per-app routing rules via `127.0.0.1`. Turning this on is an
+     * explicit trade — the listener comes back, gated by [localProxyCredential].
+     */
+    var localProxyEnabled by store.boolean(
+        key = "local_proxy_enabled",
+        defaultValue = false
+    )
+
+    /**
+     * Port ClashFest pins the local listener to when [localProxyEnabled]. Pinned by us rather than
+     * inherited from the subscription so the value shown in Settings is always the real one —
+     * users need a stable `127.0.0.1:port` to paste into a container or another app.
+     */
+    var localProxyPort by store.int(
+        key = "local_proxy_port",
+        defaultValue = 7890
+    )
+
+    /**
+     * Stable `user:pass` for the local listener, minted on first use and kept across reconnects.
+     * The session credential RuntimeSocksAuth rotates per service start is right for the hardening
+     * default, but useless for a container config that must survive a reconnect. Lives in the app's
+     * sandboxed prefs; the UI gates *displaying* it behind a device-credential prompt.
+     */
+    var localProxyCredential by store.string(
+        key = "local_proxy_credential",
+        defaultValue = ""
     )
 
     var tunStackMode by store.string(
@@ -192,10 +224,6 @@ class ServiceStore(context: Context) {
         }.apply()
     }
 
-    fun clearSubscriptionShareLinksLockedFor(uuid: UUID) {
-        rawPrefs.edit().remove("subscription_share_links_locked_$uuid").apply()
-    }
-
     /**
      * Per-profile operator-forced TUN stack from the `X-Network-Stack` subscription header
      * (system/gvisor/mixed = lock; `auto` = don't lock). Travels per subscription like the
@@ -209,6 +237,59 @@ class ServiceStore(context: Context) {
             if (value.isNullOrBlank()) e.remove("subscription_network_stack_$uuid")
             else e.putString("subscription_network_stack_$uuid", value)
         }.apply()
+    }
+
+    /**
+     * Per-profile operator-recommended bypass preset id from the `X-Bypass-Preset`
+     * subscription header. Only a *recommendation*: the client offers it once with an
+     * explicit confirm and never auto-applies (per-app bypass = traffic outside the
+     * tunnel, a user decision). null when the operator didn't send it.
+     */
+    fun subscriptionBypassPresetFor(uuid: UUID): String? =
+        rawPrefs.getString("subscription_bypass_preset_$uuid", null)
+
+    fun setSubscriptionBypassPresetFor(uuid: UUID, value: String?) {
+        rawPrefs.edit().also { e ->
+            if (value.isNullOrBlank()) e.remove("subscription_bypass_preset_$uuid")
+            else e.putString("subscription_bypass_preset_$uuid", value)
+        }.apply()
+    }
+
+    /**
+     * The preset id whose operator recommendation was already offered (and answered)
+     * for this profile — the offer shows once per (profile, preset id); a changed
+     * header value re-offers once.
+     */
+    fun subscriptionBypassPresetOfferedFor(uuid: UUID): String? =
+        rawPrefs.getString("subscription_bypass_preset_offered_$uuid", null)
+
+    fun setSubscriptionBypassPresetOfferedFor(uuid: UUID, value: String?) {
+        rawPrefs.edit().also { e ->
+            if (value.isNullOrBlank()) e.remove("subscription_bypass_preset_offered_$uuid")
+            else e.putString("subscription_bypass_preset_offered_$uuid", value)
+        }.apply()
+    }
+
+    /** Drops every per-profile operator policy on profile delete. */
+    fun clearSubscriptionPoliciesFor(uuid: UUID) {
+        rawPrefs.edit()
+            .remove("subscription_share_links_locked_$uuid")
+            .remove("subscription_network_stack_$uuid")
+            .remove("subscription_bypass_preset_$uuid")
+            .remove("subscription_bypass_preset_offered_$uuid")
+            .apply()
+    }
+
+    /**
+     * Per-profile: route this subscription's download through the tunnel (rule matching), which is
+     * the engine default. Some subscriptions are only reachable off-tunnel, so the user can turn it
+     * off to force a direct dial (issue #178). Stored per subscription, like the share-links policy.
+     */
+    fun subscriptionUpdateViaProxy(uuid: UUID): Boolean =
+        rawPrefs.getBoolean("subscription_update_via_proxy_$uuid", true)
+
+    fun setSubscriptionUpdateViaProxy(uuid: UUID, value: Boolean) {
+        rawPrefs.edit().putBoolean("subscription_update_via_proxy_$uuid", value).apply()
     }
 
     /**

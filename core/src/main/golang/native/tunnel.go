@@ -98,8 +98,8 @@ func healthCheck(completable unsafe.Pointer, name C.c_string) {
 }
 
 //export healthCheckWithCallback
-func healthCheckWithCallback(callback unsafe.Pointer, name C.c_string) {
-	go func(name string, callback unsafe.Pointer) {
+func healthCheckWithCallback(callback unsafe.Pointer, name C.c_string, testUrl C.c_string) {
+	go func(name string, testUrl string, callback unsafe.Pointer) {
 		completed := false
 		defer func() {
 			if r := recover(); r != nil {
@@ -111,7 +111,7 @@ func healthCheckWithCallback(callback unsafe.Pointer, name C.c_string) {
 			}
 		}()
 
-		earlyErr := tunnel.HealthCheckWithCallback(name, func(proxyName string, delayMs int, errMsg string) {
+		earlyErr := tunnel.HealthCheckWithCallback(name, testUrl, func(proxyName string, delayMs int, errMsg string) {
 			var errCStr *C.char
 			if errMsg != "" {
 				errCStr = marshalString(errMsg)
@@ -127,13 +127,33 @@ func healthCheckWithCallback(callback unsafe.Pointer, name C.c_string) {
 
 		C.release_object(callback)
 		completed = true
-	}(C.GoString(name), callback)
+	}(C.GoString(name), C.GoString(testUrl), callback)
 }
 
 //export healthCheckAll
 func healthCheckAll() {
 	defer guard("healthCheckAll")()
 	tunnel.HealthCheckAll()
+}
+
+//export healthCheckAutoGroups
+func healthCheckAutoGroups(completable unsafe.Pointer) {
+	go func() {
+		completed := false
+		defer func() {
+			if r := recover(); r != nil {
+				logRecover("healthCheckAutoGroups", r)
+				if !completed {
+					C.complete(completable, marshalString(fmt.Sprintf("native panic: %v", r)))
+				}
+			}
+		}()
+
+		tunnel.HealthCheckAutoGroups()
+
+		C.complete(completable, nil)
+		completed = true
+	}()
 }
 
 //export patchSelector

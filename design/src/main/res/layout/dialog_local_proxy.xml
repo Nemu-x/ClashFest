@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Credentials for the opt-in local proxy. Each value gets its own selectable row and its own copy
+  button: some clients take a single socks5:// URL (the dialog button), others want the fields
+  entered one at a time, and digging them out of a single text blob is miserable.
+
+  Styling follows the settings rows (label above value, TextAppearance.App.*, colorOnSurface /
+  colorOnSurfaceVariant) so the dialog reads as part of the app rather than a system popup.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="24dp"
+    android:paddingTop="4dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/local_proxy_field_host"
+                android:textAppearance="@style/TextAppearance.App.BodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <TextView
+                android:id="@+id/valueHost"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.App.TitleSmall"
+                android:textColor="?attr/colorOnSurface"
+                android:textIsSelectable="true" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/copyHost"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/local_proxy_copy_url"
+            android:src="@drawable/ic_baseline_content_copy"
+            android:tint="?attr/colorOnSurfaceVariant" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/local_proxy_field_port"
+                android:textAppearance="@style/TextAppearance.App.BodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <TextView
+                android:id="@+id/valuePort"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.App.TitleSmall"
+                android:textColor="?attr/colorOnSurface"
+                android:textIsSelectable="true" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/copyPort"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/local_proxy_copy_url"
+            android:src="@drawable/ic_baseline_content_copy"
+            android:tint="?attr/colorOnSurfaceVariant" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/local_proxy_field_username"
+                android:textAppearance="@style/TextAppearance.App.BodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <TextView
+                android:id="@+id/valueUsername"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textAppearance="@style/TextAppearance.App.TitleSmall"
+                android:textColor="?attr/colorOnSurface"
+                android:textIsSelectable="true" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/copyUsername"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/local_proxy_copy_url"
+            android:src="@drawable/ic_baseline_content_copy"
+            android:tint="?attr/colorOnSurfaceVariant" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/local_proxy_field_password"
+                android:textAppearance="@style/TextAppearance.App.BodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <!-- monospace so l/1/I and O/0 are not ambiguous when typed by hand -->
+            <TextView
+                android:id="@+id/valuePassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textAppearance="@style/TextAppearance.App.TitleSmall"
+                android:textColor="?attr/colorOnSurface"
+                android:textIsSelectable="true" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/copyPassword"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/local_proxy_copy_password"
+            android:src="@drawable/ic_baseline_content_copy"
+            android:tint="?attr/colorOnSurfaceVariant" />
+    </LinearLayout>
+</LinearLayout>

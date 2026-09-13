@@ -161,8 +161,15 @@ object Clash {
      * single UI patch fires per proxy at its natural resolution time
      * instead of every poll tick.
      */
+    /**
+     * @param testUrl one-shot override for the health-check target. Blank keeps each provider's
+     *        configured URL (the normal case). A custom target measures latency to that host and
+     *        nothing else: it does not change the automatic url-test timers, which mihomo drives
+     *        from the group config, and it never reports throughput.
+     */
     fun healthCheckPerProxy(
         name: String,
+        testUrl: String = "",
         onProxyDelay: (proxyName: String, delayMs: Int, errMsg: String) -> Unit,
     ): CompletableDeferred<Unit> {
         val deferred = CompletableDeferred<Unit>()
@@ -181,6 +188,7 @@ object Clash {
                 }
             },
             name,
+            testUrl,
         )
         return deferred
     }
@@ -189,14 +197,32 @@ object Clash {
         Bridge.nativeHealthCheckAll()
     }
 
+    /**
+     * Probe only the groups that can re-route on their own (url-test / fallback /
+     * load-balance), hitting each backing provider exactly once. Used on a
+     * default-network switch, where the old "health-check every group name" walk
+     * re-tested a shared provider once per group referencing it.
+     * See tunnel.HealthCheckAutoGroups.
+     */
+    fun healthCheckAutoGroups(): CompletableDeferred<Unit> {
+        return CompletableDeferred<Unit>().apply {
+            Bridge.nativeHealthCheckAutoGroups(this)
+        }
+    }
+
     fun patchSelector(selector: String, name: String): Boolean {
         return Bridge.nativePatchSelector(selector, name)
     }
 
+    /**
+     * @param viaProxy route the download through the tunnel with rule matching (the engine default).
+     *        False forces a direct dial, for subscriptions that are only reachable off-tunnel.
+     */
     fun fetchAndValid(
         path: File,
         url: String,
         force: Boolean,
+        viaProxy: Boolean = true,
         subscriptionHeadersJson: String = SubscriptionDeviceHeaders.toJson(Global.application),
         reportStatus: (FetchStatus) -> Unit,
     ): CompletableDeferred<Unit> {
@@ -222,6 +248,7 @@ object Clash {
                 path.absolutePath,
                 url,
                 force,
+                viaProxy,
                 subscriptionHeadersJson,
             )
         }
@@ -342,6 +369,58 @@ object Clash {
         return Bridge.nativeValidateProfileBytes(yaml)
     }
 
+    /**
+     * Runs a user config script over [yaml] and returns the rewritten document, or the
+     * reason it could not run.
+     *
+     * The script defines `function main(config) { ...; return config }` and gets the whole
+     * config as a plain JS object — the de-facto contract across Clash clients, so scripts
+     * written elsewhere work here unchanged. A blank [script] is a no-op.
+     *
+     * This runs in the engine rather than in Kotlin on purpose: the YAML is parsed and
+     * re-serialised by the library the core loads configs with, so the round trip cannot
+     * drift from the engine's own dialect.
+     *
+     * No disk I/O, no network — but a script is user code, so call it off the main thread.
+     */
+    fun applyConfigScript(yaml: String, script: String, profileName: String): ConfigScriptResult {
+        if (script.isBlank()) return ConfigScriptResult.Success(yaml)
+        val raw = Bridge.nativeApplyConfigScript(yaml, script, profileName)
+        val decoded = runCatching { ConfigScriptJson.decodeFromString<ConfigScriptEnvelope>(raw) }.getOrNull()
+            ?: return ConfigScriptResult.Failure(ConfigScriptError.Runtime, "malformed bridge response")
+        return if (decoded.ok) {
+            ConfigScriptResult.Success(decoded.yaml.orEmpty())
+        } else {
+            ConfigScriptResult.Failure(
+                ConfigScriptError.fromCode(decoded.code),
+                decoded.message.orEmpty(),
+            )
+        }
+    }
+
+    /**
+     * Asks the engine for the proxy-group membership it computes for [yaml] — `include-all*`
+     * expanded, `use:` resolved, `filter` / `exclude-filter` / `exclude-type` applied — so the
+     * offline preview matches what the running tunnel would report.
+     *
+     * Same parse as [validateProfileBytes]: no listeners, no TUN, no network, no engine state
+     * mutation; providers opened during the parse are released before returning.
+     *
+     * @return the resolved groups in config order, or **null** when the YAML could not be parsed
+     *         (callers should fall back to their own preview). A valid config with no groups
+     *         yields an empty list.
+     */
+    fun resolveProxyGroups(yaml: String): List<ResolvedProxyGroup>? {
+        val raw = Bridge.nativeResolveProxyGroupsFromBytes(yaml)
+        if (raw.isBlank()) return null
+        return runCatching {
+            ProfileSnapshotJson.decodeFromString(
+                ListSerializer(ResolvedProxyGroup.serializer()),
+                raw,
+            )
+        }.getOrNull()
+    }
+
     private fun decodeSnapshotEnvelope(rawJson: String): ProfileSnapshot {
         val envelope = ProfileSnapshotJson.decodeFromString(
             ProfileSnapshotEnvelope.serializer(),
@@ -352,6 +431,8 @@ object Clash {
         }
         return envelope.snapshot
     }
+
+    private val ConfigScriptJson = Json { ignoreUnknownKeys = true }
 
     private val ProfileSnapshotJson = Json {
         ignoreUnknownKeys = true

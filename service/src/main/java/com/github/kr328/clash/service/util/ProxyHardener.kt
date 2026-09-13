@@ -28,10 +28,21 @@ object ProxyHardener {
      * Apply the requested [mode] to [configuration].
      * @return true if [configuration] was mutated.
      */
+    /**
+     * Apply the requested [mode] to [configuration].
+     *
+     * @param localProxy set when the user explicitly enabled the local proxy (Settings -> Network).
+     *        It overrides the listener-disabling half of [ProxyHardeningMode.Strict]: the listener
+     *        is pinned to the user's port and gated by a stable credential instead of being turned
+     *        off. Everything else (loopback bind, allow-lan off, controller clamping) still applies,
+     *        so the listener is reachable from this device only and still requires auth.
+     * @return true if [configuration] was mutated.
+     */
     fun applyTo(
         configuration: ConfigurationOverride,
         mode: ProxyHardeningMode,
         seedGeoMirrors: Boolean,
+        localProxy: LocalProxySettings? = null,
     ): Boolean {
         var changed = false
 
@@ -39,17 +50,66 @@ object ProxyHardener {
             changed = ensureGeoMirrors(configuration) || changed
         }
 
+        val local = localProxy?.takeIf { it.enabled && it.port in 1..65535 }
+
         when (mode) {
             ProxyHardeningMode.Off -> Unit
             ProxyHardeningMode.Compat -> {
-                changed = RuntimeSocksAuth.applyTo(configuration) || changed
+                changed = RuntimeSocksAuth.applyTo(configuration, local?.credential) || changed
             }
             ProxyHardeningMode.Strict -> {
-                changed = RuntimeSocksAuth.applyTo(configuration) || changed
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                changed = RuntimeSocksAuth.applyTo(configuration, local?.credential) || changed
+                if (local == null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     changed = disableLocalListeners(configuration) || changed
                 }
             }
+        }
+
+        if (local != null) {
+            changed = pinLocalListener(configuration, local.port) || changed
+        }
+
+        return changed
+    }
+
+    /** User-facing local-proxy opt-in, resolved from ServiceStore by the caller. */
+    data class LocalProxySettings(
+        val enabled: Boolean,
+        val port: Int,
+        /** Stable `user:pass`; blank falls back to the rotating session credential. */
+        val credential: String,
+    )
+
+    /**
+     * Pin the mixed listener to the port shown in Settings and silence the protocol-specific ones,
+     * so there is exactly one predictable `127.0.0.1:port` to hand out.
+     */
+    private fun pinLocalListener(configuration: ConfigurationOverride, port: Int): Boolean {
+        var changed = false
+
+        if (configuration.mixedPort != port) {
+            configuration.mixedPort = port
+            changed = true
+        }
+        if (configuration.httpPort != DISABLED_PORT) {
+            configuration.httpPort = DISABLED_PORT
+            changed = true
+        }
+        if (configuration.socksPort != DISABLED_PORT) {
+            configuration.socksPort = DISABLED_PORT
+            changed = true
+        }
+        if (configuration.redirectPort != DISABLED_PORT) {
+            configuration.redirectPort = DISABLED_PORT
+            changed = true
+        }
+        if (configuration.tproxyPort != DISABLED_PORT) {
+            configuration.tproxyPort = DISABLED_PORT
+            changed = true
+        }
+
+        if (changed) {
+            Log.i("ProxyHardener: local proxy pinned to 127.0.0.1:$port (mixed)")
         }
 
         return changed

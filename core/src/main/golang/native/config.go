@@ -11,6 +11,7 @@ import (
 
 	"cfa/native/app"
 	"cfa/native/config"
+	"cfa/native/config/configscript"
 	"cfa/native/snapshot"
 )
 
@@ -25,7 +26,7 @@ func (r *remoteValidCallback) reportStatus(json string) {
 }
 
 //export fetchAndValid
-func fetchAndValid(callback unsafe.Pointer, path, url C.c_string, force C.int, headersJson C.c_string) {
+func fetchAndValid(callback unsafe.Pointer, path, url C.c_string, force C.int, viaProxy C.int, headersJson C.c_string) {
 	go func(path, url, headers string, callback unsafe.Pointer) {
 		subscriptionFetchSessionMu.Lock()
 		defer subscriptionFetchSessionMu.Unlock()
@@ -46,7 +47,7 @@ func fetchAndValid(callback unsafe.Pointer, path, url C.c_string, force C.int, h
 
 		cb := &remoteValidCallback{callback: callback}
 
-		err := config.FetchAndValid(path, url, force != 0, cb.reportStatus)
+		err := config.FetchAndValid(path, url, force != 0, viaProxy != 0, cb.reportStatus)
 
 		C.fetch_complete(callback, marshalString(err))
 
@@ -146,6 +147,31 @@ func parseProfileSnapshot(path C.c_string) *C.char {
 func parseProfileSnapshotFromBytes(yaml C.c_string) *C.char {
 	defer guard("parseProfileSnapshotFromBytes")()
 	return C.CString(snapshot.MarshalJSONFromBytes([]byte(C.GoString(yaml))))
+}
+
+// resolveProxyGroupsFromBytes returns the proxy-group membership the engine itself computes for
+// in-memory YAML (include-all* expanded, use: resolved, filter/exclude-filter/exclude-type
+// applied) so the offline UI preview does not have to re-implement mihomo's group semantics.
+// Empty string on unparseable YAML — callers fall back to their own preview.
+//
+//export resolveProxyGroupsFromBytes
+func resolveProxyGroupsFromBytes(yaml C.c_string) *C.char {
+	defer guard("resolveProxyGroupsFromBytes")()
+	return C.CString(snapshot.ResolvedGroupsJSON([]byte(C.GoString(yaml))))
+}
+
+// applyConfigScript runs the profile's user script over a composed config. Returns a JSON
+// configscript.Result — the transform can fail in ways the caller has to tell apart (bad
+// syntax, no main(), runaway loop), and a single string is all the bridge carries.
+//
+//export applyConfigScript
+func applyConfigScript(yaml C.c_string, script C.c_string, profileName C.c_string) *C.char {
+	defer guard("applyConfigScript")()
+	return C.CString(configscript.ApplyScriptJSON(
+		[]byte(C.GoString(yaml)),
+		C.GoString(script),
+		C.GoString(profileName),
+	))
 }
 
 //export validateProfileBytes

@@ -9,6 +9,7 @@ import com.github.kr328.clash.design.model.AppLanguage
 import com.github.kr328.clash.design.model.DarkMode
 import com.github.kr328.clash.design.model.HomeBackgroundStyle
 import com.github.kr328.clash.design.model.ProfileSortMode
+import com.github.kr328.clash.design.model.ThemeFontWeight
 import com.github.kr328.clash.design.model.ThemePalette
 import com.github.kr328.clash.design.model.ThemeTextScale
 
@@ -69,6 +70,13 @@ class UiStore(context: Context) {
         values = ThemeTextScale.values(),
     )
 
+    /** UI font weight (#195). See [ThemeFontWeight] for the variable-font / API 26 caveats. */
+    var themeFontWeight: ThemeFontWeight by store.enum(
+        key = "theme_font_weight",
+        defaultValue = ThemeFontWeight.Default,
+        values = ThemeFontWeight.values(),
+    )
+
     /** User-selected app language; `System` follows the device locale. */
     var appLanguage: AppLanguage by store.enum(
         key = "app_language",
@@ -90,6 +98,18 @@ class UiStore(context: Context) {
     var hideFromRecents: Boolean by store.boolean(
         key = "hide_from_recents",
         defaultValue = false,
+    )
+
+    /**
+     * Whether tapping Connect may refresh a stale subscription first (#197).
+     *
+     * ON by default — that is the behaviour every existing install already has, and a silently
+     * stale subscription is the worse failure mode for most people. Turning it off makes Connect
+     * start the saved config immediately; the profile still refreshes on its own schedule.
+     */
+    var updateProfileBeforeConnect: Boolean by store.boolean(
+        key = "update_profile_before_connect",
+        defaultValue = true,
     )
 
     /** Experimental gate for the per-profile DNS & Hosts editor (OFF by default). */
@@ -163,7 +183,10 @@ class UiStore(context: Context) {
         defaultValue = false,
     )
 
-    /** True once the one-time RU bypass prompt has been shown and explicitly answered. */
+    /**
+     * True once the one-time bypass-preset prompt has been shown and
+     * explicitly answered. Key kept from the RU-only era for migration.
+     */
     var ruBypassPromptHandled: Boolean by store.boolean(
         key = "ru_bypass_prompt_handled",
         defaultValue = false,

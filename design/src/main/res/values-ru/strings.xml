@@ -195,7 +195,7 @@
     <string name="advanced_hub_network_summary">VPN, безопасность и DNS</string>
     <string name="settings_geo">Геоданные</string>
     <string name="main_open_settings_summary">Тема, сеть, обновления и расширенные параметры</string>
-    <string name="main_open_theme_summary">Темная тема, палитра и масштаб текста</string>
+    <string name="main_open_theme_summary">Темная тема, палитра, масштаб текста и насыщенность шрифта</string>
     <string name="main_open_language_summary">Смена языка без глубокого перехода в настройки</string>
     <string name="main_open_about_summary">Версия приложения, версия core и проверка обновлений</string>
 
@@ -347,16 +347,22 @@
     <string name="sub_announcement_refresh">Обновить подписку</string>
     <string name="sub_announcement_open_link">Открыть ссылку</string>
     <string name="sub_announcement_support">Поддержка</string>
-    <string name="ru_bypass_prompt_title">Применить обход для RU-приложений?</string>
-    <string name="ru_bypass_prompt_message">Список исключений по приложениям пуст. Пустить установленные российские приложения (банки, Госуслуги, маркетплейсы, операторы) мимо туннеля напрямую через провайдера? Список позже можно поправить в Роутинг → По приложениям.</string>
-    <string name="ru_bypass_prompt_tile_note">Плитка быстрых настроек только включает или выключает VPN и не меняет список приложений.</string>
-    <string name="ru_bypass_prompt_apply">Применить</string>
-    <string name="ru_bypass_prompt_skip">Пропустить</string>
-    <string name="ru_bypass_prompt_seeded">Добавлено %1$d российских приложений.</string>
-    <string name="ru_bypass_routing_prompt_title">Настроить обход РФ-приложений?</string>
-    <string name="ru_bypass_routing_prompt_message">ClashFest может включить режим обхода и выбрать установленные российские приложения, чтобы они шли напрямую через провайдера. После настройки список можно изменить вручную.</string>
-    <string name="ru_bypass_routing_prompt_apply">Настроить обход</string>
-    <string name="ru_bypass_routing_prompt_later">Не сейчас</string>
+    <string name="bypass_preset_title_ru">Россия</string>
+    <string name="bypass_preset_title_ir">Иран</string>
+    <string name="bypass_preset_title_cn">Китай</string>
+    <string name="bypass_prompt_title">Применить обход (%1$s)?</string>
+    <string name="bypass_prompt_message">Нашли установленных приложений из списка «%2$s»: %1$d (банки, госуслуги, маркетплейсы, операторы). Пустить их напрямую через провайдера, мимо VPN-туннеля? Список позже можно поправить в Роутинг → По приложениям.</string>
+    <string name="bypass_prompt_tile_note">Плитка быстрых настроек только включает или выключает VPN и не меняет список приложений.</string>
+    <string name="bypass_prompt_apply">Применить</string>
+    <string name="bypass_prompt_skip">Пропустить</string>
+    <string name="bypass_preset_seeded">Добавлено приложений в обход: %1$d.</string>
+    <string name="bypass_preset_later">Не сейчас</string>
+    <string name="bypass_preset_choose">Пресет обхода</string>
+    <string name="bypass_preset_sheet_subtitle">Добавляет установленные приложения выбранного региона (банки, госуслуги, маркетплейсы, операторы) в список обхода — они пойдут напрямую, мимо VPN. Ручной выбор сохраняется; можно применять повторно, чтобы подтянуть новые приложения.</string>
+    <string name="bypass_preset_option">%1$s — приложений: %2$d</string>
+    <string name="apply_bypass_preset">Применить пресет обхода…</string>
+    <string name="bypass_operator_prompt_title">Рекомендация провайдера</string>
+    <string name="bypass_operator_prompt_message">Ваш провайдер рекомендует пресет обхода «%2$s». Нашли установленных приложений: %1$d — пустить их напрямую через провайдера, мимо VPN-туннеля? Ручной выбор сохранится. Список позже можно поправить в Роутинг → По приложениям.</string>
     <string name="expires_on">до %1$s</string>
     <string name="sub_meta_lock_user">Игнорировать оператора</string>
     <string name="sub_meta_lock_user_summary">Не давать серверу подписки перезаписывать локальные URL поддержки и объявления.</string>
@@ -504,6 +510,8 @@
 
     <string name="auto_restart">Автоматический перезапуск</string>
     <string name="allow_clash_auto_restart">Разрешить Clash автоматически перезапускаться</string>
+    <string name="update_before_connect_title">Обновлять подписку перед подключением</string>
+    <string name="update_before_connect_summary">Обновлять устаревшую подписку при нажатии «Подключить». Выключите, чтобы подключаться сразу с сохранённой конфигурацией — обновления по расписанию продолжат работать.</string>
 
     <string name="route_system_traffic">Маршрутизировать системный трафик</string>
     <string name="routing_via_vpn_service">Автоматически маршрутизировать весь системный трафик через VPN</string>
@@ -598,6 +606,8 @@
     <string name="subscription_docs_security">Безопасность и валидация</string>
     <string name="subscription_docs_consolidated">Диплинки</string>
 
+    <string name="profile_proxy_sort">Сортировка нод</string>
+    <string name="profile_proxy_filter">Фильтр нод</string>
     <string name="profile_proxy_sort_config">Порядок конфига</string>
     <string name="profile_proxy_sort_delay">Задержка</string>
     <string name="profile_proxy_sort_name">Имя</string>
@@ -815,6 +825,25 @@
     <string name="proxy_providers_merged_removed_ok">Группа удалена из конфига.</string>
     <string name="profile_menu_subscription_sources">Источники подписок</string>
     <string name="profile_menu_view_config">Посмотреть конфиг</string>
+    <string name="profile_menu_config_script">Скрипт конфига</string>
+    <string name="config_script_title">Скрипт конфига</string>
+    <string name="config_script_summary">JavaScript, который переписывает конфиг профиля перед отправкой в ядро.</string>
+    <string name="config_script_hint">Скрипта пока нет — нажмите «Вставить шаблон», чтобы начать с рабочего примера.</string>
+    <string name="config_script_enable">Выполнять скрипт</string>
+    <string name="config_script_save">Сохранить</string>
+    <string name="config_script_check">Проверить</string>
+    <string name="config_script_reset">Вставить шаблон</string>
+    <string name="config_script_ok">Скрипт работает — проблем не найдено</string>
+    <string name="config_script_saved">Скрипт сохранён и применён</string>
+    <string name="config_script_locked">Ваш провайдер подписки запретил скрипты конфига. Скрипт ниже сохранён, но не выполняется.</string>
+    <string name="config_script_discard_title">Отменить изменения?</string>
+    <string name="config_script_discard_message">В скрипте есть несохранённые изменения.</string>
+    <string name="config_script_error_compile">Синтаксическая ошибка — скрипт не разобран (E-60)</string>
+    <string name="config_script_error_no_main">Скрипт должен объявлять function main(config) (E-61)</string>
+    <string name="config_script_error_runtime">Скрипт завершился с ошибкой (E-62)</string>
+    <string name="config_script_error_bad_value">main() должен возвращать объект конфига (E-63)</string>
+    <string name="config_script_error_timeout">Скрипт выполнялся слишком долго и был остановлен (E-64)</string>
+    <string name="config_script_error_too_large">Скрипт выдал слишком большой конфиг (E-65)</string>
     <string name="profile_config_empty">У этого профиля ещё нет сгенерированного конфига.</string>
     <string name="profile_config_copy">Скопировать конфиг</string>
     <string name="profile_config_download">Скачать конфиг</string>
@@ -1002,6 +1031,11 @@
     <string name="theme_text_default">100%</string>
     <string name="theme_text_large">110%</string>
     <string name="theme_text_extra">120%</string>
+    <string name="theme_font_weight">Насыщенность шрифта</string>
+    <string name="theme_font_weight_default">Обычный</string>
+    <string name="theme_font_weight_medium">Средний</string>
+    <string name="theme_font_weight_semibold">Полужирный</string>
+    <string name="theme_font_weight_bold">Жирный</string>
     <string name="theme_reset">Сбросить тему</string>
     <string name="theme_palette_clash">ClashFest</string>
     <string name="theme_palette_blue">Синяя</string>
@@ -1192,4 +1226,32 @@
     <string name="age_key_generate">Сгенерировать</string>
     <string name="age_key_to_public">Из секретного</string>
     <string name="age_key_copy">Копировать</string>
+    <string name="local_proxy">Локальная прокси</string>
+    <string name="local_proxy_enable">Включить локальную прокси</string>
+    <string name="local_proxy_enable_summary">Поднять SOCKS/HTTP-слушатель на loopback под паролем. По умолчанию выключено: иначе другие приложения смогут обойти ваши правила маршрутизации.</string>
+    <string name="local_proxy_port">Порт локальной прокси</string>
+    <string name="local_proxy_credentials">Данные локальной прокси</string>
+    <string name="local_proxy_credentials_summary">Включите локальную прокси, чтобы получить адрес и данные для входа</string>
+    <string name="local_proxy_reveal_subtitle">Подтвердите, чтобы показать пароль</string>
+    <string name="local_proxy_not_ready">Данные создаются при следующем подключении VPN. Включите локальную прокси, подключитесь один раз и вернитесь сюда.</string>
+    <string name="local_proxy_copy_url">Копировать URL</string>
+    <string name="local_proxy_details_fmt">Хост: %1$s
+Порт: %2$d
+Логин: %3$s
+Пароль: %4$s</string>
+    <string name="local_proxy_copy_password">Копировать пароль</string>
+    <string name="local_proxy_field_host">Хост</string>
+    <string name="local_proxy_field_port">Порт</string>
+    <string name="local_proxy_field_username">Логин</string>
+    <string name="local_proxy_field_password">Пароль</string>
+    <string name="local_proxy_copied_fmt">%1$s скопирован</string>
+    <string name="subscription_update_via_proxy">Обновлять через прокси</string>
+    <string name="subscription_update_via_proxy_summary">Предпочитаемый маршрут для загрузки этой подписки: через туннель, по вашим правилам. Выключите, чтобы сначала пробовать прямое подключение. В любом случае, если первый маршрут не сработает, второй будет использован автоматически. Применится со следующего обновления.</string>
+    <string name="latency_target_title">Цель теста задержки</string>
+    <string name="latency_target_summary">Измерить задержку до нужного вам сайта вместо стандартного адреса проверки. Только для этого теста.</string>
+    <string name="latency_target_hint">Сайт или URL</string>
+    <string name="latency_target_note">Это задержка, а не скорость скачивания. Настоящая страница отвечает медленнее пустого ответа по умолчанию, поэтому числа будут выше.</string>
+    <string name="latency_target_invalid">Введите сайт, например example.com</string>
+    <string name="latency_target_run">Проверить</string>
+    <string name="latency_target_nothing_to_test">В этой группе нечего проверять</string>
 </resources>

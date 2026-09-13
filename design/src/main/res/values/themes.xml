@@ -535,6 +535,27 @@
         <item name="fontFamily">@font/nunito</item>
     </style>
 
+    <!--
+      Font-weight overlays (#195). Applied last in the theme chain so the chosen weight wins over
+      the base theme's @font/manrope, and only on the Manrope-based default themes — the SlothClash
+      skin keeps its own Nunito look, exactly as it already opts out of palette / dynamic color /
+      true-black. There is no overlay for ThemeFontWeight.Default: it applies nothing at all.
+    -->
+    <style name="ThemeOverlay_ClashFest_Font_Medium">
+        <item name="android:fontFamily">@font/manrope_medium</item>
+        <item name="fontFamily">@font/manrope_medium</item>
+    </style>
+
+    <style name="ThemeOverlay_ClashFest_Font_SemiBold">
+        <item name="android:fontFamily">@font/manrope_semibold</item>
+        <item name="fontFamily">@font/manrope_semibold</item>
+    </style>
+
+    <style name="ThemeOverlay_ClashFest_Font_Bold">
+        <item name="android:fontFamily">@font/manrope_bold</item>
+        <item name="fontFamily">@font/manrope_bold</item>
+    </style>
+
     <style name="ThemeOverlay_ClashFest_TrueBlack">
         <item name="homeGlowColor">@android:color/transparent</item>
         <item name="android:windowBackground">@color/theme_true_black_bg</item>

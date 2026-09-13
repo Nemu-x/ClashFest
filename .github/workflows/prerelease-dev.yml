@@ -46,6 +46,9 @@ jobs:
           fi
           echo "HandlerService guard passed."
 
+      - name: Populate embedded Root CA bundle
+        run: bash .github/scripts/populate-ca-bundle.sh
+
       - name: Build Alpha Debug APK
         run: ./gradlew assembleAlphaDebug
 

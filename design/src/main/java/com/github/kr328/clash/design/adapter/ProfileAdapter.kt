@@ -32,6 +32,13 @@ import com.github.kr328.clash.service.model.Profile
 import com.github.kr328.clash.service.model.ProxyGroupPreviewRow
 import com.github.kr328.clash.service.model.ProxyTransportInfo
 import com.google.android.material.bottomsheet.BottomSheetBehavior
+import androidx.appcompat.widget.TooltipCompat
+import com.google.android.material.button.MaterialButton
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.google.android.material.color.MaterialColors
 import java.util.UUID
 
@@ -40,7 +47,7 @@ class ProfileAdapter(
     private val onMenuClicked: (Profile, View) -> Unit,
     private val onExpandToggle: (Profile) -> Unit = {},
     private val onProxyNodeSelected: (Profile, String, String) -> Unit = { _, _, _ -> },
-    private val onPingAll: (Profile, String, List<String>) -> Unit = { _, _, _ -> },
+    private val onPingAll: (Profile, String, List<String>, String) -> Unit = { _, _, _, _ -> },
     private val onForceUpdate: (Profile) -> Unit = {},
     private val onProxyYamlDetail: (profile: Profile, groupName: String, proxyName: String) -> Unit =
         { _, _, _ -> },
@@ -55,6 +62,10 @@ class ProfileAdapter(
     val states = ProfilePageState()
 
     private var proxyGroupNames: List<String> = emptyList()
+    /** The `excludeNotSelectable` setting [proxyGroupNames] was queried with — see [setProxyContext]. */
+    private var excludeNotSelectable: Boolean = false
+    /** Prefill for the latency-target dialog; the measurement target itself is never sticky. */
+    private var lastLatencyTarget: String = ""
     private var proxyDetails: Map<String, ProxyGroup> = emptyMap()
     private var activeProfileUuid: UUID? = null
     private var clashRunning: Boolean = false
@@ -223,8 +234,15 @@ class ProfileAdapter(
         activeProfileUuid: UUID? = null,
         offlineSelectionsByProfile: Map<UUID, Map<String, String>> = emptyMap(),
         transportInfoByProfile: Map<UUID, Map<String, ProxyTransportInfo>> = emptyMap(),
+        /**
+         * The `excludeNotSelectable` flag [names] was queried with. The engine applies it in
+         * `queryProxyGroupNames`; the offline preview has to apply the same rule itself, or the
+         * pill bar changes shape the moment the VPN comes up.
+         */
+        excludeNotSelectable: Boolean = false,
     ) {
         if (names == proxyGroupNames && running == clashRunning && mode == tunnelMode &&
+            excludeNotSelectable == this.excludeNotSelectable &&
             lastGroupHint == this.lastGroupHint &&
             offlinePreviewByProfile == this.offlinePreviewByProfile &&
             activeProfileUuid == this.activeProfileUuid &&
@@ -274,6 +292,7 @@ class ProfileAdapter(
             newActiveOfflineGroups.isNotEmpty() &&
             names.none { n -> newActiveOfflineGroups.any { groupsMatchKey(n, it) } }
         proxyGroupNames = if (engineStaleAfterSwitch) emptyList() else names
+        this.excludeNotSelectable = excludeNotSelectable
         if (offlinePreviewByProfile.isNotEmpty()) {
             cachedOfflinePreviewByProfile.putAll(offlinePreviewByProfile)
         }
@@ -430,7 +449,8 @@ class ProfileAdapter(
         val key = if (current.containsKey(groupName)) {
             groupName
         } else {
-            current.entries.firstOrNull { groupsMatchKey(groupName, it.key) }?.key ?: return
+            // A write path: patching the wrong group's selection is worse than not patching.
+            current.keys.filter { groupsMatchKey(groupName, it) }.singleOrNull() ?: return
         }
         val existing = current[key] ?: return
         val proxyIdx = existing.proxies.indexOfFirst { it.name == proxyName }
@@ -511,6 +531,19 @@ class ProfileAdapter(
         }
     }
 
+    /**
+     * Mirrors the engine's own visibility rule for "Hide non-selectable groups"
+     * (`proxyGroupVisibleWithSelectableFilter`, native/tunnel/proxies.go): url-test, load-balance
+     * and relay groups drop out, while Selector and Fallback stay — nested fallback chains are
+     * common in subscription layouts.
+     *
+     * Kept in sync deliberately. The engine list is queried WITH the user's setting, so without
+     * this the offline preview showed auto groups that vanished the instant the tunnel came up,
+     * and the pill bar visibly reflowed on connect.
+     */
+    private fun isFilteredOutAsNotSelectable(type: Proxy.Type): Boolean =
+        excludeNotSelectable && type != Proxy.Type.Selector && type != Proxy.Type.Fallback
+
     /** Engine data applies only when the expanded card is the active profile and VPN is on. */
     private fun useEngineFor(profile: Profile): Boolean =
         clashRunning &&
@@ -537,7 +570,7 @@ class ProfileAdapter(
             proxyGroupNames
         } else {
             offlinePreview?.entries
-                ?.filterNot { (_, row) -> row.hidden }
+                ?.filterNot { (_, row) -> row.hidden || isFilteredOutAsNotSelectable(row.type) }
                 ?.map { (k, _) -> k }
                 ?.toList()
                 .orEmpty()
@@ -554,8 +587,7 @@ class ProfileAdapter(
         // shell test and short-circuits the heuristic — its hidden auto
         // backups stay hidden, which is what the user expects.
         val configIsPureShell = visible.isNotEmpty() && visible.all { vname ->
-            val row = offlinePreview[vname]
-                ?: offlinePreview.entries.firstOrNull { groupsMatchKey(vname, it.key) }?.value
+            val row = uniqueGroupMatch(offlinePreview, vname)
                 ?: return@all false
             val staticRefs = row.staticProxies
             if (staticRefs.isEmpty()) return@all false
@@ -568,13 +600,11 @@ class ProfileAdapter(
 
         val extras = LinkedHashSet<String>()
         for (vname in visible) {
-            val row = offlinePreview[vname]
-                ?: offlinePreview.entries.firstOrNull { groupsMatchKey(vname, it.key) }?.value
+            val row = uniqueGroupMatch(offlinePreview, vname)
                 ?: continue
             for (memberName in row.staticProxies) {
                 if (memberName in visibleSet || memberName in extras) continue
-                val memberRow = offlinePreview[memberName]
-                    ?: offlinePreview.entries.firstOrNull { groupsMatchKey(memberName, it.key) }?.value
+                val memberRow = uniqueGroupMatch(offlinePreview, memberName)
                     ?: continue
                 if (!memberRow.hidden) continue
                 // Only auto types help routing — Selector/Unknown hidden roots
@@ -666,6 +696,13 @@ class ProfileAdapter(
         return offlinePreviewByProfile[uuid]?.get(name)?.type ?: Proxy.Type.Unknown
     }
 
+    /**
+     * YAML `type:` → [Proxy.Type]. The keys are the engine's **config** spellings from
+     * `adapter/parser.go`, which are not the same as the wire names [Proxy.Type] is
+     * modelled on (`gost-relay` here vs `GostRelay` from `AdapterType.String()`); the
+     * short aliases (`ss`, `hy2`, `wg`, …) are ours, for hand-written configs.
+     * In sync with mihomo v1.19.30 — re-check `parser.go` after every core bump.
+     */
     private fun proxyTypeFromYamlName(raw: String?): Proxy.Type = when (raw?.trim()?.lowercase()) {
         "ss", "shadowsocks" -> Proxy.Type.Shadowsocks
         "ssr", "shadowsocksr" -> Proxy.Type.ShadowsocksR
@@ -678,52 +715,45 @@ class ProfileAdapter(
         "hysteria" -> Proxy.Type.Hysteria
         "hysteria2", "hy2" -> Proxy.Type.Hysteria2
         "tuic" -> Proxy.Type.Tuic
+        "shadowquic" -> Proxy.Type.ShadowQuic
         "wireguard", "wg" -> Proxy.Type.WireGuard
         "ssh" -> Proxy.Type.Ssh
         "mieru" -> Proxy.Type.Mieru
         "anytls" -> Proxy.Type.AnyTLS
+        "sudoku" -> Proxy.Type.Sudoku
         "masque" -> Proxy.Type.Masque
         "trusttunnel" -> Proxy.Type.TrustTunnel
+        "openvpn" -> Proxy.Type.OpenVPN
+        "tailscale" -> Proxy.Type.Tailscale
+        "zerotier" -> Proxy.Type.ZeroTier
+        "gost-relay" -> Proxy.Type.GostRelay
         "direct" -> Proxy.Type.Direct
+        "reject" -> Proxy.Type.Reject
+        "dns" -> Proxy.Type.Dns
+        "rematch" -> Proxy.Type.Rematch
         else -> Proxy.Type.Unknown
     }
 
     private fun proxyGroupForRow(profile: Profile, groupName: String): ProxyGroup? {
         if (useEngineFor(profile)) {
-            val live = proxyDetails[groupName]
-                ?: proxyDetails.entries.firstOrNull { groupsMatchKey(groupName, it.key) }?.value
+            val live = uniqueGroupMatch(proxyDetails, groupName)
             if (live != null) {
-                // mihomo expands `include-all-providers` / `include-all-proxies` / `include-all`
-                // groups at routing time but Clash.queryGroup() only returns the statically
-                // declared `proxies:` list. If our offline YAML parse shows a wider member set,
-                // it's almost certainly one of those dynamic flags — merge the offline names
-                // into the live group while preserving the live Proxy entries (delay, type,
-                // current selection) for any names that overlap.
-                val offlineRow = offlinePreviewByProfile[profile.uuid]?.let { map ->
-                    map[groupName] ?: map.entries.firstOrNull { groupsMatchKey(groupName, it.key) }?.value
-                }
-                if (offlineRow != null && offlineRow.members.size > live.proxies.size) {
-                    val liveByName = live.proxies.associateBy { it.name }
-                    val seen = HashSet<String>(offlineRow.members.size + live.proxies.size)
-                    val merged = buildList {
-                        offlineRow.members.forEach { name ->
-                            if (seen.add(name)) {
-                                add(liveByName[name] ?: Proxy(name, name, "", offlineProxyType(profile.uuid, name), -1))
-                            }
-                        }
-                        // Trailing live-only proxies (DIRECT/REJECT/etc. that aren't in the
-                        // subscription's leaf set but mihomo still injects) stay where they were.
-                        live.proxies.forEach { p ->
-                            if (seen.add(p.name)) add(p)
-                        }
-                    }
-                    return ProxyGroup(live.type, merged, live.now).withSelectionOverlay(profile.uuid, groupName)
-                }
+                // The engine is authoritative: Clash.queryGroup() -> tunnel.QueryProxyGroup calls
+                // mihomo's g.Proxies(), which has ALREADY expanded `include-all*` / `use:` and applied
+                // `filter` / `exclude-filter` / `exclude-type`.
+                //
+                // We used to union the offline YAML preview into the live group whenever the offline
+                // member count was larger, on the assumption that queryGroup() returned only the
+                // statically declared `proxies:`. That assumption is stale, and the heuristic fired on
+                // cardinality alone — so whenever the offline preview over-counted (e.g. it cannot
+                // evaluate a `filter` containing a quantifier or lookahead and silently falls back to
+                // the declared list), nodes the engine had deliberately excluded were re-injected into
+                // the connected view. Same class of bug as the provider fallback fixed on the Go side
+                // in tunnel/proxies.go (gated on hasLeaf). Trust the engine; never widen its answer.
                 return live.withSelectionOverlay(profile.uuid, groupName)
             }
             val offlineMap = offlinePreviewByProfile[profile.uuid]
-            val row = offlineMap?.get(groupName)
-                ?: offlineMap?.entries?.firstOrNull { groupsMatchKey(groupName, it.key) }?.value
+            val row = offlineMap?.let { uniqueGroupMatch(it, groupName) }
             val now = offlineSelectedForGroup(profile.uuid, groupName)
             val type = row?.type ?: Proxy.Type.Selector
             // Engine cache may not yet hold a sibling group the user just tapped (the prior
@@ -740,9 +770,7 @@ class ProfileAdapter(
             ).withSelectionOverlay(profile.uuid, groupName)
         }
         val offline = offlinePreviewByProfile[profile.uuid] ?: return null
-        val row = offline[groupName]
-            ?: offline.entries.firstOrNull { (k, _) -> groupsMatchKey(groupName, k) }?.value
-            ?: return null
+        val row = uniqueGroupMatch(offline, groupName) ?: return null
         val names = row.members
         val now = offlineSelectedForGroup(profile.uuid, groupName)
         return ProxyGroup(
@@ -754,12 +782,89 @@ class ProfileAdapter(
         ).withSelectionOverlay(profile.uuid, groupName)
     }
 
+    /**
+     * Asks for a one-shot latency target and hands back a URL ready for URLTest.
+     *
+     * The last entry is remembered only to prefill the field — the measurement itself is never
+     * sticky, so closing the dialog leaves the next tap measuring the default target as before.
+     */
+    private fun showLatencyTargetDialog(context: Context, onConfirm: (String) -> Unit) {
+        val view = context.layoutInflater.inflate(R.layout.dialog_latency_target, null, false)
+        val inputLayout = view.findViewById<TextInputLayout>(R.id.latency_target_input_layout)
+        val input = view.findViewById<TextInputEditText>(R.id.latency_target_input)
+        input.setText(lastLatencyTarget)
+        input.setSelection(input.text?.length ?: 0)
+
+        val dialog = MaterialAlertDialogBuilder(context)
+            .setView(view)
+            .setPositiveButton(R.string.latency_target_run, null)
+            .setNegativeButton(R.string.cancel, null)
+            .create()
+
+        // Validate without dismissing: setPositiveButton's own listener always closes, which would
+        // throw the typed text away on a typo.
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val url = normalizeLatencyTarget(input.text?.toString().orEmpty())
+                if (url == null) {
+                    inputLayout.error = context.getString(R.string.latency_target_invalid)
+                    return@setOnClickListener
+                }
+                lastLatencyTarget = input.text?.toString()?.trim().orEmpty()
+                dialog.dismiss()
+                onConfirm(url)
+            }
+        }
+        dialog.show()
+    }
+
+    /**
+     * Turns what a person types into something URLTest can dial, or null if it cannot.
+     *
+     * People type "youtube.com", so a missing scheme is assumed to be https rather than rejected.
+     * A bare host with no dot ("localhost", or a half-typed name) is refused: URLTest would hang
+     * until the timeout and report every proxy as dead, which reads as a bug in the app rather
+     * than a typo.
+     */
+    internal fun normalizeLatencyTarget(raw: String): String? {
+        val text = raw.trim()
+        if (text.isEmpty()) return null
+        val withScheme = if (text.startsWith("http://") || text.startsWith("https://")) {
+            text
+        } else {
+            "https://$text"
+        }
+        val host = runCatching { java.net.URI(withScheme).host }.getOrNull()
+        if (host.isNullOrBlank() || !host.contains('.')) return null
+        return withScheme
+    }
+
     private fun proxySelectionKey(uuid: UUID, groupName: String): String =
         "${uuid}|${groupName}"
 
+    /**
+     * Matches an engine group name against a stored one, tolerating the whitespace differences that
+     * appear when a name round-trips through YAML ("US  Auto" vs "US Auto").
+     *
+     * Exact equality is checked first so an exact name always wins over a normalized near-match:
+     * mihomo treats two names differing only in whitespace runs as two distinct groups, and callers
+     * resolve with `firstOrNull`, which would otherwise silently pick whichever came first in map
+     * order. See [uniqueGroupMatch] for the lookups that must not guess at all.
+     */
     private fun groupsMatchKey(engineName: String, storedName: String): Boolean {
         if (engineName == storedName) return true
         return displayGroupName(engineName) == displayGroupName(storedName)
+    }
+
+    /**
+     * Resolves [name] against [candidates] the way [groupsMatchKey] does, but returns null when the
+     * normalized form is ambiguous instead of picking an arbitrary winner. Showing no data beats
+     * showing another group's members under this group's heading.
+     */
+    private fun <V> uniqueGroupMatch(candidates: Map<String, V>, name: String): V? {
+        candidates[name]?.let { return it }
+        val matches = candidates.entries.filter { groupsMatchKey(name, it.key) }
+        return matches.singleOrNull()?.value
     }
 
     private fun hasLiveProxyDetail(profile: Profile, groupName: String): Boolean {
@@ -906,9 +1011,36 @@ class ProfileAdapter(
                     context.getString(R.string.profile_proxy_filter_provider, f.name)
             }
 
+            /**
+             * Sort and filter are icon-only buttons, so the current selection can no longer be read
+             * off a label. Carry it two ways instead: tint the icon with colorPrimary when the
+             * choice is not the default, and put the label in the tooltip / content description so
+             * it stays available to a long-press and to TalkBack.
+             */
             fun updateControlLabels() {
-                sheet.proxySheetSortButton.text = sortLabel(sort)
-                sheet.proxySheetFilterButton.text = filterLabel(filter)
+                fun bind(button: MaterialButton, label: String, active: Boolean) {
+                    val tint = MaterialColors.getColor(
+                        button,
+                        if (active) {
+                            com.google.android.material.R.attr.colorPrimary
+                        } else {
+                            com.google.android.material.R.attr.colorOnSurfaceVariant
+                        },
+                    )
+                    button.iconTint = ColorStateList.valueOf(tint)
+                    button.contentDescription = label
+                    TooltipCompat.setTooltipText(button, label)
+                }
+                bind(
+                    sheet.proxySheetSortButton,
+                    sortLabel(sort),
+                    active = sort != ProxyPickerSort.Config,
+                )
+                bind(
+                    sheet.proxySheetFilterButton,
+                    filterLabel(filter),
+                    active = filter != ProxyPickerFilter.CurrentGroup,
+                )
             }
 
             // The node list is a RecyclerView (virtualized — see O-07). render() references
@@ -944,7 +1076,6 @@ class ProfileAdapter(
                     render(index)
                     reportVisibleGroup(profile, group, force = true)
                 }
-                bindGroupType(sheet.proxySheetGroupTypeLabel, profile, groupNames.getOrNull(selectedIndex).orEmpty())
                 val rows = applyProxyPickerControls(
                     rows = rowsForCurrentGroup(selectedIndex),
                     query = query,
@@ -1032,9 +1163,12 @@ class ProfileAdapter(
             val pinging = states.pingingUuid == profile.uuid
             sheet.proxySheetPingProgress.visibility = if (pinging) View.VISIBLE else View.GONE
             sheet.proxySheetPingButton.visibility = if (pinging) View.INVISIBLE else View.VISIBLE
-            sheet.proxySheetPingButton.setOnClickListener {
+            // Resolves what a ping would cover right now: the rows the user can actually see in
+            // the current group, falling back to the group's own members when the list has not
+            // been laid out yet. Shared by the tap and the long press so both measure the same set.
+            fun pingTargets(): Pair<String, List<String>>? {
                 val currentIndex = selectedGroupIndex[profile.uuid] ?: 0
-                val groupName = groupNames.getOrNull(currentIndex) ?: return@setOnClickListener
+                val groupName = groupNames.getOrNull(currentIndex) ?: return null
                 val names = visibleRows()
                     .filter { it.groupIndex == currentIndex }
                     .map { it.proxy.name }
@@ -1045,10 +1179,41 @@ class ProfileAdapter(
                             ?.map { it.name }
                             .orEmpty()
                     }
-                if (names.isEmpty()) return@setOnClickListener
+                if (names.isEmpty()) return null
+                return groupName to names
+            }
+
+            fun startPing(groupName: String, names: List<String>, testUrl: String) {
                 lastPingAllAt[profile.uuid] = System.currentTimeMillis()
-                onPingAll(profile, groupName, names)
+                onPingAll(profile, groupName, names, testUrl)
                 sheet.root.post(refreshRunnable)
+            }
+
+            sheet.proxySheetPingButton.setOnClickListener {
+                val (groupName, names) = pingTargets() ?: return@setOnClickListener
+                startPing(groupName, names, "")
+            }
+            // Long press picks a different target for one run. Deliberately not a setting: the
+            // default check URL is what the subscription tuned its own auto-switching around, so
+            // making a custom host permanent here would quietly change what "fastest" means.
+            //
+            // Targets are resolved on confirm, not here. Resolving up front meant that whenever the
+            // current group had no rows to measure the gesture returned silently, which from the
+            // outside is indistinguishable from a long press that does not work at all.
+            sheet.proxySheetPingButton.setOnLongClickListener {
+                showLatencyTargetDialog(sheet.root.context) { url ->
+                    val targets = pingTargets()
+                    if (targets == null) {
+                        Toast.makeText(
+                            sheet.root.context,
+                            R.string.latency_target_nothing_to_test,
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                        return@showLatencyTargetDialog
+                    }
+                    startPing(targets.first, targets.second, url)
+                }
+                true
             }
 
             sheet.proxySheetSearch.addTextChangedListener { editable ->
@@ -1480,7 +1645,7 @@ class ProfileAdapter(
     private val pingingGroupByUuid = HashMap<UUID, String>()
 
     /**
-     * FlClash-style vertical accordion of proxy-group blocks for the Profiles-tab inline panel.
+     * Vertical accordion of proxy-group blocks for the Profiles-tab inline panel.
      * Each block header toggles its own node list; several can stay open at once.
      */
     private fun renderGroupAccordion(
@@ -1535,7 +1700,6 @@ class ProfileAdapter(
         val groupName = groupNames[index]
         val header = block.findViewById<View>(R.id.group_block_header)
         val nameView = block.findViewById<TextView>(R.id.group_block_name)
-        val typeView = block.findViewById<TextView>(R.id.group_block_type)
         val summaryView = block.findViewById<TextView>(R.id.group_block_summary)
         val countView = block.findViewById<TextView>(R.id.group_block_count)
         val chevron = block.findViewById<View>(R.id.group_block_chevron)
@@ -1545,7 +1709,6 @@ class ProfileAdapter(
 
         val pg = proxyGroupForRow(profile, groupName)
         nameView.text = displayGroupName(groupName)
-        bindGroupType(typeView, profile, groupName)
 
         val pendingChoice = pendingMapValueForGroup(profile.uuid, groupName)?.takeIf { it.isNotBlank() }
         val selectedName = pendingChoice ?: pg?.now
@@ -1568,7 +1731,7 @@ class ProfileAdapter(
         pingView.setOnClickListener {
             pingingGroupByUuid[profile.uuid] = groupName
             val names = proxyGroupForRow(profile, groupName)?.proxies?.map { it.name }.orEmpty()
-            onPingAll(profile, groupName, names)
+            onPingAll(profile, groupName, names, "")
         }
 
         header.setOnClickListener {
@@ -1998,12 +2161,6 @@ class ProfileAdapter(
         target.findViewById<View>(R.id.selected_check).visibility = View.VISIBLE
     }
 
-    private fun bindGroupType(view: TextView, profile: Profile, groupName: String) {
-        // The group's type is now shown inline as a per-row chip (groupTypeLabel), so the
-        // standalone "Selector"/"URLTest" caption above the list is redundant — keep it hidden.
-        view.visibility = View.GONE
-    }
-
     private fun shouldHideProxyOption(groupName: String, proxy: Proxy): Boolean {
         if (!groupName.equals("GLOBAL", ignoreCase = true)) return false
         if (proxy.type == Proxy.Type.Direct || proxy.type == Proxy.Type.Reject) return true
@@ -2102,14 +2259,22 @@ class ProfileAdapter(
         }
     }
 
+    /**
+     * Keyed on the **enum** name (the caller passes `p.type.name`), so `gostrelay`, not
+     * the config spelling `gost-relay`. Grouping is by protocol family, not by product:
+     * QUIC-based transports share one colour, the tunnel-style outbounds
+     * (wireguard/tailscale/zerotier/openvpn) another, TCP proxy protocols a third.
+     * An unlisted type falls back to grey rather than losing its chip.
+     */
     private fun protocolFamilyColor(typeName: String): Int = when (typeName.lowercase()) {
         "vmess", "vless" -> R.color.proto_vless
         "trojan" -> R.color.proto_trojan
         "hysteria", "hysteria2" -> R.color.proto_hysteria
-        "tuic", "anytls", "masque" -> R.color.proto_tuic
-        "shadowsocks", "shadowsocksr", "snell", "socks5" -> R.color.proto_shadowsocks
-        "http" -> R.color.proto_http
-        "wireguard", "trusttunnel" -> R.color.proto_wireguard
+        "tuic", "anytls", "masque", "shadowquic" -> R.color.proto_tuic
+        "shadowsocks", "shadowsocksr", "snell", "socks5", "mieru", "sudoku", "ssh" ->
+            R.color.proto_shadowsocks
+        "http", "gostrelay" -> R.color.proto_http
+        "wireguard", "trusttunnel", "tailscale", "zerotier", "openvpn" -> R.color.proto_wireguard
         "direct" -> R.color.proto_tcp
         else -> R.color.proto_default
     }

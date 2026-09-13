@@ -23,9 +23,8 @@ After Path B:
   derived view.
 
 This is the same pattern [kr328/ClashMetaForAndroid](https://github.com/MetaCubeX/ClashMetaForAndroid)
-already uses for `queryProviders()`, [FlClash](https://github.com/chen08209/FlClash)
-uses for every read, and [Clash Verge](https://github.com/clash-verge-rev/clash-verge-rev)
-uses via the mihomo HTTP API. We adopted it for the same reasons.
+already uses for `queryProviders()`; other clients in the ecosystem rely on it for
+every read, or reach it via the mihomo HTTP API. We adopted it for the same reasons.
 
 ## 1. The Problem We Closed
 

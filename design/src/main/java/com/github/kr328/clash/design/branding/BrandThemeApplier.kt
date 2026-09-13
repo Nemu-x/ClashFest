@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.view.ContextThemeWrapper
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.model.HomeBackgroundStyle
+import com.github.kr328.clash.design.model.ThemeFontWeight
 import com.github.kr328.clash.design.model.ThemePalette
 import com.github.kr328.clash.design.store.UiStore
 import com.google.android.material.color.DynamicColors
@@ -189,6 +190,17 @@ object BrandThemeApplier {
             ctx
         }
 
+        // Font weight last, so it wins over the base theme's face (#195). Skipped on Sloth, which
+        // owns its own typography. When nothing above produced a wrapper we must make one rather
+        // than applyStyle onto the Activity: MainActivity keeps its Activity theme deliberately
+        // virgin so a soft recreate can re-derive the whole chain.
+        val fontOverlay = if (sloth) null else fontWeightOverlay(uiStore.themeFontWeight)
+        val themedWithFont: Context = when {
+            fontOverlay == null -> themed
+            themed === activity -> ContextThemeWrapper(activity, fontOverlay)
+            else -> themed.apply { theme.applyStyle(fontOverlay, true) }
+        }
+
         // What the wrapper actually carries — owned contract shared with applyToActivity.
         store.lastAppliedAccent = if (brandSeed != null) brandHex else ""
         if (brandSeed != null) {
@@ -196,7 +208,7 @@ object BrandThemeApplier {
                 "BrandThemeApplier: themed wrapper carries brand accent=$brandHex",
             )
         }
-        return themed
+        return themedWithFont
     }
 
     /**
@@ -240,6 +252,25 @@ object BrandThemeApplier {
                 ctx.theme.applyStyle(R.style.ThemeOverlay_ClashFest_TrueBlack, true)
             }
             return ctx
+        }
+        // Material's wrapper forks its Resources with an EMPTY override configuration, so they
+        // are rebuilt from the process (system) configuration and lose everything the Activity
+        // carries on top: AppCompat's forced night mode and our font-scale override. Every
+        // config-qualified lookup through the wrapper (values-night/themes.xml alias of the
+        // manifest theme, brand_neutral_* colours) then follows the SYSTEM day/night instead of
+        // the app's — with system dark + app light + an accent the Home Settings tab inflated
+        // dark cards on a dark canvas while the seed palette stayed light. Re-stamp the
+        // Activity's configuration onto the fork before its theme is first materialised.
+        val activityConfig = activity.resources.configuration
+        if (wrapped.resources !== activity.resources &&
+            wrapped.resources.configuration != activityConfig
+        ) {
+            @Suppress("DEPRECATION")
+            wrapped.resources.updateConfiguration(activityConfig, activity.resources.displayMetrics)
+            com.github.kr328.clash.common.log.Log.d(
+                "BrandThemeApplier: re-stamped activity configuration onto seeded wrapper " +
+                    "(night=$night)",
+            )
         }
         // Android 16 (device-verified): Theme.setTo() into the wrapper's forked Resources loses
         // the copied base-theme content — every attr the activity theme provided resolves as
@@ -286,6 +317,20 @@ object BrandThemeApplier {
         ThemePalette.Amber -> if (night) R.style.ThemeOverlay_ClashFest_PaletteAmber_Dark else R.style.ThemeOverlay_ClashFest_PaletteAmber_Light
         ThemePalette.Mint -> if (night) R.style.ThemeOverlay_ClashFest_PaletteMint_Dark else R.style.ThemeOverlay_ClashFest_PaletteMint_Light
         ThemePalette.Graphite -> if (night) R.style.ThemeOverlay_ClashFest_PaletteGraphite_Dark else R.style.ThemeOverlay_ClashFest_PaletteGraphite_Light
+    }
+
+    /**
+     * Theme overlay for the user's font-weight choice (#195), or null when nothing should change.
+     *
+     * Null for [ThemeFontWeight.Default] so the shipped theme is untouched for anyone who never
+     * opens the setting. Callers must skip this entirely on the Sloth skin — it carries its own
+     * face, like it carries its own colors.
+     */
+    fun fontWeightOverlay(weight: ThemeFontWeight): Int? = when (weight) {
+        ThemeFontWeight.Default -> null
+        ThemeFontWeight.Medium -> R.style.ThemeOverlay_ClashFest_Font_Medium
+        ThemeFontWeight.SemiBold -> R.style.ThemeOverlay_ClashFest_Font_SemiBold
+        ThemeFontWeight.Bold -> R.style.ThemeOverlay_ClashFest_Font_Bold
     }
 
     private val HEX_COLOR = Regex("^#[0-9A-Fa-f]{6}$")

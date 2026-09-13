@@ -63,10 +63,19 @@ object BrandHeaders {
      * the app to Rule mode. Because it's a policy (the operator restricting behaviour, e.g. stopping
      * users from routing all traffic through the proxy and bypassing rules) rather than a look, it
      * takes effect on header presence alone — it does NOT require `X-Branding-Enabled: true`.
-     * This is the one header that works unbranded; every X-Brand-* identity/tab/info field still
+     * Works unbranded, like [LOCK_CONFIG_SCRIPT]; every X-Brand-* identity/tab/info field still
      * needs branding explicitly enabled.
      */
     const val HIDE_GLOBAL_MODE = "X-Brand-Hide-Global-Mode"
+
+    /**
+     * Operator restriction, NOT cosmetic branding: forbids user JS config scripts on this
+     * subscription. A script rewrites the config wholesale — proxies, DNS, rules — so leaving it
+     * available on a managed subscription would let any policy the operator set be edited away.
+     * Like [HIDE_GLOBAL_MODE] it takes effect on header presence alone, without
+     * `X-Branding-Enabled: true`.
+     */
+    const val LOCK_CONFIG_SCRIPT = "X-Brand-Lock-Config-Script"
 
     /**
      * Explicit opt-in for the dedicated Operator tab. Brand identity / accent /
