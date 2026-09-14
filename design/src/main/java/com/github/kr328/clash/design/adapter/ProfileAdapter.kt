@@ -750,7 +750,7 @@ class ProfileAdapter(
      * `adapter/parser.go`, which are not the same as the wire names [Proxy.Type] is
      * modelled on (`gost-relay` here vs `GostRelay` from `AdapterType.String()`); the
      * short aliases (`ss`, `hy2`, `wg`, …) are ours, for hand-written configs.
-     * In sync with mihomo v1.19.30 — re-check `parser.go` after every core bump.
+     * In sync with mihomo v1.19.31 — re-check `parser.go` after every core bump.
      */
     private fun proxyTypeFromYamlName(raw: String?): Proxy.Type = when (raw?.trim()?.lowercase()) {
         "ss", "shadowsocks" -> Proxy.Type.Shadowsocks
@@ -775,6 +775,7 @@ class ProfileAdapter(
         "openvpn" -> Proxy.Type.OpenVPN
         "tailscale" -> Proxy.Type.Tailscale
         "zerotier" -> Proxy.Type.ZeroTier
+        "easytier" -> Proxy.Type.EasyTier
         "gost-relay" -> Proxy.Type.GostRelay
         "direct" -> Proxy.Type.Direct
         "reject" -> Proxy.Type.Reject
@@ -2337,7 +2338,7 @@ class ProfileAdapter(
      * Keyed on the **enum** name (the caller passes `p.type.name`), so `gostrelay`, not
      * the config spelling `gost-relay`. Grouping is by protocol family, not by product:
      * QUIC-based transports share one colour, the tunnel-style outbounds
-     * (wireguard/tailscale/zerotier/openvpn) another, TCP proxy protocols a third.
+     * (wireguard/tailscale/zerotier/easytier/openvpn) another, TCP proxy protocols a third.
      * An unlisted type falls back to grey rather than losing its chip.
      */
     private fun protocolFamilyColor(typeName: String): Int = when (typeName.lowercase()) {
@@ -2348,7 +2349,7 @@ class ProfileAdapter(
         "shadowsocks", "shadowsocksr", "snell", "socks5", "mieru", "sudoku", "ssh" ->
             R.color.proto_shadowsocks
         "http", "gostrelay" -> R.color.proto_http
-        "wireguard", "trusttunnel", "tailscale", "zerotier", "openvpn" -> R.color.proto_wireguard
+        "wireguard", "trusttunnel", "tailscale", "zerotier", "easytier", "openvpn" -> R.color.proto_wireguard
         "direct" -> R.color.proto_tcp
         else -> R.color.proto_default
     }
