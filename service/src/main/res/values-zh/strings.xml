@@ -18,4 +18,26 @@
     <string name="profile_service_status">配置文件服务状态</string>
     <string name="profile_process_result">配置文件处理结果</string>
     <string name="vpn_session_name" translatable="true">ClashFest</string>
+
+    <string name="update_failed_expired_title">订阅已过期</string>
+    <string name="update_failed_expired_body">已于 %1$s 到期。请续费后重新更新配置。</string>
+    <string name="update_failed_expired_body_nodate">订阅已过期。请续费后重新更新配置。</string>
+    <string name="update_failed_devices_title">设备数量已达上限</string>
+    <string name="update_failed_devices_body">此设备被拒绝：订阅的设备数量已达上限。请在其他设备上退出登录，或联系服务商提高上限。</string>
+    <string name="update_failed_network_title">无法连接订阅服务器</string>
+    <string name="update_failed_network_body">无法连接到订阅服务器。请检查网络后重试。</string>
+    <string name="update_failed_refused_title">订阅服务器拒绝了请求</string>
+    <string name="update_failed_refused_body">服务器返回了 HTTP %1$d 而不是配置。链接可能已过期或被撤销，请从面板重新导入。</string>
+    <string name="update_failed_refused_body_nostatus">服务器返回了错误而不是配置。链接可能已过期或被撤销，请从面板重新导入。</string>
+    <string name="update_failed_code">错误代码 %s</string>
+    <string name="update_failed_action_renew">续费</string>
+    <string name="update_failed_action_support">支持</string>
+    <string name="update_failed_action_retry">重试</string>
+    <!-- VPN status notification -->
+    <string name="notification_profile_none">未选择</string>
+    <string name="notification_action_disconnect">断开连接</string>
+    <string name="notification_action_change_node">切换节点</string>
+    <plurals name="notification_days_left">
+        <item quantity="other">剩余 %d 天</item>
+    </plurals>
 </resources>

@@ -1,4 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="vpn_session_name">ClashFest</string>
+    <string name="running">Работает</string>
+    <string name="loading">Загрузка</string>
+    <string name="notification_profile_none">Не выбрано</string>
+    <string name="notification_action_disconnect">Отключить</string>
+    <string name="notification_action_change_node">Сменить узел</string>
+    <plurals name="notification_days_left">
+        <item quantity="one">Остался %d день</item>
+        <item quantity="few">Осталось %d дня</item>
+        <item quantity="many">Осталось %d дней</item>
+        <item quantity="other">Осталось %d дня</item>
+    </plurals>
+
+    <string name="update_failed_expired_title">Подписка истекла</string>
+    <string name="update_failed_expired_body">Истекла %1$s. Продлите тариф и обновите профиль заново.</string>
+    <string name="update_failed_expired_body_nodate">Подписка истекла. Продлите тариф и обновите профиль заново.</string>
+    <string name="update_failed_devices_title">Достигнут лимит устройств</string>
+    <string name="update_failed_devices_body">Устройство отклонено: у подписки исчерпан лимит устройств. Выйдите на другом устройстве или попросите провайдера поднять лимит.</string>
+    <string name="update_failed_network_title">Сервер подписки недоступен</string>
+    <string name="update_failed_network_body">Не удалось связаться с сервером подписки. Проверьте соединение и попробуйте снова.</string>
+    <string name="update_failed_refused_title">Сервер подписки отклонил запрос</string>
+    <string name="update_failed_refused_body">Сервер ответил HTTP %1$d вместо конфига. Ссылка могла истечь или быть отозвана — импортируйте её заново из кабинета.</string>
+    <string name="update_failed_refused_body_nostatus">Сервер ответил ошибкой вместо конфига. Ссылка могла истечь или быть отозвана — импортируйте её заново из кабинета.</string>
+    <string name="update_failed_code">Код ошибки %s</string>
+    <string name="update_failed_action_renew">Продлить</string>
+    <string name="update_failed_action_support">Поддержка</string>
+    <string name="update_failed_action_retry">Повторить</string>
+    <string name="update_failure">Ошибка обновления</string>
 </resources>

@@ -1,6 +1,8 @@
 package com.github.kr328.clash.service
 
 import android.content.Context
+import android.content.Intent
+import com.github.kr328.clash.common.constants.Intents
 import com.github.kr328.clash.common.log.Log
 import com.github.kr328.clash.core.Clash
 import com.github.kr328.clash.core.model.*
@@ -13,6 +15,7 @@ import com.github.kr328.clash.service.remote.ILogObserver
 import com.github.kr328.clash.service.remote.IProxyDelayObserver
 import com.github.kr328.clash.service.store.ServiceStore
 import com.github.kr328.clash.service.util.ProxyHardener
+import com.github.kr328.clash.service.util.sendBroadcastSelf
 import com.github.kr328.clash.service.util.sendOverrideChanged
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -114,6 +117,8 @@ class ClashManager(private val context: Context) : IClashManager,
 
         current?.let { SelectionDao().setSelected(Selection(it, group, name)) }
         syncGlobalSelector(current, group)
+        // Same process as the notification modules: let them re-resolve the displayed node.
+        context.sendBroadcastSelf(Intent(Intents.ACTION_PROXY_SELECTION_CHANGED))
 
         return true
     }

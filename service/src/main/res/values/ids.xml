@@ -3,4 +3,8 @@
     <item name="nf_clash_status" type="id" />
     <item name="nf_vpn_status" type="id" />
     <item name="nf_profile_worker" type="id" />
+    <!-- PendingIntent request codes for the status notification actions (must differ from the
+         content intent's nf_clash_status, or FLAG_UPDATE_CURRENT overwrites it). -->
+    <item name="nf_action_stop" type="id" />
+    <item name="nf_action_node" type="id" />
 </resources>
