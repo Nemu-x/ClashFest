@@ -16,6 +16,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: local
 
     steps:
       - name: Checkout
@@ -37,6 +39,25 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+
+      # Same toolchain as upstream CMFA: a MetaCubeX build of Go with the two GOROOT patches from
+      # .github/patch applied (pidfd disabled on Android — golang/go#69065 SIGSYS under seccomp;
+      # futex_time64 removed on 32-bit Linux). Without this the runner's stock Go compiled the core
+      # unpatched. GOTOOLCHAIN=local (job env) stops `go` from silently downloading another version.
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-download-base-url: 'https://github.com/MetaCubeX/go/releases/download/build'
+          go-version: '1.26'
+          cache: false
+
+      - name: Apply Go runtime patches
+        run: |
+          cd "$(go env GOROOT)"
+          for p in "$GITHUB_WORKSPACE"/.github/patch/*.patch; do
+            patch --verbose -p1 < "$p"
+          done
+          go version
 
       - name: Grant gradlew execute permission
         run: chmod +x gradlew
