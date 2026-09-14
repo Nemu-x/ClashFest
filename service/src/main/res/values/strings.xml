@@ -11,6 +11,15 @@
     <string name="format_update_complete">Update %s completed</string>
     <string name="format_update_failure">Update %1$s: %2$s</string>
     <string name="running">Running</string>
+
+    <!-- Persistent VPN notification -->
+    <string name="notification_profile_none">Not selected</string>
+    <string name="notification_action_disconnect">Disconnect</string>
+    <string name="notification_action_change_node">Change node</string>
+    <plurals name="notification_days_left">
+        <item quantity="one">%d day left</item>
+        <item quantity="other">%d days left</item>
+    </plurals>
     <string name="loading">Loading</string>
     <string name="clash_meta_for_android">ClashFest for Android</string>
     <string name="profiles_and_providers">Profiles and Providers</string>
@@ -18,6 +27,22 @@
     <string name="provider_files">Provider Files</string>
     <string name="profile_updater">Profile Updater</string>
     <string name="profile_updating">Profile Updating</string>
+
+    <!-- Profile update result notification (per docs/errors.md code) -->
+    <string name="update_failed_expired_title">Subscription expired</string>
+    <string name="update_failed_expired_body">It expired on %1$s. Renew your plan, then update the profile again.</string>
+    <string name="update_failed_expired_body_nodate">Your subscription has expired. Renew your plan, then update the profile again.</string>
+    <string name="update_failed_devices_title">Device limit reached</string>
+    <string name="update_failed_devices_body">This device was refused: the subscription is at its device limit. Sign out on another device or ask your provider to raise the limit.</string>
+    <string name="update_failed_network_title">Subscription server unreachable</string>
+    <string name="update_failed_network_body">Could not reach the subscription server. Check your connection and try again.</string>
+    <string name="update_failed_refused_title">Subscription server refused the request</string>
+    <string name="update_failed_refused_body">The server answered HTTP %1$d instead of a config. The link may be expired or revoked — re-import it from your dashboard.</string>
+    <string name="update_failed_refused_body_nostatus">The server answered with an error instead of a config. The link may be expired or revoked — re-import it from your dashboard.</string>
+    <string name="update_failed_code">Error code %s</string>
+    <string name="update_failed_action_renew">Renew</string>
+    <string name="update_failed_action_support">Support</string>
+    <string name="update_failed_action_retry">Retry</string>
 
     <!-- Shown as VPN session name in Android settings (cosmetic). -->
     <string name="vpn_session_name" translatable="true">ClashFest</string>

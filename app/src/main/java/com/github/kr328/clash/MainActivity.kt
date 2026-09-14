@@ -33,6 +33,7 @@ import com.github.kr328.clash.util.fileName
 import com.github.kr328.clash.util.createEmptyUrlProfileAndOpenEditor
 import com.github.kr328.clash.util.updateProfileWithProgress
 import com.github.kr328.clash.common.log.Log
+import com.github.kr328.clash.common.constants.Intents
 import com.github.kr328.clash.common.util.StandalonePing
 import com.github.kr328.clash.common.util.SubscriptionNameGuesser
 import com.github.kr328.clash.common.util.SubscriptionOverrides
@@ -551,6 +552,9 @@ class MainActivity : BaseActivity<MainDesign>() {
             setContentDesign(design)
             // System bars follow the wrapper theme — the Activity theme is deliberately virgin.
             applyWindowAppearance(themed)
+            if (intent?.action == Intents.ACTION_OPEN_NODE_PICKER) {
+                openNodePickerFromIntent()
+            }
             // Mirror onDestroy for the replaced design; its jobs/tickers already died with the
             // previous runDashboard scope.
             previous?.cancel()
@@ -1795,6 +1799,23 @@ class MainActivity : BaseActivity<MainDesign>() {
         setIntent(intent)
         if (intent.action == UpdateDownloadActivity.ACTION_SYNC_PENDING_DOWNLOAD) {
             syncPendingApkDownload()
+        }
+        if (intent.action == Intents.ACTION_OPEN_NODE_PICKER) {
+            openNodePickerFromIntent()
+        }
+    }
+
+    /**
+     * Notification "Change node" action. On a warm activity the picker opens at once; on a cold
+     * start the active profile is not rendered yet, so retry briefly until the design knows it.
+     */
+    private fun openNodePickerFromIntent() {
+        intent?.action = null
+        launch {
+            repeat(12) {
+                if (design?.openNodePickerForActiveProfile() == true) return@launch
+                delay(250)
+            }
         }
     }
 

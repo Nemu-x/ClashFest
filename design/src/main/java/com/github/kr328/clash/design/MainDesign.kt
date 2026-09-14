@@ -1302,6 +1302,17 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
      * this first ensures the profile's proxy groups are loaded (the same load `toggleProfileExpand`
      * triggers) so the sheet isn't empty; then opens it. Does not toggle the card's expand state.
      */
+    /**
+     * Notification "Change node" action: open the Home node picker for the active profile.
+     * @return false when no active profile is known yet (cold start), so the caller can retry.
+     */
+    fun openNodePickerForActiveProfile(): Boolean {
+        val profile = activeProfileForQuickActions?.takeIf { it.imported } ?: return false
+        selectTab(MainTab.Home)
+        openNodePicker(profile)
+        return true
+    }
+
     private fun openNodePicker(profile: Profile) {
         if (!profile.imported) return
         if (!profileAdapter.hasProxyGroupsFor(profile)) {

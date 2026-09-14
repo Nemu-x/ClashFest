@@ -182,6 +182,29 @@ class FetchErrorClassifierTest {
         assertEquals("proxy 'nl-1' not found", out.cause!!.message)
     }
 
+    @Test fun classified_failures_carry_a_typed_code_and_details() {
+        // The notification picks its localized title/body and its Renew action from these
+        // fields, so they must travel with the exception, not only inside the English text.
+        val expired = FetchErrorClassifier.clarify(
+            dirWith(null, mapOf(
+                "subscription-userinfo" to "upload=0; download=0; expire=${now - 86_400}",
+                "support-url" to "https://panel.example/renew",
+            )),
+            forbidden,
+            now,
+        ) as SubscriptionFetchException
+        assertEquals("E-41", expired.code)
+        assertEquals(now - 86_400, expired.expireAtSeconds)
+        assertEquals("https://panel.example/renew", expired.supportUrl)
+
+        val refused = FetchErrorClassifier.clarify(dirWith(null), forbidden, now) as SubscriptionFetchException
+        assertEquals("E-21", refused.code)
+        assertEquals(403, refused.httpStatus)
+
+        assertEquals("E-40", SubscriptionFetchException.codeOf("device limit reached. [E-40]"))
+        assertEquals(null, SubscriptionFetchException.codeOf("proxy 'x' not found"))
+    }
+
     @Test fun unlimited_subscription_is_never_called_expired() {
         // expire=0 is the "never expires" convention, and it is what the other live subscription
         // sends — treating it as an epoch date would call every such profile expired.

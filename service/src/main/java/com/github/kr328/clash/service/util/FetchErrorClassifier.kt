@@ -50,7 +50,9 @@ object FetchErrorClassifier {
         // or as a stripped-down config that only fails later in the engine. The header is the
         // reliable signal across all four; the shape of the body is not.
         FetchHeadersFile.readFrom(processingDir)?.let { headers ->
-            rejectionReason(headers, nowSeconds)?.let { return IllegalStateException(it, original) }
+            rejectionOf(headers, nowSeconds)?.let {
+                return SubscriptionFetchException.of(it.message, original, it.supportUrl, it.expireAtSeconds)
+            }
         }
 
         val file = File(processingDir, "config.yaml")
@@ -59,10 +61,10 @@ object FetchErrorClassifier {
         if (!file.isFile) {
             val status = httpStatusOf(original)
             if (status != null) {
-                return IllegalStateException(httpStatusReason(status), original)
+                return SubscriptionFetchException.of(httpStatusReason(status), original, httpStatus = status)
             }
             if (looksLikeNetworkFailure(original)) {
-                return IllegalStateException(
+                return SubscriptionFetchException.of(
                     "couldn't reach the subscription server — check your connection or " +
                         "try again later (the host may be temporarily blocked). [E-20]",
                     original,
@@ -85,7 +87,7 @@ object FetchErrorClassifier {
                     "profile's age secret key. [E-30]"
             else -> return original // valid-looking config body → keep the engine's precise error
         }
-        return IllegalStateException(reason, original)
+        return SubscriptionFetchException.of(reason, original)
     }
 
     private fun readBoundedText(file: File): BodySample? {
@@ -151,29 +153,37 @@ object FetchErrorClassifier {
      * is not refusing anything, and manufacturing an error from that would break a live profile
      * over a stale flag.
      */
-    internal fun rejectionReason(headers: FetchHeadersFile, nowSeconds: Long): String? {
+    internal fun rejectionReason(headers: FetchHeadersFile, nowSeconds: Long): String? =
+        rejectionOf(headers, nowSeconds)?.message
+
+    internal data class Rejection(val message: String, val supportUrl: String?, val expireAtSeconds: Long?)
+
+    internal fun rejectionOf(headers: FetchHeadersFile, nowSeconds: Long): Rejection? {
         val meta = SubscriptionMetadataFetcher.parseHeaders { headers.get(it) }
+        val supportUrl = meta.supportUrl?.takeIf { it.isNotBlank() }
 
         if (meta.hwidLimit == true || meta.hwidMaxDevicesReached == true) {
-            return buildString {
+            val message = buildString {
                 append(
                     "this device was refused because the subscription has reached its device " +
                         "limit — sign out on another device, or ask your provider to raise it",
                 )
-                meta.supportUrl?.takeIf { it.isNotBlank() }?.let { append(" ($it)") }
+                supportUrl?.let { append(" ($it)") }
                 append(". [E-40]")
             }
+            return Rejection(message, supportUrl, null)
         }
 
         // expire=0 means "never expires", and the parser already drops it — a subscription without
         // an expiry must never be reported as expired.
         val expireAt = SubscriptionUsage.parse(meta.subscriptionUserinfo)?.expireAt
         if (expireAt != null && expireAt <= nowSeconds) {
-            return buildString {
+            val message = buildString {
                 append("your subscription expired on ${formatDate(expireAt)} — renew it")
-                meta.supportUrl?.takeIf { it.isNotBlank() }?.let { append(" at $it") }
+                supportUrl?.let { append(" at $it") }
                 append(", then update the profile again. [E-41]")
             }
+            return Rejection(message, supportUrl, expireAt)
         }
 
         return null

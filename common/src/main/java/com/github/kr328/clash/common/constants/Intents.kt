@@ -24,6 +24,11 @@ object Intents {
     val ACTION_PROFILE_LOADED = "$packageName.intent.action.PROFILE_LOADED"
     val ACTION_OVERRIDE_CHANGED = "$packageName.intent.action.OVERRIDE_CHANGED"
     val ACTION_CONNECTIONS_CHANGED = "$packageName.intent.action.CONNECTIONS_CHANGED"
+    /** A selector was patched (ClashManager.patchSelector); the notification re-resolves its node. */
+    val ACTION_PROXY_SELECTION_CHANGED = "$packageName.intent.action.PROXY_SELECTION_CHANGED"
+
+    /** Explicit-component intent to MainActivity: open the Home node picker (notification action). */
+    val ACTION_OPEN_NODE_PICKER = "$packageName.intent.action.OPEN_NODE_PICKER"
 
     // Home-screen speed widget (#101). Fired by the widget's on/off tap (explicit component to
     // the provider). Live traffic frames are rendered directly by the service via
