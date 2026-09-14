@@ -43,9 +43,9 @@ because these existed before our operator API.
 | `Subscription-Userinfo` | `upload=N; download=N; total=N; expire=UNIX` | Quota progress + critical-expiry chip |
 | `profile-title` / `Profile-Title` / `Subscription-Title` / `X-Subscription-Title` / `Display-Name` | string (UTF-8 or `base64:`) | Subscription / user name on the profile card |
 | `profile-update-interval` / `Update-Interval` / `X-Profile-Update-Interval` | integer (hours, 1–720) | Auto-update interval. Coerced to ≥15 min. |
-| `profile-web-page-url` / `Subscription-Web-Page` | URL | Cached; operator-personal-cabinet link |
+| `profile-web-page-url` / `Subscription-Web-Page` | URL | "My account" link on the Operator tab / About sheet when the subscription is branded and no `X-Brand-Cabinet-URL` is sent |
 | `support-url` / `Profile-Support-URL` / `Subscription-Support-URL` / `Support` | URL | Surfaces as the support button in the announcement card. **Does NOT activate brand UI on its own.** |
-| `announce` / `Announce` / `Announcement` / `X-Announcement` | string (UTF-8 or `base64:`) | Operator broadcast — home announcement card body |
+| `announce` / `Announce` / `Announcement` / `X-Announcement` | string (UTF-8 or `base64:`) | Operator broadcast — home announcement card body. A literal `\n` (two characters) becomes a line break. |
 | `announce-url` / `Announcement-URL` / `X-Announcement-URL` | URL | Tap target for the announcement bar |
 | `share-links` / `X-Share-Links` / `X-Share-Links-Policy` | boolean | **Per-subscription:** hides Share/Copy-link actions and locks URL editing for that profile |
 | `X-Network-Stack` / `Network-Stack` / `X-NetworkStack-enabled` | enum `system`\|`gvisor`\|`mixed`\|`auto` | **Per-subscription:** locks the TUN stack over the user's setting (`auto` = don't lock). Default is `system`. See [operator-api/headers.md](operator-api/headers.md#x-network-stack). |
@@ -114,6 +114,8 @@ All URL fields accept `https://`, `tg://`, `mailto:`, `t.me/`
 |---|---|---|
 | `X-Brand-Show-Operator-Tab` | boolean | **Explicit opt-in** for the dedicated Operator tab. Visual brand (name / logo / accent) applies without this; the tab does not. |
 | `X-Brand-Hide-Routing` | boolean | Paired with `Show-Operator-Tab=true`, Operator **replaces** Routing in the bottom nav. No-op on its own. |
+| `X-Brand-Hide-Global-Mode` | boolean | **Policy, no `X-Branding-Enabled` needed:** hides the Home Global mode button and pins Rule mode. |
+| `X-Brand-Lock-Config-Script` | boolean | **Policy, no `X-Branding-Enabled` needed:** disables the per-profile config script editor for that subscription. |
 
 ---
 

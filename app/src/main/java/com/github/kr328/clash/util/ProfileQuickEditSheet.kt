@@ -74,7 +74,17 @@ fun BaseActivity<*>.showProfileQuickEditSheet(
         dialog.dismiss()
         launch {
             val effectiveSource = if (subscriptionLocked) profile.source else source
+            // patch() only stages the edit in `pending`; without commit() the live profile (and the
+            // auto-update alarm) kept the old name / URL / interval while the toast said "saved".
+            // Same path as the full editor's Save button, progress dialog included.
             withProfile { patch(profile.uuid, name, effectiveSource, interval, profile.ageSecretKey) }
+            try {
+                commitProfileWithProgress(profile.uuid)
+            } catch (e: Exception) {
+                design.showToast(e.message ?: e.javaClass.simpleName, ToastDuration.Long)
+                afterSaved()
+                return@launch
+            }
             afterSaved()
             design.showToast(DesignR.string.profile_quick_saved, ToastDuration.Short)
         }

@@ -563,7 +563,10 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         // is absent — the visual difference between Renew (filled) and
         // Cabinet (tonal) is a deliberate hierarchy cue: Renew converts the
         // user into a paying / renewing customer, Cabinet only navigates.
+        // `profile-web-page-url` (common namespace, parsed for a long time but never surfaced) is
+        // the fallback when the operator did not ship a dedicated X-Brand-Cabinet-URL.
         val cabinet = brand.cabinetUrl?.takeIf { it.isNotBlank() }
+            ?: uiStore.profileWebPageUrl.takeIf { it.isNotBlank() }
         if (cabinet != null) {
             binding.operatorCabinetButton.visibility = View.VISIBLE
             binding.operatorCabinetButton.setOnClickListener { onOpenBrandUrl?.invoke(cabinet) }
@@ -1620,7 +1623,10 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         // Operator links chip group.
         val linksGroup = binding.aboutBrandLinks
         linksGroup.removeAllViews()
+        val cabinetLink = brand.cabinetUrl?.takeIf { it.isNotBlank() }
+            ?: uiStore.profileWebPageUrl.takeIf { it.isNotBlank() }
         val links = listOfNotNull(
+            cabinetLink?.let { it to R.string.about_brand_cabinet },
             brand.websiteUrl?.let { it to R.string.about_brand_website },
             brand.supportUrl?.let { it to R.string.about_brand_support },
             brand.telegramUrl?.let { it to R.string.about_brand_telegram },

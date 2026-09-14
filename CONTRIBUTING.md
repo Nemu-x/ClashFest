@@ -86,7 +86,7 @@ Rules of thumb:
 - One logical change per commit. Squash WIP commits before opening the PR.
 - Branch prefix must match the commit type: a branch called `feat/X` should not land a PR whose only commits are `fix(Y)`. Pick the prefix when you cut the branch and keep them aligned.
 - **No force-push** to shared branches (`main`, `feat/init-clashfest`) and **no rebases that rewrite other people's commits**. Force-push on your own topic branch before review is fine.
-- Do not bump the core submodule in the same commit as application changes — core updates ship in their own PR.
+- Do not bump the core submodule in the same commit as application changes — core updates ship in their own PR. The recipe is in [docs/core-update.md](docs/core-update.md).
 - Never commit secrets, personal subscription URLs, or test profiles with real keys. The release keystore in the tree is intentional; do not add others.
 
 ## 5. Pull requests
