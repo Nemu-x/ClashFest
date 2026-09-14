@@ -52,6 +52,7 @@ data class Proxy(
         OpenVPN(false),
         Tailscale(false),
         ZeroTier(false),
+        EasyTier(false),
         GostRelay(false),
 
 
@@ -73,7 +74,7 @@ data class Proxy(
          *
          * The entries above mirror `AdapterType.String()` in the engine
          * (`core/src/foss/golang/clash/constant/adapters.go`) and are in sync
-         * as of mihomo v1.19.30. Matching is case-insensitive, so only the
+         * as of mihomo v1.19.31. Matching is case-insensitive, so only the
          * spelling has to line up. Re-check that file after every core bump:
          * an untracked type still works and stays selectable, it just renders
          * without a protocol chip (`showBadge = typeName != "Unknown"`).
