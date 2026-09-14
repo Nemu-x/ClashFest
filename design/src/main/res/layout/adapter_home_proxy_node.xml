@@ -182,14 +182,22 @@
         </LinearLayout>
     </LinearLayout>
 
+    <!-- Tap target: measures just this node (ProfileAdapter.onPingNode). Borderless ripple keeps the
+         capsule visually unchanged at rest; focusable so a TV d-pad can reach it too. -->
     <LinearLayout
         android:id="@+id/latency_capsule"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="10dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:contentDescription="@string/proxy_ping_node"
+        android:focusable="true"
         android:gravity="center_vertical|end"
+        android:minHeight="36dp"
         android:minWidth="58dp"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:paddingHorizontal="6dp">
 
         <View
             android:id="@+id/latency_dot"

@@ -32,6 +32,8 @@ import com.github.kr328.clash.util.commitProfileWithProgress
 import com.github.kr328.clash.util.fileName
 import com.github.kr328.clash.util.createEmptyUrlProfileAndOpenEditor
 import com.github.kr328.clash.util.updateProfileWithProgress
+import com.github.kr328.clash.common.log.Log
+import com.github.kr328.clash.common.constants.Intents
 import com.github.kr328.clash.common.util.StandalonePing
 import com.github.kr328.clash.common.util.SubscriptionNameGuesser
 import com.github.kr328.clash.common.util.SubscriptionOverrides
@@ -365,6 +367,43 @@ class MainActivity : BaseActivity<MainDesign>() {
         }
     }
 
+    /**
+     * Single-node twin of [runPerProxyHealthCheck]: one URLTest for [proxy] inside [group], result
+     * pushed through the same per-proxy patch. A failed lookup (proxy not found) clears the
+     * capsule's pending state instead of leaving "…" behind.
+     */
+    private suspend fun runSingleProxyHealthCheck(group: String, proxy: String) {
+        val ok = runCatching {
+            withClash {
+                healthCheckProxy(
+                    group,
+                    proxy,
+                    "",
+                    object : IProxyDelayObserver {
+                        override fun onDelay(
+                            grp: String,
+                            proxyName: String,
+                            delayMs: Int,
+                            errMsg: String,
+                        ) {
+                            val effective = if (errMsg.isNotEmpty()) Int.MAX_VALUE else delayMs
+                            Log.d("single ping: $grp / $proxyName -> ${delayMs}ms err='$errMsg'")
+                            this@MainActivity.launch {
+                                this@MainActivity.design?.patchSingleProxyDelay(grp, proxyName, effective)
+                            }
+                        }
+
+                        override fun onComplete(error: String?) {
+                            // The outer suspend returns via await() in ClashManager.healthCheckProxy.
+                            if (error != null) Log.w("single ping: $group / $proxy failed: $error")
+                        }
+                    },
+                )
+            }
+        }.onFailure { e -> Log.w("single ping: $group / $proxy threw", e) }.isSuccess
+        if (!ok) design?.clearNodePingPending(proxy)
+    }
+
     /** Groups already warmed up this session, so a group is url-tested at most once (O-07). */
     private val warmedGroups = java.util.Collections.synchronizedSet(mutableSetOf<String>())
 
@@ -513,6 +552,9 @@ class MainActivity : BaseActivity<MainDesign>() {
             setContentDesign(design)
             // System bars follow the wrapper theme — the Activity theme is deliberately virgin.
             applyWindowAppearance(themed)
+            if (intent?.action == Intents.ACTION_OPEN_NODE_PICKER) {
+                openNodePickerFromIntent()
+            }
             // Mirror onDestroy for the replaced design; its jobs/tickers already died with the
             // previous runDashboard scope.
             previous?.cancel()
@@ -927,6 +969,44 @@ class MainActivity : BaseActivity<MainDesign>() {
                             design.showExceptionToast(e)
                         } finally {
                             design.setPingingProfile(null)
+                        }
+                    }
+                }
+
+                design.proxyPingNodeRequests.onReceive { (profile, group, proxy) ->
+                    launch {
+                        try {
+                            val engineReady = runCatching {
+                                resolveStatusSnapshot().serviceRunning &&
+                                    withClash { queryProxyGroupNames(false).isNotEmpty() }
+                            }.getOrDefault(false)
+                            val activeUuid = withProfile { queryActive()?.uuid }
+                            Log.d("single ping: request $group / $proxy engineReady=$engineReady active=$activeUuid profile=${profile.uuid}")
+                            if (engineReady && activeUuid == profile.uuid) {
+                                runSingleProxyHealthCheck(group, proxy)
+                            } else {
+                                // Engine not running for this profile: same raw TCP-connect probe
+                                // the offline ping-all uses, narrowed to the tapped node.
+                                val ms = if (StandalonePing.isBuiltinProxyName(proxy)) {
+                                    null
+                                } else {
+                                    withProfile { readProxyEntryYaml(profile.uuid, proxy) }
+                                        ?.let { StandalonePing.parseServerPortFromProxyYaml(it) }
+                                        ?.let { hp ->
+                                            withContext(Dispatchers.IO) {
+                                                StandalonePing.tcpConnectMs(hp.first, hp.second).getOrNull()?.toInt()
+                                            }
+                                        }
+                                }
+                                if (ms != null) {
+                                    design.patchStandalonePingResults(profile.uuid, mapOf(proxy to ms))
+                                } else {
+                                    design.clearNodePingPending(proxy)
+                                }
+                            }
+                        } catch (e: Exception) {
+                            design.clearNodePingPending(proxy)
+                            design.showExceptionToast(e)
                         }
                     }
                 }
@@ -1719,6 +1799,23 @@ class MainActivity : BaseActivity<MainDesign>() {
         setIntent(intent)
         if (intent.action == UpdateDownloadActivity.ACTION_SYNC_PENDING_DOWNLOAD) {
             syncPendingApkDownload()
+        }
+        if (intent.action == Intents.ACTION_OPEN_NODE_PICKER) {
+            openNodePickerFromIntent()
+        }
+    }
+
+    /**
+     * Notification "Change node" action. On a warm activity the picker opens at once; on a cold
+     * start the active profile is not rendered yet, so retry briefly until the design knows it.
+     */
+    private fun openNodePickerFromIntent() {
+        intent?.action = null
+        launch {
+            repeat(12) {
+                if (design?.openNodePickerForActiveProfile() == true) return@launch
+                delay(250)
+            }
         }
     }
 

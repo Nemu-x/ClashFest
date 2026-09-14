@@ -36,6 +36,74 @@ const perProxyHealthCheckTimeout = 5 * time.Second
 // engine's own cap keeps per-proxy push results comparable.
 const perGroupConcurrencyLimit = 10
 
+// HealthCheckProxyWithCallback measures ONE proxy on demand (tap on its latency capsule).
+//
+// The proxy is looked up inside [group] first so the run honours that provider's health-check
+// URL / timeout exactly like HealthCheckWithCallback does for the whole group; a name that is not
+// backed by any of the group's providers (or an empty group) falls back to the global proxy map,
+// which also covers nested group entries: URLTest on a group adapter measures its current
+// selection, a meaningful number for a nested-group row. testURL semantics match the group call:
+// one-shot override, nothing persisted.
+//
+// onDelay fires exactly once on success or failure; the returned string is a non-empty early
+// error only when nothing could be measured at all (proxy not found).
+func HealthCheckProxyWithCallback(
+	group string,
+	name string,
+	testURL string,
+	onDelay func(proxyName string, delayMs int, errMsg string),
+) string {
+	proxies := tunnel.Proxies()
+	url := strings.TrimSpace(testURL)
+	timeout := perProxyHealthCheckTimeout
+	var expectedStatus utils.IntRanges[uint16]
+	var target C.Proxy
+
+	if group != "" {
+		if gp := proxies[group]; gp != nil {
+			if g, ok := gp.Adapter().(outboundgroup.ProxyGroup); ok {
+			providers:
+				for _, prov := range g.Providers() {
+					for _, p := range prov.Proxies() {
+						if p.Name() != name {
+							continue
+						}
+						target = p
+						if url == "" {
+							url = prov.HealthCheckURL()
+						}
+						timeout, expectedStatus = extractHealthCheckSettings(prov)
+						break providers
+					}
+				}
+			}
+		}
+	}
+	if target == nil {
+		target = proxies[name]
+	}
+	if target == nil {
+		log.Warnln("HealthCheckProxy: %q not found (group %q)", name, group)
+		return "proxy not found"
+	}
+	if url == "" {
+		url = defaultHealthCheckURL
+	}
+
+	log.Debugln("HealthCheckProxy: testing %q via %s timeout=%s", target.Name(), url, timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	delay, err := target.URLTest(ctx, url, expectedStatus)
+	if err != nil {
+		log.Debugln("HealthCheckProxy: %q failed: %s", target.Name(), err.Error())
+		onDelay(target.Name(), 0, err.Error())
+		return ""
+	}
+	log.Debugln("HealthCheckProxy: %q = %dms", target.Name(), delay)
+	onDelay(target.Name(), int(delay), "")
+	return ""
+}
+
 // extractHealthCheckSettings pulls the configured health-check timeout off
 // a ProxyProvider so per-proxy URLTest can honour the subscription's
 // `health-check.timeout` instead of hard-coding 5s. mihomo only exposes

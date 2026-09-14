@@ -143,6 +143,8 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     )
 
     val profilePingAllRequests = Channel<PingAllRequest>(Channel.UNLIMITED)
+    /** Single-node latency test (tap on a capsule): profile, group, proxy. */
+    val proxyPingNodeRequests = Channel<Triple<Profile, String, String>>(Channel.UNLIMITED)
     val profileForceUpdateRequests = Channel<Profile>(Channel.UNLIMITED)
     val profileProxyYamlRequests = Channel<Triple<Profile, String, String>>(Channel.UNLIMITED)
     /** Fires when user expands/collapses any profile panel so the host can reload proxy previews. */
@@ -283,6 +285,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         { profile -> profileForceUpdateRequests.trySend(profile) },
         { profile, group, proxy -> profileProxyYamlRequests.trySend(Triple(profile, group, proxy)) },
         { profile, group -> profileVisibleGroupChanged.trySend(profile to group) },
+        { profile, group, proxy -> proxyPingNodeRequests.trySend(Triple(profile, group, proxy)) },
         expandOnProfileClick = true,
     )
 
@@ -307,6 +310,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         },
         { profile, group, proxy -> profileProxyYamlRequests.trySend(Triple(profile, group, proxy)) },
         { profile, group -> profileVisibleGroupChanged.trySend(profile to group) },
+        { profile, group, proxy -> proxyPingNodeRequests.trySend(Triple(profile, group, proxy)) },
         expandOnProfileClick = false,
         showServerChooserInCard = true,
         showActivateButton = false,
@@ -1231,6 +1235,14 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         }
     }
 
+    /** Drops the "…" of a single-node test that produced no measurement (offline miss, engine error). */
+    suspend fun clearNodePingPending(proxy: String) {
+        withContext(Dispatchers.Main) {
+            profileAdapter.completeNodePing(proxy)
+            tabProfileAdapter.completeNodePing(proxy)
+        }
+    }
+
     suspend fun clearProxyDetails() {
         withContext(Dispatchers.Main) {
             profileAdapter.clearProxyDetails()
@@ -1290,6 +1302,17 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
      * this first ensures the profile's proxy groups are loaded (the same load `toggleProfileExpand`
      * triggers) so the sheet isn't empty; then opens it. Does not toggle the card's expand state.
      */
+    /**
+     * Notification "Change node" action: open the Home node picker for the active profile.
+     * @return false when no active profile is known yet (cold start), so the caller can retry.
+     */
+    fun openNodePickerForActiveProfile(): Boolean {
+        val profile = activeProfileForQuickActions?.takeIf { it.imported } ?: return false
+        selectTab(MainTab.Home)
+        openNodePicker(profile)
+        return true
+    }
+
     private fun openNodePicker(profile: Profile) {
         if (!profile.imported) return
         if (!profileAdapter.hasProxyGroupsFor(profile)) {

@@ -945,6 +945,7 @@
     <string name="profile_auto_refreshing">启动前正在检查订阅…</string>
     <string name="profile_inactive_status">就绪</string>
     <string name="profile_ping_all_short">测速</string>
+    <string name="proxy_ping_node">测试该节点延迟</string>
     <string name="profile_proxy_empty_filtered">没有匹配的节点。请清除搜索或筛选。</string>
     <string name="profile_proxy_filter_all">全部</string>
     <string name="profile_proxy_filter_available">可用</string>
