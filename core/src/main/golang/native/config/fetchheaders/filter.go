@@ -15,6 +15,11 @@ var allowlist = map[string]struct{}{
 	"subscription-userinfo": {},
 	"share-links":           {}, "share_links": {}, "x-share-links": {}, "x-share-links-policy": {},
 	"x-hwid-active": {}, "x-hwid-not-supported": {}, "x-hwid-max-devices-reached": {}, "x-hwid-limit": {},
+	// Operator policy headers consumed by SubscriptionMetadata.parseHeaders (TunStackResolver /
+	// bypass-preset offer). They were missing here, so the 6h snapshot path parsed them as absent
+	// and the policy only ever landed on a live GET.
+	"x-network-stack": {}, "network-stack": {}, "x-networkstack": {}, "x-networkstack-enabled": {},
+	"x-bypass-preset": {}, "bypass-preset": {}, "bypass_preset": {},
 	"x-branding-enabled": {},
 	"x-brand-name":       {}, "x-brand-tagline": {}, "x-brand-logo-url": {}, "x-brand-logo-light-url": {},
 	"x-brand-accent-color": {}, "x-brand-website-url": {}, "x-brand-support-url": {},
