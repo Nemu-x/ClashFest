@@ -385,9 +385,10 @@ X-Bypass-Preset: ru
 | | |
 |---|---|
 | Type | string (UTF-8 or `base64:`) |
-| Max length | 256 chars |
+| Length | No hard cap — keep it to a few lines; the home card shows one line and the sheet the full text |
+| Line breaks | A literal `\n` (two characters) is rendered as a line break; real newlines cannot travel in a header |
 | Status | **v1** (already parsed) |
-| Applied to | Inline announcement bar on profile card |
+| Applied to | Home announcement card + announcement sheet |
 
 ### `announce-url` / `Announcement-URL` (existing)
 

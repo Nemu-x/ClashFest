@@ -16,7 +16,6 @@ import java.net.URL
  */
 data class SubscriptionMetadata(
     val supportUrl: String? = null,
-    val profileTitle: String? = null,
     val profileWebPageUrl: String? = null,
     /** Recommended client-side update interval, in hours. */
     val profileUpdateIntervalHours: Int? = null,
@@ -51,7 +50,6 @@ data class SubscriptionMetadata(
 ) {
     fun isEmpty(): Boolean =
         supportUrl == null &&
-            profileTitle == null &&
             profileWebPageUrl == null &&
             profileUpdateIntervalHours == null &&
             announcement == null &&
@@ -169,10 +167,9 @@ object SubscriptionMetadataFetcher {
             "subscription-support-url", "Subscription-Support-URL",
             "support", "Support",
         )
-        val title = header(
-            "profile-title", "Profile-Title", "Subscription-Title",
-            "X-Subscription-Title", "Display-Name",
-        )?.let { decodeMaybeBase64(it) }
+        // The subscription title family (profile-title / Subscription-Title / Display-Name / ...) is
+        // NOT parsed here: SubscriptionNameGuesser.titleFromHeaders owns it and feeds the profile
+        // name directly. A second, unread copy used to live on this class.
         val pageUrl = header(
             "profile-web-page-url", "Profile-Web-Page-URL",
             "Subscription-Web-Page", "X-Subscription-Web-Page",
@@ -181,10 +178,12 @@ object SubscriptionMetadataFetcher {
             "profile-update-interval", "Profile-Update-Interval",
             "Update-Interval", "X-Profile-Update-Interval",
         )
+        // Panels ship one-line header values; a literal backslash-n (two characters) is their only
+        // way to ask for a line break, so honour it here rather than rendering it verbatim.
         val announce = header(
             "announce", "Announce", "Announcement",
             "X-Announce", "X-Announcement",
-        )?.let { decodeMaybeBase64(it) }
+        )?.let { decodeMaybeBase64(it).replace("\\n", "\n") }
         val announceUrl = header(
             "announce-url", "Announce-URL", "Announcement-URL",
             "X-Announce-URL", "X-Announcement-URL",
@@ -222,7 +221,6 @@ object SubscriptionMetadataFetcher {
 
         return SubscriptionMetadata(
             supportUrl = supportRaw?.let(::normalizeUrl)?.takeIf { looksLikeUrl(it) },
-            profileTitle = title?.takeIf { it.isNotBlank() },
             profileWebPageUrl = pageUrl?.takeIf { looksLikeUrl(it) },
             profileUpdateIntervalHours = intervalRaw?.toIntOrNull()?.takeIf { it in 1..720 },
             announcement = announce?.takeIf { it.isNotBlank() },
