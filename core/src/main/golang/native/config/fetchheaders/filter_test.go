@@ -29,3 +29,20 @@ func TestFilterPersistsOnlyConsumerAllowlist(t *testing.T) {
 		t.Fatal("Set-Cookie must never be persisted")
 	}
 }
+
+// Operator policy headers must survive the snapshot: TunStackResolver and the bypass-preset offer
+// read them from fetch-headers.json whenever it is fresher than the metadata sync cooldown.
+func TestFilterPersistsOperatorPolicyHeaders(t *testing.T) {
+	got := Filter(map[string][]string{
+		"X-Network-Stack": {"gvisor"},
+		"X-Bypass-Preset": {"ru"},
+	})
+
+	want := map[string]string{
+		"x-network-stack": "gvisor",
+		"x-bypass-preset": "ru",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("policy headers not persisted: %#v", got)
+	}
+}
