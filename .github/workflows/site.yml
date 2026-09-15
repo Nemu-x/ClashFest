@@ -1,0 +1,60 @@
+name: Site (GitHub Pages)
+
+# Regenerates https://nemu-x.github.io/ClashFest/ — the downloads landing page.
+# Runs after every release publish/edit (the rolling `dev-latest` pre-release is
+# edited on each dev push, so the dev card stays current too), and when the
+# generator itself changes.
+on:
+  release:
+    types: [published, edited]
+  push:
+    branches:
+      - feat/init-clashfest
+    paths:
+      - packaging/site/**
+      - .github/workflows/site.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Generate page
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 packaging/site/generate.py --out site
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

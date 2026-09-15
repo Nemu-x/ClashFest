@@ -8,6 +8,7 @@
 </p>
 
 <p align="center">
+  <a href="https://nemu-x.github.io/ClashFest/"><b>⬇️ Download</b></a> ·
   <a href="https://github.com/Nemu-x/ClashFest/wiki"><b>📖 Wiki</b></a> ·
   <a href="https://t.me/nemux_dev">Telegram</a> ·
   <a href="https://github.com/Nemu-x/ClashFest/releases">Releases</a> ·
@@ -32,6 +33,20 @@ defaults for everyday use.
 > 💬 Questions, bugs, feature requests → **[Telegram (EN / RU)](https://t.me/nemux_dev)** or **[GitHub issues](https://github.com/Nemu-x/ClashFest/issues)**.
 
 ---
+
+## Downloads
+
+**Latest release — direct downloads** (always point to the newest version; also on the [download page](https://nemu-x.github.io/ClashFest/)):
+
+| Device | Download |
+| --- | --- |
+| Phone / tablet (64-bit ARM — every phone of the last decade) | [clashfest-alpha-arm64-v8a.apk](https://github.com/Nemu-x/ClashFest/releases/latest/download/clashfest-alpha-arm64-v8a.apk) |
+| 32-bit ARM (very old phones, some TV boxes) | [clashfest-alpha-armeabi-v7a.apk](https://github.com/Nemu-x/ClashFest/releases/latest/download/clashfest-alpha-armeabi-v7a.apk) |
+| Universal (all ABIs in one, largest) | [clashfest-alpha-universal.apk](https://github.com/Nemu-x/ClashFest/releases/latest/download/clashfest-alpha-universal.apk) |
+| x86_64 (emulators, Chromebooks, x86 TV boxes) | [clashfest-alpha-x86_64.apk](https://github.com/Nemu-x/ClashFest/releases/latest/download/clashfest-alpha-x86_64.apk) |
+| x86 (32-bit Intel) | [clashfest-alpha-x86.apk](https://github.com/Nemu-x/ClashFest/releases/latest/download/clashfest-alpha-x86.apk) |
+
+Dev builds from the `dev` branch: [dev-latest pre-release](https://github.com/Nemu-x/ClashFest/releases/tag/dev-latest) (debug-signed — installs alongside the release, not over it). All releases & changelog: [Releases](https://github.com/Nemu-x/ClashFest/releases). The app checks for updates itself under **Settings → About & updates**.
 
 ## Highlights
 
