@@ -162,9 +162,9 @@ h2{margin:44px 0 14px;font-size:1.25rem;border-bottom:1px solid var(--line);padd
 .card a{display:flex;align-items:center;gap:8px;color:var(--accent);text-decoration:none;padding:3px 0;font-size:.92rem}
 .card a:hover{text-decoration:underline}
 .card.primary{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent-dim) inset}
-.btn{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#14120f;
-border-radius:10px;padding:8px 14px;font-weight:600;text-decoration:none;margin:4px 0 8px}
-.btn:hover{filter:brightness(1.08)}
+.card a.btn{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#14120f;
+border-radius:10px;padding:8px 14px;font-weight:600;text-decoration:none;margin:4px 0 8px;font-size:1rem}
+.card a.btn:hover{filter:brightness(1.08);text-decoration:none}
 pre{position:relative;background:var(--panel2);border:1px solid var(--line);border-radius:10px;
 padding:14px;overflow-x:auto;font-size:.85rem;line-height:1.55;color:#e8e2d6}
 .rel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
