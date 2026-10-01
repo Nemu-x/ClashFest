@@ -4,6 +4,7 @@ import com.github.kr328.clash.core.model.ProfileSnapshot
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -17,6 +18,12 @@ import kotlinx.serialization.json.jsonPrimitive
  *
  * `enhancedMode` carries the raw mihomo value: `normal` (UI "Off"), `redir-host`,
  * or `fake-ip`.
+ *
+ * A `hosts` value is kept as one display string. mihomo accepts either a single
+ * value or a list (`test.com: [1.1.1.1, 2.2.2.2]`, see `config.parseHosts` →
+ * `utils.ToStringSlice`); a list is held here as `"1.1.1.1, 2.2.2.2"` and
+ * written back as a YAML sequence by [toHostsBlock]. This keeps `user_layer.json`
+ * and the editor's `host = value` lines unchanged for the single-value case.
  */
 @Serializable
 data class DnsHostsConfig(
@@ -46,13 +53,18 @@ data class DnsHostsConfig(
         return m.takeIf { it.isNotEmpty() }
     }
 
-    /** The `hosts:` block value as an ordered map, or null when empty. */
-    fun toHostsBlock(): Map<String, String>? {
-        val out = LinkedHashMap<String, String>()
+    /**
+     * The `hosts:` block value as an ordered map, or null when empty. A value
+     * with several entries becomes a `List<String>` (YAML sequence), a single
+     * entry stays a plain string.
+     */
+    fun toHostsBlock(): Map<String, Any>? {
+        val out = LinkedHashMap<String, Any>()
         for ((k, v) in hosts) {
             val key = k.trim()
-            val value = v.trim()
-            if (key.isNotEmpty() && value.isNotEmpty()) out[key] = value
+            val values = splitHostValues(v)
+            if (key.isEmpty() || values.isEmpty()) continue
+            out[key] = if (values.size == 1) values[0] else values
         }
         return out.takeIf { it.isNotEmpty() }
     }
@@ -110,13 +122,34 @@ data class DnsHostsConfig(
             if (hosts != null) {
                 val map = LinkedHashMap<String, String>()
                 for ((k, v) in hosts) {
-                    val value = v.jsonPrimitive.contentOrNull ?: continue
+                    // The engine snapshot hands a list host through as a JSON array;
+                    // `.jsonPrimitive` on it throws, which used to crash the editor.
+                    val value = when (v) {
+                        is JsonArray -> joinHostValues(v.mapNotNull { (it as? JsonPrimitive)?.contentOrNull })
+                        is JsonPrimitive -> v.contentOrNull
+                        else -> null
+                    }
+                    if (value.isNullOrBlank()) continue
                     map[k] = value
                 }
                 c.hosts = map
             }
             return c
         }
+
+        /**
+         * Splits a display value into its entries: `"1.1.1.1, 2.2.2.2"`,
+         * `"[1.1.1.1, 2.2.2.2]"` (pasted YAML flow form) or `"1.1.1.1 2.2.2.2"`.
+         * A single value (an IP, `lan`, or a domain alias) comes back as one entry.
+         */
+        fun splitHostValues(value: String): List<String> =
+            value.trim().removePrefix("[").removeSuffix("]")
+                .split(',', ' ', '\t')
+                .map { it.trim().trim('"', '\'') }
+                .filter { it.isNotEmpty() }
+
+        fun joinHostValues(values: List<String>): String =
+            values.map { it.trim() }.filter { it.isNotEmpty() }.joinToString(", ")
 
         private fun JsonObject.str(key: String): String? =
             this[key]?.jsonPrimitive?.contentOrNull
