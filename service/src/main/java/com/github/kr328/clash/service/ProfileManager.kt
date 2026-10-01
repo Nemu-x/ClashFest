@@ -1228,7 +1228,10 @@ class ProfileManager(private val context: Context) : IProfileManager,
             if (!File(dir, "config.yaml").isFile) return@withContext null
             val snapshot = runCatching { Clash.parseProfileSnapshot(dir) }.getOrNull()
                 ?: return@withContext null
-            val config = DnsHostsConfig.fromSnapshot(snapshot)
+            // An exception here crosses the binder and kills the settings activity.
+            val config = runCatching { DnsHostsConfig.fromSnapshot(snapshot) }
+                .onFailure { Log.w("DNS & Hosts: snapshot not representable, editor starts empty", it) }
+                .getOrNull() ?: return@withContext null
             previewJson.encodeToString(DnsHostsConfig.serializer(), config)
         }
     }

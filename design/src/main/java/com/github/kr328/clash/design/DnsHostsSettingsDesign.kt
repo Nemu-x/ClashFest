@@ -152,7 +152,17 @@ class DnsHostsSettingsDesign(context: Context) : Design<DnsHostsSettingsDesign.R
         for (raw in input.text?.toString().orEmpty().split('\n')) {
             val line = raw.trim()
             if (line.isEmpty()) continue
-            val sep = line.indexOfFirst { it == '=' || it == ':' }
+            // `host = value`, or YAML-style `host: value` (the colon must be followed
+            // by whitespace so `host ::1` is not split inside the IPv6 literal),
+            // or `host value`. The value may list several IPs: `1.1.1.1, 2.2.2.2`
+            // or pasted `[1.1.1.1, 2.2.2.2]`; it is normalized on save.
+            val eq = line.indexOf('=')
+            val colon = Regex(":(\\s|$)").find(line)?.range?.first ?: -1
+            val sep = when {
+                eq >= 0 && (colon < 0 || eq < colon) -> eq
+                colon >= 0 -> colon
+                else -> -1
+            }
             val (k, v) = if (sep >= 0) {
                 line.substring(0, sep) to line.substring(sep + 1)
             } else {
@@ -160,7 +170,7 @@ class DnsHostsSettingsDesign(context: Context) : Design<DnsHostsSettingsDesign.R
                 if (ws < 0) continue else line.substring(0, ws) to line.substring(ws + 1)
             }
             val key = k.trim()
-            val value = v.trim()
+            val value = DnsHostsConfig.joinHostValues(DnsHostsConfig.splitHostValues(v))
             if (key.isNotEmpty() && value.isNotEmpty()) out[key] = value
         }
         return out

@@ -37,6 +37,16 @@ class DnsHostsYamlEditTest {
     }
 
     @Test
+    fun writes_multi_ip_host_as_yaml_sequence() {
+        val cfg = DnsHostsConfig(hosts = linkedMapOf("test.com" to "1.1.1.1, 2.2.2.2", "one.com" to "3.3.3.3"))
+        val out = DnsHostsYamlEdit.render(base, cfg)
+        val hosts = MihomoConfigDocument.parseOrThrow(out).root["hosts"] as Map<*, *>
+        assertTrue(hosts["test.com"] == listOf("1.1.1.1", "2.2.2.2"))
+        assertTrue(hosts["one.com"] == "3.3.3.3")
+        assertTrue(out.contains("MATCH,p1"))
+    }
+
+    @Test
     fun replaces_existing_dns_without_touching_other_blocks() {
         val withDns = base + "dns:\n  enable: false\n  nameserver:\n    - 8.8.8.8\n"
         val cfg = DnsHostsConfig(enable = true, nameserver = listOf("1.1.1.1"))

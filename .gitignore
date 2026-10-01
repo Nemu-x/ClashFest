@@ -74,6 +74,7 @@ openspec/
 
 # Generated write-pipeline-robustness oracle fixtures (Layer-2)
 core/src/main/golang/native/snapshot/testdata/roundtrip/
+core/src/main/golang/native/snapshot/testdata/dnshosts/
 
 # Local-only architecture deep-dive maps (not committed)
 architecture/

@@ -85,6 +85,37 @@ class DnsHostsConfigTest {
     }
 
     @Test
+    fun reads_list_hosts_from_snapshot_without_throwing() {
+        // `test.com: [1.1.1.1, 2.2.2.2]` reaches us as a JSON array (mihomo accepts it;
+        // the editor used to crash on `.jsonPrimitive`).
+        val hosts = obj("""{"test.com":["1.1.1.1","2.2.2.2"],"one.com":"3.3.3.3","lan.home":"lan","bad":{"x":1}}""")
+        val c = DnsHostsConfig.from(null, hosts)
+        assertEquals("1.1.1.1, 2.2.2.2", c.hosts["test.com"])
+        assertEquals("3.3.3.3", c.hosts["one.com"])
+        assertEquals("lan", c.hosts["lan.home"])
+        assertTrue(!c.hosts.containsKey("bad"))
+    }
+
+    @Test
+    fun multi_value_hosts_are_written_as_a_list_single_as_a_string() {
+        val c = DnsHostsConfig(
+            hosts = linkedMapOf(
+                "test.com" to "1.1.1.1, 2.2.2.2",
+                "pasted.com" to "[3.3.3.3, 4.4.4.4]",
+                "spaced.com" to "5.5.5.5 6.6.6.6",
+                "one.com" to "7.7.7.7",
+                "v6.com" to "::1",
+            ),
+        )
+        val hosts = c.toHostsBlock()!!
+        assertEquals(listOf("1.1.1.1", "2.2.2.2"), hosts["test.com"])
+        assertEquals(listOf("3.3.3.3", "4.4.4.4"), hosts["pasted.com"])
+        assertEquals(listOf("5.5.5.5", "6.6.6.6"), hosts["spaced.com"])
+        assertEquals("7.7.7.7", hosts["one.com"])
+        assertEquals("::1", hosts["v6.com"])
+    }
+
+    @Test
     fun listen_validator_normalizesShorthandAndRejectsUnsafeAddresses() {
         assertNull(DnsHostsValidator.listenError(null))
         assertNull(DnsHostsValidator.listenError(""))

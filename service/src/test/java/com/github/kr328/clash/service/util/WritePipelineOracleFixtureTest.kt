@@ -70,6 +70,37 @@ class WritePipelineOracleFixtureTest {
         assertTrue(n >= 5, "expected several blocks, emitted $n")
     }
 
+    /**
+     * Engine-oracle for the DNS & Hosts writer (AGENTS.md §6): `edited.yaml` is
+     * `original.yaml` re-written through [DnsHostsYamlEdit] from a model read the
+     * way the editor reads it (snapshot-shaped JSON, list host included). The Go
+     * side asserts both snapshot-equal, i.e. mihomo sees the same dns + hosts.
+     */
+    @Test
+    fun emit_dns_hosts_edit_fixture_for_go_oracle() {
+        val dir = listOf(
+            "../core/src/main/golang/native/snapshot/testdata/dnshosts",
+            "core/src/main/golang/native/snapshot/testdata/dnshosts",
+        ).map(::File).first { it.parentFile.parentFile.parentFile.exists() }
+        dir.mkdirs()
+
+        val original = curated
+            .replace("listen: \":1053\"", "listen: \"127.0.0.1:1053\"")
+            .replace("hosts:\n  example.com: 1.2.3.4\n", "hosts:\n  example.com: 1.2.3.4\n  multi.example.com: [1.1.1.1, 2.2.2.2]\n")
+        val dns = kotlinx.serialization.json.Json.parseToJsonElement(
+            """{"enable":true,"enhanced-mode":"fake-ip","listen":"127.0.0.1:1053","nameserver":["https://1.1.1.1/dns-query"]}""",
+        ) as kotlinx.serialization.json.JsonObject
+        val hosts = kotlinx.serialization.json.Json.parseToJsonElement(
+            """{"example.com":"1.2.3.4","multi.example.com":["1.1.1.1","2.2.2.2"]}""",
+        ) as kotlinx.serialization.json.JsonObject
+        val edited = DnsHostsYamlEdit.render(original, DnsHostsConfig.from(dns, hosts))
+        val written = MihomoConfigDocument.parseOrThrow(edited).root["hosts"] as Map<*, *>
+        assertEquals(listOf("1.1.1.1", "2.2.2.2"), written["multi.example.com"])
+
+        File(dir, "original.yaml").writeText(original)
+        File(dir, "edited.yaml").writeText(edited)
+    }
+
     @Test
     fun emit_hardened_dns_listener_fixture_for_go_oracle() {
         val dir = listOf(
