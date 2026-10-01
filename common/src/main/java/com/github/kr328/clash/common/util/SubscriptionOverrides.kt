@@ -9,8 +9,21 @@ object SubscriptionOverrides {
     private const val PREFIX_UA = "ua_"
     private const val PREFIX_UA_STRICT = "ua_strict_"
 
+    /**
+     * Written by the UI process (PropertiesActivity) and read by the `:background`
+     * service process (ProfileProcessor) on the very next fetch. A plain
+     * MODE_PRIVATE handle is cached per process after its first load, so the
+     * service kept seeing the value from before the user picked a preset.
+     * MODE_MULTI_PROCESS is deprecated but still makes getSharedPreferences()
+     * re-read the file when another process changed it, and the writers below
+     * use commit() so the file is on disk before the IPC that triggers the fetch.
+     */
+    @Suppress("DEPRECATION")
+    private fun prefs(context: Context) =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE or Context.MODE_MULTI_PROCESS)
+
     fun getUserAgent(context: Context, uuid: UUID): String? {
-        val value = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val value = prefs(context)
             .getString(PREFIX_UA + uuid.toString(), "")
             ?.trim()
             .orEmpty()
@@ -18,24 +31,23 @@ object SubscriptionOverrides {
     }
 
     fun setUserAgent(context: Context, uuid: UUID, userAgent: String?) {
-        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val key = PREFIX_UA + uuid.toString()
         val value = userAgent?.trim().orEmpty()
-        prefs.edit().apply {
+        prefs(context).edit().apply {
             if (value.isBlank()) remove(key) else putString(key, value)
-        }.apply()
+        }.commit()
     }
 
     fun isStrictUserAgent(context: Context, uuid: UUID): Boolean {
-        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        return prefs(context)
             .getBoolean(PREFIX_UA_STRICT + uuid.toString(), false)
     }
 
     fun setStrictUserAgent(context: Context, uuid: UUID, strict: Boolean) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        prefs(context)
             .edit()
             .putBoolean(PREFIX_UA_STRICT + uuid.toString(), strict)
-            .apply()
+            .commit()
     }
 }
 

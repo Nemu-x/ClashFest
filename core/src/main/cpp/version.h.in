@@ -6,6 +6,8 @@
  */
  
 #define GIT_VERSION @GIT_VERSION@
+/* Release tag of the mihomo submodule (e.g. v1.19.32); empty when HEAD has no release tag. */
+#define CORE_TAG @CORE_TAG@
 #define make_Str(x) #x 
 #define make_String(x) make_Str(x)
 

@@ -37,9 +37,10 @@ val goTestNativeSnapshot by tasks.registering(Exec::class) {
     // golang { } block below). config.ParseRawConfig pulls in symbols that
     // only exist under these tags (temporaryUpdateGeneral, etc), so go test
     // fails with "relocation target ... not defined" without them.
-    commandLine("go", "test", "-tags", "foss,with_gvisor,cmfa", "./native/snapshot/...")
+    commandLine("go", "test", "-tags", "foss,with_gvisor,cmfa", "./native/snapshot/...", "./native/useragent/...")
 
     inputs.dir("src/main/golang/native/snapshot")
+    inputs.dir("src/main/golang/native/useragent")
     // Re-run against a bumped core too: the test exercises mihomo itself
     // (module `cfa`, `replace mihomo => ../../foss/golang/clash`).
     inputs.property("mihomoCommit", mihomoHead)

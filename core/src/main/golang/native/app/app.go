@@ -5,9 +5,12 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"cfa/native/useragent"
 )
 
 var appVersionName string
+var coreVersion string
 var platformVersion int
 var installedAppsUid = map[int]string{}
 
@@ -33,6 +36,24 @@ func ApplyPlatformVersion(version int) {
 
 func VersionName() string {
 	return appVersionName
+}
+
+// ApplyCoreTag records the mihomo release tag the core was built from. Anything
+// that is not a release tag leaves the core version unknown and the User-Agent
+// then carries a bare `mihomo` token (see useragent).
+func ApplyCoreTag(tag string) {
+	coreVersion = useragent.CoreVersionFromTag(tag)
+}
+
+// CoreVersion is the bare mihomo release version ("1.19.32"), or "" when unknown.
+func CoreVersion() string {
+	return coreVersion
+}
+
+// SubscriptionUserAgent is the default User-Agent for subscription fetches; a
+// per-profile override replaces it via MergeSubscriptionFetchHeaders.
+func SubscriptionUserAgent() string {
+	return useragent.Build(appVersionName, coreVersion)
 }
 
 func PlatformVersion() int {

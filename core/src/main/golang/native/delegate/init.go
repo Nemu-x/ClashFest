@@ -18,8 +18,10 @@ import (
 
 var errBlocked = errors.New("blocked")
 
-func Init(home, versionName, gitVersion string, platformVersion int) {
-	log.Infoln("Init core, home: %s, versionName: %s, gitVersion: %s, platformVersion: %d", home, versionName, gitVersion, platformVersion)
+// coreTag is the mihomo release tag the submodule was built from ("v1.19.32"),
+// or "" for a build off a tag; it only feeds the subscription User-Agent.
+func Init(home, versionName, gitVersion, coreTag string, platformVersion int) {
+	log.Infoln("Init core, home: %s, versionName: %s, gitVersion: %s, coreTag: %s, platformVersion: %d", home, versionName, gitVersion, coreTag, platformVersion)
 	constant.SetHomeDir(home)
 	// gitVersion = ${CURRENT_BRANCH}_${COMMIT_HASH}_${COMPILE_TIME}
 	if versions := strings.Split(gitVersion, "_"); len(versions) == 3 {
@@ -30,6 +32,7 @@ func Init(home, versionName, gitVersion string, platformVersion int) {
 	}
 	constant.Version = strings.ToLower(constant.Version)
 	app.ApplyVersionName(versionName)
+	app.ApplyCoreTag(coreTag)
 	app.ApplyPlatformVersion(platformVersion)
 
 	process.DefaultPackageNameResolver = func(metadata *constant.Metadata) (string, error) {

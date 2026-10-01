@@ -3,24 +3,20 @@ cmake_minimum_required(VERSION 3.0)
 # 获取git hash
 
 message(STATUS "CMAKE_CURRENT_SOURCE_DIR= ${CMAKE_CURRENT_SOURCE_DIR}")
+set(MIHOMO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../foss/golang/clash")
+# Ask the mihomo submodule directly: `git submodule foreach` lists every
+# submodule and the old "second line" pick landed on clash-companion's hash.
 execute_process(
-  COMMAND git submodule foreach git log -1 --format=%H   
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
+  COMMAND git -C ${MIHOMO_DIR} rev-parse --short=7 HEAD
   OUTPUT_VARIABLE COMMIT_HASH
+  RESULT_VARIABLE COMMIT_HASH_RESULT
   OUTPUT_STRIP_TRAILING_WHITESPACE
   ERROR_QUIET
 )
-string(REPLACE "\n" ";" COMMIT_HASH "${COMMIT_HASH}")
-list(LENGTH COMMIT_HASH COMMIT_HASH_LEN)
-if (COMMIT_HASH_LEN GREATER 1)
-  list(GET COMMIT_HASH 1 COMMIT_HASH)
-else ()
+if (NOT COMMIT_HASH_RESULT EQUAL 0 OR "${COMMIT_HASH}" STREQUAL "")
   set(COMMIT_HASH "unknown")
 endif ()
 string(REGEX REPLACE "[\n\t\r]" "" COMMIT_HASH "${COMMIT_HASH}")
-if (NOT "${COMMIT_HASH}" STREQUAL "unknown")
-  string(SUBSTRING "${COMMIT_HASH}" 0 7 COMMIT_HASH)
-endif ()
 message(STATUS "git hash= ${COMMIT_HASH}")
 
 # 获取分支名称
@@ -44,21 +40,51 @@ string(REGEX REPLACE "[\n\t\r]" "" CURRENT_BRANCH "${CURRENT_BRANCH}")
 message(STATUS "git current branch = ${CURRENT_BRANCH}")
 
 # 获取核心语义化版本标签（例如 v1.19.23）
+# The exact tag of HEAD when the submodule sits on a release; otherwise the
+# nearest release tag. CORE_TAG is also exported on its own (version.h) and is
+# what the subscription User-Agent advertises as `mihomo/<ver>`, so a value
+# that is not a release tag must stay empty rather than be guessed.
 execute_process(
-  COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR}/../../foss/golang/clash describe --tags --abbrev=0 --match v[0-9]*
+  COMMAND git -C ${MIHOMO_DIR} describe --tags --exact-match --match v[0-9]*
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   OUTPUT_VARIABLE CORE_TAG
   RESULT_VARIABLE CORE_TAG_RESULT
   OUTPUT_STRIP_TRAILING_WHITESPACE
   ERROR_QUIET
 )
+if (NOT CORE_TAG_RESULT EQUAL 0 OR "${CORE_TAG}" STREQUAL "")
+  execute_process(
+    COMMAND git -C ${MIHOMO_DIR} describe --tags --abbrev=0 --match v[0-9]*
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE CORE_TAG
+    RESULT_VARIABLE CORE_TAG_RESULT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+  )
+endif ()
+# A checkout without tags (shallow clone): fall back to the version the bridge
+# module pins in go.mod, which docs/core-update.md bumps with the submodule.
+set(CFA_GO_MOD "${CMAKE_CURRENT_SOURCE_DIR}/../golang/go.mod")
+if (NOT CORE_TAG_RESULT EQUAL 0 OR "${CORE_TAG}" STREQUAL "")
+  if (EXISTS "${CFA_GO_MOD}")
+    file(STRINGS "${CFA_GO_MOD}" MIHOMO_REQUIRE REGEX "github.com/metacubex/mihomo v[0-9]+\\.[0-9]+\\.[0-9]+")
+    if ("${MIHOMO_REQUIRE}" MATCHES "mihomo (v[0-9]+\\.[0-9]+\\.[0-9]+)")
+      set(CORE_TAG "${CMAKE_MATCH_1}")
+      set(CORE_TAG_RESULT 0)
+      message(STATUS "core tag taken from go.mod")
+    endif ()
+  endif ()
+endif ()
+if (EXISTS "${CFA_GO_MOD}")
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CFA_GO_MOD}")
+endif ()
 
 # Reconfigure whenever the mihomo submodule moves. CORE_TAG above is read at
 # configure time and cached in .cxx/, which survives `gradlew clean` — without
 # this a core bump keeps shipping the old version string (and constant.Version,
 # which the Go side derives from it) until .cxx/ is deleted by hand.
 execute_process(
-  COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR}/../../foss/golang/clash rev-parse --absolute-git-dir
+  COMMAND git -C ${MIHOMO_DIR} rev-parse --absolute-git-dir
   OUTPUT_VARIABLE MIHOMO_GIT_DIR
   OUTPUT_STRIP_TRAILING_WHITESPACE
   ERROR_QUIET
@@ -67,6 +93,9 @@ if (EXISTS "${MIHOMO_GIT_DIR}/HEAD")
   set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${MIHOMO_GIT_DIR}/HEAD")
 endif ()
 string(REGEX REPLACE "[\n\t\r]" "" CORE_TAG "${CORE_TAG}")
+if (NOT CORE_TAG_RESULT EQUAL 0)
+  set(CORE_TAG "")
+endif ()
 message(STATUS "core tag = ${CORE_TAG}")
 
 # 获取生成时间
@@ -85,6 +114,7 @@ message(STATUS "version info = ${GIT_VERSION}")
 
 # Keep Git metadata as inert preprocessor tokens before version.h stringifies it.
 string(REGEX REPLACE "[^A-Za-z0-9._-]+" "_" GIT_VERSION "${GIT_VERSION}")
+string(REGEX REPLACE "[^A-Za-z0-9._-]+" "_" CORE_TAG "${CORE_TAG}")
 
 # 保存变量到文件
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/version.h @ONLY)

@@ -90,7 +90,7 @@ func (e httpStatusError) Error() string {
 }
 
 func openUrl(ctx context.Context, url string, includeSubscriptionHeaders bool, viaProxy bool) (io.ReadCloser, map[string][]string, error) {
-	base := http.Header{"User-Agent": {"ClashMetaForAndroid/" + app.VersionName()}}
+	base := http.Header{"User-Agent": {app.SubscriptionUserAgent()}}
 	hdr := base
 	if includeSubscriptionHeaders {
 		hdr = app.MergeSubscriptionFetchHeaders(base)
