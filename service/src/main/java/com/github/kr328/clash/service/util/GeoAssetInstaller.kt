@@ -9,9 +9,16 @@ private val bundledGeoAssets = listOf(
     "geoip.metadb",
     "geoip.dat",
     "geosite.dat",
-    "Country.mmdb",
     "ASN.mmdb",
 )
+
+/**
+ * Bundled until 1.1.0 next to geoip.metadb. mihomo opens whichever of the two it
+ * lists first, so a leftover copy could keep shadowing the metadb that this
+ * installer refreshes on every app update. The user's own import is written as
+ * lower-case `country.mmdb` (GeoDatabaseImport) and is left alone.
+ */
+private const val LEGACY_BUNDLED_COUNTRY_MMDB = "Country.mmdb"
 
 fun Context.ensureBundledGeoAssets() {
     val clashDir = filesDir.resolve("clash").apply { mkdirs() }
@@ -19,6 +26,10 @@ fun Context.ensureBundledGeoAssets() {
 
     for (assetName in bundledGeoAssets) {
         ensureAssetFresh(clashDir, assetName, updateDate)
+    }
+    val legacy = clashDir.resolve(LEGACY_BUNDLED_COUNTRY_MMDB)
+    if (legacy.isFile && legacy.delete()) {
+        Log.i("Removed legacy bundled $LEGACY_BUNDLED_COUNTRY_MMDB (geoip.metadb is the country database)")
     }
 }
 
