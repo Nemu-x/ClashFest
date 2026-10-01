@@ -52,13 +52,40 @@ object SubscriptionOverrides {
 }
 
 object SubscriptionRequestHeaders {
+    /**
+     * The mihomo release tag the core was built from ("v1.19.32"), installed by the
+     * Application from `core.BuildConfig.CORE_TAG`; common cannot depend on :core.
+     * Null/blank means unknown and the UA then carries a bare `mihomo` token.
+     */
+    @Volatile
+    var coreTag: String? = null
+
+    private val releaseTag = Regex("""^v?(\d+\.\d+\.\d+)$""")
+    private val semverPrefix = Regex("""^v?(\d+\.\d+\.\d+)""")
+
+    /**
+     * Same string the native subscription fetch sends (`native/useragent` in Go):
+     * `mihomo/<coreVersion> ClashFest/<semver>`. The mihomo token leads because
+     * Marzban / Remnawave pick the clash-meta output format from the first token
+     * and would route a `ClashFest/…`-first UA into their legacy clash branch.
+     */
     fun defaultUserAgent(context: Context): String {
         val ver = try {
             context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "0"
         } catch (_: Exception) {
             "0"
         }
-        return "ClashFest/$ver"
+        return buildDefaultUserAgent(ver, coreTag)
+    }
+
+    fun buildDefaultUserAgent(versionName: String, coreTag: String?): String {
+        val core = coreTag?.trim()?.let { releaseTag.find(it)?.groupValues?.get(1) }
+        val app = semverPrefix.find(versionName)?.groupValues?.get(1) ?: versionName
+        return buildString {
+            append("mihomo")
+            if (!core.isNullOrEmpty()) append('/').append(core)
+            append(" ClashFest/").append(app)
+        }
     }
 
     fun build(context: Context, userAgentOverride: String? = null): Map<String, String> {

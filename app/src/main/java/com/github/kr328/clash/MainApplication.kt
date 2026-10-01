@@ -12,6 +12,7 @@ import com.github.kr328.clash.common.Global
 import com.github.kr328.clash.common.compat.currentProcessName
 import com.github.kr328.clash.common.constants.Intents
 import com.github.kr328.clash.common.log.Log
+import com.github.kr328.clash.common.util.SubscriptionRequestHeaders
 import com.github.kr328.clash.design.store.UiStore
 import com.github.kr328.clash.remote.Remote
 import com.github.kr328.clash.service.store.ServiceStore
@@ -34,6 +35,9 @@ class MainApplication : Application() {
 
         val processName = currentProcessName
         ensureBundledGeoAssets()
+        // Kotlin subscription probes (metadata, brand, name guesser) run in both processes
+        // and must send the same User-Agent as the native fetch, core version included.
+        SubscriptionRequestHeaders.coreTag = com.github.kr328.clash.core.BuildConfig.CORE_TAG
 
         Log.d("Process $processName started")
 
