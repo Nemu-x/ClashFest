@@ -224,6 +224,7 @@
     <string name="rules_hub_section_count_fmt">%1$d / %2$d показано</string>
     <string name="rules_hub_section_provider_defs">Источники правил</string>
     <string name="rules_hub_provider_meta_fmt">%1$s · %2$d ч</string>
+    <string name="rules_hub_provider_meta_updated_fmt">%1$s · %2$d ч · обновлено %3$s</string>
     <string name="rules_hub_no_profile">Сначала выберите импортированный профиль</string>
     <string name="rules_hub_search_hint">Поиск правил, политик, провайдеров…</string>
     <string name="rules_hub_filter_all">Все</string>

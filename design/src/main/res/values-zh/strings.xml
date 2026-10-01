@@ -812,6 +812,7 @@
     <string name="rules_hub_section_count_fmt">显示 %1$d / %2$d</string>
     <string name="rules_hub_section_provider_defs">规则来源</string>
     <string name="rules_hub_provider_meta_fmt">%1$s · %2$d 小时</string>
+    <string name="rules_hub_provider_meta_updated_fmt">%1$s · %2$d 小时 · 更新于 %3$s</string>
     <string name="rules_hub_no_profile">请先选择一个已导入的配置</string>
     <string name="rules_hub_search_hint">搜索规则、策略、提供方…</string>
     <string name="rules_hub_filter_all">全部</string>

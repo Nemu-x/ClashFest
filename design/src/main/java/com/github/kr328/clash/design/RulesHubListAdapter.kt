@@ -14,6 +14,7 @@ import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
+import com.github.kr328.clash.design.util.format
 import com.github.kr328.clash.service.model.RuleItem
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.ChipGroup
@@ -202,11 +203,21 @@ class RulesHubListAdapter(
         holder.url.text = p.url
         val hours = (p.interval / 3600).coerceAtLeast(1)
         val behavior = p.behavior.replaceFirstChar { it.uppercaseChar() }
-        holder.meta.text = ctx.getString(
-            R.string.rules_hub_provider_meta_fmt,
-            behavior,
-            hours,
-        )
+        val updatedAt = item.updatedAt
+        holder.meta.text = if (updatedAt != null) {
+            ctx.getString(
+                R.string.rules_hub_provider_meta_updated_fmt,
+                behavior,
+                hours,
+                java.util.Date(updatedAt).format(ctx),
+            )
+        } else {
+            ctx.getString(
+                R.string.rules_hub_provider_meta_fmt,
+                behavior,
+                hours,
+            )
+        }
         holder.status.text = ctx.getString(if (p.enabled) R.string.enabled else R.string.disabled)
         holder.status.setBackgroundResource(
             if (p.enabled) R.drawable.bg_m3_status_chip else R.drawable.bg_m3_status_chip_neutral,

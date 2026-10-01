@@ -40,6 +40,7 @@ class RulesHubDesign(context: Context) : Design<RulesHubDesign.Request>(context)
     private var workingState = RuleState()
     private var baselineState = RuleState()
     private var providerMap: Map<String, RuleProviderItem> = emptyMap()
+    private var providerUpdatedAt: Map<String, Long> = emptyMap()
     private var proxyOptions: List<String> = emptyList()
     private var profileName: String = ""
     private var filter: RulesHubFilter = RulesHubFilter.ALL
@@ -140,6 +141,7 @@ class RulesHubDesign(context: Context) : Design<RulesHubDesign.Request>(context)
         state: RuleState,
         policies: List<String>,
         expandProviders: Boolean = false,
+        updatedAt: Map<String, Long> = emptyMap(),
     ) {
         noProfileNotice.visibility = View.GONE
         recycler.visibility = View.VISIBLE
@@ -150,6 +152,7 @@ class RulesHubDesign(context: Context) : Design<RulesHubDesign.Request>(context)
         baselineState = state
         proxyOptions = policies
         providerMap = state.providers.associateBy(RuleProviderItem::name)
+        providerUpdatedAt = updatedAt
         if (expandProviders) {
             subscriptionExpanded = true
             providerDefsExpanded = true
@@ -283,6 +286,7 @@ class RulesHubDesign(context: Context) : Design<RulesHubDesign.Request>(context)
             profileName = profileName,
             subscriptionExpanded = subscriptionExpanded,
             providerDefsExpanded = providerDefsExpanded,
+            providerUpdatedAt = providerUpdatedAt,
         )
         adapter.submit(items, filter, searchQuery)
         updateDiffStatus()
