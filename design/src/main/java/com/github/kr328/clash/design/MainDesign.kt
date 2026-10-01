@@ -1806,18 +1806,26 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
      * also opted into the tab, otherwise it'd hide Routing without anything
      * replacing it.
      */
+    /**
+     * Bottom-nav set for the active brand. `X-Brand-Hide-Routing` removes the Routing tab on
+     * its own (three tabs); `X-Brand-Show-Operator-Tab` adds Operator, and with both set
+     * Operator takes Routing's slot. The original brand commit (3e8fb36a) honoured Hide-Routing
+     * alone; the same-day palette refactor accidentally gated it behind the Operator tab.
+     */
     private fun reconcileTabsForBrand() {
         val brand = brandHolder.manifest
         val showTab = brand.showOperatorTab == true
         val hideRouting = brand.hideRouting == true
         val desired = when {
-            !brandHolder.isActive || !showTab -> DEFAULT_TABS
-            hideRouting -> listOf(
+            !brandHolder.isActive -> DEFAULT_TABS
+            showTab && hideRouting -> listOf(
                 MainTab.Home, MainTab.Profiles, MainTab.Operator, MainTab.Settings,
             )
-            else -> listOf(
+            showTab -> listOf(
                 MainTab.Home, MainTab.Profiles, MainTab.Routing, MainTab.Operator, MainTab.Settings,
             )
+            hideRouting -> listOf(MainTab.Home, MainTab.Profiles, MainTab.Settings)
+            else -> DEFAULT_TABS
         }
         if (desired == activeTabs) return
         activeTabs = desired

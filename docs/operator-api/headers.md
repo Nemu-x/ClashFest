@@ -276,7 +276,7 @@ theme should follow user preference, not operator preference.
 | Type | boolean |
 | Status | **v1** |
 | Applied to | Adds a dedicated "Operator" entry to the bottom navigation with logo + name + tagline + Renew CTA + operator-info link list. |
-| Notes | Explicit opt-in. Sending brand identity (name / logo / accent) alone is enough to brand the visuals — it does NOT auto-add a tab. Operators that want the consolidated info page choose it consciously. Pair with `X-Brand-Hide-Routing` to replace Routing instead of adding a 5th tab. |
+| Notes | Explicit opt-in. Sending brand identity (name / logo / accent) alone is enough to brand the visuals — it does NOT auto-add a tab. Operators that want the consolidated info page choose it consciously. Pair with `X-Brand-Hide-Routing` to put Operator in Routing's slot instead of adding a 5th tab. |
 
 ### `X-Brand-Hide-Routing`
 
@@ -284,7 +284,7 @@ theme should follow user preference, not operator preference.
 |---|---|
 | Type | boolean |
 | Status | **v1** |
-| Applied to | When paired with `X-Brand-Show-Operator-Tab=true`, the Operator tab **replaces** Routing in the bottom-nav slot (still 4 tabs, just different middle). Alone, this header has no effect — hiding Routing without something to replace it would just remove a section the user needs. |
+| Applied to | Hides the Routing tab from the bottom nav, leaving Home / Profiles / Settings (three tabs). When paired with `X-Brand-Show-Operator-Tab=true`, the Operator tab takes Routing's slot instead (still 4 tabs, just a different middle). Needs brand identity (name / logo / accent) like every cosmetic header. |
 
 ---
 

@@ -113,7 +113,7 @@ All URL fields accept `https://`, `tg://`, `mailto:`, `t.me/`
 | Header | Type | Notes |
 |---|---|---|
 | `X-Brand-Show-Operator-Tab` | boolean | **Explicit opt-in** for the dedicated Operator tab. Visual brand (name / logo / accent) applies without this; the tab does not. |
-| `X-Brand-Hide-Routing` | boolean | Paired with `Show-Operator-Tab=true`, Operator **replaces** Routing in the bottom nav. No-op on its own. |
+| `X-Brand-Hide-Routing` | boolean | Hides the Routing tab from the bottom nav (three tabs). Paired with `Show-Operator-Tab=true`, Operator takes Routing's slot instead. |
 | `X-Brand-Hide-Global-Mode` | boolean | **Policy, no `X-Branding-Enabled` needed:** hides the Home Global mode button and pins Rule mode. |
 | `X-Brand-Lock-Config-Script` | boolean | **Policy, no `X-Branding-Enabled` needed:** disables the per-profile config script editor for that subscription. |
 
@@ -131,6 +131,9 @@ the announcement card path instead.
 
 **Operator tab appears** = brand identity active **AND**
 `X-Brand-Show-Operator-Tab: true`.
+
+**Routing hidden** = brand identity active **AND** `X-Brand-Hide-Routing: true`
+(three tabs: Home / Profiles / Settings).
 
 **Routing replaced by Operator** = both `X-Brand-Show-Operator-Tab: true`
 **AND** `X-Brand-Hide-Routing: true`.
