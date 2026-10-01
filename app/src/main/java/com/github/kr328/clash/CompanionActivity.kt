@@ -19,9 +19,8 @@ import com.github.kr328.clash.design.util.resolveThemedColor
 import com.github.kr328.clash.service.model.Profile
 import com.github.kr328.clash.util.withProfile
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import io.github.g00fy2.quickie.QRResult
-import io.github.g00fy2.quickie.QRResult.QRSuccess
-import io.github.g00fy2.quickie.ScanQRCode
+import com.github.kr328.clash.qr.QrScanResult
+import com.github.kr328.clash.qr.ScanQrCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -32,7 +31,7 @@ class CompanionActivity : BaseActivity<CompanionDesign>() {
     private val store by lazy { CompanionStore(this) }
     private val pairingStore by lazy { PairingStore(this) }
 
-    private val scanLauncher = registerForActivityResult(ScanQRCode(), ::onScanResult)
+    private val scanLauncher = registerForActivityResult(ScanQrCode(), ::onScanResult)
 
     override suspend fun main() {
         val design = CompanionDesign(this, store, ::onAgentToggle)
@@ -199,9 +198,9 @@ class CompanionActivity : BaseActivity<CompanionDesign>() {
             .show()
     }
 
-    private fun onScanResult(result: QRResult) {
-        if (result !is QRSuccess) return
-        val raw = result.content.rawValue ?: return
+    private fun onScanResult(result: QrScanResult) {
+        if (result !is QrScanResult.Success) return
+        val raw = result.content
         val payload = PairingPayload.parse(raw)
         if (payload == null) {
             launch { design?.showToast(R.string.companion_pair_invalid, ToastDuration.Long) }

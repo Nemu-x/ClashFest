@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="BootstrapTheme" parent="AppThemeLight" />
+
+    <!-- Camera viewfinder: dark, with black system bars instead of the accent-coloured ones. -->
+    <style name="AppThemeQrScanner" parent="AppThemeDarkBase">
+        <item name="android:statusBarColor">@android:color/black</item>
+        <item name="android:navigationBarColor">@android:color/black</item>
+    </style>
 </resources>

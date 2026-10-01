@@ -26,8 +26,13 @@ dependencies {
     implementation(libs.androidx.coordinator)
     implementation(libs.androidx.recyclerview)
     implementation(libs.google.material)
-    implementation(libs.quickie.bundled)
     implementation(libs.androidx.activity.ktx)
+
+    // QR scanner: CameraX preview + ZXing decoder (no ML Kit, no Play services).
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
 
     // Companion remote-control (clashctl): agent server, controller client, TLS, QR.
     implementation(libs.nanohttpd)
