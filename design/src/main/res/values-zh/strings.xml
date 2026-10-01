@@ -442,7 +442,7 @@
     <!-- DNS & Hosts -->
     <string name="dns_hosts_title">DNS 与 Hosts</string>
     <string name="dns_hosts_entry_summary">按配置的名称解析：DNS 服务器、fake-ip 与静态 hosts 覆盖。</string>
-    <string name="dns_hosts_experimental_title">DNS 与 Hosts（实验）</string>
+    <string name="dns_hosts_experimental_title">DNS 与 Hosts</string>
     <string name="dns_hosts_experimental_summary">在设置中显示按配置的 DNS 与 Hosts 编辑器。</string>
     <string name="dns_hosts_no_active_profile">请先激活一个配置以编辑其 DNS 与 Hosts。</string>
     <string name="dns_hosts_master_title">为此配置管理 DNS 与 Hosts</string>
