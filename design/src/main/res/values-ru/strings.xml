@@ -52,6 +52,7 @@
     <string name="home_import_url_row">Ввести URL</string>
     <string name="home_import_url_sub">Открыть экран, где можно ввести или вставить ссылку на подписку.</string>
     <string name="home_import_qr_row">Сканировать QR-код</string>
+    <string name="qr_scan_hint">Наведите камеру на QR-код</string>
     <string name="home_import_qr_sub">Считать QR-код подписки камерой.</string>
     <string name="home_import_file_row">Из файла</string>
     <string name="home_import_file_sub">Выберите локальный конфиг (.yaml) и импортируйте как профиль.</string>

@@ -289,6 +289,11 @@
             android:exported="false"
             android:label="@string/companion_title" />
         <activity
+            android:name=".qr.QrScanActivity"
+            android:exported="false"
+            android:label="@string/home_import_qr_row"
+            android:theme="@style/AppThemeQrScanner" />
+        <activity
             android:name=".CompanionControlActivity"
             android:configChanges="uiMode"
             android:exported="false"

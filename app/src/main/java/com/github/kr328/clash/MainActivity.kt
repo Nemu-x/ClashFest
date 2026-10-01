@@ -75,12 +75,8 @@ import com.github.kr328.clash.util.stopClashService
 import com.github.kr328.clash.util.withClash
 import com.github.kr328.clash.util.withProfile
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import io.github.g00fy2.quickie.QRResult
-import io.github.g00fy2.quickie.QRResult.QRError
-import io.github.g00fy2.quickie.QRResult.QRMissingPermission
-import io.github.g00fy2.quickie.QRResult.QRSuccess
-import io.github.g00fy2.quickie.QRResult.QRUserCanceled
-import io.github.g00fy2.quickie.ScanQRCode
+import com.github.kr328.clash.qr.QrScanResult
+import com.github.kr328.clash.qr.ScanQrCode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelChildren
@@ -106,7 +102,7 @@ class MainActivity : BaseActivity<MainDesign>() {
         val proxyNames: List<String>,
     )
 
-    private val scanLauncher = registerForActivityResult(ScanQRCode(), ::onScanResult)
+    private val scanLauncher = registerForActivityResult(ScanQrCode(), ::onScanResult)
     private var lastForwardedTrafficTotal: Long = Long.MIN_VALUE
     private var isCheckingUpdates: Boolean = false
     private var isToggleStatusInFlight: Boolean = false
@@ -514,23 +510,22 @@ class MainActivity : BaseActivity<MainDesign>() {
         design.fetch()
     }
 
-    private fun onScanResult(result: QRResult) {
+    private fun onScanResult(result: QrScanResult) {
         launch {
             val d = design ?: return@launch
             when (result) {
-                is QRSuccess -> {
-                    val url = result.content.rawValue
-                        ?: result.content.rawBytes?.let { String(it) }.orEmpty()
+                is QrScanResult.Success -> {
+                    val url = result.content
                     if (url.isNotBlank()) {
                         importSubscriptionFromUrl(d, url)
                     }
                 }
 
-                QRUserCanceled -> Unit
-                QRMissingPermission ->
+                QrScanResult.Canceled -> Unit
+                QrScanResult.MissingPermission ->
                     d.showExceptionToast(getString(R.string.import_from_qr_no_permission))
 
-                is QRError ->
+                is QrScanResult.Error ->
                     d.showExceptionToast(getString(R.string.import_from_qr_exception))
             }
         }
