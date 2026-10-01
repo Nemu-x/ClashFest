@@ -81,6 +81,19 @@ class GeoMirrorsTest {
             GeoMirrors.primaryGeoIpMmdb(),
             GeoMirrors.sanitize("garbage", GeoMirrors.GeoKind.GeoIpMmdb),
         )
+        assertEquals(
+            GeoMirrors.primaryGeoIpAsn(),
+            GeoMirrors.sanitize("https://evil.example/asn.mmdb", GeoMirrors.GeoKind.GeoIpAsn),
+        )
+    }
+
+    @Test
+    fun asnPrimaryIsAnAsnDatabaseNotCountry() {
+        val asn = GeoMirrors.primaryGeoIpAsn()
+        assertTrue(GeoMirrors.isTrusted(asn))
+        assertTrue(asn.contains("ASN"))
+        assertFalse(asn.contains("country.mmdb"))
+        assertTrue(GeoMirrors.GEOIP_ASN.all(GeoMirrors::isTrusted))
     }
 
     @Test

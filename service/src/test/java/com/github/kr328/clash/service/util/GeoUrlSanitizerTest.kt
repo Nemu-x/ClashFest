@@ -38,7 +38,22 @@ class GeoUrlSanitizerTest {
         """.trimIndent()
         val out = GeoUrlSanitizer.sanitizeYaml(input)!!
         assertEquals(GeoMirrors.primaryGeoSiteDat(), geox(out)["geosite"])
-        assertEquals(GeoMirrors.primaryGeoIpMmdb(), geox(out)["asn"])
+        // Regression: ASN must fall back to an ASN database, not country.mmdb.
+        assertEquals(GeoMirrors.primaryGeoIpAsn(), geox(out)["asn"])
+    }
+
+    @Test
+    fun untrustedAsnNeverBecomesCountryDatabase() {
+        val input = """
+            geox-url:
+              asn: https://evil.example/GeoLite2-ASN.mmdb
+            geo-auto-update: false
+        """.trimIndent()
+        val out = GeoUrlSanitizer.sanitizeYaml(input)!!
+        val asn = geox(out)["asn"].toString()
+        assertTrue(GeoMirrors.isTrusted(asn))
+        assertTrue("asn must point at an ASN database: $asn", asn.contains("ASN", ignoreCase = true))
+        assertFalse(asn.contains("country.mmdb"))
     }
 
     @Test
