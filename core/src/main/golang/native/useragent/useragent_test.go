@@ -1,34 +1,53 @@
 package useragent
 
-import "testing"
+import (
+	"regexp"
+	"testing"
+)
 
 func TestBuildWithCoreVersion(t *testing.T) {
 	got := Build("1.1.1.Alpha", "1.19.32")
-	want := "ClashMetaForAndroid/1.1.1.Alpha ClashFest/1.1.1 mihomo/1.19.32"
+	want := "mihomo/1.19.32 ClashFest/1.1.1"
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 }
 
-func TestBuildWithoutCoreVersionOmitsMihomoToken(t *testing.T) {
+func TestBuildWithoutCoreVersionSendsBareMihomoToken(t *testing.T) {
 	got := Build("1.1.1.Alpha.debug", "")
-	want := "ClashMetaForAndroid/1.1.1.Alpha.debug ClashFest/1.1.1"
+	want := "mihomo ClashFest/1.1.1"
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 }
 
-func TestBuildKeepsUpstreamTokenFirst(t *testing.T) {
-	// Marzban / Remnawave match the first token to pick the clash-meta format.
-	got := Build("1.1.1", "1.19.32")
-	if got[:len("ClashMetaForAndroid/")] != "ClashMetaForAndroid/" {
-		t.Fatalf("first token must stay ClashMetaForAndroid, got %q", got)
+// The panel-side format pickers this UA has to satisfy.
+var (
+	marzbanClashMeta = regexp.MustCompile(`^([Cc]lash-verge|[Cc]lash[-.]?[Mm]eta|[Ff][Ll][Cc]lash|[Mm]ihomo)`)
+	marzbanLegacy    = regexp.MustCompile(`^([Cc]lash|[Ss]tash)`)
+	mikanCore        = regexp.MustCompile(`(mihomo|clash[.-]?meta)/v?(\d+\.\d+\.\d+)`)
+)
+
+func TestBuildMatchesPanelFormatPickers(t *testing.T) {
+	for _, ua := range []string{Build("1.1.1", "1.19.32"), Build("1.1.1.Alpha", "")} {
+		if !marzbanClashMeta.MatchString(ua) {
+			t.Errorf("%q must select the clash-meta format on Marzban/Remnawave", ua)
+		}
+		if marzbanLegacy.MatchString(ua) {
+			t.Errorf("%q must not fall into the legacy clash branch", ua)
+		}
+	}
+	if m := mikanCore.FindStringSubmatch(Build("1.1.1", "1.19.32")); m == nil || m[2] != "1.19.32" {
+		t.Errorf("mikan must read the core version from %q", Build("1.1.1", "1.19.32"))
+	}
+	if mikanCore.MatchString(Build("1.1.1", "")) {
+		t.Errorf("no core version known: mikan must not see one in %q", Build("1.1.1", ""))
 	}
 }
 
 func TestBuildNonSemverVersionNamePassesThrough(t *testing.T) {
-	got := Build("unknown", "")
-	want := "ClashMetaForAndroid/unknown ClashFest/unknown"
+	got := Build("unknown", "1.19.32")
+	want := "mihomo/1.19.32 ClashFest/unknown"
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}

@@ -39,7 +39,8 @@ func VersionName() string {
 }
 
 // ApplyCoreTag records the mihomo release tag the core was built from. Anything
-// that is not a release tag leaves the core version unknown (see useragent).
+// that is not a release tag leaves the core version unknown and the User-Agent
+// then carries a bare `mihomo` token (see useragent).
 func ApplyCoreTag(tag string) {
 	coreVersion = useragent.CoreVersionFromTag(tag)
 }

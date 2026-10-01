@@ -10,17 +10,16 @@ import (
 	"strings"
 )
 
-// Product token every subscription request starts with. Marzban / Remnawave
-// pick the clash-meta output format by matching the FIRST token against
-// `^(clash-verge|clash[-.]?meta|flclash|mihomo)`, so this must stay in front;
-// anything else there makes a panel fall back to the legacy clash format.
-const upstreamProduct = "ClashMetaForAndroid"
-
-// Our own product token, and the token panels that gate protocol support on
-// the core version look for (`(mihomo|clash[.-]?meta)/v?X.Y.Z`).
+// Panels choose the output format by matching the FIRST product token:
+// Marzban / Remnawave serve the clash-meta format for
+// `^(clash-verge|clash[-.]?meta|flclash|mihomo)` and fall back to the legacy
+// clash format for anything else that starts with `clash` — which is exactly
+// what `ClashFest/...` would hit. So the core token leads and the app token
+// follows. mikan gates protocols on `(mihomo|clash[.-]?meta)/v?X.Y.Z` found
+// anywhere in the UA.
 const (
-	product = "ClashFest"
 	core    = "mihomo"
+	product = "ClashFest"
 )
 
 var semver = regexp.MustCompile(`^v?(\d+\.\d+\.\d+)`)
@@ -29,8 +28,8 @@ var releaseTag = regexp.MustCompile(`^v?(\d+\.\d+\.\d+)$`)
 // CoreVersionFromTag turns the mihomo tag the core was built from ("v1.19.32")
 // into the bare version advertised in the User-Agent ("1.19.32"). Anything
 // that is not a release tag (a branch name, "unknown", an empty string from a
-// checkout without tags) yields "", and Build then omits the core token: a
-// panel must never be told a version the core is not.
+// checkout without tags) yields "", and Build then sends a bare `mihomo`
+// token: a panel must never be told a version the core is not.
 func CoreVersionFromTag(tag string) string {
 	m := releaseTag.FindStringSubmatch(strings.TrimSpace(tag))
 	if m == nil {
@@ -41,26 +40,24 @@ func CoreVersionFromTag(tag string) string {
 
 // Build composes the default subscription User-Agent, e.g.
 //
-//	ClashMetaForAndroid/1.1.1.Alpha ClashFest/1.1.1 mihomo/1.19.32
+//	mihomo/1.19.32 ClashFest/1.1.1
 //
 // The ClashFest token carries the bare semver of versionName (flavour and
-// build-type suffixes stripped) so it can be matched like the mihomo one; the
-// mihomo token is only present when coreVersion is known.
+// build-type suffixes stripped) so it can be matched like the mihomo one.
+// Without a known core version the first token is a bare `mihomo` (a product
+// token without a version is valid UA grammar) — still the right format for
+// every panel, never a made-up number.
 func Build(versionName, coreVersion string) string {
 	var b strings.Builder
-	b.WriteString(upstreamProduct)
-	b.WriteByte('/')
-	b.WriteString(versionName)
+	b.WriteString(core)
+	if coreVersion != "" {
+		b.WriteByte('/')
+		b.WriteString(coreVersion)
+	}
 	b.WriteByte(' ')
 	b.WriteString(product)
 	b.WriteByte('/')
 	b.WriteString(appVersion(versionName))
-	if coreVersion != "" {
-		b.WriteByte(' ')
-		b.WriteString(core)
-		b.WriteByte('/')
-		b.WriteString(coreVersion)
-	}
 	return b.String()
 }
 

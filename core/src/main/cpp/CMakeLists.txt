@@ -62,6 +62,22 @@ if (NOT CORE_TAG_RESULT EQUAL 0 OR "${CORE_TAG}" STREQUAL "")
     ERROR_QUIET
   )
 endif ()
+# A checkout without tags (shallow clone): fall back to the version the bridge
+# module pins in go.mod, which docs/core-update.md bumps with the submodule.
+set(CFA_GO_MOD "${CMAKE_CURRENT_SOURCE_DIR}/../golang/go.mod")
+if (NOT CORE_TAG_RESULT EQUAL 0 OR "${CORE_TAG}" STREQUAL "")
+  if (EXISTS "${CFA_GO_MOD}")
+    file(STRINGS "${CFA_GO_MOD}" MIHOMO_REQUIRE REGEX "github.com/metacubex/mihomo v[0-9]+\\.[0-9]+\\.[0-9]+")
+    if ("${MIHOMO_REQUIRE}" MATCHES "mihomo (v[0-9]+\\.[0-9]+\\.[0-9]+)")
+      set(CORE_TAG "${CMAKE_MATCH_1}")
+      set(CORE_TAG_RESULT 0)
+      message(STATUS "core tag taken from go.mod")
+    endif ()
+  endif ()
+endif ()
+if (EXISTS "${CFA_GO_MOD}")
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CFA_GO_MOD}")
+endif ()
 
 # Reconfigure whenever the mihomo submodule moves. CORE_TAG above is read at
 # configure time and cached in .cxx/, which survives `gradlew clean` — without
