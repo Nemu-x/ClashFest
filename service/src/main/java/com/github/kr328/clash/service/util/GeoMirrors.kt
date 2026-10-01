@@ -35,6 +35,13 @@ object GeoMirrors {
         "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb",
     )
 
+    /** GeoLite2 ASN `.mmdb` (used by `IP-ASN` rules; `geox-url.asn`). */
+    val GEOIP_ASN: List<String> = listOf(
+        "https://github.com/MetaCubeX/meta-rules-dat/releases/latest/download/GeoLite2-ASN.mmdb",
+        "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/release/GeoLite2-ASN.mmdb",
+        "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/GeoLite2-ASN.mmdb",
+    )
+
     /** Default URL chosen for [ConfigurationOverride.GeoXUrl.geoip]. */
     fun primaryGeoIpDat(): String = GEOIP_DAT.first()
 
@@ -43,6 +50,9 @@ object GeoMirrors {
 
     /** Default URL chosen for [ConfigurationOverride.GeoXUrl.mmdb]. */
     fun primaryGeoIpMmdb(): String = GEOIP_MMDB.first()
+
+    /** Default URL for `geox-url.asn` (mihomo has no override field for it). */
+    fun primaryGeoIpAsn(): String = GEOIP_ASN.first()
 
     /**
      * Allowlist of trusted hosts, derived from the curated mirror lists above.
@@ -59,15 +69,16 @@ object GeoMirrors {
      * separate rules PR.
      */
     val TRUSTED_HOSTS: Set<String> =
-        (GEOIP_DAT + GEOSITE_DAT + GEOIP_MMDB).mapNotNull(::extractHost).toSet()
+        (GEOIP_DAT + GEOSITE_DAT + GEOIP_MMDB + GEOIP_ASN).mapNotNull(::extractHost).toSet()
 
-    enum class GeoKind { GeoIp, GeoSite, GeoIpMmdb }
+    enum class GeoKind { GeoIp, GeoSite, GeoIpMmdb, GeoIpAsn }
 
     /** Primary trusted mirror for [kind]. */
     fun primaryFor(kind: GeoKind): String = when (kind) {
         GeoKind.GeoIp -> primaryGeoIpDat()
         GeoKind.GeoSite -> primaryGeoSiteDat()
         GeoKind.GeoIpMmdb -> primaryGeoIpMmdb()
+        GeoKind.GeoIpAsn -> primaryGeoIpAsn()
     }
 
     /**

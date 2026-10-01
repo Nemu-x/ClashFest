@@ -85,7 +85,7 @@ object GeoUrlSanitizer {
             "geoip" to GeoMirrors.GeoKind.GeoIp,
             "geosite" to GeoMirrors.GeoKind.GeoSite,
             "mmdb" to GeoMirrors.GeoKind.GeoIpMmdb,
-            "asn" to GeoMirrors.GeoKind.GeoIpMmdb,
+            "asn" to GeoMirrors.GeoKind.GeoIpAsn,
         ).forEach { (key, kind) ->
             // Only sanitize entries the profile actually set; absent keys are
             // left to mihomo's own defaults / ProxyHardener seeding.
