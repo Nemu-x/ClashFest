@@ -51,6 +51,9 @@ android {
             excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
             excludes += "META-INF/BCKEY.SF"
             excludes += "META-INF/BCKEY.DSA"
+            // Picnic (post-quantum signature) constant tables, ~1.1 MB. We only use
+            // BouncyCastle to mint the Companion X.509 certificate.
+            excludes += "org/bouncycastle/pqc/crypto/picnic/**"
         }
     }
 }
@@ -77,14 +80,15 @@ val geoFileSources = mapOf(
     "geoip.metadb" to "geoip.metadb",
     "geoip.dat" to "geoip.dat",
     "geosite.dat" to "geosite.dat",
-    "Country.mmdb" to "country.mmdb",
+    // country.mmdb is deliberately NOT bundled: mihomo opens whichever of
+    // Country.mmdb / geoip.metadb it lists first (constant/path.go MMDB()), so
+    // shipping both only added 4 MB of a database that was never read.
     "ASN.mmdb" to "GeoLite2-ASN.mmdb",
 )
 val geoFileHashes = mapOf(
     "geoip.metadb" to "bf2357a1ae88c8bb3251ccb454575b37a73b77db901de7374db379d14dbcaa91",
     "geoip.dat" to "83797719facc092e210f8f8e0e5e0b0bdfe06ac90a3a4a3d6a6ab2d781a917ae",
     "geosite.dat" to "cb77421b5ebe0b786d4bce7cb100c532b28ffc0e7b46d7181cd63139433f4526",
-    "Country.mmdb" to "3256b2ba2d8f75778fab6fe4e0e1c77ccffbd8774aab8e577251f3803ad95b49",
     "ASN.mmdb" to "08ee4281c0a53f4ea84adf556a183a9deb72c7721c8f0f10cb2662171c082ae1",
 )
 
