@@ -21,7 +21,7 @@ fetch. Stable SHA-256 id, non-secret.
 | `x-ver-os` | Android release (e.g. `15`) |
 | `x-device-model` | Manufacturer + model |
 | `x-app-version` | App `versionName` |
-| `User-Agent` | Configurable per profile via "User-Agent override" |
+| `User-Agent` | Default `ClashMetaForAndroid/<versionName> ClashFest/<semver> mihomo/<coreVersion>` (e.g. `ClashMetaForAndroid/1.1.1.Alpha ClashFest/1.1.1 mihomo/1.19.32`). The first token stays `ClashMetaForAndroid/` so Marzban / Remnawave keep serving the clash-meta format; the `mihomo/` token lets panels such as mikan gate protocols on the core version and is omitted when the core was not built from a release tag. Replaced entirely by the per-profile "User-Agent override". |
 
 Attached by: native fetch (Go `openUrl`), OkHttp probes in
 `ProfileProcessor` / `ProfileManager.updateFlow`, Kotlin metadata probe
