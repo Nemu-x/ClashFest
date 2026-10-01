@@ -6,6 +6,7 @@ import com.github.kr328.clash.common.util.setUUID
 import com.github.kr328.clash.common.util.uuid
 import com.github.kr328.clash.core.Clash
 import com.github.kr328.clash.core.model.ProfileSnapshot
+import com.github.kr328.clash.core.model.Provider
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.RuleEditSheet
 import com.github.kr328.clash.design.RulesHubDesign
@@ -15,6 +16,7 @@ import com.github.kr328.clash.service.model.RuleState
 import com.github.kr328.clash.service.util.ProxyGroupsYamlPreview
 import com.github.kr328.clash.service.util.RuleValidator
 import com.github.kr328.clash.util.showRuleStatePreview
+import com.github.kr328.clash.util.withClash
 import com.github.kr328.clash.util.withProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
@@ -92,8 +94,19 @@ class RulesHubActivity : BaseActivity<RulesHubDesign>() {
         val bundle = bundleJson
             ?.let { runCatching { json.decodeFromString(RuleEditorBundle.serializer(), it) }.getOrNull() }
             ?: RuleEditorBundle()
+        // Last successful fetch per rule provider, as the running core reports it
+        // (mihomo's Fetcher.UpdatedAt). Only the live core knows it, so with the
+        // VPN stopped the rows show the interval alone.
+        val providerUpdatedAt: Map<String, Long> = if (clashRunning) {
+            runCatching { withClash { queryProviders() } }.getOrNull()
+                ?.filter { it.type == Provider.Type.Rule && it.updatedAt > 0 }
+                ?.associate { it.name to it.updatedAt }
+                .orEmpty()
+        } else {
+            emptyMap()
+        }
         withContext(Dispatchers.Main) {
-            design.bind(profileName, bundle.state, bundle.policies, expandProviders)
+            design.bind(profileName, bundle.state, bundle.policies, expandProviders, providerUpdatedAt)
         }
     }
 

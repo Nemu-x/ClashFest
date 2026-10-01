@@ -150,7 +150,9 @@ sealed class RulesHubListItem(val stableId: String) {
         val meta: String,
     ) : RulesHubListItem("provider-rule-${rule.id}")
 
-    data class ProviderDef(val provider: RuleProviderItem) : RulesHubListItem("provider-def-${provider.id}")
+    /** [updatedAt] is the core-reported last successful fetch (epoch ms), null when unknown. */
+    data class ProviderDef(val provider: RuleProviderItem, val updatedAt: Long? = null) :
+        RulesHubListItem("provider-def-${provider.id}")
 
     data class AddAction(val label: String, val action: AddActionKind) : RulesHubListItem("add-${action.name}")
 
@@ -170,6 +172,7 @@ object RulesHubListBuilder {
         profileName: String,
         subscriptionExpanded: Boolean,
         providerDefsExpanded: Boolean,
+        providerUpdatedAt: Map<String, Long> = emptyMap(),
     ): List<RulesHubListItem> {
         val (allManual, allProvider) = RulesHubRowBuilder.partitionRules(state.rules)
         val manual = RulesHubRowBuilder.filterRules(allManual, filter, searchQuery, providerMap)
@@ -258,7 +261,7 @@ object RulesHubListBuilder {
             )
             if (providerDefsExpanded) {
                 providers.forEach { p ->
-                    items += RulesHubListItem.ProviderDef(p)
+                    items += RulesHubListItem.ProviderDef(p, providerUpdatedAt[p.name])
                 }
             }
         }

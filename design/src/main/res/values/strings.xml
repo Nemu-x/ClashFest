@@ -195,6 +195,7 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="rules_hub_section_count_fmt">%1$d / %2$d shown</string>
     <string name="rules_hub_section_provider_defs">Rule sources</string>
     <string name="rules_hub_provider_meta_fmt">%1$s · %2$dh</string>
+    <string name="rules_hub_provider_meta_updated_fmt">%1$s · %2$dh · updated %3$s</string>
     <string name="rules_hub_no_profile">Select an imported profile first</string>
     <string name="rules_hub_search_hint">Search rules, policies, providers…</string>
     <string name="rules_hub_filter_all">All</string>
