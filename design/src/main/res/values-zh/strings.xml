@@ -223,6 +223,7 @@
     <string name="listen">监听</string>
     <string name="files">文件</string>
     <string name="browse_files">浏览文件</string>
+    <string name="files_raw_edit_replaces_layer">保存手动编辑的配置将替换此配置在应用内的 DNS 与 Hosts、隧道、规则和提供者修改。</string>
     <string name="browse_configuration_providers">浏览配置文件和外部资源</string>
     <string name="rename">重命名</string>
     <string name="file_name">文件名</string>

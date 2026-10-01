@@ -46,6 +46,7 @@ import com.github.kr328.clash.service.util.ProfileMigration
 import com.github.kr328.clash.service.util.ProfileOverlay
 import com.github.kr328.clash.service.util.PreviewResourceLimits
 import com.github.kr328.clash.service.util.UserLayerStore
+import com.github.kr328.clash.service.util.RawConfigEdit
 import com.github.kr328.clash.service.util.importedDir
 import com.github.kr328.clash.service.util.sendProfileUpdateCompleted
 import com.github.kr328.clash.service.util.sendProfileUpdateFailed
@@ -564,6 +565,13 @@ class ProfileManager(private val context: Context) : IProfileManager,
 
     override suspend fun queryByUUID(uuid: UUID): Profile? {
         return resolveProfile(uuid)
+    }
+
+    override suspend fun hasPendingConfigEdits(uuid: UUID): Boolean = withContext(Dispatchers.IO) {
+        RawConfigEdit.isEdited(
+            imported = File(context.importedDir, "$uuid/config.yaml"),
+            candidate = File(context.pendingDir, "$uuid/config.yaml"),
+        )
     }
 
     override suspend fun queryAll(): List<Profile> {

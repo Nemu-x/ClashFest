@@ -119,7 +119,13 @@ class PropertiesActivity : BaseActivity<PropertiesDesign>() {
         design?.apply {
             launch {
                 if (!progressing) {
-                    if (original == profile || requestExitWithoutSaving())
+                    // A config.yaml edited through Browse files lives in the pending copy, which
+                    // release() deletes: it must get the same "exit without save?" prompt as
+                    // changed metadata.
+                    val configEdited = runCatching {
+                        withProfile { hasPendingConfigEdits(original.uuid) }
+                    }.getOrDefault(false)
+                    if ((original == profile && !configEdited) || requestExitWithoutSaving())
                         finish()
                 }
             }

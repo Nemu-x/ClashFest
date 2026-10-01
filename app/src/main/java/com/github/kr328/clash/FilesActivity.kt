@@ -13,9 +13,14 @@ import com.github.kr328.clash.common.util.grantPermissions
 import com.github.kr328.clash.common.util.ticker
 import com.github.kr328.clash.common.util.uuid
 import com.github.kr328.clash.design.FilesDesign
+import com.github.kr328.clash.design.R
+import com.github.kr328.clash.design.ui.ToastDuration
 import com.github.kr328.clash.design.util.showExceptionToast
 import com.github.kr328.clash.remote.FilesClient
 import com.github.kr328.clash.service.model.Profile
+import com.github.kr328.clash.service.util.RawConfigEdit
+import com.github.kr328.clash.service.util.UserLayerStore
+import com.github.kr328.clash.service.util.importedDir
 import com.github.kr328.clash.util.fileName
 import com.github.kr328.clash.util.withProfile
 import kotlinx.coroutines.isActive
@@ -37,6 +42,12 @@ class FilesActivity : BaseActivity<FilesDesign>() {
         design.fetch(client, stack, root)
 
         setContentDesign(design)
+
+        if (profile.type == Profile.Type.File &&
+            RawConfigEdit.hasContentEdits(UserLayerStore(importedDir).load(uuid))
+        ) {
+            design.showToast(R.string.files_raw_edit_replaces_layer, ToastDuration.Long)
+        }
 
         val ticker = ticker(TimeUnit.MINUTES.toMillis(1))
 

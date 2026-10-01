@@ -799,6 +799,7 @@
 
     <string name="files">Файлы</string>
     <string name="browse_files">Обзор файлов</string>
+    <string name="files_raw_edit_replaces_layer">Сохранение правленного вручную конфига заменит правки DNS и Hosts, туннелей, правил и провайдеров, сделанные в приложении.</string>
     <string name="properties_proxy_providers">HTTP-источники подписок</string>
     <string name="properties_proxy_providers_summary">Несколько proxy-providers (sub1, sub2, …) без правки YAML</string>
     <string name="proxy_providers_editor_title">Источники подписок</string>
