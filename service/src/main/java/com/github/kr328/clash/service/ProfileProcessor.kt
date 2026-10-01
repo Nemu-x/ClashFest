@@ -26,6 +26,7 @@ import com.github.kr328.clash.service.util.GeoDataSources
 import com.github.kr328.clash.service.util.ProfileComposer
 import com.github.kr328.clash.service.util.ProfileMigration
 import com.github.kr328.clash.service.util.UserLayerStore
+import com.github.kr328.clash.service.util.RealityCompat
 import com.github.kr328.clash.service.util.YamlHardener
 import com.github.kr328.clash.service.util.importedDir
 import com.github.kr328.clash.service.util.pendingDir
@@ -114,6 +115,7 @@ object ProfileProcessor {
                 }
 
                 GeoUrlSanitizer.sanitizeProfile(context.processingDir)
+                RealityCompat.applyToProfile(context.processingDir)
                 YamlHardener.hardenProfile(
                     context.processingDir,
                     ServiceStore(context).proxyHardeningMode,

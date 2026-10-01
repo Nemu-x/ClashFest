@@ -101,6 +101,10 @@ object ConfigComposer {
             doc = scriptRunner.apply(doc, it)
         }
 
+        // REALITY nodes must advertise ML-KEM for Xray 26.9+; compatibility, not security,
+        // so it runs regardless of the hardening mode.
+        doc = RealityCompat.applyToText(doc) ?: doc
+
         // Hardening LAST — on everything that will reach the engine.
         return YamlHardener.hardenYaml(doc, hardeningMode) ?: doc
     }

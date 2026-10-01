@@ -101,6 +101,46 @@ class WritePipelineOracleFixtureTest {
         File(dir, "edited.yaml").writeText(edited)
     }
 
+    /** RealityCompat is a config-rewriting transform (AGENTS.md section 6): the engine must accept its output. */
+    @Test
+    fun emit_reality_mlkem_fixture_for_go_oracle() {
+        val dir = listOf(
+            "../core/src/main/golang/native/snapshot/testdata/hardening",
+            "core/src/main/golang/native/snapshot/testdata/hardening",
+        ).map(::File).first { it.parentFile.parentFile.parentFile.exists() }
+        dir.mkdirs()
+
+        val pub = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        val reality = curated.replace(
+            "proxy-groups:",
+            """
+            |  - name: reality-vless
+            |    type: vless
+            |    server: 127.0.0.3
+            |    port: 443
+            |    uuid: 9b0e8a1e-1b2c-4d3e-8f90-123456789abc
+            |    tls: true
+            |    servername: www.example.com
+            |    reality-opts:
+            |      public-key: $pub
+            |      short-id: 0123abcd
+            |  - name: reality-trojan
+            |    type: trojan
+            |    server: 127.0.0.4
+            |    port: 443
+            |    password: pw
+            |    client-fingerprint: firefox
+            |    reality-opts:
+            |      public-key: $pub
+            |proxy-groups:
+            """.trimMargin(),
+        )
+        val out = RealityCompat.applyToText(reality)
+        assertNotNull(out)
+        assertTrue(out!!.contains("support-x25519mlkem768: true"))
+        File(dir, "reality_mlkem.yaml").writeText(out)
+    }
+
     @Test
     fun emit_hardened_dns_listener_fixture_for_go_oracle() {
         val dir = listOf(
