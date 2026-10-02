@@ -42,7 +42,6 @@ import com.github.kr328.clash.common.util.intent
 import com.github.kr328.clash.common.util.setUUID
 import com.github.kr328.clash.common.util.ticker
 import com.github.kr328.clash.core.Clash
-import com.github.kr328.clash.core.bridge.*
 import com.github.kr328.clash.core.model.Proxy
 import com.github.kr328.clash.core.util.trafficDownload
 import com.github.kr328.clash.core.util.trafficUpload
@@ -69,6 +68,7 @@ import com.github.kr328.clash.util.BypassPresets
 import com.github.kr328.clash.util.GitHubReleaseUpdate
 import com.github.kr328.clash.util.UpdateApkVerifier
 import com.github.kr328.clash.util.AppUpdateChecker
+import com.github.kr328.clash.util.AboutVersions
 import com.github.kr328.clash.util.showProfileQuickEditSheet
 import com.github.kr328.clash.util.closeConnectionsAfterUserProxySwitchIfEnabled
 import com.github.kr328.clash.util.startClashService
@@ -585,6 +585,30 @@ class MainActivity : BaseActivity<MainDesign>() {
         isToggleStatusInFlight = false
         isCheckingUpdates = false
 
+        design.onOpenAbout = {
+            launch {
+                design.showAbout(
+                    versionName = AboutVersions.app,
+                    coreVersion = AboutVersions.core,
+                    initialUpdateStatus = AppUpdateChecker.peekCachedRelease(this@MainActivity)
+                        ?.let { getString(R.string.about_update_available, it.tagName) },
+                ) { setLoading, setStatus ->
+                    if (isCheckingUpdates) return@showAbout
+                    launch {
+                        isCheckingUpdates = true
+                        setStatus(null)
+                        setLoading(true)
+                        try {
+                            checkForUpdates(design, setStatus)
+                        } finally {
+                            isCheckingUpdates = false
+                            setLoading(false)
+                        }
+                    }
+                }
+            }
+        }
+
         // Keep the companion agent alive whenever the app is open if the user enabled it — the
         // foreground service doesn't survive a process restart on its own, so a paired controller
         // could otherwise never reach this device after the app was killed.
@@ -819,26 +843,7 @@ class MainActivity : BaseActivity<MainDesign>() {
                         MainDesign.Request.OpenAppSettings ->
                             startActivity(SubscriptionIdentityActivity::class.intent)
 
-                        MainDesign.Request.OpenAbout ->
-                            design.showAbout(
-                                versionName = queryAppVersionName(),
-                                coreVersion = queryCoreVersionName(),
-                                initialUpdateStatus = AppUpdateChecker.peekCachedRelease(this@MainActivity)
-                                    ?.let { getString(R.string.about_update_available, it.tagName) },
-                            ) { setLoading, setStatus ->
-                                if (isCheckingUpdates) return@showAbout
-                                launch {
-                                    isCheckingUpdates = true
-                                    setStatus(null)
-                                    setLoading(true)
-                                    try {
-                                        checkForUpdates(design, setStatus)
-                                    } finally {
-                                        isCheckingUpdates = false
-                                        setLoading(false)
-                                    }
-                                }
-                            }
+                        MainDesign.Request.OpenAbout -> design.onOpenAbout?.invoke()
 
                         MainDesign.Request.OpenImportClipboard ->
                             importFromClipboard(design)
@@ -1680,24 +1685,6 @@ class MainActivity : BaseActivity<MainDesign>() {
         val userInterval = profile.interval.takeIf { it >= TimeUnit.MINUTES.toMillis(15) }
         val interval = userInterval ?: TimeUnit.HOURS.toMillis(12)
         return now - last >= interval
-    }
-
-    private suspend fun queryAppVersionName(): String {
-        return withContext(Dispatchers.IO) {
-            val raw = packageManager.getPackageInfo(packageName, 0).versionName ?: "unknown"
-            val semver = Regex("""(\d+\.\d+\.\d+)""").find(raw)?.groupValues?.getOrNull(1) ?: raw
-            val channel = if (BuildConfig.DEBUG) "Debug" else "Release"
-            "$semver.$channel"
-        }
-    }
-
-    private suspend fun queryCoreVersionName(): String {
-        return withContext(Dispatchers.IO) {
-            val raw = Bridge.nativeCoreVersion().replace("_", "-")
-            val semver = Regex("""v?(\d+\.\d+\.\d+)""").find(raw)?.groupValues?.getOrNull(1)
-            val normalized = semver ?: raw
-            "Mihomo $normalized"
-        }
     }
 
     private suspend fun checkForUpdates(design: MainDesign, setStatus: (String?) -> Unit) {

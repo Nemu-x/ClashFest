@@ -491,6 +491,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
      * The main header keeps the app name and logo defined in the layout.
      */
     var onOpenBrandUrl: ((String) -> Unit)? = null
+    var onOpenAbout: (() -> Unit)? = null
 
     suspend fun applyBrand(holder: com.github.kr328.clash.design.branding.BrandHolder) {
         withContext(Dispatchers.Main) {
@@ -886,7 +887,8 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
      * Animators are recreated rather than mutated so each new state change
      * starts at a known frame instead of jumping from a mid-cycle value.
      */
-    private fun updateBreathAnimator(running: Boolean, starting: Boolean) {
+    private fun updateBreathAnimator(requestedRunning: Boolean, starting: Boolean) {
+        val running = requestedRunning && !clickGuard.isOpen(Request.OpenAbout)
         // Skip rebuild when the state hasn't actually changed — keeps the
         // breath loop running smoothly through unrelated applyPowerVisuals
         // calls (brand refresh, mode change, etc).
@@ -1608,9 +1610,6 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             val binding = DesignAboutBinding.inflate(context.layoutInflater).apply {
                 this.versionName = versionName
                 this.coreVersion = coreVersion
-                runCatching {
-                    aboutAppIcon.setImageDrawable(context.packageManager.getApplicationIcon(context.packageName))
-                }
             }
             val dialog = AppBottomSheetDialog(context, fitContentHeight = true)
             dialog.setContentView(binding.root)
@@ -1703,11 +1702,16 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             }
 
             if (!clickGuard.tryOpen(Request.OpenAbout)) return@withContext
-            dialog.setOnDismissListener { clickGuard.close(Request.OpenAbout) }
+            dialog.setOnDismissListener {
+                clickGuard.close(Request.OpenAbout)
+                applyPowerVisuals()
+            }
             try {
+                updateBreathAnimator(false, false)
                 dialog.show()
             } catch (error: Throwable) {
                 clickGuard.close(Request.OpenAbout)
+                applyPowerVisuals()
                 throw error
             }
         }
@@ -2234,6 +2238,10 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             Request.PatchModeDirect, Request.PatchModeGlobal, Request.PatchModeRule,
             Request.CycleTheme -> Unit
             else -> if (!clickGuard.accept(request)) return
+        }
+        if (request == Request.OpenAbout && onOpenAbout != null) {
+            onOpenAbout?.invoke()
+            return
         }
         requests.trySend(request)
     }
