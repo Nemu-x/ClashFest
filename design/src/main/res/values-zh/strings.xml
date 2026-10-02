@@ -745,7 +745,7 @@
     <string name="subscription_docs_consolidated">深层链接</string>
     <!-- I18N-R2: zh backfill (design) — first pass, pending native review -->
     <string name="about_github_repo">Mikan 在 GitHub</string>
-    <string name="about_telegram_community">Mikan GitHub 问题反馈</string>
+    <string name="about_telegram_community">Mikan Telegram 频道</string>
     <string name="about_support">联系支持</string>
     <string name="add">添加</string>
     <string name="allow_all_apps_description">所有应用都使用 VPN</string>

@@ -33,6 +33,8 @@ defaults for everyday use.
 
 > 💬 Questions, bugs, feature requests → **[GitHub issues](https://github.com/getmikan/MikanApp/issues)**.
 
+> 📣 News and updates → **[Mikan Telegram channel](https://t.me/mikanvpn)**.
+
 ---
 
 ## Downloads

@@ -1060,7 +1060,7 @@
     <string name="about_download_started">Загрузка обновления…</string>
     <string name="about_enable_unknown_apps">Разрешите установку из этого источника, затем снова нажмите «Проверить обновления».</string>
     <string name="about_github_repo">Mikan на GitHub</string>
-    <string name="about_telegram_community">Обратная связь Mikan на GitHub</string>
+    <string name="about_telegram_community">Telegram-канал Mikan</string>
     <string name="about_open_release">Открыть страницу релиза</string>
     <string name="about_powered_by">Mikan для Android</string>
     <string name="about_authors_title">Авторы и благодарности</string>
