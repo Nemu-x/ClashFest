@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Release-manifest overlay used when clashfest.selfUpdate=false (F-Droid builds):
+     the in-app updater, its receivers and the install permission are removed. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission
+        android:name="android.permission.REQUEST_INSTALL_PACKAGES"
+        tools:node="remove" />
+
+    <application>
+        <activity
+            android:name=".UpdateDownloadActivity"
+            tools:node="remove" />
+        <receiver
+            android:name=".UpdateCheckReceiver"
+            tools:node="remove" />
+        <receiver
+            android:name=".UpdateActionReceiver"
+            tools:node="remove" />
+    </application>
+</manifest>

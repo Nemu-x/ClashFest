@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.22)
 
 # 获取git hash
 
@@ -98,7 +98,8 @@ if (NOT CORE_TAG_RESULT EQUAL 0)
 endif ()
 message(STATUS "core tag = ${CORE_TAG}")
 
-# 获取生成时间
+# 获取生成时间 (string(TIMESTAMP) honours SOURCE_DATE_EPOCH, so reproducible builders
+# such as F-Droid get a stable date here)
 string(TIMESTAMP COMPILE_TIME "%y%m%d")
 string (REGEX REPLACE "[\n\t\r]" "" COMPILE_TIME ${COMPILE_TIME})
 string(REGEX REPLACE "\"" "" COMPILE_TIME ${COMPILE_TIME})

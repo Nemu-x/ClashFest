@@ -1,11 +1,17 @@
-Clash.Meta 的 Android 图形界面。
+ClashFest 是基于 mihomo（Clash.Meta）内核的 Android 规则代理 / VPN 客户端。
 
-<h3>功能</h3>
+<b>为常见场景而生</b>：粘贴或扫描订阅链接，点击连接即可。订阅本身不会被改写，你在应用内的所有修改都保存在独立的一层。
+
+<b>功能</b>
 <ul>
-<li>本地 HTTP/HTTPS/SOCKS 服务器</li>
-<li>支持 VMess, Shadowsocks, Trojan, Snell 协议远程连接</li>
-<li>内置 DNS 服务器，旨在最小化 DNS 污染攻击影响，支持 DoH/DoT 上游和 fake IP</li>
-<li>基于规则根据域名，GEOIP, IPCIDR 或进程转发数据包到不同节点</li>
-<li>远程分组允许用户实现强大的规则。支持自动回退，负载均衡或基于延迟自动选择节点</li>
-<li>远程提供者，允许用户远程获取节点列表而不是在配置中硬编码</li>
+<li>通过 mihomo 内核支持 VLESS（REALITY、XHTTP、Vision）、VMess、Trojan、Shadowsocks、Hysteria2、TUIC、WireGuard、SSH、mieru 等</li>
+<li>Clash YAML 格式订阅，支持运营商头部（流量、到期、公告、品牌）</li>
+<li>分应用路由（允许/阻止列表）、规则集、自定义规则、DNS 与 hosts 编辑器、隧道</li>
+<li>主屏直接显示代理组：选择节点，测试单个节点或整组延迟</li>
+<li>实时连接与日志</li>
+<li>默认加固：关闭本地 SOCKS/HTTP 监听，仅从可信镜像下载 geo 数据</li>
+<li>无需 Google 服务的二维码扫描</li>
+<li>局域网内远程控制电视盒子</li>
 </ul>
+
+<b>隐私</b>：无分析、无跟踪、无开发者服务器。流量只发往你选择的运营商服务器。

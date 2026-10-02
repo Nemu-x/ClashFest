@@ -1,11 +1,17 @@
-A Graphical user interface of Clash.Meta for Android.
+ClashFest is a rule-based proxy / VPN client for Android built on the mihomo (Clash.Meta) core.
 
-<h3>Features</h3>
+<b>Made for the common case</b>: paste or scan a subscription link, tap Connect, done. The subscription stays untouched; everything you change in the app lives in a separate layer on top of it.
+
+<b>Features</b>
 <ul>
-<li>Local HTTP/HTTPS/SOCKS server</li>
-<li>VMess, Shadowsocks, Trojan, Snell protocol support for remote connections</li>
-<li>Built-in DNS server that aims to minimize DNS pollution attack impact, supports DoH/DoT upstream and fake IP</li>
-<li>Rules based off domains, GEOIP, IPCIDR or Process to forward packets to different nodes</li>
-<li>Remote groups allow users to implement powerful rules. Supports automatic fallback, load balancing or auto select node based off latency</li>
-<li>Remote providers, allowing users to get node lists remotely instead of hardcoding in config</li>
+<li>VLESS (REALITY, XHTTP, Vision), VMess, Trojan, Shadowsocks, Hysteria2, TUIC, WireGuard, SSH, mieru and more, via the mihomo core</li>
+<li>Subscriptions in Clash YAML format with headers from your operator (quota, expiry, announcements, branding)</li>
+<li>Per-app routing (allow-list / block-list), rule sets, custom rules, DNS and hosts editor, tunnels</li>
+<li>Proxy groups inline on the home screen: pick a node, test latency of one node or a whole group</li>
+<li>Live connections and logs</li>
+<li>Hardened by default: local SOCKS/HTTP listeners are closed, geo downloads only from trusted mirrors</li>
+<li>QR scanner without Google services</li>
+<li>Remote control of a TV box on the same network</li>
 </ul>
+
+<b>Privacy</b>: no analytics, no tracking, no developer server. Your traffic goes to the servers of the operator you chose.

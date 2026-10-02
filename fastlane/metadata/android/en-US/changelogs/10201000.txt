@@ -1,0 +1,1 @@
+Hotfix: REALITY nodes that stopped connecting after 1.2.0 work again. The ML-KEM rewrite for Xray 26.9+ is now off by default (Settings > Network) and no longer written into the stored subscription; every URL subscription is re-fetched once after the update.
