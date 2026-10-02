@@ -25,7 +25,8 @@ Everything else is handled in the recipe:
   the same sources (the coordinates upstream Clash Meta For Android uses) and `scandelete`
   drops the directory.
 - **Signing and splits.** `signingConfig` is removed (F-Droid signs) and ABI splits are disabled
-  so one universal APK is produced; `output` points at it.
+  so a single APK is produced; without splits AGP drops the `-universal` suffix, so `output`
+  is `clashfest-v*-alpha-release-unsigned.apk`.
 - **Root CA bundle.** `init` copies Debian's bundle into the mihomo submodule, as
   `populate-ca-bundle.sh` does in CI.
 
@@ -45,7 +46,11 @@ fdroid build com.nemu.clashfest.clash.alpha
 ```
 
 Before the first submission verify the build in the container, then open a merge request to
-fdroiddata titled `New App: com.nemu.clashfest.clash.alpha`.
+fdroiddata titled `New App: com.nemu.clashfest.clash.alpha`. The MR pipeline runs
+`fdroid rewritemeta` and fails on any formatting drift: no comments in the yml, no `Summary:`
+(it comes from fastlane, see `make-summary-translatable`), lines wrapped at 80 columns, keys in
+the order rewritemeta emits. Run `fdroid rewritemeta com.nemu.clashfest.clash.alpha` in the
+container before pushing. The reference copy next to this file is the exact submitted file.
 
 ## Things reviewers will ask about
 

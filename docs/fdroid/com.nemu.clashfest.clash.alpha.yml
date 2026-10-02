@@ -9,22 +9,6 @@ IssueTracker: https://github.com/Nemu-x/ClashFest/issues
 Changelog: https://github.com/Nemu-x/ClashFest/releases
 
 Name: ClashFest
-Summary: Rule-based proxy client on the mihomo core
-Description: |-
-  ClashFest is a rule-based proxy / VPN client for Android built on the mihomo
-  (Clash.Meta) core. Paste or scan a subscription link, tap Connect, done. The
-  subscription stays untouched; everything you change in the app lives in a
-  separate layer on top of it.
-
-  Protocols come from the mihomo core (VLESS with REALITY / XHTTP / Vision,
-  VMess, Trojan, Shadowsocks, Hysteria2, TUIC, WireGuard, SSH, mieru and more).
-  Per-app routing, rule sets, custom rules, a DNS and hosts editor, inline proxy
-  groups with latency tests, live connections and logs. Hardened by default:
-  local listeners are closed and geo databases are only fetched from trusted
-  mirrors.
-
-  No analytics, no tracking, no developer server. Traffic goes to the servers of
-  the operator you chose.
 
 RepoType: git
 Repo: https://github.com/Nemu-x/ClashFest.git
@@ -32,41 +16,39 @@ Repo: https://github.com/Nemu-x/ClashFest.git
 Builds:
   - versionName: 1.2.1
     versionCode: 10201000
-    commit: v1.2.1
+    commit: db67160fafa2b5763c601ff5a19337764b7d0e0c
     subdir: app
     submodules: true
     sudo:
-      # Go 1.26 from go.dev (Debian ships 1.24, the bridge modules require go 1.25), with the
-      # two Android runtime patches the upstream CI applies (pidfd SIGSYS under seccomp,
-      # futex_time64 on 32-bit). Same patches as .github/patch/ in the repository.
       - apt-get update
       - apt-get install -y patch ca-certificates
       - curl -Lso go.tar.gz https://go.dev/dl/go1.26.8.linux-amd64.tar.gz
-      - echo "d0f743b33e8d8945e6b1f432edd15785c70507121d6e2a723b21285eddf8b57b  go.tar.gz" | sha256sum -c -
+      - echo "d0f743b33e8d8945e6b1f432edd15785c70507121d6e2a723b21285eddf8b57b  go.tar.gz"
+        | sha256sum -c -
       - tar xzf go.tar.gz --strip-components=1 -C /usr/local/
-      - curl -Lso pidfd.patch https://raw.githubusercontent.com/Nemu-x/ClashFest/v1.2.1/.github/patch/disable_pidfd_on_android.patch
-      - curl -Lso futex.patch https://raw.githubusercontent.com/Nemu-x/ClashFest/v1.2.1/.github/patch/remove_64bits_syscall_on_32bit_linux.patch
+      - curl -Lso pidfd.patch 
+        https://raw.githubusercontent.com/Nemu-x/ClashFest/db67160fafa2b5763c601ff5a19337764b7d0e0c/.github/patch/disable_pidfd_on_android.patch
+      - curl -Lso futex.patch 
+        https://raw.githubusercontent.com/Nemu-x/ClashFest/db67160fafa2b5763c601ff5a19337764b7d0e0c/.github/patch/remove_64bits_syscall_on_32bit_linux.patch
       - patch -p1 -d /usr/local < pidfd.patch
       - patch -p1 -d /usr/local < futex.patch
-    init:
-      # Embedded Root CA bundle, normally populated by CI (.github/scripts/populate-ca-bundle.sh).
-      - cp /etc/ssl/certs/ca-certificates.crt ../core/src/foss/golang/clash/component/ca/ca-certificates.crt
+    init: cp /etc/ssl/certs/ca-certificates.crt ../core/src/foss/golang/clash/component/ca/ca-certificates.crt
     gradle:
       - alpha
-    gradleprops:
-      - clashfest.selfUpdate=false
-      - clashfest.bundleGeo=false
+    output: build/outputs/apk/alpha/release/clashfest-v*-alpha-release-unsigned.apk
     prebuild:
-      # Vendored kr328 artifacts (maven/) are replaced by the JitPack builds of the same
-      # sources, exactly as the upstream Clash Meta For Android recipe does.
-      - sed -i -e 's|maven(rootProject.projectDir.resolve("maven").toURI())|maven("https://jitpack.io")|'
+      - sed -i -e 
+        's|maven(rootProject.projectDir.resolve("maven").toURI())|maven("https://jitpack.io")|'
         -e '/isEnable = true/d' -e '/signingConfig /d' ../build.gradle.kts
-      - sed -i -e 's/com.github.kr328.golang:gradle-plugin/com.github.Kr328.golang-android-plugin:gradle-plugin/'
+      - sed -i -e 
+        's/com.github.kr328.golang:gradle-plugin/com.github.Kr328.golang-android-plugin:gradle-plugin/'
         -e '/^golang = /s/1.0.4/cc84891461/' -e '/^kaidl = /s/1.15/7710f4347c/' ../gradle/libs.versions.toml
     scandelete:
       - maven
     ndk: 29.0.14206865
-    output: build/outputs/apk/alpha/release/clashfest-v*-alpha-universal-release-unsigned.apk
+    gradleprops:
+      - clashfest.selfUpdate=false
+      - clashfest.bundleGeo=false
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v1\.\d+\.\d+$
