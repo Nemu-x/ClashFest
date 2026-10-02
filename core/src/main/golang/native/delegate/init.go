@@ -25,7 +25,7 @@ func Init(home, versionName, gitVersion, coreTag string, platformVersion int) {
 	constant.SetHomeDir(home)
 	// gitVersion = ${CURRENT_BRANCH}_${COMMIT_HASH}_${COMPILE_TIME}
 	if versions := strings.Split(gitVersion, "_"); len(versions) == 3 {
-		constant.Version = fmt.Sprintf("%s-%s-CMFA-%s", strings.ToLower(versions[0]), versions[1], strings.ToLower(versionName))
+		constant.Version = fmt.Sprintf("%s-%s-ClashFest-%s", strings.ToLower(versions[0]), versions[1], strings.ToLower(versionName))
 		constant.BuildTime = versions[2]
 	} else {
 		constant.Version = gitVersion
