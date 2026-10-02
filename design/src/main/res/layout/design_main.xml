@@ -53,7 +53,7 @@
             android:layout_height="match_parent"
             android:background="@drawable/bg_home_canvas"
             android:clipToPadding="false"
-            android:fillViewport="false"
+            android:fillViewport="true"
             android:overScrollMode="never"
             android:paddingTop="@{self.surface.insets.top}"
             android:paddingBottom="@{self.surface.insets.bottom + context.resources.getDimensionPixelSize(com.github.kr328.clash.design.R.dimen.main_bottom_nav_reserved_space)}">
@@ -175,6 +175,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
+                android:layout_weight="1"
                 android:visibility="@{hasProfiles ? View.GONE : View.VISIBLE}">
 
                 <androidx.recyclerview.widget.RecyclerView
@@ -197,8 +198,7 @@
                     android:gravity="center_horizontal"
                     android:orientation="vertical"
                     android:paddingHorizontal="32dp"
-                    android:paddingTop="16dp"
-                    android:paddingBottom="32dp"
+                    android:paddingVertical="24dp"
                     android:visibility="@{hasProfiles ? View.GONE : View.VISIBLE}">
 
                     <FrameLayout
