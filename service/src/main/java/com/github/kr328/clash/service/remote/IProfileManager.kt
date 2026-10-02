@@ -47,6 +47,9 @@ interface IProfileManager {
      */
     suspend fun update(uuid: UUID, callback: IFetchObserver? = null)
     suspend fun queryByUUID(uuid: UUID): Profile?
+
+    /** True when the pending copy's config.yaml differs from the imported one (hand edit via Browse files). */
+    suspend fun hasPendingConfigEdits(uuid: UUID): Boolean
     suspend fun queryAll(): List<Profile>
     suspend fun reorder(uuids: List<String>)
     suspend fun queryActive(): Profile?

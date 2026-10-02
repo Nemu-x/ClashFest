@@ -24,6 +24,7 @@ import com.github.kr328.clash.service.util.ConfigScriptException
 import com.github.kr328.clash.service.util.ConfigScriptPolicy
 import com.github.kr328.clash.service.util.GeoDataSources
 import com.github.kr328.clash.service.util.ProfileComposer
+import com.github.kr328.clash.service.util.RawConfigEdit
 import com.github.kr328.clash.service.util.ProfileMigration
 import com.github.kr328.clash.service.util.UserLayerStore
 import com.github.kr328.clash.service.util.YamlHardener
@@ -65,6 +66,13 @@ object ProfileProcessor {
 
                     pending
                 }
+
+                // A hand-edited config.yaml (Browse files → external editor) on a File profile:
+                // decided on raw bytes, before the sanitizers below rewrite the processing copy.
+                val rawEdited = snapshot.type == Profile.Type.File && RawConfigEdit.isEdited(
+                    imported = File(context.importedDir, "${snapshot.uuid}/config.yaml"),
+                    candidate = File(context.processingDir, "config.yaml"),
+                )
 
                 val force = snapshot.type != Profile.Type.File
                 var cb = callback
@@ -124,6 +132,15 @@ object ProfileProcessor {
                     val cfg = File(context.processingDir, "config.yaml")
                     if (cfg.isFile) {
                         File(context.processingDir, ProfileComposer.SUBSCRIPTION_FILE).writeText(cfg.readText())
+                    }
+                }
+                if (rawEdited) {
+                    // The edited text is the new base and already carries the layer's content;
+                    // replaying the layer at VPN start would revert the user's changes.
+                    val layer = UserLayerStore.loadAt(context.processingDir)
+                    if (RawConfigEdit.hasContentEdits(layer)) {
+                        UserLayerStore.saveAt(context.processingDir, RawConfigEdit.layerAfterRawEdit(layer))
+                        Log.i("Hand-edited config for ${snapshot.uuid}: in-app layer content folded into the base")
                     }
                 }
 

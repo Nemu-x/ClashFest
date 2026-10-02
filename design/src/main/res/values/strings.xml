@@ -918,6 +918,7 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
 
     <string name="files">Files</string>
     <string name="browse_files">Browse Files</string>
+    <string name="files_raw_edit_replaces_layer">Saving a hand-edited config replaces this profile\'s in-app DNS &amp; Hosts, tunnels, rules and provider edits.</string>
     <string name="properties_proxy_providers">HTTP subscription sources</string>
     <string name="properties_proxy_providers_summary">Multiple proxy-providers (sub1, sub2, …) without editing YAML</string>
     <string name="proxy_providers_editor_title">Subscription sources</string>
