@@ -1,0 +1,49 @@
+mixed-port: 7890
+proxies:
+  - name: 🇩🇪 Berlin
+    type: socks5
+    server: 127.0.0.1
+    port: 1080
+    udp: off
+  - name: 香港 01
+    type: socks5
+    server: 127.0.0.2
+    port: 1081
+    udp: true
+  - name: reality-vless
+    type: vless
+    server: 127.0.0.3
+    port: 443
+    uuid: 9b0e8a1e-1b2c-4d3e-8f90-123456789abc
+    tls: true
+    servername: www.example.com
+    reality-opts:
+        public-key: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+        short-id: 0123abcd
+        support-x25519mlkem768: true
+    client-fingerprint: chrome
+  - name: reality-trojan
+    type: trojan
+    server: 127.0.0.4
+    port: 443
+    password: pw
+    client-fingerprint: chrome
+    reality-opts:
+        public-key: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+        support-x25519mlkem768: true
+proxy-groups:
+  - name: G
+    type: select
+    proxies:
+      - "🇩🇪 Berlin"
+      - 香港 01
+rules:
+  - MATCH,G
+dns:
+  enable: true
+  enhanced-mode: fake-ip
+  listen: ":1053"
+  nameserver:
+    - https://1.1.1.1/dns-query
+hosts:
+  example.com: 1.2.3.4
