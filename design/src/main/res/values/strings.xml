@@ -681,6 +681,8 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="proxy_switch_selector_failed">Could not switch proxy. Existing connections were left untouched.</string>
     <string name="proxy_switch_close_connections_failed">Proxy switched, but active connections could not be closed.</string>
     <string name="network_switch_reaction">React to network changes</string>
+    <string name="reality_mlkem_compat">REALITY: offer ML-KEM (Xray 26.9+)</string>
+    <string name="reality_mlkem_compat_summary">Adds the X25519MLKEM768 key share and the chrome fingerprint to every REALITY node. Required by Xray-core 26.9.8+ servers, but older servers silently drop such handshakes and nodes stop connecting. Keep off unless your operator asks for it.</string>
     <string name="network_switch_reaction_summary">When the device switches networks (Wi-Fi ↔ mobile data), immediately close stale connections and re-test proxy groups so automatic groups pick a working server right away — instead of waiting for the next scheduled health check.</string>
 
     <string name="bypass_private_network">Bypass Private Network</string>

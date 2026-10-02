@@ -336,6 +336,10 @@ wipes cosmetic branding).
 | Applied to | Hides "Copy node link" / "Share" actions in the picker AND locks subscription URL editing for **that subscription only** |
 | Notes | Stored per-profile (`subscriptionShareLinksLockedFor(uuid)`). Different subscriptions can have different share policies — one operator's lock does not affect another's subscription on the same device. |
 
+### REALITY and ML-KEM (client setting, no header)
+
+Xray-core 26.9.8+ rejects a REALITY ClientHello without an X25519MLKEM768 key share, while older Xray servers silently drop a ClientHello that carries one. ClashFest therefore does **not** rewrite REALITY nodes by default. The user can turn on **Settings → Network → "REALITY: offer ML-KEM (Xray 26.9+)"** when the operator runs 26.9.8+ everywhere; operators on current Xray should instead ship `reality-opts.support-x25519mlkem768: true` and `client-fingerprint: chrome` in the subscription, which mihomo honours as-is.
+
 ### `X-Network-Stack`
 
 | | |

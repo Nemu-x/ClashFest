@@ -27,7 +27,6 @@ import com.github.kr328.clash.service.util.ProfileComposer
 import com.github.kr328.clash.service.util.RawConfigEdit
 import com.github.kr328.clash.service.util.ProfileMigration
 import com.github.kr328.clash.service.util.UserLayerStore
-import com.github.kr328.clash.service.util.RealityCompat
 import com.github.kr328.clash.service.util.YamlHardener
 import com.github.kr328.clash.service.util.importedDir
 import com.github.kr328.clash.service.util.pendingDir
@@ -123,7 +122,6 @@ object ProfileProcessor {
                 }
 
                 GeoUrlSanitizer.sanitizeProfile(context.processingDir)
-                RealityCompat.applyToProfile(context.processingDir)
                 YamlHardener.hardenProfile(
                     context.processingDir,
                     ServiceStore(context).proxyHardeningMode,
@@ -346,7 +344,8 @@ object ProfileProcessor {
                     val composed = try {
                         ConfigComposer.compose(
                             fetchedText, capturedLayer, geoUrls, serviceStore.proxyHardeningMode,
-                            ConfigScriptPolicy.runnerFor(context, snapshot.uuid, snapshot.name),
+                            realityCompat = serviceStore.realityMlkemCompat,
+                            scriptRunner = ConfigScriptPolicy.runnerFor(context, snapshot.uuid, snapshot.name),
                         )
                     } catch (e: ConfigScriptException) {
                         Log.w("User script failed (${e.error.code}) for ${snapshot.uuid}; updating without it: ${e.message}")
@@ -354,6 +353,7 @@ object ProfileProcessor {
                         ConfigComposer.compose(
                             fetchedText, capturedLayer.copy(script = null), geoUrls,
                             serviceStore.proxyHardeningMode,
+                            realityCompat = serviceStore.realityMlkemCompat,
                         )
                     }
                     // Runtime engine gate (§config-engine-gate): NEVER apply a config the engine
