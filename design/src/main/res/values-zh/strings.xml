@@ -408,7 +408,9 @@
     <string name="about_download_started">已开始下载</string>
     <string name="about_enable_unknown_apps">请在设置中允许安装未知来源应用</string>
     <string name="about_open_release">打开发布页</string>
-    <string name="about_powered_by">基于</string>
+    <string name="about_powered_by">Mikan Android 客户端</string>
+    <string name="about_authors_title">作者与致谢</string>
+    <string name="about_fork_acknowledgement">感谢 ClashFest 的作者 Nemu-x，以及 Clash Meta for Android 和 mihomo 的贡献者。Mikan 基于这些项目开发。</string>
     <string name="about_update_available">有可用更新：%1$s</string>
     <string name="about_update_check_failed">检查更新失败</string>
     <string name="about_update_latest">已是最新版本</string>

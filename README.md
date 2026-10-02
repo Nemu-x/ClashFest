@@ -1,5 +1,6 @@
 <h1 align="center">
   <img src="design/mikan.png" alt="Mikan" width="240" />
+  <br />Mikan
 </h1>
 
 <p align="center">
@@ -30,7 +31,7 @@
 experience, cleaner subscription/node flows, routing-focused tools, and practical safety
 defaults for everyday use.
 
-> 💬 Questions, bugs, feature requests → **[Telegram (EN / RU)](https://github.com/getmikan/MikanApp/issues)** or **[GitHub issues](https://github.com/getmikan/MikanApp/issues)**.
+> 💬 Questions, bugs, feature requests → **[GitHub issues](https://github.com/getmikan/MikanApp/issues)**.
 
 ---
 
@@ -151,6 +152,17 @@ are or aren't a fit. Have an idea? Open an [issue](https://github.com/getmikan/M
   and `design/mikan.png` (PNG export). Launcher, notifications, widget and TV banner
   use the same mark.
 - Screenshots in `docs/` currently show the upstream appearance.
+
+---
+
+## Authors & acknowledgements
+
+Mikan is developed in [getmikan/MikanApp](https://github.com/getmikan/MikanApp).
+
+Thank you to [Nemu-x](https://github.com/Nemu-x), the author of
+[ClashFest](https://github.com/Nemu-x/ClashFest), on which Mikan is based.
+We also thank the contributors to Clash Meta for Android and mihomo for their work.
+Original copyright and license notices are preserved in `LICENSE` and `NOTICE`.
 
 ---
 

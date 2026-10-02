@@ -404,10 +404,6 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             activeAnnouncementOnOpenUrl = onOpenUrl
             activeAnnouncementOnSupport = onSupport
 
-            // Brand name always wins for the header title; announcement no longer
-            // doubles into the header summary (the banner below carries it).
-            val brandName = brandHolder.manifest.name?.takeIf { it.isNotBlank() }
-            binding.mainHeaderTitle.text = brandName ?: context.getString(R.string.launch_name_meta)
             binding.mainHeaderSummary.visibility = View.GONE
             binding.mainHeaderSummary.setOnClickListener(null)
             binding.mainHeaderSummary.isClickable = false
@@ -477,10 +473,8 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
 
     /**
      * Apply the latest operator-brand snapshot to the main screen surfaces:
-     * header logo + brand name + tagline + accent override on power button.
-     * Re-applies announcement-derived title afterwards so brand wins over
-     * the default ClashFest text but announcement-card logic still chooses
-     * its own title.
+     * operator tagline, profile cards, operator page and power-button accent.
+     * The main header keeps the app name and logo defined in the layout.
      */
     var onOpenBrandUrl: ((String) -> Unit)? = null
 
@@ -710,27 +704,6 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
 
     private fun renderBrandHeader() {
         val brand = brandHolder.manifest
-
-        // Logo: render only when path is real. Empty path → hide the slot.
-        // We never call BrandLogoBinder.bind with a placeholder fallback,
-        // so the dark-bg circle is invisible to the user unless branding kicked in.
-        val logoView = binding.mainHeaderLogo
-        val logoPath = brandHolder.logoPath
-        if (logoPath != null) {
-            com.github.kr328.clash.design.branding.BrandLogoBinder.bind(logoView, logoPath)
-            logoView.visibility = View.VISIBLE
-        } else {
-            logoView.setImageDrawable(null)
-            logoView.visibility = View.GONE
-        }
-
-        // Brand name: only overwrite when the operator actually supplied one.
-        // Default title management stays with applyAnnouncement; touching it
-        // here would race with the announcement-aware text logic.
-        val brandName = brand.name?.takeIf { it.isNotBlank() }
-        if (brandName != null) {
-            binding.mainHeaderTitle.text = brandName
-        }
 
         // Tagline: only show / write when operator supplied one.
         val taglineView = binding.mainHeaderTagline

@@ -1063,6 +1063,8 @@
     <string name="about_telegram_community">Обратная связь Mikan на GitHub</string>
     <string name="about_open_release">Открыть страницу релиза</string>
     <string name="about_powered_by">Mikan для Android</string>
+    <string name="about_authors_title">Авторы и благодарности</string>
+    <string name="about_fork_acknowledgement">Спасибо Nemu-x, автору ClashFest, на котором основан Mikan, а также участникам Clash Meta for Android и mihomo.</string>
     <string name="about_update_available">Доступно обновление: %1$s</string>
     <string name="about_update_latest">У вас уже последняя версия</string>
     <string name="allow_ipv6">Разрешить IPv6</string>

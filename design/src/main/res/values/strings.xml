@@ -823,6 +823,8 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="about_enable_unknown_apps">Allow installs from this source, then tap Check updates again.</string>
     <string name="about_update_check_failed">Could not check updates</string>
     <string name="about_powered_by">Mikan for Android</string>
+    <string name="about_authors_title">Authors &amp; acknowledgements</string>
+    <string name="about_fork_acknowledgement">Thanks to Nemu-x, author of ClashFest, on which Mikan is based, and to the contributors to Clash Meta for Android and mihomo.</string>
     <string name="about_app_version_label">App version</string>
     <string name="about_core_version_label">Core version</string>
     <string name="main_no_profiles_title">No subscriptions yet</string>
