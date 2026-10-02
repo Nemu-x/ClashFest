@@ -7,7 +7,7 @@ import (
 
 func TestBuildWithCoreVersion(t *testing.T) {
 	got := Build("1.1.1.Alpha", "1.19.32")
-	want := "mihomo/1.19.32 ClashFest/1.1.1"
+	want := "mihomo/1.19.32 Mikan/1.1.1"
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
@@ -15,7 +15,7 @@ func TestBuildWithCoreVersion(t *testing.T) {
 
 func TestBuildWithoutCoreVersionSendsBareMihomoToken(t *testing.T) {
 	got := Build("1.1.1.Alpha.debug", "")
-	want := "mihomo ClashFest/1.1.1"
+	want := "mihomo Mikan/1.1.1"
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
@@ -47,7 +47,7 @@ func TestBuildMatchesPanelFormatPickers(t *testing.T) {
 
 func TestBuildNonSemverVersionNamePassesThrough(t *testing.T) {
 	got := Build("unknown", "1.19.32")
-	want := "mihomo/1.19.32 ClashFest/unknown"
+	want := "mihomo/1.19.32 Mikan/unknown"
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}

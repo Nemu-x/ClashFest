@@ -5,7 +5,7 @@
     <string name="running">正在运行</string>
     <string name="format_update_complete">更新 %s 成功</string>
     <string name="format_update_failure">"更新 %1$s: %2$s "</string>
-    <string name="clash_meta_for_android">Clash Meta for Android</string>
+    <string name="clash_meta_for_android">Mikan for Android</string>
     <string name="profiles_and_providers">配置文件和外部资源</string>
     <string name="configuration_yaml">配置文件.yaml</string>
     <string name="provider_files">外部资源文件列表</string>
@@ -17,7 +17,7 @@
     <string name="profile_updating">配置更新中</string>
     <string name="profile_service_status">配置文件服务状态</string>
     <string name="profile_process_result">配置文件处理结果</string>
-    <string name="vpn_session_name" translatable="true">ClashFest</string>
+    <string name="vpn_session_name" translatable="true">Mikan</string>
 
     <string name="update_failed_expired_title">订阅已过期</string>
     <string name="update_failed_expired_body">已于 %1$s 到期。请续费后重新更新配置。</string>

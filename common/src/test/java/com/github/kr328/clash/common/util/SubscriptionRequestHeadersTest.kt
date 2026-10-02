@@ -13,15 +13,15 @@ class SubscriptionRequestHeadersTest {
 
     @Test
     fun withCoreTag() {
-        assertEquals("mihomo/1.19.32 ClashFest/1.1.1", SubscriptionRequestHeaders.buildDefaultUserAgent("1.1.1.Alpha", "v1.19.32"))
+        assertEquals("mihomo/1.19.32 Mikan/1.1.1", SubscriptionRequestHeaders.buildDefaultUserAgent("1.1.1.Alpha", "v1.19.32"))
     }
 
     @Test
     fun withoutCoreTagSendsBareMihomo() {
-        assertEquals("mihomo ClashFest/1.1.1", SubscriptionRequestHeaders.buildDefaultUserAgent("1.1.1.Alpha.debug", null))
-        assertEquals("mihomo ClashFest/1.1.1", SubscriptionRequestHeaders.buildDefaultUserAgent("1.1.1", ""))
-        assertEquals("mihomo ClashFest/1.1.1", SubscriptionRequestHeaders.buildDefaultUserAgent("1.1.1", "Alpha"))
-        assertEquals("mihomo ClashFest/1.1.1", SubscriptionRequestHeaders.buildDefaultUserAgent("1.1.1", "v1.19.32-3-gabc"))
+        assertEquals("mihomo Mikan/1.1.1", SubscriptionRequestHeaders.buildDefaultUserAgent("1.1.1.Alpha.debug", null))
+        assertEquals("mihomo Mikan/1.1.1", SubscriptionRequestHeaders.buildDefaultUserAgent("1.1.1", ""))
+        assertEquals("mihomo Mikan/1.1.1", SubscriptionRequestHeaders.buildDefaultUserAgent("1.1.1", "Alpha"))
+        assertEquals("mihomo Mikan/1.1.1", SubscriptionRequestHeaders.buildDefaultUserAgent("1.1.1", "v1.19.32-3-gabc"))
     }
 
     @Test
@@ -38,6 +38,6 @@ class SubscriptionRequestHeadersTest {
 
     @Test
     fun nonSemverVersionNamePassesThrough() {
-        assertEquals("mihomo/1.19.32 ClashFest/unknown", SubscriptionRequestHeaders.buildDefaultUserAgent("unknown", "1.19.32"))
+        assertEquals("mihomo/1.19.32 Mikan/unknown", SubscriptionRequestHeaders.buildDefaultUserAgent("unknown", "1.19.32"))
     }
 }

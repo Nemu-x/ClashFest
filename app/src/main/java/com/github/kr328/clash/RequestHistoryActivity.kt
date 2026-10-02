@@ -74,7 +74,7 @@ class RequestHistoryActivity : BaseActivity<RequestHistoryDesign>() {
                                 val snapshot = querySnapshot() ?: return@launch
                                 val output = startActivityForResult(
                                     ActivityResultContracts.CreateDocument("text/csv"),
-                                    "clashfest-request-history.csv",
+                                    "mikan-request-history.csv",
                                 )
                                 if (output != null) {
                                     runCatching {

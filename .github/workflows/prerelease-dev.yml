@@ -94,7 +94,7 @@ jobs:
             flavor="alpha"
             if [[ "$base" == *"meta"* ]]; then flavor="meta"; fi
 
-            out="clashfest-dev-${SHORT_SHA}-${flavor}-${abi}.apk"
+            out="mikan-dev-${SHORT_SHA}-${flavor}-${abi}.apk"
             cp "$apk" "release-artifacts/$out"
           done
 
@@ -160,14 +160,14 @@ jobs:
         run: |
           if gh release view dev-latest >/dev/null 2>&1; then
             gh release edit dev-latest \
-              --title "ClashFest Dev Build" \
+              --title "Mikan Dev Build" \
               --notes-file RELEASE_BODY.md \
               --prerelease \
               --target dev \
               --latest=false
           else
             gh release create dev-latest \
-              --title "ClashFest Dev Build" \
+              --title "Mikan Dev Build" \
               --notes-file RELEASE_BODY.md \
               --prerelease \
               --target dev \

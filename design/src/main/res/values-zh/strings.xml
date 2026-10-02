@@ -15,7 +15,7 @@
     <string name="clash_logcat">Clash 日志捕捉工具</string>
     <string name="create_profile">创建配置</string>
     <string name="dark_mode">暗黑模式</string>
-    <string name="launch_name_meta">ClashFest</string>
+    <string name="launch_name_meta">Mikan</string>
     <string name="app_language">应用语言</string>
     <string name="subscription_identity">Schemes 与 HWID</string>
     <string name="subscription_hwid_title">当前设备 HWID</string>
@@ -29,13 +29,13 @@
     <string name="age_secret_key">Age 密钥</string>
     <string name="age_secret_key_helper">用于 age 加密的订阅。若面板提供普通 YAML，请留空。</string>
     <string name="age_secret_key_error">必须以 AGE-SECRET-KEY- 开头</string>
-    <string name="subscription_user_agent_preset_default">默认（ClashFest）</string>
+    <string name="subscription_user_agent_preset_default">默认（Mikan）</string>
     <string name="subscription_user_agent_preset_happ_ios">Happ iOS</string>
     <string name="subscription_user_agent_preset_happ_android">Happ Android</string>
     <string name="subscription_user_agent_preset_v2raytun_ios">v2raytun iOS</string>
     <string name="subscription_user_agent_preset_v2raytun_android">v2raytun Android</string>
     <string name="subscription_user_agent_preset_custom">Custom</string>
-    <string name="subscription_user_agent_override_summary">可选。仅作用于当前订阅（fetch/update/metadata）。留空则使用 ClashFest 默认 User-Agent。</string>
+    <string name="subscription_user_agent_override_summary">可选。仅作用于当前订阅（fetch/update/metadata）。留空则使用 Mikan 默认 User-Agent。</string>
     <string name="subscription_user_agent_strict">严格 custom User-Agent</string>
     <string name="subscription_user_agent_strict_summary">开启：该 User-Agent 返回无效格式时直接失败。关闭：自动用内核默认 User-Agent 重试。</string>
     <string name="app_language_system">跟随系统</string>
@@ -148,12 +148,12 @@
     <string name="update_time">更新时间</string>
     <string name="package_name">应用包名称</string>
     <string name="install_time">安装时间</string>
-    <string name="clash_meta_for_android">Clash Meta for Android</string>
+    <string name="clash_meta_for_android">Mikan for Android</string>
     <string name="feedback">反馈</string>
     <string name="github_issues">Github Issues</string>
     <string name="tips_properties"><![CDATA[仅接受 <strong>Clash 配置文件</strong>(包含<strong>代理</strong>/<strong>规则</strong>)]]></string>
     <string name="loading">载入中</string>
-    <string name="tips_help"><![CDATA[Clash Meta for Android 是一个<strong>免费软件</strong>并且我们<strong>不</strong>为其提供任何服务, <strong>请务必不要反馈非应用自身引起的问题</strong>]]></string>
+    <string name="tips_help"><![CDATA[Mikan for Android 是一个<strong>免费软件</strong>并且我们<strong>不</strong>为其提供任何服务, <strong>请务必不要反馈非应用自身引起的问题</strong>]]></string>
     <string name="donate">捐赠</string>
     <string name="allow_all_apps">全部应用</string>
     <string name="allow_selected_apps">仅所选应用</string>
@@ -393,8 +393,8 @@
     <string name="about_app_version_label">应用版本</string>
     <string name="about_check_updates">检查更新</string>
     <string name="update_notification_channel_name">应用更新</string>
-    <string name="update_notification_channel_description">周期检查 ClashFest 更新</string>
-    <string name="update_notification_title">ClashFest 有新版本</string>
+    <string name="update_notification_channel_description">周期检查 Mikan 更新</string>
+    <string name="update_notification_title">Mikan 有新版本</string>
     <string name="update_notification_text">新版本：%1$s</string>
     <string name="update_badge_description">有可用更新 — 点击安装</string>
     <string name="update_dialog_title_fmt">有可用更新 %1$s</string>
@@ -688,7 +688,7 @@
     <string name="usage_unlimited_symbol">∞</string>
 
     <!-- ===== Operator branding (X-Brand-* headers + Operator tab) ===== -->
-    <string name="about_brand_powered_by">由 ClashFest 提供支持</string>
+    <string name="about_brand_powered_by">由 Mikan 提供支持</string>
     <string name="about_brand_website">网站</string>
     <string name="about_brand_support">技术支持</string>
     <string name="about_brand_telegram">Telegram</string>
@@ -724,7 +724,7 @@
 
     <!-- Supported response headers reference (Schemes &amp; HWID screen) -->
     <string name="subscription_response_headers_title">支持的响应头</string>
-    <string name="subscription_response_headers_summary">ClashFest 从订阅 URL 响应中读取的标头。运营商可使用它们来定制应用、传达策略并发布公告。</string>
+    <string name="subscription_response_headers_summary">Mikan 从订阅 URL 响应中读取的标头。运营商可使用它们来定制应用、传达策略并发布公告。</string>
     <string name="subscription_open_operator_api_spec">打开完整的运营商 API 规范</string>
 
     <!-- Schemes &amp; HWID 分区标题 -->
@@ -742,8 +742,8 @@
     <string name="subscription_docs_security">安全与校验</string>
     <string name="subscription_docs_consolidated">深层链接</string>
     <!-- I18N-R2: zh backfill (design) — first pass, pending native review -->
-    <string name="about_github_repo">ClashFest 在 GitHub</string>
-    <string name="about_telegram_community">ClashFest 的 Telegram — 问题反馈与讨论</string>
+    <string name="about_github_repo">Mikan 在 GitHub</string>
+    <string name="about_telegram_community">Mikan GitHub 问题反馈</string>
     <string name="about_support">联系支持</string>
     <string name="add">添加</string>
     <string name="allow_all_apps_description">所有应用都使用 VPN</string>
@@ -762,8 +762,8 @@
     <string name="app_routing_filter_com">com.*</string>
     <string name="app_routing_filter_other">其他</string>
     <string name="app_routing_filter_ru">ru.*</string>
-    <string name="application_name_alpha">ClashFest</string>
-    <string name="application_name_meta">ClashFest</string>
+    <string name="application_name_alpha">Mikan</string>
+    <string name="application_name_meta">Mikan</string>
     <string name="connections_app_fmt">应用:%1$s</string>
     <string name="connections_app_icon">应用图标</string>
     <string name="connections_app_unknown">未知应用</string>
@@ -898,16 +898,16 @@
     <string name="home_background">主页背景</string>
     <string name="home_background_material_you">Material</string>
     <string name="home_background_plain">纯色背景</string>
-    <string name="home_background_preview">ClashFest</string>
+    <string name="home_background_preview">Mikan</string>
     <string name="home_clipboard">剪贴板</string>
     <string name="home_qr">二维码</string>
     <string name="keep_connections_on_old_proxy">切换后保留旧代理上的连接</string>
-    <string name="keep_connections_on_old_proxy_summary">默认情况下,手动切换代理后 ClashFest 会关闭活动连接,使新流量立即走所选代理。开启此项可让正在进行的连接保留在旧代理上——适合不想中断的大文件下载、视频流或游戏会话。</string>
+    <string name="keep_connections_on_old_proxy_summary">默认情况下,手动切换代理后 Mikan 会关闭活动连接,使新流量立即走所选代理。开启此项可让正在进行的连接保留在旧代理上——适合不想中断的大文件下载、视频流或游戏会话。</string>
     <string name="network_switch_reaction">响应网络切换</string>
     <string name="reality_mlkem_compat">REALITY：启用 ML-KEM（Xray 26.9+）</string>
     <string name="reality_mlkem_compat_summary">为所有 REALITY 节点添加 X25519MLKEM768 密钥共享和 chrome 指纹。Xray-core 26.9.8+ 服务器需要它，但旧服务器会静默丢弃此类握手，导致节点无法连接。除非运营商要求，否则请保持关闭。</string>
     <string name="network_switch_reaction_summary">当设备切换网络(Wi-Fi ↔ 移动数据)时,立即关闭失效连接并重新测试代理组,使自动组马上选择可用服务器,而不必等待下一次计划的健康检查。</string>
-    <string name="launch_name_alpha">ClashFest</string>
+    <string name="launch_name_alpha">Mikan</string>
     <string name="main_activity_summary">实时连接与诊断</string>
     <string name="main_activity_title">活动</string>
     <string name="main_mode_global_summary">所有流量都通过所选服务器。</string>
@@ -992,7 +992,7 @@
     <string name="proxy_sheet_tested_seconds_ago">%d 秒前测试</string>
     <string name="proxy_switch_close_connections_failed">代理已切换,但未能关闭活动连接。</string>
     <string name="proxy_switch_selector_failed">无法切换代理。现有连接未受影响。</string>
-    <string name="quick_tile_permission_denied_notification">VPN 权限被拒绝。请打开 ClashFest 并允许 VPN 请求。</string>
+    <string name="quick_tile_permission_denied_notification">VPN 权限被拒绝。请打开 Mikan 并允许 VPN 请求。</string>
     <string name="request_history_auto_scroll">自动滚动</string>
     <string name="request_history_clear">清除</string>
     <string name="request_history_clear_confirm">清除最近的请求历史?</string>
@@ -1037,7 +1037,7 @@
     <string name="secret">密钥</string>
     <string name="security_options">安全</string>
     <string name="seed_default_geo_mirrors">自动填充 GeoIP / GeoSite 镜像</string>
-    <string name="seed_default_geo_mirrors_summary">如果导入的订阅未提供 geox-url,ClashFest 会填入默认镜像(MetaCubeX/Loyalsoldier),以修复“cant download geoip.dat”错误。</string>
+    <string name="seed_default_geo_mirrors_summary">如果导入的订阅未提供 geox-url,Mikan 会填入默认镜像(MetaCubeX/Loyalsoldier),以修复“cant download geoip.dat”错误。</string>
     <string name="sideload_geoip">侧载 GEOIP</string>
     <string name="sideload_geoip_summary">使用外部 GEOIP 数据库文件</string>
     <string name="start_no_subscription_plain">请先添加订阅,然后点击“连接”。</string>
@@ -1055,7 +1055,7 @@
     <string name="sub_meta_lock_user_summary">不允许订阅服务器覆盖本地编辑的支持链接或公告。</string>
     <string name="subscription_default_name">订阅</string>
     <string name="deeplink_install_confirm_title">添加订阅？</string>
-    <string name="deeplink_install_confirm_message">外部链接请求向 ClashFest 添加订阅：\n\n%1$s\n%2$s\n\n请仅添加你信任来源的订阅。</string>
+    <string name="deeplink_install_confirm_message">外部链接请求向 Mikan 添加订阅：\n\n%1$s\n%2$s\n\n请仅添加你信任来源的订阅。</string>
     <string name="deeplink_install_confirm_add">添加</string>
     <string name="support_url">支持链接</string>
     <string name="support_url_placeholder">https://t.me/your_support_bot</string>
@@ -1069,10 +1069,10 @@
     <string name="theme_mode">主题模式</string>
     <string name="theme_palette_amber">琥珀</string>
     <string name="theme_palette_blue">蓝色</string>
-    <string name="theme_palette_clash">ClashFest</string>
+    <string name="theme_palette_clash">Mikan</string>
     <string name="theme_palette_graphite">石墨</string>
     <string name="theme_palette_mint">薄荷</string>
-    <string name="home_background_sloth">SlothClash</string>
+    <string name="home_background_sloth">黑曜石</string>
     <string name="theme_palette_rose">玫瑰</string>
     <string name="theme_palette_violet">紫罗兰</string>
     <string name="theme_reset">重置主题</string>

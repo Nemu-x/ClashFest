@@ -13,6 +13,6 @@ object AppNetworkDefaults {
         } catch (_: Exception) {
             "0"
         }
-        return "ClashFest/$ver"
+        return "Mikan/$ver"
     }
 }

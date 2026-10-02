@@ -331,8 +331,8 @@
     <string name="announcement_copied">Объявление скопировано</string>
     <string name="about_support">Связаться с поддержкой</string>
     <string name="update_notification_channel_name">Обновления приложения</string>
-    <string name="update_notification_channel_description">Периодическая проверка обновлений ClashFest</string>
-    <string name="update_notification_title">Доступно обновление ClashFest</string>
+    <string name="update_notification_channel_description">Периодическая проверка обновлений Mikan</string>
+    <string name="update_notification_title">Доступно обновление Mikan</string>
     <string name="update_notification_text">Новая версия: %1$s</string>
     <string name="update_badge_description">Доступно обновление — нажмите для установки</string>
     <string name="update_dialog_title_fmt">Доступно обновление %1$s</string>
@@ -528,9 +528,9 @@
     <string name="proxy_hardening_compat">Совместимый — порты на 127.0.0.1 со случайным паролем сессии</string>
     <string name="proxy_hardening_off">Выкл — поведение Clash.Meta по умолчанию (не рекомендуется)</string>
     <string name="seed_default_geo_mirrors">Подставлять GeoIP/GeoSite зеркала</string>
-    <string name="seed_default_geo_mirrors_summary">Если в импортированной подписке нет geox-url, ClashFest подставит зеркала (MetaCubeX/Loyalsoldier). Исправляет ошибку «cant download geoip.dat».</string>
+    <string name="seed_default_geo_mirrors_summary">Если в импортированной подписке нет geox-url, Mikan подставит зеркала (MetaCubeX/Loyalsoldier). Исправляет ошибку «cant download geoip.dat».</string>
     <string name="keep_connections_on_old_proxy">Сохранять соединения на старом прокси при смене</string>
-    <string name="keep_connections_on_old_proxy_summary">По умолчанию ClashFest закрывает активные соединения после ручной смены прокси, чтобы новый трафик сразу пошёл через выбранный сервер. Включите эту опцию, чтобы оставлять текущие соединения на старом прокси — полезно для долгих загрузок, видеостримов или игровых сессий, которые не хочется обрывать.</string>
+    <string name="keep_connections_on_old_proxy_summary">По умолчанию Mikan закрывает активные соединения после ручной смены прокси, чтобы новый трафик сразу пошёл через выбранный сервер. Включите эту опцию, чтобы оставлять текущие соединения на старом прокси — полезно для долгих загрузок, видеостримов или игровых сессий, которые не хочется обрывать.</string>
     <string name="proxy_switch_selector_failed">Не удалось сменить прокси. Текущие соединения не тронуты.</string>
     <string name="proxy_switch_close_connections_failed">Прокси сменён, но активные соединения закрыть не удалось.</string>
     <string name="network_switch_reaction">Реагировать на смену сети</string>
@@ -568,7 +568,7 @@
     <string name="profile_proxy_search_clear">Очистить поиск</string>
 
     <!-- ===== Operator branding ===== -->
-    <string name="about_brand_powered_by">основано на ClashFest</string>
+    <string name="about_brand_powered_by">основано на Mikan</string>
     <string name="about_brand_website">Сайт</string>
     <string name="about_brand_support">Поддержка</string>
     <string name="about_brand_telegram">Telegram</string>
@@ -593,7 +593,7 @@
 
     <!-- ===== Поддерживаемые headers ответа ===== -->
     <string name="subscription_response_headers_title">Поддерживаемые headers ответа</string>
-    <string name="subscription_response_headers_summary">Headers, которые ClashFest читает из ответа сервера подписки. Операторы используют их для брендинга приложения, передачи политик и анонсов.</string>
+    <string name="subscription_response_headers_summary">Headers, которые Mikan читает из ответа сервера подписки. Операторы используют их для брендинга приложения, передачи политик и анонсов.</string>
     <string name="subscription_open_operator_api_spec">Открыть полную спецификацию Operator API</string>
 
     <!-- Подписи секций экрана Schemes &amp; HWID -->
@@ -748,13 +748,13 @@
     <string name="age_secret_key">Секретный ключ age</string>
     <string name="age_secret_key_helper">Для подписок, зашифрованных age. Оставьте пустым, если панель отдаёт обычный YAML.</string>
     <string name="age_secret_key_error">Должен начинаться с AGE-SECRET-KEY-</string>
-    <string name="subscription_user_agent_preset_default">По умолчанию (ClashFest)</string>
+    <string name="subscription_user_agent_preset_default">По умолчанию (Mikan)</string>
     <string name="subscription_user_agent_preset_happ_ios">Happ iOS</string>
     <string name="subscription_user_agent_preset_happ_android">Happ Android</string>
     <string name="subscription_user_agent_preset_v2raytun_ios">v2raytun iOS</string>
     <string name="subscription_user_agent_preset_v2raytun_android">v2raytun Android</string>
     <string name="subscription_user_agent_preset_custom">Custom</string>
-    <string name="subscription_user_agent_override_summary">Необязательно. Применяется только к этой подписке (fetch/update/metadata). Оставьте пустым для User-Agent по умолчанию ClashFest.</string>
+    <string name="subscription_user_agent_override_summary">Необязательно. Применяется только к этой подписке (fetch/update/metadata). Оставьте пустым для User-Agent по умолчанию Mikan.</string>
     <string name="subscription_user_agent_strict">Строгий custom User-Agent</string>
     <string name="subscription_user_agent_strict_summary">Вкл: ошибка сразу, если этот User-Agent вернул невалидный формат. Выкл: авто-повтор с дефолтным User-Agent ядра.</string>
     <string name="app_language_system">Как в системе</string>
@@ -765,7 +765,7 @@
     <string name="home_background">Фон главного экрана</string>
     <string name="home_background_material_you">Material</string>
     <string name="home_background_plain">Чистая поверхность</string>
-    <string name="home_background_preview">ClashFest</string>
+    <string name="home_background_preview">Mikan</string>
 
     <string name="show_traffic">Показывать трафик</string>
     <string name="show_traffic_summary">Автоматически обновлять счётчик трафика в уведомлении</string>
@@ -906,7 +906,7 @@
     <string name="unable_to_start_vpn">Не удалось запустить компонент VPN</string>
     <string name="vpn_permission_denied">Android не выдал разрешение на VPN. Нажмите Connect ещё раз и разрешите запрос.</string>
     <string name="vpn_start_failed_plain">Не удалось запустить VPN. Откройте логи, чтобы увидеть причину.</string>
-    <string name="quick_tile_permission_denied_notification">Разрешение на VPN отклонено. Откройте ClashFest и разрешите VPN-запрос.</string>
+    <string name="quick_tile_permission_denied_notification">Разрешение на VPN отклонено. Откройте Mikan и разрешите VPN-запрос.</string>
 
     <string name="version_updated">Приложение обновлено</string>
     <string name="version_updated_tips">Настройки были сброшены, старые профили необходимо сохранить повторно</string>
@@ -1042,14 +1042,14 @@
     <string name="theme_font_weight_semibold">Полужирный</string>
     <string name="theme_font_weight_bold">Жирный</string>
     <string name="theme_reset">Сбросить тему</string>
-    <string name="theme_palette_clash">ClashFest</string>
+    <string name="theme_palette_clash">Mikan</string>
     <string name="theme_palette_blue">Синяя</string>
     <string name="theme_palette_violet">Фиолетовая</string>
     <string name="theme_palette_rose">Розовая</string>
     <string name="theme_palette_amber">Янтарная</string>
     <string name="theme_palette_mint">Мятная</string>
     <string name="theme_palette_graphite">Графитовая</string>
-    <string name="home_background_sloth">SlothClash</string>
+    <string name="home_background_sloth">Обсидиан</string>
     <!-- I18N-R2: RU backfill (design) -->
     <string name="about_app_version_label">Версия приложения</string>
     <string name="about_check_updates">Проверить обновления</string>
@@ -1059,10 +1059,10 @@
     <string name="about_download_install">Скачать и установить</string>
     <string name="about_download_started">Загрузка обновления…</string>
     <string name="about_enable_unknown_apps">Разрешите установку из этого источника, затем снова нажмите «Проверить обновления».</string>
-    <string name="about_github_repo">ClashFest на GitHub</string>
-    <string name="about_telegram_community">ClashFest в Telegram — баг-репорты и обсуждения</string>
+    <string name="about_github_repo">Mikan на GitHub</string>
+    <string name="about_telegram_community">Обратная связь Mikan на GitHub</string>
     <string name="about_open_release">Открыть страницу релиза</string>
-    <string name="about_powered_by">ClashFest для Android</string>
+    <string name="about_powered_by">Mikan для Android</string>
     <string name="about_update_available">Доступно обновление: %1$s</string>
     <string name="about_update_latest">У вас уже последняя версия</string>
     <string name="allow_ipv6">Разрешить IPv6</string>
@@ -1073,8 +1073,8 @@
     <string name="app_routing_filter_com">com.*</string>
     <string name="app_routing_filter_other">Прочее</string>
     <string name="app_routing_filter_ru">ru.*</string>
-    <string name="application_name_alpha">ClashFest</string>
-    <string name="application_name_meta">ClashFest</string>
+    <string name="application_name_alpha">Mikan</string>
+    <string name="application_name_meta">Mikan</string>
     <string name="blacklist">Чёрный список</string>
     <string name="docs_url_operator_headers">https://github.com/Nemu-x/ClashFest/wiki/Operator-API-Headers</string>
     <string name="docs_url_operator_overview">https://github.com/Nemu-x/ClashFest/wiki/Operator-API</string>
@@ -1094,8 +1094,8 @@
     <string name="import_done_named">Импортировано как «%s»</string>
     <string name="import_resolving">Получение подписки…</string>
     <string name="inline">Встроенный</string>
-    <string name="launch_name_alpha">ClashFest</string>
-    <string name="launch_name_meta">ClashFest</string>
+    <string name="launch_name_alpha">Mikan</string>
+    <string name="launch_name_meta">Mikan</string>
     <string name="main_open_subscription_identity_summary">HWID, схема clashfest:// и кнопки копирования</string>
     <string name="operator_api_spec_url">https://github.com/Nemu-x/ClashFest/wiki/Operator-API</string>
     <string name="proxy_open_yaml">YAML прокси из конфига</string>
@@ -1157,7 +1157,7 @@
     <string name="sniff_tls_ports">Порты TLS для сниффинга</string>
     <string name="subscription_default_name">Подписка</string>
     <string name="deeplink_install_confirm_title">Добавить подписку?</string>
-    <string name="deeplink_install_confirm_message">Внешняя ссылка хочет добавить подписку в ClashFest:\n\n%1$s\n%2$s\n\nДобавляйте подписки только из источников, которым доверяете.</string>
+    <string name="deeplink_install_confirm_message">Внешняя ссылка хочет добавить подписку в Mikan:\n\n%1$s\n%2$s\n\nДобавляйте подписки только из источников, которым доверяете.</string>
     <string name="deeplink_install_confirm_add">Добавить</string>
     <string name="tun_stack_gvisor">Стек gVisor</string>
     <string name="tun_stack_mixed">Смешанный стек</string>

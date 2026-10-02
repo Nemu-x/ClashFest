@@ -12,7 +12,7 @@ import org.json.JSONObject
 import java.util.Locale
 
 /**
- * GitHub Releases API helper for ClashFest updates (same endpoint as About / periodic checker).
+ * GitHub Releases API helper for Mikan updates (same endpoint as About / periodic checker).
  */
 object GitHubReleaseUpdate {
 
@@ -29,12 +29,12 @@ object GitHubReleaseUpdate {
 
     suspend fun fetchLatest(): Info? = withContext(Dispatchers.IO) {
         runCatching {
-            val endpoint = "https://api.github.com/repos/Nemu-x/ClashFest/releases/latest"
+            val endpoint = "https://api.github.com/repos/getmikan/MikanApp/releases/latest"
             val text = HttpTextFetcher.fetchUtf8(
                 endpoint,
                 connectTimeoutMs = AppNetworkDefaults.CONNECT_TIMEOUT_MS,
                 readTimeoutMs = AppNetworkDefaults.READ_TIMEOUT_MS,
-                headers = mapOf("User-Agent" to "ClashFest/${BuildConfig.VERSION_NAME}"),
+                headers = mapOf("User-Agent" to "Mikan/${BuildConfig.VERSION_NAME}"),
             )
             val json = JSONObject(text)
             val assets = json.optJSONArray("assets")
@@ -99,7 +99,7 @@ object GitHubReleaseUpdate {
     ): Long {
         if (!UpdateApkVerifier.isTrustedDownloadUrl(apkUrl)) return -1L
         val dm = context.getSystemService(DownloadManager::class.java) ?: return -1L
-        val fileName = (apkName ?: "clashfest-$tagName.apk")
+        val fileName = (apkName ?: "mikan-$tagName.apk")
             .replace(Regex("""[^A-Za-z0-9._-]"""), "_")
         val request = DownloadManager.Request(Uri.parse(apkUrl))
             .setTitle(context.getString(com.github.kr328.clash.design.R.string.about_update_available, tagName))

@@ -90,7 +90,7 @@ subprojects {
             if (!isApp) {
                 consumerProguardFiles("consumer-rules.pro")
             } else {
-                setProperty("archivesBaseName", "clashfest-v$versionName")
+                setProperty("archivesBaseName", "mikan-v$versionName")
             }
         }
 

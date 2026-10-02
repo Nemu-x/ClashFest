@@ -12,8 +12,8 @@ import java.util.Locale
 object UpdateApkVerifier {
     private const val TRUSTED_SCHEME = "https"
     private const val TRUSTED_HOST = "github.com"
-    private const val TRUSTED_OWNER = "Nemu-x"
-    private const val TRUSTED_REPO = "ClashFest"
+    private const val TRUSTED_OWNER = "getmikan"
+    private const val TRUSTED_REPO = "MikanApp"
 
     fun isTrustedDownloadUrl(url: String?): Boolean {
         val uri = trustedGitHubUri(url) ?: return false

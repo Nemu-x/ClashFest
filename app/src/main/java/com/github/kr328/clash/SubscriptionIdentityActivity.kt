@@ -96,7 +96,7 @@ class SubscriptionIdentityActivity : BaseActivity<SubscriptionIdentityDesign>() 
         return buildString {
             appendLine(serverSummary)
             appendLine()
-            appendLine("Request headers sent by ClashFest:")
+            appendLine("Request headers sent by Mikan:")
             appendLine("- x-hwid: ${requestHeaders["x-hwid"].orEmpty().ifBlank { "missing" }}")
             appendLine("- x-device-os: ${requestHeaders["x-device-os"].orEmpty().ifBlank { "missing" }}")
             appendLine("- x-ver-os: ${requestHeaders["x-ver-os"].orEmpty().ifBlank { "missing" }}")

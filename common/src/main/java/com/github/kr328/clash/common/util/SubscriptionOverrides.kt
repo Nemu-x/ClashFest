@@ -65,9 +65,9 @@ object SubscriptionRequestHeaders {
 
     /**
      * Same string the native subscription fetch sends (`native/useragent` in Go):
-     * `mihomo/<coreVersion> ClashFest/<semver>`. The mihomo token leads because
+     * `mihomo/<coreVersion> Mikan/<semver>`. The mihomo token leads because
      * Marzban / Remnawave pick the clash-meta output format from the first token
-     * and would route a `ClashFest/…`-first UA into their legacy clash branch.
+     * rather than the app name. Keep the same leading core token as the native fetch.
      */
     fun defaultUserAgent(context: Context): String {
         val ver = try {
@@ -84,7 +84,7 @@ object SubscriptionRequestHeaders {
         return buildString {
             append("mihomo")
             if (!core.isNullOrEmpty()) append('/').append(core)
-            append(" ClashFest/").append(app)
+            append(" Mikan/").append(app)
         }
     }
 

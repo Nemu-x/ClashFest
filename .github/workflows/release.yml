@@ -106,9 +106,9 @@ jobs:
             if [[ "$base" == *"meta"* ]]; then flavor="meta"; fi
 
             # Version-less, stable filename so the GitHub "latest release"
-            # direct link works: releases/latest/download/clashfest-<flavor>-<abi>.apk
+            # direct link works: releases/latest/download/mikan-<flavor>-<abi>.apk
             # (the version stays on the release page/tag, #85).
-            out="clashfest-${flavor}-${abi}.apk"
+            out="mikan-${flavor}-${abi}.apk"
             cp "$apk" "release-artifacts/$out"
           done
           ls -la release-artifacts

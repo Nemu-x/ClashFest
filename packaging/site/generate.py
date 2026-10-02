@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generates the ClashFest landing page (GitHub Pages).
+"""Generates the Mikan landing page (GitHub Pages).
 
 Run by .github/workflows/site.yml on every release publish/edit. Pulls the recent
 releases via `gh` (GH_TOKEN provided by the workflow) so the page always shows the
@@ -19,7 +19,7 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
-REPO = "Nemu-x/ClashFest"
+REPO = "getmikan/MikanApp"
 DL = f"https://github.com/{REPO}/releases/latest/download"
 DEV_TAG = "dev-latest"
 DEV_PAGE = f"https://github.com/{REPO}/releases/tag/{DEV_TAG}"
@@ -182,9 +182,6 @@ footer a{color:var(--accent);text-decoration:none}.muted{color:var(--muted)}
 
 ICON_WIKI = ('<svg viewBox="0 0 24 24"><path d="M6 2h11a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 '
              '2 0 0 1 2-2zm0 2v16h11V4H6zm2 3h7v2H8V7zm0 4h7v2H8v-2z"/></svg>')
-ICON_TG = ('<svg viewBox="0 0 24 24"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 '
-           '13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 '
-           '1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>')
 ICON_GH = ('<svg viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 '
            '11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756'
            '-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 '
@@ -198,7 +195,7 @@ ICON_GH = ('<svg viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="site")
-    ap.add_argument("--logo", default="design/ClashFest.png")
+    ap.add_argument("--logo", default="design/mikan.png")
     args = ap.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -235,31 +232,31 @@ def main():
     page = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ClashFest — downloads</title>
-<meta name="description" content="ClashFest — Clash Meta (Mihomo) client for Android phones and Android TV. Downloads and release notes.">
+<title>Mikan — downloads</title>
+<meta name="description" content="Mikan — Clash Meta (Mihomo) client for Android phones and Android TV. Downloads and release notes.">
 <link rel="icon" href="logo.png">
 <style>{CSS}</style></head><body><div class="wrap">
 <header>
 <div class="hdrlinks">
-<a href="https://github.com/{REPO}/wiki" title="Wiki / Docs" aria-label="Wiki / Docs">{ICON_WIKI}</a>
-<a href="https://t.me/nemux_dev" title="Telegram group" aria-label="Telegram group">{ICON_TG}</a>
+<a href="https://github.com/Nemu-x/ClashFest/wiki" title="Wiki / Docs" aria-label="Wiki / Docs">{ICON_WIKI}</a>
+<a href="https://github.com/getmikan/MikanApp/issues" title="Feedback" aria-label="Feedback">{ICON_GH}</a>
 <a href="https://github.com/{REPO}" title="GitHub" aria-label="GitHub">{ICON_GH}</a>
 </div>
-<img src="logo.png" alt="ClashFest">
-<div><h1>ClashFest<small>Clash Meta (Mihomo) client for Android — phone &amp; Android TV</small></h1>
+<img src="logo.png" alt="Mikan">
+<div><h1>Mikan<small>Clash Meta (Mihomo) client for Android — phone &amp; Android TV</small></h1>
 <div class="badge">🦥 latest: v{html.escape(ver)}{' · ' + date if date else ''}</div></div></header>
 
 <h2>Downloads</h2>
 <div class="grid">
 <div class="card primary"><h3>📱 Phone &amp; tablet</h3>
 <p>Every Android phone made in the last decade is 64-bit ARM. Not sure? Take this one.</p>
-<a class="btn" href="{DL}/clashfest-alpha-arm64-v8a.apk">⬇ Download APK (arm64-v8a)</a>
-<a href="{DL}/clashfest-alpha-armeabi-v7a.apk">32-bit ARM (armeabi-v7a) — very old phones, some TV boxes</a></div>
+<a class="btn" href="{DL}/mikan-alpha-arm64-v8a.apk">⬇ Download APK (arm64-v8a)</a>
+<a href="{DL}/mikan-alpha-armeabi-v7a.apk">32-bit ARM (armeabi-v7a) — very old phones, some TV boxes</a></div>
 <div class="card"><h3>📺 Android TV, emulators, Chromebooks</h3>
 <p>Pick by CPU, or take the universal build that carries all of them.</p>
-<a href="{DL}/clashfest-alpha-universal.apk">Universal (all ABIs, largest)</a>
-<a href="{DL}/clashfest-alpha-x86_64.apk">x86_64 — emulators, Chromebooks, x86 TV boxes</a>
-<a href="{DL}/clashfest-alpha-x86.apk">x86 — 32-bit Intel</a></div>
+<a href="{DL}/mikan-alpha-universal.apk">Universal (all ABIs, largest)</a>
+<a href="{DL}/mikan-alpha-x86_64.apk">x86_64 — emulators, Chromebooks, x86 TV boxes</a>
+<a href="{DL}/mikan-alpha-x86.apk">x86 — 32-bit Intel</a></div>
 {dev_html}
 </div>
 <p class="muted">Links always point at the newest release. Minimum Android 5.0; the app checks for updates itself under <b>Settings → About &amp; updates</b>.</p>
@@ -269,7 +266,7 @@ def main():
 
 <footer>🦥 <a href="https://github.com/{REPO}">GitHub</a> ·
 <a href="https://github.com/{REPO}/wiki">Wiki</a> ·
-<a href="https://t.me/nemux_dev">Telegram</a> ·
+<a href="https://github.com/getmikan/MikanApp/issues">Feedback</a> ·
 <a href="https://github.com/{REPO}/releases">All releases</a> · GPL-3.0</footer>
 </div></body></html>
 """

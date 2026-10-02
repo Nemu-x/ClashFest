@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="vpn_session_name">ClashFest</string>
+    <string name="vpn_session_name">Mikan</string>
     <string name="running">Работает</string>
     <string name="loading">Загрузка</string>
     <string name="notification_profile_none">Не выбрано</string>

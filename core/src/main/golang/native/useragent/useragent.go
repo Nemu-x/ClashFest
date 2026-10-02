@@ -14,12 +14,12 @@ import (
 // Marzban / Remnawave serve the clash-meta format for
 // `^(clash-verge|clash[-.]?meta|flclash|mihomo)` and fall back to the legacy
 // clash format for anything else that starts with `clash` — which is exactly
-// what `ClashFest/...` would hit. So the core token leads and the app token
+// why the core token leads and the app token
 // follows. mikan gates protocols on `(mihomo|clash[.-]?meta)/v?X.Y.Z` found
 // anywhere in the UA.
 const (
 	core    = "mihomo"
-	product = "ClashFest"
+	product = "Mikan"
 )
 
 var semver = regexp.MustCompile(`^v?(\d+\.\d+\.\d+)`)
@@ -40,9 +40,9 @@ func CoreVersionFromTag(tag string) string {
 
 // Build composes the default subscription User-Agent, e.g.
 //
-//	mihomo/1.19.32 ClashFest/1.1.1
+//	mihomo/1.19.32 Mikan/1.1.1
 //
-// The ClashFest token carries the bare semver of versionName (flavour and
+// The Mikan token carries the bare semver of versionName (flavour and
 // build-type suffixes stripped) so it can be matched like the mihomo one.
 // Without a known core version the first token is a bare `mihomo` (a product
 // token without a version is valid UA grammar) — still the right format for

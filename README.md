@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="design/ClashFest.png" alt="ClashFest" width="240" />
+  <img src="design/mikan.png" alt="Mikan" width="240" />
 </h1>
 
 <p align="center">
@@ -8,11 +8,11 @@
 </p>
 
 <p align="center">
-  <a href="https://nemu-x.github.io/ClashFest/"><b>⬇️ Download</b></a> ·
+  <a href="https://github.com/getmikan/MikanApp/releases"><b>⬇️ Download</b></a> ·
   <a href="https://github.com/Nemu-x/ClashFest/wiki"><b>📖 Wiki</b></a> ·
-  <a href="https://t.me/nemux_dev">Telegram</a> ·
-  <a href="https://github.com/Nemu-x/ClashFest/releases">Releases</a> ·
-  <a href="https://github.com/Nemu-x/ClashFest/issues">Issues</a> ·
+  <a href="https://github.com/getmikan/MikanApp/issues">Feedback</a> ·
+  <a href="https://github.com/getmikan/MikanApp/releases">Releases</a> ·
+  <a href="https://github.com/getmikan/MikanApp/issues">Issues</a> ·
   <a href="ROADMAP.md">Roadmap</a> ·
   <a href="LICENSE">License</a>
 </p>
@@ -20,33 +20,33 @@
 <p align="center">
   <img src="https://img.shields.io/badge/license-GPLv3-green.svg" alt="License: GPL v3" />
   <img src="https://img.shields.io/badge/platform-Android-3DDC84" alt="Platform: Android" />
-  <img src="https://img.shields.io/github/v/release/Nemu-x/ClashFest?display_name=tag" alt="Latest Release" />
+  <img src="https://img.shields.io/github/v/release/getmikan/MikanApp?display_name=tag" alt="Latest Release" />
   <img src="https://img.shields.io/badge/status-Active%20development-1f8bff" alt="Status: Active development" />
 </p>
 
 ---
 
-**ClashFest** is an Android client in the **Clash Meta / Mihomo** family — a redesigned Home
+**Mikan** is an Android client in the **Clash Meta / Mihomo** family — a redesigned Home
 experience, cleaner subscription/node flows, routing-focused tools, and practical safety
 defaults for everyday use.
 
-> 💬 Questions, bugs, feature requests → **[Telegram (EN / RU)](https://t.me/nemux_dev)** or **[GitHub issues](https://github.com/Nemu-x/ClashFest/issues)**.
+> 💬 Questions, bugs, feature requests → **[Telegram (EN / RU)](https://github.com/getmikan/MikanApp/issues)** or **[GitHub issues](https://github.com/getmikan/MikanApp/issues)**.
 
 ---
 
 ## Downloads
 
-**Latest release — direct downloads** (always point to the newest version; also on the [download page](https://nemu-x.github.io/ClashFest/)):
+**Latest release — direct downloads** (always point to the newest version; also on the [download page](https://github.com/getmikan/MikanApp/releases)):
 
 | Device | Download |
 | --- | --- |
-| Phone / tablet (64-bit ARM — every phone of the last decade) | [clashfest-alpha-arm64-v8a.apk](https://github.com/Nemu-x/ClashFest/releases/latest/download/clashfest-alpha-arm64-v8a.apk) |
-| 32-bit ARM (very old phones, some TV boxes) | [clashfest-alpha-armeabi-v7a.apk](https://github.com/Nemu-x/ClashFest/releases/latest/download/clashfest-alpha-armeabi-v7a.apk) |
-| Universal (all ABIs in one, largest) | [clashfest-alpha-universal.apk](https://github.com/Nemu-x/ClashFest/releases/latest/download/clashfest-alpha-universal.apk) |
-| x86_64 (emulators, Chromebooks, x86 TV boxes) | [clashfest-alpha-x86_64.apk](https://github.com/Nemu-x/ClashFest/releases/latest/download/clashfest-alpha-x86_64.apk) |
-| x86 (32-bit Intel) | [clashfest-alpha-x86.apk](https://github.com/Nemu-x/ClashFest/releases/latest/download/clashfest-alpha-x86.apk) |
+| Phone / tablet (64-bit ARM — every phone of the last decade) | [mikan-alpha-arm64-v8a.apk](https://github.com/getmikan/MikanApp/releases/latest/download/mikan-alpha-arm64-v8a.apk) |
+| 32-bit ARM (very old phones, some TV boxes) | [mikan-alpha-armeabi-v7a.apk](https://github.com/getmikan/MikanApp/releases/latest/download/mikan-alpha-armeabi-v7a.apk) |
+| Universal (all ABIs in one, largest) | [mikan-alpha-universal.apk](https://github.com/getmikan/MikanApp/releases/latest/download/mikan-alpha-universal.apk) |
+| x86_64 (emulators, Chromebooks, x86 TV boxes) | [mikan-alpha-x86_64.apk](https://github.com/getmikan/MikanApp/releases/latest/download/mikan-alpha-x86_64.apk) |
+| x86 (32-bit Intel) | [mikan-alpha-x86.apk](https://github.com/getmikan/MikanApp/releases/latest/download/mikan-alpha-x86.apk) |
 
-Dev builds from the `dev` branch: [dev-latest pre-release](https://github.com/Nemu-x/ClashFest/releases/tag/dev-latest) (debug-signed — installs alongside the release, not over it). All releases & changelog: [Releases](https://github.com/Nemu-x/ClashFest/releases). The app checks for updates itself under **Settings → About & updates**.
+Dev builds from the `dev` branch: [dev-latest pre-release](https://github.com/getmikan/MikanApp/releases/tag/dev-latest) (debug-signed — installs alongside the release, not over it). All releases & changelog: [Releases](https://github.com/getmikan/MikanApp/releases). The app checks for updates itself under **Settings → About & updates**.
 
 ## Highlights
 
@@ -65,10 +65,10 @@ Dev builds from the `dev` branch: [dev-latest pre-release](https://github.com/Ne
 | **Updates** | In-app manual update check, merged **About & updates**, Home indicator when an update is available |
 | **Quick start** | Quick Settings tile flow with VPN permission handling and one-tap startup |
 | **Android TV** | D-pad-friendly layout with focus navigation and a leanback banner — the same app on the big screen |
-| **Companion / remote** | Pair a device over LAN via QR and drive ClashFest remotely — the external controller doubles as a **TV remote** |
+| **Companion / remote** | Pair a device over LAN via QR and drive Mikan remotely — the external controller doubles as a **TV remote** |
 | **Connections** | Live connections view with resilient snapshot decoding and lower polling load |
 | **App** | Dark mode, pure-black (OLED), optional **UI language** (system / EN / RU / ZH), notification & recents options |
-| **Look** | **Lumen** design language — obsidian surfaces, single-accent glow, Manrope + Space Grotesk type; sleeping-sloth branding |
+| **Look** | **Lumen** design language — obsidian surfaces, single-accent glow, Manrope + Space Grotesk type; mandarin branding |
 
 ## Screenshots
 
@@ -97,7 +97,7 @@ Dev builds from the `dev` branch: [dev-latest pre-release](https://github.com/Ne
 
 What we're building next, what's planned, and what's out of scope lives in
 **[ROADMAP.md](ROADMAP.md)** — including community feature requests and why some
-are or aren't a fit. Have an idea? Open an [issue](https://github.com/Nemu-x/ClashFest/issues).
+are or aren't a fit. Have an idea? Open an [issue](https://github.com/getmikan/MikanApp/issues).
 
 **Current focus**
 
@@ -146,10 +146,11 @@ are or aren't a fit. Have an idea? Open an [issue](https://github.com/Nemu-x/Cla
 
 ## Branding
 
-- App icon & README logo: the **sleeping-sloth** mark — part of the same brand family as
-  [SlothClash](https://github.com/Nemu-x/SlothClash). Source art: `design/ClashFest.png`
-  (with wordmark) · `design/ClashFest_notxt.png` (mark only).
-- Screenshots & notes live in `docs/`.
+- Product name: **Mikan**; repository: **MikanApp**.
+- The mandarin mark comes from the Mikan panel: `design/mikan.svg` (source)
+  and `design/mikan.png` (PNG export). Launcher, notifications, widget and TV banner
+  use the same mark.
+- Screenshots in `docs/` currently show the upstream appearance.
 
 ---
 
@@ -157,15 +158,15 @@ are or aren't a fit. Have an idea? Open an [issue](https://github.com/Nemu-x/Cla
 
 Licensed under the **GNU General Public License v3.0**. See `LICENSE` and `NOTICE`.
 
-**Disclaimer** — ClashFest is provided **as-is**, without warranty. Use it responsibly and in
+**Disclaimer** — Mikan is provided **as-is**, without warranty. Use it responsibly and in
 compliance with local law, provider terms, and upstream licenses.
 
 ---
 
 ## Upstream & related projects
 
-ClashFest builds on the open Clash / Meta stack. If you use or ship derivatives, keep
-**copyright and license notices** intact. If ClashFest is useful for you, consider giving the
+Mikan is a fork of [ClashFest](https://github.com/Nemu-x/ClashFest) and builds on the open Clash / Meta stack. If you use or ship derivatives, keep
+**copyright and license notices** intact. If Mikan is useful for you, consider giving the
 project a star ⭐
 
 | Project | What it is | Link |
@@ -174,5 +175,5 @@ project a star ⭐
 | **mihomo** | Clash.Meta core (Go) used under the hood | [MetaCubeX/mihomo](https://github.com/MetaCubeX/mihomo) |
 | **Meta rules dat** | Community geo / ruleset data releases (our **Geo Data Source** presets mirror these) | [MetaCubeX/meta-rules-dat](https://github.com/MetaCubeX/meta-rules-dat) |
 | **Mieru** | UDP port hopping VPN protocol; **mierus://** subscription links are supported as imports | [enfein/mieru](https://github.com/enfein/mieru) |
-| **SlothClash (Desktop)** | Companion desktop client in the same ecosystem (Wails · Go · React) | [Nemu-x/SlothClash](https://github.com/Nemu-x/SlothClash) |
+| **SlothClash (Desktop)** | Companion desktop client in the upstream ecosystem (Wails · Go · React) | [Nemu-x/SlothClash](https://github.com/Nemu-x/SlothClash) |
 | **Documentation** | Mihomo / Meta docs (rules, parsers, …) | [wiki.metacubex.one](https://wiki.metacubex.one/) |

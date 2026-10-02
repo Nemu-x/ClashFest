@@ -1,8 +1,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="PluralsCandidate">
-    <string name="launch_name_meta">ClashFest</string>
-    <string name="launch_name_alpha">ClashFest</string>
-    <string name="application_name_meta">ClashFest</string>
-    <string name="application_name_alpha">ClashFest</string>
+    <string name="launch_name_meta">Mikan</string>
+    <string name="launch_name_alpha">Mikan</string>
+    <string name="application_name_meta">Mikan</string>
+    <string name="application_name_alpha">Mikan</string>
 
     <string name="stopped">Stopped</string>
     <string name="tap_to_start">Tap to start</string>
@@ -459,7 +459,7 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="profile_proxy_search_clear">Clear search</string>
 
     <!-- ===== Operator branding ===== -->
-    <string name="about_brand_powered_by">powered by ClashFest</string>
+    <string name="about_brand_powered_by">powered by Mikan</string>
     <string name="about_brand_website">Website</string>
     <string name="about_brand_support">Support</string>
     <string name="about_brand_telegram">Telegram</string>
@@ -484,7 +484,7 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
 
     <!-- ===== Supported response headers (Schemes & HWID screen) ===== -->
     <string name="subscription_response_headers_title">Supported response headers</string>
-    <string name="subscription_response_headers_summary">Headers ClashFest reads from your subscription URL response. Operators use them to brand the app, surface policies, and broadcast announcements.</string>
+    <string name="subscription_response_headers_summary">Headers Mikan reads from your subscription URL response. Operators use them to brand the app, surface policies, and broadcast announcements.</string>
     <string name="subscription_open_operator_api_spec">Open full operator API spec</string>
     <string name="operator_api_spec_url">https://github.com/Nemu-x/ClashFest/wiki/Operator-API</string>
 
@@ -633,7 +633,7 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="new_profile">New Profile</string>
     <string name="subscription_default_name">Subscription</string>
     <string name="deeplink_install_confirm_title">Add subscription?</string>
-    <string name="deeplink_install_confirm_message">An external link wants to add a subscription to ClashFest:\n\n%1$s\n%2$s\n\nOnly add subscriptions from sources you trust.</string>
+    <string name="deeplink_install_confirm_message">An external link wants to add a subscription to Mikan:\n\n%1$s\n%2$s\n\nOnly add subscriptions from sources you trust.</string>
     <string name="deeplink_install_confirm_add">Add</string>
 
     <string name="delay">Delay</string>
@@ -675,9 +675,9 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="proxy_hardening_compat">Compat — keep listeners on 127.0.0.1 with random session credentials</string>
     <string name="proxy_hardening_off">Off — upstream Clash.Meta defaults (not recommended)</string>
     <string name="seed_default_geo_mirrors">Auto-seed GeoIP / GeoSite mirrors</string>
-    <string name="seed_default_geo_mirrors_summary">If the imported subscription does not provide geox-url, ClashFest fills in default mirrors (MetaCubeX/Loyalsoldier). Fixes the «cant download geoip.dat» error.</string>
+    <string name="seed_default_geo_mirrors_summary">If the imported subscription does not provide geox-url, Mikan fills in default mirrors (MetaCubeX/Loyalsoldier). Fixes the «cant download geoip.dat» error.</string>
     <string name="keep_connections_on_old_proxy">Keep connections on old proxy after switch</string>
-    <string name="keep_connections_on_old_proxy_summary">By default ClashFest closes active connections after a manual proxy switch so new traffic uses the selected proxy immediately. Enable this to keep running connections on the previous proxy — useful for long downloads, video streams, or game sessions you don\'t want to interrupt.</string>
+    <string name="keep_connections_on_old_proxy_summary">By default Mikan closes active connections after a manual proxy switch so new traffic uses the selected proxy immediately. Enable this to keep running connections on the previous proxy — useful for long downloads, video streams, or game sessions you don\'t want to interrupt.</string>
     <string name="proxy_switch_selector_failed">Could not switch proxy. Existing connections were left untouched.</string>
     <string name="proxy_switch_close_connections_failed">Proxy switched, but active connections could not be closed.</string>
     <string name="network_switch_reaction">React to network changes</string>
@@ -781,7 +781,7 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="import_from_clipboard">Import from Clipboard</string>
     <string name="export_to_clipboard">Export to Clipboard</string>
 
-    <string name="clash_meta_for_android">ClashFest for Android</string>
+    <string name="clash_meta_for_android">Mikan for Android</string>
 
     <string name="document">Document</string>
     <string name="feedback">Feedback</string>
@@ -792,21 +792,21 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="google_play">Google Play</string>
     <string name="clash_meta_core">Mihomo (Clash.Meta) core</string>
     <string name="clash_wiki_url" translatable="false">https://github.com/Dreamacro/clash/wiki</string>
-    <string name="meta_github_url" translatable="false">https://github.com/Nemu-x/ClashFest</string>
+    <string name="meta_github_url" translatable="false">https://github.com/getmikan/MikanApp</string>
     <string name="clash_meta_core_url" translatable="false">https://github.com/MetaCubeX/Clash.Meta</string>
 
     <string name="tips_properties"><![CDATA[Accept Only <strong>Clash Config</strong>(including <strong>Proxy</strong>/<strong>Rules</strong>)]]></string>
-    <string name="tips_help"><![CDATA[ClashFest for Android is a <strong>freeware</strong> and we do <strong>NOT</strong> provide any service for it]]></string>
+    <string name="tips_help"><![CDATA[Mikan for Android is a <strong>freeware</strong> and we do <strong>NOT</strong> provide any service for it]]></string>
 
     <string name="google_play_url" translatable="false">https://play.google.com/store/apps/details?id=com.github.kr328.clash</string>
-    <string name="about_github_repo">ClashFest on GitHub</string>
-    <string name="clashfest_repo_url" translatable="false">https://github.com/Nemu-x/ClashFest</string>
-    <string name="about_telegram_community">ClashFest on Telegram — bug reports &amp; discussion</string>
-    <string name="clashfest_telegram_url" translatable="false">https://t.me/nemux_dev</string>
+    <string name="about_github_repo">Mikan on GitHub</string>
+    <string name="clashfest_repo_url" translatable="false">https://github.com/getmikan/MikanApp</string>
+    <string name="about_telegram_community">Mikan feedback on GitHub</string>
+    <string name="clashfest_telegram_url" translatable="false">https://github.com/getmikan/MikanApp/issues</string>
     <string name="about_check_updates">Check updates</string>
     <string name="update_notification_channel_name">App updates</string>
-    <string name="update_notification_channel_description">Periodic ClashFest update checks</string>
-    <string name="update_notification_title">ClashFest update available</string>
+    <string name="update_notification_channel_description">Periodic Mikan update checks</string>
+    <string name="update_notification_title">Mikan update available</string>
     <string name="update_notification_text">New version: %1$s</string>
     <string name="update_badge_description">Update available — tap to install</string>
     <string name="update_dialog_title_fmt">Update %1$s available</string>
@@ -822,7 +822,7 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="about_download_failed">Could not download or install update</string>
     <string name="about_enable_unknown_apps">Allow installs from this source, then tap Check updates again.</string>
     <string name="about_update_check_failed">Could not check updates</string>
-    <string name="about_powered_by">ClashFest for Android</string>
+    <string name="about_powered_by">Mikan for Android</string>
     <string name="about_app_version_label">App version</string>
     <string name="about_core_version_label">Core version</string>
     <string name="main_no_profiles_title">No subscriptions yet</string>
@@ -856,13 +856,13 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="age_secret_key">Age secret key</string>
     <string name="age_secret_key_helper">For age-encrypted subscriptions. Leave empty if the panel serves plain YAML.</string>
     <string name="age_secret_key_error">Must start with AGE-SECRET-KEY-</string>
-    <string name="subscription_user_agent_preset_default">Default (ClashFest)</string>
+    <string name="subscription_user_agent_preset_default">Default (Mikan)</string>
     <string name="subscription_user_agent_preset_happ_ios">Happ iOS</string>
     <string name="subscription_user_agent_preset_happ_android">Happ Android</string>
     <string name="subscription_user_agent_preset_v2raytun_ios">v2raytun iOS</string>
     <string name="subscription_user_agent_preset_v2raytun_android">v2raytun Android</string>
     <string name="subscription_user_agent_preset_custom">Custom</string>
-    <string name="subscription_user_agent_override_summary">Optional. Applied only to this subscription (fetch/update/metadata). Leave empty to use default ClashFest UA.</string>
+    <string name="subscription_user_agent_override_summary">Optional. Applied only to this subscription (fetch/update/metadata). Leave empty to use default Mikan UA.</string>
     <string name="subscription_user_agent_strict">Strict custom User-Agent</string>
     <string name="subscription_user_agent_strict_summary">On: fail immediately if this User-Agent returns invalid format. Off: auto-retry with default core User-Agent.</string>
     <string name="app_language_system">System default</string>
@@ -873,7 +873,7 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="home_background">Home background</string>
     <string name="home_background_material_you">Material</string>
     <string name="home_background_plain">Plain surface</string>
-    <string name="home_background_preview">ClashFest</string>
+    <string name="home_background_preview">Mikan</string>
 
     <string name="show_traffic">Show Traffic</string>
     <string name="show_traffic_summary">Auto refresh traffic in notification</string>
@@ -1028,7 +1028,7 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="unable_to_start_vpn">Unable to start VPN component</string>
     <string name="vpn_permission_denied">Android VPN permission was not granted. Tap Connect again and allow the request.</string>
     <string name="vpn_start_failed_plain">Could not start VPN. Open logs to see the reason.</string>
-    <string name="quick_tile_permission_denied_notification">VPN permission was denied. Open ClashFest and allow the VPN request.</string>
+    <string name="quick_tile_permission_denied_notification">VPN permission was denied. Open Mikan and allow the VPN request.</string>
 
     <string name="version_updated">App Updated</string>
     <string name="version_updated_tips">The settings have been reseted and the old profiles needs to be saved again.</string>
@@ -1167,14 +1167,14 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="theme_font_weight_semibold">Semibold</string>
     <string name="theme_font_weight_bold">Bold</string>
     <string name="theme_reset">Reset theme</string>
-    <string name="theme_palette_clash">ClashFest</string>
+    <string name="theme_palette_clash">Mikan</string>
     <string name="theme_palette_blue">Blue</string>
     <string name="theme_palette_violet">Violet</string>
     <string name="theme_palette_rose">Rose</string>
     <string name="theme_palette_amber">Amber</string>
     <string name="theme_palette_mint">Mint</string>
     <string name="theme_palette_graphite">Graphite</string>
-    <string name="home_background_sloth">SlothClash</string>
+    <string name="home_background_sloth">Obsidian</string>
     <!-- Companion remote control (clashctl) -->
     <string name="companion_title">Remote control</string>
     <string name="companion_hub_summary">Control TV instances from your phone over the local network</string>

@@ -85,7 +85,7 @@
     <string name="github_issues">Github Issues</string>
     <string name="tips_properties"><![CDATA[僅接受 <strong>Clash 配置文件</strong>(包含<strong>代理</strong>/<strong>規則</strong>)]]></string>
     <string name="loading">載入中</string>
-    <string name="tips_help"><![CDATA[Clash Meta for Android 是一個<strong>免費軟件</strong>並且我們<strong>不</strong>為其提供任何服務, <strong>請務必不要反饋非應用自身引起的問題</strong>]]></string>
+    <string name="tips_help"><![CDATA[Mikan for Android 是一個<strong>免費軟件</strong>並且我們<strong>不</strong>為其提供任何服務, <strong>請務必不要反饋非應用自身引起的問題</strong>]]></string>
     <string name="donate">捐贈</string>
     <string name="allow_all_apps">允許所有應用</string>
     <string name="allow_selected_apps">僅允許已選擇的應用</string>
@@ -209,7 +209,7 @@
     <string name="sources">源代碼</string>
     <string name="clash_meta_core">Clash Meta 核心</string>
     <string name="name_server_policy">Name Server 策略</string>
-    <string name="clash_meta_for_android">Clash Meta for Android</string>
+    <string name="clash_meta_for_android">Mikan for Android</string>
     <string name="clash_meta_wiki">Clash Meta Wiki</string>
     <string name="meta_features">Meta Features</string>
     <string name="unified_delay">Unified Delay</string>

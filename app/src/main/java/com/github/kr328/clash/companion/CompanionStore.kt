@@ -45,7 +45,7 @@ class CompanionStore(context: Context) {
         set(value) = prefs.edit().putString(KEY_DISPLAY_NAME, value).apply()
 
     private fun defaultName(): String {
-        val model = Build.MODEL?.takeIf { it.isNotBlank() } ?: "ClashFest"
+        val model = Build.MODEL?.takeIf { it.isNotBlank() } ?: "Mikan"
         return model
     }
 
