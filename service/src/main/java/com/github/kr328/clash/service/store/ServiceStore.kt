@@ -106,7 +106,7 @@ class ServiceStore(context: Context) {
     var tunStackMode by store.string(
         key = "tun_stack_mode",
         // Default "system" (matches upstream CMFA). "auto" follows the subscription's tun.stack;
-        // explicit values (system/gvisor/mixed) are the user's manual pick; an operator
+        // explicit values (system/gvisor/mixed/mips) are the user's manual pick; an operator
         // `X-Network-Stack` header can lock the stack over any of them. See TunStackResolver.
         defaultValue = "system"
     )

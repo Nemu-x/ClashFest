@@ -340,10 +340,10 @@ wipes cosmetic branding).
 
 | | |
 |---|---|
-| Type | enum: `system` \| `gvisor` \| `mixed` \| `auto` |
+| Type | enum: `system` \| `gvisor` \| `mixed` \| `mips` \| `auto` |
 | Status | **v1** |
 | Needs `X-Branding-Enabled`? | **No** — operator policy, applies unbranded. |
-| Applied to | The TUN network stack handed to the VpnService. `system`/`gvisor`/`mixed` **lock** the client to that stack for this subscription, overriding the user's manual Stack Mode setting. `auto` = operator does not lock (defer to the user setting / the `system` default). |
+| Applied to | The TUN network stack handed to the VpnService. `system`/`gvisor`/`mixed`/`mips` **lock** the client to that stack for this subscription, overriding the user's manual Stack Mode setting. `auto` = operator does not lock (defer to the user setting / the `system` default). `mips` is mihomo's own pure-Go userspace stack (the engine default since 1.19.32), available in ClashFest from 1.1.1. |
 | Default | Header absent → client default (`system`). |
 | Notes | Stored per-profile (`subscriptionNetworkStackFor(uuid)`) like the share-links policy — different subscriptions can force different stacks on the same device. Precedence: **operator header > user's manual setting > Auto (follow the subscription's `tun.stack`) > `system` default** (see `TunStackResolver`). The app default is `system`; the user can pick `auto` to follow the subscription's declared `tun.stack`, and this header overrides both. `system` is recommended — the kernel stack is lower-latency on teardown and cheaper on battery than gVisor's userspace netstack; choose `gvisor`/`mixed` only when a device/network needs it. Accepted spellings (case-insensitive): `X-Network-Stack`, `Network-Stack`, `X-NetworkStack`, `X-NetworkStack-enabled`. |
 

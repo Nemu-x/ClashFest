@@ -679,6 +679,7 @@
     <string name="theme_toggle">切换主题（浅色 / 深色）</string>
     <string name="tun_stack_gvisor">Gvisor 栈</string>
     <string name="tun_stack_mixed">混合栈</string>
+    <string name="tun_stack_mips">MIPS 栈（mihomo）</string>
     <string name="tun_stack_mode">栈模式</string>
     <string name="tun_stack_auto">自动</string>
     <string name="tun_stack_auto_fmt">自动：%1$s</string>

@@ -35,6 +35,12 @@ class SubscriptionMetadataParserTest {
     }
 
     @Test
+    fun network_stack_accepts_mips_and_rejects_unknown() {
+        assertEquals("mips", parse("x-network-stack" to "MIPS").networkStack)
+        assertNull(parse("x-network-stack" to "lwip-fast").networkStack)
+    }
+
+    @Test
     fun empty_headers_give_empty_metadata() {
         val meta = parse()
         assertEquals(true, meta.isEmpty())
