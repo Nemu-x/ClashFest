@@ -31,7 +31,8 @@ import com.github.kr328.clash.remote.FilesClient
 import com.github.kr328.clash.util.commitProfileWithProgress
 import com.github.kr328.clash.util.fileName
 import com.github.kr328.clash.util.createEmptyUrlProfileAndOpenEditor
-import com.github.kr328.clash.util.updateProfileWithProgress
+import com.github.kr328.clash.util.ImportRetry
+import com.github.kr328.clash.util.ProfileRuntimeTarget
 import com.github.kr328.clash.common.log.Log
 import com.github.kr328.clash.common.constants.Intents
 import com.github.kr328.clash.common.util.StandalonePing
@@ -873,7 +874,8 @@ class MainActivity : BaseActivity<MainDesign>() {
                                 resolveStatusSnapshot().serviceRunning
                             }
                             Remote.broadcasts.clashRunning = runningNow
-                            if (!runningNow) {
+                            val activeUuid = withProfile { queryActive()?.uuid }
+                            if (!ProfileRuntimeTarget.canUseEngine(runningNow, activeUuid, profile.uuid)) {
                                 if (isProxyProviderKeyName(name)) {
                                     scheduleDashboardRefresh()
                                     return@launch
@@ -882,7 +884,7 @@ class MainActivity : BaseActivity<MainDesign>() {
                                 withProfile {
                                     rememberProxySelection(profile.uuid, group, name)
                                 }
-                                uiStore.proxyLastGroup = group
+                                if (activeUuid == profile.uuid) uiStore.proxyLastGroup = group
                                 scheduleDashboardRefresh()
                                 return@launch
                             }
@@ -917,11 +919,8 @@ class MainActivity : BaseActivity<MainDesign>() {
                                 resolveStatusSnapshot().serviceRunning &&
                                     withClash { queryProxyGroupNames(false).isNotEmpty() }
                             }.getOrDefault(false)
-                            if (engineReady) {
-                                val activeUuid = withProfile { queryActive()?.uuid }
-                                if (activeUuid != profile.uuid && profile.imported) {
-                                    withProfile { setActive(profile) }
-                                }
+                            val activeUuid = withProfile { queryActive()?.uuid }
+                            if (ProfileRuntimeTarget.canUseEngine(engineReady, activeUuid, profile.uuid)) {
                                 waitForProxyEngineReady()
                                 val groupsToRefresh = collectRuntimeGroupTree(group)
                                     .ifEmpty { linkedSetOf(group).filter { it.isNotBlank() }.toSet() }
@@ -977,7 +976,7 @@ class MainActivity : BaseActivity<MainDesign>() {
                             }.getOrDefault(false)
                             val activeUuid = withProfile { queryActive()?.uuid }
                             Log.d("single ping: request $group / $proxy engineReady=$engineReady active=$activeUuid profile=${profile.uuid}")
-                            if (engineReady && activeUuid == profile.uuid) {
+                            if (ProfileRuntimeTarget.canUseEngine(engineReady, activeUuid, profile.uuid)) {
                                 runSingleProxyHealthCheck(group, proxy)
                             } else {
                                 // Engine not running for this profile: same raw TCP-connect probe
@@ -1008,11 +1007,16 @@ class MainActivity : BaseActivity<MainDesign>() {
 
                 design.profileForceUpdateRequests.onReceive { profile ->
                     launch {
-                        // Success / failure toast comes from the broadcast
-                        // observer (onProfileUpdateCompleted / Failed). Don't
-                        // toast "started" here — the user sees that *after*
-                        // the modal closes, by which point the work is done.
-                        runCatching { themedContext.updateProfileWithProgress(profile.uuid) }
+                        // Progress stays on the subscription card; broadcasts report the result.
+                        try {
+                            ImportRetry.withTransientRetry { withProfile { update(profile.uuid) } }
+                            design.finishSubscriptionUpdate(profile.uuid, true)
+                        } catch (error: CancellationException) {
+                            design.finishSubscriptionUpdate(profile.uuid, false)
+                            throw error
+                        } catch (_: Exception) {
+                            design.finishSubscriptionUpdate(profile.uuid, false)
+                        }
                         // Run metadata sync in the background so the UI tap returns
                         // immediately. The earlier race (announcement-card hiding the
                         // active-card support button for a tick) was structural — we
@@ -1072,15 +1076,23 @@ class MainActivity : BaseActivity<MainDesign>() {
 
                 design.profileActivateRequests.onReceive { profile ->
                     launch {
-                        withProfile {
-                            if (profile.imported) {
-                                setActive(profile)
-                                ensureGlobalSelectionSafeWithRetry()
-                            } else {
-                                design.requestSave(profile)
+                        try {
+                            withProfile {
+                                if (profile.imported) {
+                                    setActive(profile)
+                                    ensureGlobalSelectionSafeWithRetry()
+                                } else {
+                                    design.requestSave(profile)
+                                }
                             }
+                        } catch (error: CancellationException) {
+                            throw error
+                        } catch (error: Exception) {
+                            design.showExceptionToast(error)
+                        } finally {
+                            design.setSubscriptionActivating(null)
+                            scheduleDashboardRefresh()
                         }
-                        scheduleDashboardRefresh()
                     }
                 }
 
@@ -1100,12 +1112,28 @@ class MainActivity : BaseActivity<MainDesign>() {
                         // bad config / commit) must NOT take down the whole
                         // "Update all" with an uncaught coroutine exception.
                         var failed = 0
-                        withProfile {
-                            queryAll().forEach { p ->
-                                if (p.imported && p.type != Profile.Type.File) {
-                                    runCatching { update(p.uuid) }.onFailure { failed++ }
+                        try {
+                            val profiles = withProfile { queryAll() }
+                            for (p in profiles) {
+                                if (p.imported && p.type != Profile.Type.File && design.markSubscriptionUpdateStarted(p.uuid)) {
+                                    try {
+                                        ImportRetry.withTransientRetry { withProfile { update(p.uuid) } }
+                                        design.finishSubscriptionUpdate(p.uuid, true)
+                                    } catch (error: CancellationException) {
+                                        design.finishSubscriptionUpdate(p.uuid, false)
+                                        throw error
+                                    } catch (_: Exception) {
+                                        failed++
+                                        design.finishSubscriptionUpdate(p.uuid, false)
+                                    }
                                 }
                             }
+                        } catch (error: CancellationException) {
+                            throw error
+                        } catch (error: Exception) {
+                            design.showExceptionToast(error)
+                        } finally {
+                            design.finishAllSubscriptionUpdates()
                         }
                         if (failed > 0) {
                             design.showToast(
@@ -2166,6 +2194,7 @@ class MainActivity : BaseActivity<MainDesign>() {
     override fun onProfileUpdateCompleted(uuid: UUID?) {
         super.onProfileUpdateCompleted(uuid)
         if (uuid == null) return
+        design?.recordSubscriptionUpdateResult(uuid, true)
 
         launch {
             val name = withProfile { queryByUUID(uuid)?.name } ?: return@launch
@@ -2205,6 +2234,7 @@ class MainActivity : BaseActivity<MainDesign>() {
     override fun onProfileUpdateFailed(uuid: UUID?, reason: String?) {
         super.onProfileUpdateFailed(uuid, reason)
         if (uuid == null) return
+        design?.recordSubscriptionUpdateResult(uuid, false)
 
         launch {
             val name = withProfile { queryByUUID(uuid)?.name } ?: return@launch

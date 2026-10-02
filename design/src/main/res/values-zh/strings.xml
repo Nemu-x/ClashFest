@@ -1191,4 +1191,23 @@
     <string name="latency_target_invalid">请输入网站，例如 example.com</string>
     <string name="latency_target_run">测试</string>
     <string name="latency_target_nothing_to_test">该分组没有可测试的节点</string>
+    <string name="subscription_in_use">使用中</string>
+    <string name="subscription_not_in_use">未使用</string>
+    <string name="subscription_not_ready">请先完成订阅设置</string>
+    <string name="subscription_traffic">流量用量</string>
+    <string name="subscription_choose_server">选择服务器</string>
+    <string name="subscription_server_hint">搜索服务器并比较延迟</string>
+    <string name="subscription_loading_servers">正在加载服务器…</string>
+    <string name="subscription_valid_until">有效期至 %1$s</string>
+    <string name="subscription_updated_at">更新于 %1$s</string>
+    <string name="subscription_never_updated">尚未更新</string>
+    <string name="subscription_auto_update_interval">每 %1$d 分钟自动更新</string>
+    <string name="subscription_auto_update_off">自动更新已关闭</string>
+    <string name="subscription_updating">正在更新订阅…</string>
+    <string name="subscription_update_error">更新失败。已保存的订阅仍可使用。</string>
+    <string name="subscription_retry">重试</string>
+    <string name="subscription_activating">正在选择订阅…</string>
+    <string name="subscription_finish_setup">完成设置</string>
+    <string name="subscriptions_update_all">更新所有订阅</string>
+    <string name="subscriptions_list_hint">打开订阅查看详情并选择服务器</string>
 </resources>

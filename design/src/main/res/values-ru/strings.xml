@@ -1262,4 +1262,23 @@
     <string name="latency_target_invalid">Введите сайт, например example.com</string>
     <string name="latency_target_run">Проверить</string>
     <string name="latency_target_nothing_to_test">В этой группе нечего проверять</string>
+    <string name="subscription_in_use">Используется</string>
+    <string name="subscription_not_in_use">Не используется</string>
+    <string name="subscription_not_ready">Завершите настройку подписки</string>
+    <string name="subscription_traffic">Трафик</string>
+    <string name="subscription_choose_server">Выбрать сервер</string>
+    <string name="subscription_server_hint">Поиск серверов и сравнение задержки</string>
+    <string name="subscription_loading_servers">Загружаем серверы…</string>
+    <string name="subscription_valid_until">Действует до %1$s</string>
+    <string name="subscription_updated_at">Обновлено %1$s</string>
+    <string name="subscription_never_updated">Ещё не обновлялась</string>
+    <string name="subscription_auto_update_interval">Автообновление каждые %1$d мин.</string>
+    <string name="subscription_auto_update_off">Автообновление выключено</string>
+    <string name="subscription_updating">Обновляем подписку…</string>
+    <string name="subscription_update_error">Не удалось обновить. Сохранённая подписка остаётся доступной.</string>
+    <string name="subscription_retry">Повторить</string>
+    <string name="subscription_activating">Выбираем подписку…</string>
+    <string name="subscription_finish_setup">Завершить настройку</string>
+    <string name="subscriptions_update_all">Обновить все подписки</string>
+    <string name="subscriptions_list_hint">Откройте подписку, чтобы посмотреть подробности и выбрать сервер</string>
 </resources>

@@ -1270,4 +1270,23 @@ Password: %4$s</string>
     <string name="latency_target_invalid">Enter a site like example.com</string>
     <string name="latency_target_run">Test</string>
     <string name="latency_target_nothing_to_test">No nodes to test in this group</string>
+    <string name="subscription_in_use">In use</string>
+    <string name="subscription_not_in_use">Not in use</string>
+    <string name="subscription_not_ready">Finish setup to use this subscription</string>
+    <string name="subscription_traffic">Data usage</string>
+    <string name="subscription_choose_server">Choose server</string>
+    <string name="subscription_server_hint">Search servers and compare latency</string>
+    <string name="subscription_loading_servers">Loading servers…</string>
+    <string name="subscription_valid_until">Valid until %1$s</string>
+    <string name="subscription_updated_at">Updated %1$s</string>
+    <string name="subscription_never_updated">Not updated yet</string>
+    <string name="subscription_auto_update_interval">Auto-update every %1$d minutes</string>
+    <string name="subscription_auto_update_off">Auto-update is off</string>
+    <string name="subscription_updating">Updating subscription…</string>
+    <string name="subscription_update_error">Could not update. Your saved subscription is still available.</string>
+    <string name="subscription_retry">Retry</string>
+    <string name="subscription_activating">Selecting subscription…</string>
+    <string name="subscription_finish_setup">Finish setup</string>
+    <string name="subscriptions_update_all">Update all subscriptions</string>
+    <string name="subscriptions_list_hint">Open a subscription to view details and choose a server</string>
 </resources>

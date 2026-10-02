@@ -44,6 +44,7 @@ import com.github.kr328.clash.common.log.Log
 import com.github.kr328.clash.common.util.SubscriptionUsage
 import com.github.kr328.clash.design.adapter.ProfileAdapter
 import com.github.kr328.clash.design.databinding.BottomSheetMainModeBinding
+import com.github.kr328.clash.design.databinding.BottomSheetSubscriptionBinding
 import com.github.kr328.clash.design.databinding.DesignAboutBinding
 import com.github.kr328.clash.design.databinding.DesignMainBinding
 import com.github.kr328.clash.design.dialog.AppBottomSheetDialog
@@ -160,6 +161,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         .inflate(context.layoutInflater, context.root, false)
 
     private val clickGuard = ClickGuard<Request>(600L, SystemClock::elapsedRealtime)
+    private val subscriptionClickGuard = ClickGuard<Pair<UUID, Int>>(600L, SystemClock::elapsedRealtime)
 
     private var clashRunningState: Boolean = false
     private var tunnelStartingState: Boolean = false
@@ -204,8 +206,12 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         com.github.kr328.clash.design.branding.BrandHolder.EMPTY
     private val uiStore = UiStore(context)
     private val expandedProfileUuids: LinkedHashSet<UUID> = linkedSetOf()
-    /** Profiles-tab cards expanded into their proxy groups (independent of the Home set). */
-    private val tabExpandedProfileUuids: LinkedHashSet<UUID> = linkedSetOf()
+    private val subscriptionPreviewUuids: LinkedHashSet<UUID> = linkedSetOf()
+    private val pendingSubscriptionPickers = mutableSetOf<UUID>()
+    private var subscriptionDetailsDialog: AppBottomSheetDialog? = null
+    private var subscriptionDetailsBinding: BottomSheetSubscriptionBinding? = null
+    private var subscriptionDetailsUuid: UUID? = null
+    private var activatingSubscriptionUuid: UUID? = null
     private var currentModeSegment: TunnelState.Mode = TunnelState.Mode.Rule
     private var suppressModeSegment = false
     private var activeProfileForQuickActions: Profile? = null
@@ -293,14 +299,11 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         expandOnProfileClick = true,
     )
 
-    /**
-     * Profiles-tab manager list: all profiles. Tap = activate (no "Use" button); the chevron
-     * expands the card into its proxy groups (rich dashboard); per-profile actions via ⋮ menu.
-     */
+    /** Subscription cards open details; activation is an explicit action inside the sheet. */
     private val tabProfileAdapter = ProfileAdapter(
-        { profile -> profileActivateRequests.trySend(profile) },
+        { profile -> showSubscriptionDetails(profile) },
         { profile, anchor -> profileMenuRequests.trySend(profile to anchor) },
-        { profile -> toggleTabProfileExpand(profile) },
+        { profile -> openSubscriptionPicker(profile) },
         { profile, group, proxyName ->
             patchHomeProxyRequests.trySend(Triple(profile, group, proxyName))
         },
@@ -308,16 +311,13 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             profilePingAllRequests.trySend(PingAllRequest(profile, group, proxyNames, testUrl))
         },
         { profile ->
-            if (profile.imported && profile.type != Profile.Type.File) {
-                profileForceUpdateRequests.trySend(profile)
-            }
+            requestSubscriptionUpdate(profile)
         },
         { profile, group, proxy -> profileProxyYamlRequests.trySend(Triple(profile, group, proxy)) },
         { profile, group -> profileVisibleGroupChanged.trySend(profile to group) },
         { profile, group, proxy -> proxyPingNodeRequests.trySend(Triple(profile, group, proxy)) },
         expandOnProfileClick = false,
-        showServerChooserInCard = true,
-        showActivateButton = false,
+        compactSubscriptions = true,
     )
     private var tabProfilesAll: List<Profile> = emptyList()
     private val tabItemTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(
@@ -364,11 +364,18 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
 
     private fun showProfilesTabSort(anchor: View) {
         val popup = android.widget.PopupMenu(context, anchor)
+        popup.menu.add(0, 1000, 0, R.string.subscriptions_update_all).isEnabled =
+            !tabProfileAdapter.states.allUpdating &&
+                tabProfilesAll.any { it.imported && it.type != Profile.Type.File }
         val modes = com.github.kr328.clash.design.model.ProfileSortMode.values()
-        modes.forEachIndexed { i, m -> popup.menu.add(0, i, i, tabSortModeTitle(m)).isCheckable = true }
+        modes.forEachIndexed { i, m -> popup.menu.add(1, i, i + 1, tabSortModeTitle(m)).isCheckable = true }
         val current = uiStore.profileSortMode.ordinal
-        for (i in 0 until popup.menu.size()) popup.menu.getItem(i).isChecked = i == current
+        popup.menu.findItem(current).isChecked = true
         popup.setOnMenuItemClickListener { item ->
+            if (item.itemId == 1000) {
+                requestAllSubscriptionUpdates()
+                return@setOnMenuItemClickListener true
+            }
             uiStore.profileSortMode = modes.getOrElse(item.itemId) {
                 com.github.kr328.clash.design.model.ProfileSortMode.Manual
             }
@@ -382,7 +389,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     override val root: View
         get() = binding.root
 
-    fun getExpandedProfileUuids(): Set<UUID> = (expandedProfileUuids + tabExpandedProfileUuids).toSet()
+    fun getExpandedProfileUuids(): Set<UUID> = (expandedProfileUuids + subscriptionPreviewUuids).toSet()
 
     /**
      * Pushes operator-pushed subscription metadata into the home UI and the active profile card.
@@ -1036,15 +1043,16 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             tabProfilesAll = profiles
             tabProfileAdapter.apply {
                 val ids = profiles.map { it.uuid }.toSet()
-                val activeIds = profiles.filter { it.active }.map { it.uuid }.toSet()
-                tabExpandedProfileUuids.retainAll { it in ids && it in activeIds }
+                subscriptionPreviewUuids.retainAll(ids)
+                states.retainProfiles(ids)
                 patchDataSet(this::profiles, sortTabProfiles(profiles), id = { it.uuid })
             }
-            tabProfileAdapter.setExpandedUuids(tabExpandedProfileUuids.toSet())
+            tabProfileAdapter.setExpandedUuids(subscriptionPreviewUuids.toSet())
             binding.profilesTabList.visibility = if (profiles.isEmpty()) View.GONE else View.VISIBLE
             binding.profilesTabEmpty.visibility = if (profiles.isEmpty()) View.VISIBLE else View.GONE
             val tabUpdatable = profiles.any { it.imported && it.type != Profile.Type.File }
-            binding.profilesTabUpdate.visibility = if (tabUpdatable) View.VISIBLE else View.GONE
+            binding.profilesTabRefresh.isEnabled = tabUpdatable
+            refreshSubscriptionDetails()
         }
     }
 
@@ -1191,7 +1199,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
                 // offline preview hides exactly the groups the engine hides.
                 uiStore.proxyExcludeNotSelectable,
             )
-            tabProfileAdapter.setExpandedUuids(tabExpandedProfileUuids.toSet())
+            refreshSubscriptionDetails()
         }
     }
 
@@ -1199,6 +1207,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         withContext(Dispatchers.Main) {
             profileAdapter.setProxyDetails(details)
             tabProfileAdapter.setProxyDetails(details)
+            refreshSubscriptionDetails()
         }
     }
 
@@ -1262,19 +1271,174 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         openProxySheetWhenReady(profile)
     }
 
-    /**
-     * Profiles-tab card expand: toggles the inline proxy-group panel (no bottom sheet, unlike Home).
-     * A reload is requested so an expanding card gets its proxy groups loaded.
-     */
-    private fun toggleTabProfileExpand(profile: Profile) {
-        if (!profile.imported || !profile.active) {
+    /** Load this subscription's groups before opening the searchable server picker. */
+    private fun openSubscriptionPicker(profile: Profile, attempt: Int = 0) {
+        if (!profile.imported) return
+        if (attempt > 0 && profile.uuid !in pendingSubscriptionPickers) return
+        if (attempt == 0) {
+            if (!pendingSubscriptionPickers.add(profile.uuid)) return
+            subscriptionPreviewUuids.add(profile.uuid)
+            tabProfileAdapter.setExpandedUuids(subscriptionPreviewUuids.toSet())
+            profileExpandChanged.trySend(Unit)
+            refreshSubscriptionDetails()
+        }
+        val current = tabProfilesAll.firstOrNull { it.uuid == profile.uuid }
+        if (current == null) {
+            pendingSubscriptionPickers.remove(profile.uuid)
             return
         }
-        if (!tabExpandedProfileUuids.add(profile.uuid)) {
-            tabExpandedProfileUuids.remove(profile.uuid)
+        if (tabProfileAdapter.hasProxyGroupsFor(current) || attempt >= 6) {
+            pendingSubscriptionPickers.remove(profile.uuid)
+            refreshSubscriptionDetails()
+            tabProfileAdapter.showProxySheet(context, current)
+        } else {
+            binding.profilesTabList.postDelayed({ openSubscriptionPicker(current, attempt + 1) }, 400L)
         }
-        tabProfileAdapter.setExpandedUuids(tabExpandedProfileUuids.toSet())
+    }
+
+    private fun showSubscriptionDetails(profile: Profile) {
+        if (subscriptionDetailsDialog?.isShowing == true) return
+        val sheet = BottomSheetSubscriptionBinding.inflate(context.layoutInflater)
+        val dialog = AppBottomSheetDialog(context, fitContentHeight = true)
+        subscriptionDetailsBinding = sheet
+        subscriptionDetailsUuid = profile.uuid
+        subscriptionDetailsDialog = dialog
+        subscriptionPreviewUuids.clear()
+        subscriptionPreviewUuids.add(profile.uuid)
+        tabProfileAdapter.setExpandedUuids(subscriptionPreviewUuids.toSet())
         profileExpandChanged.trySend(Unit)
+        dialog.setContentView(sheet.root)
+        dialog.setOnDismissListener {
+            pendingSubscriptionPickers.remove(profile.uuid)
+            subscriptionDetailsBinding = null
+            subscriptionDetailsUuid = null
+            subscriptionDetailsDialog = null
+        }
+        refreshSubscriptionDetails()
+        dialog.show()
+    }
+
+    private fun refreshSubscriptionDetails() {
+        val sheet = subscriptionDetailsBinding ?: return
+        val profile = tabProfilesAll.firstOrNull { it.uuid == subscriptionDetailsUuid }
+        if (profile == null) {
+            subscriptionDetailsDialog?.dismiss()
+            return
+        }
+        val updating = tabProfileAdapter.states.isUpdating(profile.uuid)
+        val failed = tabProfileAdapter.states.hasUpdateError(profile.uuid)
+        val activating = activatingSubscriptionUuid == profile.uuid
+        sheet.detailName.text = profile.name
+        sheet.detailStatus.setText(if (profile.active) R.string.subscription_in_use else R.string.subscription_not_in_use)
+        sheet.detailUsage.text = if (profile.imported) tabProfileAdapter.formatUsageLine(profile)
+            else context.getString(R.string.subscription_not_ready)
+        val hasLimit = profile.imported && profile.total >= 2L
+        sheet.detailUsageProgress.visibility = if (hasLimit) View.VISIBLE else View.GONE
+        sheet.detailUsageProgress.progress =
+            (((profile.upload + profile.download).toDouble() / profile.total.coerceAtLeast(1L))
+                .coerceIn(0.0, 1.0) * 1000).toInt()
+        sheet.detailExpiry.visibility = if (profile.expire > 0L) View.VISIBLE else View.GONE
+        sheet.detailExpiry.text = if (profile.expire > 0L) {
+            context.getString(R.string.subscription_valid_until,
+                java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM).format(java.util.Date(profile.expire)))
+        } else ""
+        sheet.detailExpiry.setTextColor(context.resolveThemedColor(
+            if (profile.expire > 0L && profile.expire <= System.currentTimeMillis()) MaterialR.attr.colorError
+            else MaterialR.attr.colorOnSurfaceVariant,
+        ))
+        sheet.detailUpdated.text = if (profile.updatedAt > 0L) {
+            context.getString(R.string.subscription_updated_at,
+                java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT)
+                    .format(java.util.Date(profile.updatedAt)))
+        } else context.getString(R.string.subscription_never_updated)
+        sheet.detailAutoUpdate.text = if (profile.interval > 0L) {
+            context.getString(R.string.subscription_auto_update_interval, profile.interval / 60_000L)
+        } else context.getString(R.string.subscription_auto_update_off)
+        sheet.detailAutoUpdate.visibility = if (profile.type == Profile.Type.File) View.GONE else View.VISIBLE
+        sheet.detailMenu.setOnClickListener {
+            if (subscriptionClickGuard.accept(profile.uuid to it.id)) profileMenuRequests.trySend(profile to it)
+        }
+        sheet.detailUse.isEnabled = !profile.active && !activating
+        sheet.detailUse.setText(when {
+            activating -> R.string.subscription_activating
+            profile.active -> R.string.subscription_in_use
+            !profile.imported -> R.string.subscription_finish_setup
+            else -> R.string.profile_use
+        })
+        sheet.detailUse.setOnClickListener {
+            if (!subscriptionClickGuard.accept(profile.uuid to it.id)) return@setOnClickListener
+            if (profile.imported) {
+                setSubscriptionActivating(profile.uuid)
+                profileActivateRequests.trySend(profile)
+            } else {
+                subscriptionDetailsDialog?.dismiss()
+                profileEditRequests.trySend(profile)
+            }
+        }
+        val loadingServers = profile.uuid in pendingSubscriptionPickers
+        sheet.detailServers.isEnabled = profile.imported && !loadingServers
+        sheet.detailServers.setOnClickListener { openSubscriptionPicker(profile) }
+        sheet.detailServerSummary.text = if (loadingServers) {
+            context.getString(R.string.subscription_loading_servers)
+        } else tabProfileAdapter.activeNodeDisplayName(profile)
+            ?: context.getString(R.string.subscription_server_hint)
+        sheet.detailUpdate.visibility = if (profile.imported && profile.type != Profile.Type.File) View.VISIBLE else View.GONE
+        sheet.detailUpdate.isEnabled = !updating
+        sheet.detailUpdate.setText(when {
+            updating -> R.string.subscription_updating
+            failed -> R.string.subscription_retry
+            else -> R.string.update
+        })
+        sheet.detailUpdate.setOnClickListener { requestSubscriptionUpdate(profile) }
+        sheet.detailUpdateStatus.visibility = if (failed) View.VISIBLE else View.GONE
+        sheet.detailUpdateStatus.setText(R.string.subscription_update_error)
+        sheet.detailUpdateStatus.setTextColor(context.resolveThemedColor(MaterialR.attr.colorError))
+    }
+
+    fun setSubscriptionActivating(uuid: UUID?) {
+        activatingSubscriptionUuid = uuid
+        refreshSubscriptionDetails()
+    }
+
+    private fun requestSubscriptionUpdate(profile: Profile) {
+        if (!profile.imported || profile.type == Profile.Type.File) return
+        if (!tabProfileAdapter.states.beginUpdate(profile.uuid)) return
+        refreshSubscriptionUpdateUi(profile.uuid)
+        profileForceUpdateRequests.trySend(profile)
+    }
+
+    fun markSubscriptionUpdateStarted(uuid: UUID): Boolean {
+        if (!tabProfileAdapter.states.beginUpdate(uuid)) return false
+        refreshSubscriptionUpdateUi(uuid)
+        return true
+    }
+
+    fun finishSubscriptionUpdate(uuid: UUID, success: Boolean) {
+        tabProfileAdapter.states.finishUpdate(uuid, success)
+        refreshSubscriptionUpdateUi(uuid)
+    }
+
+    fun recordSubscriptionUpdateResult(uuid: UUID, success: Boolean) {
+        tabProfileAdapter.states.recordObservedUpdate(uuid, success)
+        refreshSubscriptionUpdateUi(uuid)
+    }
+
+    private fun refreshSubscriptionUpdateUi(uuid: UUID) {
+        val index = tabProfileAdapter.profiles.indexOfFirst { it.uuid == uuid }
+        if (index >= 0) tabProfileAdapter.notifyItemChanged(index)
+        refreshSubscriptionDetails()
+    }
+
+    private fun requestAllSubscriptionUpdates() {
+        if (tabProfileAdapter.states.allUpdating) return
+        tabProfileAdapter.states.allUpdating = true
+        binding.profilesTabRefresh.isRefreshing = true
+        profileUpdateAllRequests.trySend(Unit)
+    }
+
+    fun finishAllSubscriptionUpdates() {
+        tabProfileAdapter.states.allUpdating = false
+        binding.profilesTabRefresh.isRefreshing = false
     }
 
     /**
@@ -1992,7 +2156,9 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         }
         tabItemTouchHelper.attachToRecyclerView(binding.profilesTabList)
         binding.profilesTabSort.setOnClickListener { showProfilesTabSort(it) }
-        binding.profilesTabUpdate.setOnClickListener { profileUpdateAllRequests.trySend(Unit) }
+        binding.profilesTabRefresh.setOnChildScrollUpCallback { _, _ -> binding.profilesTabList.canScrollVertically(-1) }
+        binding.profilesTabRefresh.setColorSchemeColors(context.resolveThemedColor(MaterialR.attr.colorPrimary))
+        binding.profilesTabRefresh.setOnRefreshListener { requestAllSubscriptionUpdates() }
 
         val card = binding.mainPowerCard
         card.setOnClickListener {
@@ -2036,9 +2202,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         }
         binding.mainActiveProfileUpdate.setOnClickListener {
             activeProfileForQuickActions?.let { profile ->
-                if (profile.imported && profile.type != Profile.Type.File) {
-                    profileForceUpdateRequests.trySend(profile)
-                }
+                requestSubscriptionUpdate(profile)
             }
         }
         binding.mainActiveProfileSupport.setOnClickListener {
