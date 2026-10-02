@@ -21,6 +21,29 @@ val mihomoHead = providers.exec {
     commandLine("git", "-C", file("src/foss/golang/clash").absolutePath, "rev-parse", "HEAD")
 }.standardOutput.asText.map { it.trim() }
 
+// The mihomo release tag, resolved like CMakeLists.txt does for the Go side (exact
+// tag of HEAD, else nearest release tag, else the require line in go.mod) and
+// exposed as BuildConfig.CORE_TAG so Kotlin HTTP probes can advertise the same
+// `mihomo/<version>` the native subscription fetch sends. Empty when unknown.
+fun gitDescribe(vararg extra: String): String {
+    val result = providers.exec {
+        commandLine(
+            listOf("git", "-C", file("src/foss/golang/clash").absolutePath, "describe", "--tags") +
+                extra + listOf("--match", "v[0-9]*"),
+        )
+        isIgnoreExitValue = true
+    }
+    return if (result.result.get().exitValue == 0) result.standardOutput.asText.get().trim() else ""
+}
+val mihomoTag: String = gitDescribe("--exact-match").ifEmpty { gitDescribe("--abbrev=0") }.ifEmpty {
+    val goMod = file("src/main/golang/go.mod")
+    if (goMod.isFile) {
+        Regex("""github\.com/metacubex/mihomo (v\d+\.\d+\.\d+)""").find(goMod.readText())?.groupValues?.get(1).orEmpty()
+    } else {
+        ""
+    }
+}
+
 // Run pure-Go unit tests in the snapshot package before any Java/Kotlin
 // compile. Snapshot is the engine-delegated read path for ClashFest UI
 // (see docs/path-b-engine-parsing.md); we cannot afford it to silently
@@ -77,6 +100,10 @@ golang {
 }
 
 android {
+    defaultConfig {
+        buildConfigField("String", "CORE_TAG", "\"$mihomoTag\"")
+    }
+
     productFlavors {
         all {
             externalNativeBuild {

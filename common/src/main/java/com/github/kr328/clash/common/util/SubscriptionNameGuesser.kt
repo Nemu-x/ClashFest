@@ -43,13 +43,7 @@ object SubscriptionNameGuesser {
                     connectTimeout = 20_000
                     readTimeout = 20_000
                     instanceFollowRedirects = true
-                    val ver = try {
-                        context.packageManager.getPackageInfo(context.packageName, 0).versionName
-                            ?: "0"
-                    } catch (_: Exception) {
-                        "0"
-                    }
-                    setRequestProperty("User-Agent", "ClashFest/$ver")
+                    // User-Agent (same string as the native fetch) comes with the shared headers.
                     SubscriptionHttpHeaders.applyTo(this, context)
                 }
                 try {
