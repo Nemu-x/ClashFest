@@ -840,6 +840,9 @@ class MainActivity : BaseActivity<MainDesign>() {
                         MainDesign.Request.OpenThemeSettings ->
                             startActivity(ThemeSettingsActivity::class.intent)
 
+                        MainDesign.Request.OpenLanguageSettings ->
+                            startActivity(LanguageSettingsActivity::class.intent)
+
                         MainDesign.Request.OpenAppSettings ->
                             startActivity(SubscriptionIdentityActivity::class.intent)
 

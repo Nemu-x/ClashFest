@@ -50,6 +50,7 @@ import com.github.kr328.clash.design.databinding.DesignMainBinding
 import com.github.kr328.clash.design.dialog.AppBottomSheetDialog
 import com.github.kr328.clash.design.model.DarkMode
 import com.github.kr328.clash.design.model.HomeBackgroundStyle
+import com.github.kr328.clash.design.model.AppLanguage
 import com.github.kr328.clash.design.store.UiStore
 import com.github.kr328.clash.design.ui.ToastDuration
 import com.github.kr328.clash.design.util.applyLinearAdapter
@@ -79,6 +80,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         OpenNewProfile,
         OpenSettings,
         OpenThemeSettings,
+        OpenLanguageSettings,
         OpenAppSettings,
         OpenAbout,
         PatchModeDirect,
@@ -2066,6 +2068,14 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     }
 
     private fun renderMainTab(tab: MainTab) {
+        if (tab == MainTab.Settings) {
+            binding.mainSettingsLanguageValue.setText(when (uiStore.appLanguage) {
+                AppLanguage.System -> R.string.app_language_system
+                AppLanguage.English -> R.string.app_language_en
+                AppLanguage.Russian -> R.string.app_language_ru
+                AppLanguage.Chinese -> R.string.app_language_zh
+            })
+        }
         if (tab == MainTab.Routing) requests.trySend(Request.RefreshRouting)
         MainTab.values().forEach {
             navForMainTab(it).isSelected = it == tab

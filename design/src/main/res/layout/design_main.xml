@@ -1749,6 +1749,52 @@
                             android:clickable="true"
                             android:focusable="true"
                             android:background="?attr/selectableItemBackground"
+                            android:onClick="@{() -&gt; self.request(Request.OpenLanguageSettings)}">
+                            <ImageView
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:src="@drawable/ic_baseline_language"
+                                android:importantForAccessibility="no"
+                                app:tint="?attr/colorOnSurfaceVariant"/>
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="16dp"
+                                android:orientation="vertical">
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/app_language"
+                                    android:textAppearance="@style/TextAppearance.App.BodyLarge"
+                                    android:textColor="?attr/colorOnSurface"/>
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:id="@+id/main_settings_language_value"
+                                    android:textAppearance="@style/TextAppearance.App.BodySmall"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
+                                    android:layout_marginTop="4dp"/>
+                            </LinearLayout>
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:layout_marginStart="8dp"
+                                android:src="@drawable/ic_baseline_chevron_right"
+                                android:importantForAccessibility="no"
+                                app:tint="?attr/colorOnSurfaceVariant"/>
+                        </LinearLayout>
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:minHeight="72dp"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:paddingHorizontal="16dp"
+                            android:paddingVertical="12dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:background="?attr/selectableItemBackground"
                             android:onClick="@{() -&gt; self.request(Request.OpenAbout)}">
                             <ImageView
                                 android:layout_width="24dp"

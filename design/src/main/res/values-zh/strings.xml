@@ -40,7 +40,7 @@
     <string name="subscription_user_agent_strict_summary">开启：该 User-Agent 返回无效格式时直接失败。关闭：自动用内核默认 User-Agent 重试。</string>
     <string name="app_language_system">跟随系统</string>
     <string name="app_language_en">English</string>
-    <string name="app_language_ru">俄语</string>
+    <string name="app_language_ru">Русский</string>
     <string name="app_language_zh">中文</string>
     <string name="default_">默认</string>
     <string name="delay">延迟</string>

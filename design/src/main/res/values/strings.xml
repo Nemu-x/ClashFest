@@ -869,8 +869,8 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="subscription_user_agent_strict_summary">On: fail immediately if this User-Agent returns invalid format. Off: auto-retry with default core User-Agent.</string>
     <string name="app_language_system">System default</string>
     <string name="app_language_en">English</string>
-    <string name="app_language_ru">Russian</string>
-    <string name="app_language_zh">Chinese</string>
+    <string name="app_language_ru">Русский</string>
+    <string name="app_language_zh">中文</string>
 
     <string name="home_background">Home background</string>
     <string name="home_background_material_you">Material</string>
