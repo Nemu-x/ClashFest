@@ -64,7 +64,7 @@
     <!-- DNS & Hosts -->
     <string name="dns_hosts_title">DNS и Hosts</string>
     <string name="dns_hosts_entry_summary">Разрешение имён по профилю: DNS-серверы, fake-ip и статические hosts.</string>
-    <string name="dns_hosts_experimental_title">DNS и Hosts (эксперимент)</string>
+    <string name="dns_hosts_experimental_title">DNS и Hosts</string>
     <string name="dns_hosts_experimental_summary">Показывать редактор DNS и Hosts по профилю в настройках.</string>
     <string name="dns_hosts_no_active_profile">Активируйте профиль, чтобы править его DNS и Hosts.</string>
     <string name="dns_hosts_master_title">Управлять DNS и Hosts для этого профиля</string>
