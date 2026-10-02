@@ -36,7 +36,7 @@
                 android:layout_height="match_parent"
                 android:fontFamily="monospace"
                 android:gravity="top|start"
-                android:hint="rule-providers:"
+                android:hint="@string/rule_providers_yaml_hint"
                 android:inputType="textMultiLine|textNoSuggestions"
                 android:textSize="12sp" />
         </com.google.android.material.textfield.TextInputLayout>

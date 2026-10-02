@@ -28,17 +28,17 @@ class SubscriptionIdentityActivity : BaseActivity<SubscriptionIdentityDesign>() 
                 design.requests.onReceive { request ->
                     when (request) {
                         SubscriptionIdentityDesign.Request.CopyHwid -> {
-                            copyToClipboard("HWID", hwid)
+                            copyToClipboard(getString(R.string.subscription_hwid_title), hwid)
                             design.showToast(R.string.copied, ToastDuration.Short)
                         }
 
                         SubscriptionIdentityDesign.Request.CopySchemes -> {
-                            copyToClipboard("clashfest schemes", schemes)
+                            copyToClipboard(getString(R.string.subscription_scheme_title), schemes)
                             design.showToast(R.string.copied, ToastDuration.Short)
                         }
 
                         SubscriptionIdentityDesign.Request.CopyHwidDiagnostics -> {
-                            copyToClipboard("HWID diagnostics", diagnostics)
+                            copyToClipboard(getString(R.string.subscription_hwid_diagnostics_title), diagnostics)
                             design.showToast(R.string.copied, ToastDuration.Short)
                         }
 
@@ -82,32 +82,32 @@ class SubscriptionIdentityActivity : BaseActivity<SubscriptionIdentityDesign>() 
 
         val serverSummary = when {
             active == true && notSupported == true ->
-                "Panel HWID: enabled, but x-hwid not accepted/detected."
+                getString(R.string.subscription_hwid_panel_unsupported)
             active == true && (maxReached == true || limit == true) ->
-                "Panel HWID: device limit reached."
+                getString(R.string.subscription_hwid_panel_limit)
             active == true ->
-                "Panel HWID: enabled and accepted."
+                getString(R.string.subscription_hwid_panel_accepted)
             active == false ->
-                "Panel HWID: disabled on panel side."
+                getString(R.string.subscription_hwid_panel_disabled)
             else ->
-                "Panel HWID: unknown (refresh subscription metadata once)."
+                getString(R.string.subscription_hwid_panel_unknown)
         }
 
         return buildString {
             appendLine(serverSummary)
             appendLine()
-            appendLine("Request headers sent by Mikan:")
-            appendLine("- x-hwid: ${requestHeaders["x-hwid"].orEmpty().ifBlank { "missing" }}")
-            appendLine("- x-device-os: ${requestHeaders["x-device-os"].orEmpty().ifBlank { "missing" }}")
-            appendLine("- x-ver-os: ${requestHeaders["x-ver-os"].orEmpty().ifBlank { "missing" }}")
-            appendLine("- x-device-model: ${requestHeaders["x-device-model"].orEmpty().ifBlank { "missing" }}")
-            appendLine("- x-app-version: ${requestHeaders["x-app-version"].orEmpty().ifBlank { "missing" }}")
+            appendLine(getString(R.string.subscription_hwid_request_headers))
+            appendLine(getString(R.string.diagnostics_header_format, "x-hwid", requestHeaders["x-hwid"].orEmpty().ifBlank { getString(R.string.diagnostics_missing) }))
+            appendLine(getString(R.string.diagnostics_header_format, "x-device-os", requestHeaders["x-device-os"].orEmpty().ifBlank { getString(R.string.diagnostics_missing) }))
+            appendLine(getString(R.string.diagnostics_header_format, "x-ver-os", requestHeaders["x-ver-os"].orEmpty().ifBlank { getString(R.string.diagnostics_missing) }))
+            appendLine(getString(R.string.diagnostics_header_format, "x-device-model", requestHeaders["x-device-model"].orEmpty().ifBlank { getString(R.string.diagnostics_missing) }))
+            appendLine(getString(R.string.diagnostics_header_format, "x-app-version", requestHeaders["x-app-version"].orEmpty().ifBlank { getString(R.string.diagnostics_missing) }))
             appendLine()
-            appendLine("Last panel diagnostics headers:")
-            appendLine("- x-hwid-active: ${uiStore.subscriptionHwidActive.ifBlank { "unknown" }}")
-            appendLine("- x-hwid-not-supported: ${uiStore.subscriptionHwidNotSupported.ifBlank { "unknown" }}")
-            appendLine("- x-hwid-max-devices-reached: ${uiStore.subscriptionHwidMaxDevicesReached.ifBlank { "unknown" }}")
-            append("- x-hwid-limit: ${uiStore.subscriptionHwidLimit.ifBlank { "unknown" }}")
+            appendLine(getString(R.string.subscription_hwid_panel_headers))
+            appendLine(getString(R.string.diagnostics_header_format, "x-hwid-active", uiStore.subscriptionHwidActive.ifBlank { getString(R.string.diagnostics_unknown) }))
+            appendLine(getString(R.string.diagnostics_header_format, "x-hwid-not-supported", uiStore.subscriptionHwidNotSupported.ifBlank { getString(R.string.diagnostics_unknown) }))
+            appendLine(getString(R.string.diagnostics_header_format, "x-hwid-max-devices-reached", uiStore.subscriptionHwidMaxDevicesReached.ifBlank { getString(R.string.diagnostics_unknown) }))
+            append(getString(R.string.diagnostics_header_format, "x-hwid-limit", uiStore.subscriptionHwidLimit.ifBlank { getString(R.string.diagnostics_unknown) }))
         }
     }
 }

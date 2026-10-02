@@ -42,7 +42,7 @@ class RequestHistoryAdapter : RecyclerView.Adapter<RequestHistoryAdapter.Holder>
         holder.title.text = row.host.ifBlank { row.destination.ifBlank { row.rule.ifBlank { row.id } } }
         holder.subtitle.text = buildList {
             if (row.process.isNotBlank()) add(row.process)
-            if (row.uid > 0) add("uid ${row.uid}")
+            if (row.uid > 0) add(context.getString(R.string.connections_uid_short, row.uid))
             if (row.network.isNotBlank()) add(row.network.uppercase())
             add(timeFormat.format(Date(row.timestamp)))
         }.joinToString(" · ")

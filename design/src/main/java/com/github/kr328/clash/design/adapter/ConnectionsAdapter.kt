@@ -95,7 +95,7 @@ class ConnectionsAdapter(
             if (app.known) add(app.label)
             app.packageName?.takeIf { app.known && it != app.label }?.let { add(it) }
             if (!app.known) m?.process?.takeIf { it.isNotBlank() }?.let { add(it) }
-            m?.uid?.takeIf { it > 0 }?.let { add("uid $it") }
+            m?.uid?.takeIf { it > 0 }?.let { add(ctx.getString(R.string.connections_uid_short, it)) }
             m?.network?.takeIf { it.isNotBlank() }?.let { add(it.uppercase()) }
         }.joinToString(" · ").ifBlank { "—" }
 
@@ -108,8 +108,8 @@ class ConnectionsAdapter(
 
         holder.network.text = m?.network?.uppercase().orEmpty().ifBlank { "—" }
         holder.meta.text = buildString {
-            append("↑").append(c.upload.toBytesString())
-            append(" · ↓").append(c.download.toBytesString())
+            append("↑").append(c.upload.toBytesString(ctx))
+            append(" · ↓").append(c.download.toBytesString(ctx))
         }
         val ruleLine = listOfNotNull(
             c.rule.takeIf { it.isNotBlank() },
@@ -184,8 +184,8 @@ class ConnectionsAdapter(
         formatChainLine(c)?.let { lines += context.getString(R.string.connections_chain_label, it) }
         lines += context.getString(
             R.string.connections_traffic_fmt,
-            c.upload.toBytesString(),
-            c.download.toBytesString(),
+            c.upload.toBytesString(context),
+            c.download.toBytesString(context),
         )
         if (c.start.isNotBlank()) lines += context.getString(R.string.connections_started_fmt, c.start)
         if (c.id.isNotBlank()) lines += context.getString(R.string.connections_id_fmt, c.id)

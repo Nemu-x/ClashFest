@@ -36,4 +36,32 @@
     <string name="widget_permission_denied">Разрешите подключение VPN, чтобы использовать виджет.</string>
     <string name="widget_action_failed">Не удалось переключить VPN. Откройте Mikan и попробуйте снова.</string>
     <string name="widget_choose_subscription">Сначала выберите подписку в Mikan.</string>
+
+    <string name="yaml_edit_rules">Правила</string>
+    <string name="yaml_edit_rule_providers">Источники правил</string>
+    <string name="yaml_edit_proxy_providers">Источники серверов</string>
+    <string name="yaml_edit_proxy_group">Группа серверов</string>
+    <string name="yaml_edit_proxy_chain">Цепочка серверов</string>
+    <string name="yaml_edit_proxy_chains">Цепочки серверов</string>
+    <string name="yaml_edit_dns_hosts">DNS и hosts</string>
+    <string name="yaml_edit_tunnels">Туннели</string>
+    <string name="yaml_edit_group_exists">Группа серверов с таким именем уже существует.</string>
+    <string name="yaml_edit_group_not_found">Группа серверов не найдена.</string>
+    <string name="yaml_edit_proxy_not_found">Сервер не найден.</string>
+    <string name="yaml_edit_no_chains">Нет сохранённых цепочек серверов.</string>
+    <string name="widget_off">Выключен</string>
+
+    <string name="clash_meta_for_android">Mikan для Android</string>
+    <string name="clash_service_status_channel">Статус Mikan</string>
+    <string name="configuration_yaml">Конфигурация YAML</string>
+    <string name="format_update_complete">Обновление %s завершено</string>
+    <string name="format_update_failure">Обновление %1$s: %2$s</string>
+    <string name="profile_process_result">Результат обработки подписки</string>
+    <string name="profile_process_status">Статус обработки подписки</string>
+    <string name="profile_service_status">Статус службы подписок</string>
+    <string name="profile_updater">Обновление подписок</string>
+    <string name="profile_updating">Обновление подписки</string>
+    <string name="profiles_and_providers">Подписки и источники</string>
+    <string name="provider_files">Файлы источников</string>
+    <string name="update_successfully">Обновление завершено</string>
 </resources>

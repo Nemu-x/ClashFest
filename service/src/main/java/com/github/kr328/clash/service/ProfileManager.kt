@@ -627,7 +627,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
         uuid: UUID,
         ruleProvidersYaml: String,
         prependRuleLine: String,
-    ): String? = previewRuleDryRun(uuid, "Rules", ruleApplyService.dryRunMergeProviderShortcut(uuid, ruleProvidersYaml, prependRuleLine))
+    ): String? = previewRuleDryRun(uuid, context.getString(R.string.yaml_edit_rules), ruleApplyService.dryRunMergeProviderShortcut(uuid, ruleProvidersYaml, prependRuleLine))
 
     override suspend fun readProxyGroupsPreview(uuid: UUID): Map<String, ProxyGroupPreviewRow> {
         return withContext(Dispatchers.IO) {
@@ -896,7 +896,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
     override suspend fun previewReplaceRuleProvidersYaml(uuid: UUID, yaml: String): String? {
         return previewConfigMutation(
             uuid,
-            "Rule providers",
+            context.getString(R.string.yaml_edit_rule_providers),
             layerMutation = { it.copy(ruleProviders = yaml) },
         ) { current ->
             RuleProvidersYamlEdit.mergeIntoConfig(current, yaml)
@@ -948,7 +948,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
     override suspend fun previewReplaceProxyProvidersYaml(uuid: UUID, yaml: String): String? {
         return previewConfigMutation(
             uuid,
-            "Proxy providers",
+            context.getString(R.string.yaml_edit_proxy_providers),
             layerMutation = { it.copy(proxyProviders = yaml) },
         ) { current ->
             ProxyProvidersYamlEdit.mergeIntoConfig(current, yaml)
@@ -998,7 +998,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
     ): String? {
         return previewConfigMutation(
             uuid,
-            "Proxy group",
+            context.getString(R.string.yaml_edit_proxy_group),
             layerMutation = { l ->
                 l.copy(
                     relayGroups = l.relayGroups.filterNot { it.name == groupName } +
@@ -1007,7 +1007,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
             },
         ) { current ->
             ProxyGroupsYamlEdit.appendSelectGroupUsingProviders(current, groupName, providerKeys)
-                ?: throw IllegalArgumentException("Proxy group already exists")
+                ?: throw IllegalArgumentException(context.getString(R.string.yaml_edit_group_exists))
         }
     }
 
@@ -1039,11 +1039,11 @@ class ProfileManager(private val context: Context) : IProfileManager,
     override suspend fun previewRemoveProxyGroup(uuid: UUID, groupName: String): String? {
         return previewConfigMutation(
             uuid,
-            "Proxy group",
+            context.getString(R.string.yaml_edit_proxy_group),
             layerMutation = { l -> l.copy(relayGroups = l.relayGroups.filterNot { it.name == groupName }) },
         ) { current ->
             ProxyGroupsYamlEdit.removeGroupByName(current, groupName)
-                ?: throw IllegalArgumentException("Proxy group was not found")
+                ?: throw IllegalArgumentException(context.getString(R.string.yaml_edit_group_not_found))
         }
     }
 
@@ -1090,10 +1090,10 @@ class ProfileManager(private val context: Context) : IProfileManager,
             val dir = File(context.importedDir, uuid.toString())
             try {
                 val patch = ProxyDialerYamlEdit.previewDialerProxy(dir, targetProxyName, dialerProxyName)
-                    ?: throw IllegalArgumentException("Proxy was not found")
+                    ?: throw IllegalArgumentException(context.getString(R.string.yaml_edit_proxy_not_found))
                 createPreview(
                     uuid = uuid,
-                    title = "Proxy chain",
+                    title = context.getString(R.string.yaml_edit_proxy_chain),
                     files = listOf(
                         filePreview(
                             dir,
@@ -1115,7 +1115,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
                     },
                 )
             } catch (e: Exception) {
-                createInvalidPreview("Proxy chain", "", "", e)
+                createInvalidPreview(context.getString(R.string.yaml_edit_proxy_chain), "", "", e)
             }
         }
     }
@@ -1162,10 +1162,10 @@ class ProfileManager(private val context: Context) : IProfileManager,
             val dir = File(context.importedDir, uuid.toString())
             try {
                 val patches = ProxyDialerYamlEdit.previewClearAllDialerProxies(dir)
-                if (patches.isEmpty()) throw IllegalArgumentException("No saved proxy chains")
+                if (patches.isEmpty()) throw IllegalArgumentException(context.getString(R.string.yaml_edit_no_chains))
                 createPreview(
                     uuid = uuid,
-                    title = "Proxy chains",
+                    title = context.getString(R.string.yaml_edit_proxy_chains),
                     files = patches.map {
                         filePreview(dir, it.relativePath, it.currentYaml, it.proposedYaml, it.providerFile)
                     },
@@ -1174,7 +1174,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
                     layerMutation = { it.copy(proxyChain = emptyMap()) },
                 )
             } catch (e: Exception) {
-                createInvalidPreview("Proxy chains", "", "", e)
+                createInvalidPreview(context.getString(R.string.yaml_edit_proxy_chains), "", "", e)
             }
         }
     }
@@ -1250,7 +1250,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
         // same way rule-/proxy-providers already do, instead of relying on config.yaml extraction.
         return previewConfigMutation(
             uuid,
-            "DNS & Hosts",
+            context.getString(R.string.yaml_edit_dns_hosts),
             layerMutation = { it.copy(dnsHosts = config) },
         ) { current ->
             DnsHostsYamlEdit.render(current, config)
@@ -1282,7 +1282,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
         // E-01/E-05: write the tunnels intent to the user layer directly (explicit intent).
         return previewConfigMutation(
             uuid,
-            "Tunnels",
+            context.getString(R.string.yaml_edit_tunnels),
             layerMutation = { it.copy(tunnels = config) },
         ) { current ->
             TunnelsYamlEdit.render(current, config)

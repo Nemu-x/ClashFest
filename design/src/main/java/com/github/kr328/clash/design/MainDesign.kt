@@ -1139,10 +1139,10 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             )
         } else null
         val used = headerUsage?.used ?: (profile.upload + profile.download)
-        val usedText = used.toBytesString()
+        val usedText = used.toBytesString(context)
         val total = headerUsage?.total ?: profile.total
-        if (total < 2L) return "$usedText / ${context.getString(R.string.sub_announcement_unlimited)}"
-        return "$usedText / ${total.toBytesString()}"
+        if (total < 2L) return context.getString(R.string.subscription_usage_format, usedText, context.getString(R.string.sub_announcement_unlimited))
+        return context.getString(R.string.subscription_usage_format, usedText, total.toBytesString(context))
     }
 
     suspend fun patchProxyGroups(
@@ -1314,7 +1314,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         val activating = activatingSubscriptionUuid == profile.uuid
         sheet.detailName.text = profile.name
         sheet.detailStatus.setText(if (profile.active) R.string.subscription_in_use else R.string.subscription_not_in_use)
-        sheet.detailUsage.text = if (profile.imported) tabProfileAdapter.formatUsageLine(profile)
+        sheet.detailUsage.text = if (profile.imported) tabProfileAdapter.formatUsageLine(context, profile)
             else context.getString(R.string.subscription_not_ready)
         val hasLimit = profile.imported && profile.total >= 2L
         sheet.detailUsageProgress.visibility = if (hasLimit) View.VISIBLE else View.GONE
@@ -1487,7 +1487,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     private fun showBrandDevDialog() {
         val uuid = ServiceStore(context).activeProfile
         if (uuid == null) {
-            Toast.makeText(context, "No active profile — select a subscription first", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, R.string.brand_dev_no_profile, Toast.LENGTH_LONG).show()
             return
         }
         val store = BrandStore(context)
@@ -1498,7 +1498,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         fun field(value: String?): EditText = EditText(context).apply {
             setText(value ?: ""); setSingleLine()
         }
-        val boolOpts = arrayOf("Unset", "Yes", "No")
+        val boolOpts = arrayOf(R.string.brand_dev_unset, R.string.brand_dev_yes, R.string.brand_dev_no).map(context::getString).toTypedArray()
         fun boolSpinner(v: Boolean?): Spinner = Spinner(context).apply {
             adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, boolOpts)
             setSelection(when (v) { true -> 1; false -> 2; else -> 0 })
@@ -1522,39 +1522,43 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             orientation = LinearLayout.VERTICAL
             setPadding(px(20), px(4), px(20), 0)
         }
-        fun row(l: String, v: View) {
+        fun row(label: Int, v: View, vararg args: Any) {
             container.addView(TextView(context).apply {
-                text = l; textSize = 12f; setPadding(0, px(10), 0, px(2))
+                text = context.getString(label, *args); textSize = 12f; setPadding(0, px(10), 0, px(2))
                 setTextColor(context.resolveThemedColor(MaterialR.attr.colorOnSurfaceVariant))
             })
             container.addView(v)
         }
 
-        val randomBtn = Button(context).apply { text = "🎲 Randomize" }
-        val mockLogoBtn = Button(context).apply { text = "🖼 Mock logo (app icon)" }
+        fun urlRow(label: Int, view: View) {
+            row(R.string.brand_dev_url_format, view, context.getString(label))
+        }
+
+        val randomBtn = Button(context).apply { setText(R.string.brand_dev_randomize) }
+        val mockLogoBtn = Button(context).apply { setText(R.string.brand_dev_mock_logo) }
         container.addView(randomBtn); container.addView(mockLogoBtn)
 
-        row("Enabled (master switch)", sEnabled)
-        row("Name", fName); row("Tagline", fTagline); row("Accent hex (#RRGGBB)", fAccent)
-        row("Logo URL", fLogo); row("Logo Light URL", fLogoLight)
-        row("Hide Routing tab", sHideRouting); row("Show Operator tab", sOperatorTab)
-        row("Hide Global mode (policy — works even with Enabled=No)", sHideGlobal)
-        row("User display name", fUser); row("Greeting", fGreeting)
-        row("Website URL", fWebsite); row("Support URL", fSupport); row("Telegram URL", fTelegram)
-        row("Bot URL", fBot); row("Privacy URL", fPrivacy); row("Terms URL", fTerms)
-        row("Help URL", fHelp); row("Status URL", fStatus); row("Renew URL", fRenew); row("Cabinet URL", fCabinet)
+        row(R.string.brand_dev_enabled, sEnabled)
+        row(R.string.name, fName); row(R.string.brand_dev_tagline, fTagline); row(R.string.brand_dev_accent, fAccent)
+        row(R.string.brand_dev_logo, fLogo); row(R.string.brand_dev_logo_light, fLogoLight)
+        row(R.string.brand_dev_hide_routing, sHideRouting); row(R.string.brand_dev_show_operator, sOperatorTab)
+        row(R.string.brand_dev_hide_global, sHideGlobal)
+        row(R.string.brand_dev_user_name, fUser); row(R.string.brand_dev_greeting, fGreeting)
+        urlRow(R.string.about_brand_website, fWebsite); urlRow(R.string.about_brand_support, fSupport); urlRow(R.string.about_brand_telegram, fTelegram)
+        urlRow(R.string.about_brand_bot, fBot); urlRow(R.string.about_brand_privacy, fPrivacy); urlRow(R.string.about_brand_terms, fTerms)
+        urlRow(R.string.about_brand_help, fHelp); urlRow(R.string.about_brand_status, fStatus); urlRow(R.string.about_brand_renew, fRenew); urlRow(R.string.about_brand_cabinet, fCabinet)
 
         randomBtn.setOnClickListener {
             val palette = listOf("#7C5CFF", "#5EE6A8", "#FF5E35", "#7FB2FF", "#F2C14E", "#EC4899", "#22D3EE")
             val n = (100..999).random()
-            fName.setText("Operator $n"); fTagline.setText("Fast & secure, always on")
+            fName.setText(context.getString(R.string.brand_dev_sample_name, n)); fTagline.setText(R.string.brand_dev_sample_tagline)
             fAccent.setText(palette.random())
             fWebsite.setText("https://example.com"); fSupport.setText("https://t.me/nemux_dev")
             fTelegram.setText("https://t.me/nemux_dev"); fBot.setText("https://t.me/some_bot")
             fPrivacy.setText("https://example.com/privacy"); fTerms.setText("https://example.com/terms")
             fHelp.setText("https://example.com/help"); fStatus.setText("https://example.com/status")
             fRenew.setText("https://example.com/renew"); fCabinet.setText("https://t.me/some_bot?startapp=demo")
-            fUser.setText("dev_user_$n"); fGreeting.setText("Welcome back — 30 days left")
+            fUser.setText("dev_user_$n"); fGreeting.setText(context.getString(R.string.brand_dev_sample_greeting, 30))
             sEnabled.setSelection(1); sHideRouting.setSelection((0..2).random()); sOperatorTab.setSelection(1)
         }
         mockLogoBtn.setOnClickListener {
@@ -1563,14 +1567,14 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
                 val f = File(context.filesDir, "brand_mock_logo.png")
                 FileOutputStream(f).use { bmp.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
                 store.setLogoPaths(uuid, f.absolutePath, f.absolutePath)
-                Toast.makeText(context, "Mock logo set — press Apply", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.brand_dev_mock_logo_ready, Toast.LENGTH_SHORT).show()
             }
         }
 
         MaterialAlertDialogBuilder(context)
-            .setTitle("Brand tester (dev)")
+            .setTitle(R.string.brand_dev_title)
             .setView(ScrollView(context).apply { addView(container) })
-            .setPositiveButton("Apply") { _, _ ->
+            .setPositiveButton(R.string.yaml_preview_apply) { _, _ ->
                 fun s(e: EditText) = e.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
                 store.setManifest(
                     uuid,
@@ -1591,11 +1595,11 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
                 // operator brand change takes (never Activity.recreate on Main).
                 profileExpandChanged.trySend(Unit)
             }
-            .setNeutralButton("Clear brand") { _, _ ->
+            .setNeutralButton(R.string.about_brand_reset) { _, _ ->
                 store.clearFor(uuid)
                 profileExpandChanged.trySend(Unit)
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 

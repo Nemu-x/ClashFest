@@ -48,4 +48,18 @@
     <string name="widget_permission_denied">请允许 VPN 连接以使用小组件。</string>
     <string name="widget_action_failed">无法切换 VPN。请打开 Mikan 并重试。</string>
     <string name="widget_choose_subscription">请先在 Mikan 中选择订阅。</string>
+
+    <string name="yaml_edit_rules">规则</string>
+    <string name="yaml_edit_rule_providers">规则提供者</string>
+    <string name="yaml_edit_proxy_providers">代理提供者</string>
+    <string name="yaml_edit_proxy_group">代理组</string>
+    <string name="yaml_edit_proxy_chain">代理链</string>
+    <string name="yaml_edit_proxy_chains">代理链</string>
+    <string name="yaml_edit_dns_hosts">DNS 与 Hosts</string>
+    <string name="yaml_edit_tunnels">隧道</string>
+    <string name="yaml_edit_group_exists">已存在同名代理组。</string>
+    <string name="yaml_edit_group_not_found">未找到代理组。</string>
+    <string name="yaml_edit_proxy_not_found">未找到代理。</string>
+    <string name="yaml_edit_no_chains">没有已保存的代理链。</string>
+    <string name="widget_off">已关闭</string>
 </resources>

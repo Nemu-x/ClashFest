@@ -99,9 +99,9 @@ class ConnectionsDesign(context: Context) : Design<ConnectionsDesign.Request>(co
     private fun renderSnapshot(snap: ConnectionsSnapshot) {
         lastSnapshot = snap
         binding.connectionsActiveValue.text = snap.connections.size.toString()
-        binding.connectionsUploadValue.text = snap.uploadTotal.toBytesString()
-        binding.connectionsDownloadValue.text = snap.downloadTotal.toBytesString()
-        binding.connectionsMemoryValue.text = snap.memory.toBytesString()
+        binding.connectionsUploadValue.text = snap.uploadTotal.toBytesString(context)
+        binding.connectionsDownloadValue.text = snap.downloadTotal.toBytesString(context)
+        binding.connectionsMemoryValue.text = snap.memory.toBytesString(context)
         binding.btnConnectionsCloseAll.isEnabled = snap.connections.isNotEmpty()
         applyFilteredList()
     }

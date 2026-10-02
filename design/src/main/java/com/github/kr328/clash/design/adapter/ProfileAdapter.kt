@@ -1574,7 +1574,7 @@ class ProfileAdapter(
                 (used > 0L || profile.total >= 2L)
         if (showTraffic) {
             binding.usageSummary.visibility = View.VISIBLE
-            binding.usageSummary.text = formatUsageLine(profile)
+            binding.usageSummary.text = formatUsageLine(binding.root.context, profile)
         } else {
             binding.usageSummary.visibility = View.GONE
         }
@@ -1710,7 +1710,7 @@ class ProfileAdapter(
         binding.subscriptionName.text = profile.name
         binding.subscriptionStatus.visibility = if (profile.active) View.VISIBLE else View.GONE
         binding.subscriptionUsage.text = if (profile.imported && !profile.pending) {
-            formatUsageLine(profile)
+            formatUsageLine(binding.root.context, profile)
         } else {
             context.getString(R.string.subscription_not_ready)
         }
@@ -2196,12 +2196,12 @@ class ProfileAdapter(
         text.setTextColor(color)
     }
 
-    fun formatUsageLine(p: Profile): String {
-        val used = (p.download + p.upload).toBytesString()
+    fun formatUsageLine(context: Context, p: Profile): String {
+        val used = (p.download + p.upload).toBytesString(context)
         return if (p.total < 2) {
-            "$used / ∞"
+            context.getString(R.string.subscription_usage_format, used, "∞")
         } else {
-            "$used / ${p.total.toBytesString()}"
+            context.getString(R.string.subscription_usage_format, used, p.total.toBytesString(context))
         }
     }
 

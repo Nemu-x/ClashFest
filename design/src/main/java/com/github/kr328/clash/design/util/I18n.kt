@@ -55,22 +55,22 @@ fun Date.format(
     }
 }
 
-fun Long.toBytesString(): String {
+fun Long.toBytesString(context: Context): String {
     return when {
         this > 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024 ->
-            String.format("%.2f EiB", (this.toDouble() / 1024 / 1024 / 1024 / 1024 / 1024 / 1024))
+            context.getString(R.string.data_size_eib, (this.toDouble() / 1024 / 1024 / 1024 / 1024 / 1024 / 1024))
         this > 1024.0 * 1024 * 1024 * 1024 * 1024 ->
-            String.format("%.2f PiB", (this.toDouble() / 1024 / 1024 / 1024 / 1024 / 1024))
+            context.getString(R.string.data_size_pib, (this.toDouble() / 1024 / 1024 / 1024 / 1024 / 1024))
         this > 1024.0 * 1024 * 1024 * 1024 ->
-            String.format("%.2f TiB", (this.toDouble() / 1024 / 1024 / 1024 / 1024))
+            context.getString(R.string.data_size_tib, (this.toDouble() / 1024 / 1024 / 1024 / 1024))
         this > 1024 * 1024 * 1024 ->
-            String.format("%.2f GiB", (this.toDouble() / 1024 / 1024 / 1024))
+            context.getString(R.string.data_size_gib, (this.toDouble() / 1024 / 1024 / 1024))
         this > 1024 * 1024 ->
-            String.format("%.2f MiB", (this.toDouble() / 1024 / 1024))
+            context.getString(R.string.data_size_mib, (this.toDouble() / 1024 / 1024))
         this > 1024 ->
-            String.format("%.2f KiB", (this.toDouble() / 1024))
+            context.getString(R.string.data_size_kib, (this.toDouble() / 1024))
         else ->
-            "$this Bytes"
+            context.getString(R.string.data_size_bytes, this)
     }
 }
 

@@ -58,4 +58,17 @@
     <string name="widget_permission_denied">Allow the VPN connection to use the widget.</string>
     <string name="widget_action_failed">Could not switch VPN. Open Mikan and try again.</string>
     <string name="widget_choose_subscription">Select a subscription in Mikan first.</string>
+
+    <string name="yaml_edit_rules">Rules</string>
+    <string name="yaml_edit_rule_providers">Rule providers</string>
+    <string name="yaml_edit_proxy_providers">Proxy providers</string>
+    <string name="yaml_edit_proxy_group">Proxy group</string>
+    <string name="yaml_edit_proxy_chain">Proxy chain</string>
+    <string name="yaml_edit_proxy_chains">Proxy chains</string>
+    <string name="yaml_edit_dns_hosts">DNS &amp; Hosts</string>
+    <string name="yaml_edit_tunnels">Tunnels</string>
+    <string name="yaml_edit_group_exists">A proxy group with this name already exists.</string>
+    <string name="yaml_edit_group_not_found">Proxy group was not found.</string>
+    <string name="yaml_edit_proxy_not_found">Proxy was not found.</string>
+    <string name="yaml_edit_no_chains">No saved proxy chains.</string>
 </resources>

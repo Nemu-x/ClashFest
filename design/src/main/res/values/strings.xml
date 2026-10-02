@@ -1330,4 +1330,47 @@ Password: %4$s</string>
     <string name="routing_type_and">All conditions (AND)</string>
     <string name="routing_type_or">Any condition (OR)</string>
     <string name="routing_type_not">Except condition (NOT)</string>
+
+    <string name="brand_dev_title">Brand tester (dev)</string>
+    <string name="brand_dev_no_profile">Select a subscription before testing branding.</string>
+    <string name="brand_dev_unset">Unset</string>
+    <string name="brand_dev_yes">Yes</string>
+    <string name="brand_dev_no">No</string>
+    <string name="brand_dev_randomize">Generate sample values</string>
+    <string name="brand_dev_mock_logo">Use app icon as logo</string>
+    <string name="brand_dev_mock_logo_ready">Logo selected. Tap Apply.</string>
+    <string name="brand_dev_enabled">Enable branding</string>
+    <string name="brand_dev_tagline">Tagline</string>
+    <string name="brand_dev_accent">Accent color (#RRGGBB)</string>
+    <string name="brand_dev_logo">Logo URL</string>
+    <string name="brand_dev_logo_light">Light-theme logo URL</string>
+    <string name="brand_dev_hide_routing">Hide Routing tab</string>
+    <string name="brand_dev_show_operator">Show Operator tab</string>
+    <string name="brand_dev_hide_global">Hide Global mode (also applies when branding is off)</string>
+    <string name="brand_dev_user_name">User display name</string>
+    <string name="brand_dev_greeting">Greeting</string>
+    <string name="brand_dev_url_format">%1$s URL</string>
+    <string name="brand_dev_sample_name">Operator %1$d</string>
+    <string name="brand_dev_sample_tagline">Fast and secure</string>
+    <string name="brand_dev_sample_greeting">Welcome back — %1$d days left</string>
+    <string name="subscription_hwid_panel_unsupported">Panel HWID: enabled, but x-hwid was not accepted or detected.</string>
+    <string name="subscription_hwid_panel_limit">Panel HWID: device limit reached.</string>
+    <string name="subscription_hwid_panel_accepted">Panel HWID: enabled and accepted.</string>
+    <string name="subscription_hwid_panel_disabled">Panel HWID: disabled.</string>
+    <string name="subscription_hwid_panel_unknown">Panel HWID: unknown. Update the subscription to refresh diagnostics.</string>
+    <string name="subscription_hwid_request_headers">Request headers sent by Mikan:</string>
+    <string name="subscription_hwid_panel_headers">Last panel diagnostics headers:</string>
+    <string name="diagnostics_missing">Missing</string>
+    <string name="diagnostics_unknown">Unknown</string>
+    <string name="diagnostics_header_format">- %1$s: %2$s</string>
+    <string name="data_size_bytes">%1$d bytes</string>
+    <string name="data_size_kib">%1$.2f KiB</string>
+    <string name="data_size_mib">%1$.2f MiB</string>
+    <string name="data_size_gib">%1$.2f GiB</string>
+    <string name="data_size_tib">%1$.2f TiB</string>
+    <string name="data_size_pib">%1$.2f PiB</string>
+    <string name="data_size_eib">%1$.2f EiB</string>
+    <string name="subscription_usage_format">%1$s / %2$s</string>
+    <string name="connections_uid_short">UID %1$d</string>
+    <string name="rule_providers_yaml_hint" translatable="false">rule-providers:</string>
 </resources>
