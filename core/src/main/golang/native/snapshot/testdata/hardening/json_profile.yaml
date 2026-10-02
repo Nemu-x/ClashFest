@@ -1,0 +1,21 @@
+allow-lan: false
+proxies:
+  - name: on
+    type: socks5
+    server: 127.0.0.1
+    port: 1080
+    username: yes
+    password: '0123'
+proxy-groups:
+  - name: VPN
+    type: select
+    proxies:
+      - on
+rules:
+  - MATCH,VPN
+dns:
+    enable: true
+    nameserver:
+      - https://1.1.1.1/dns-query
+
+geo-auto-update: false
