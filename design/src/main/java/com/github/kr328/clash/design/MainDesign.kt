@@ -91,6 +91,9 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         OpenConnections,
         /** Routing rules list screen. */
         OpenRouting,
+        RefreshRouting,
+        OpenNewRule,
+        OpenEffectiveRules,
         /** Rule snippets / editor screen. */
         OpenRules,
         /** Proxy chain screen. */
@@ -2055,6 +2058,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     }
 
     private fun renderMainTab(tab: MainTab) {
+        if (tab == MainTab.Routing) requests.trySend(Request.RefreshRouting)
         MainTab.values().forEach {
             navForMainTab(it).isSelected = it == tab
             // The ViewPager keeps off-screen tab pages attached + VISIBLE (offscreenPageLimit =
@@ -2063,6 +2067,26 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             (pageForMainTab(it) as? ViewGroup)?.descendantFocusability =
                 if (it == tab) ViewGroup.FOCUS_AFTER_DESCENDANTS
                 else ViewGroup.FOCUS_BLOCK_DESCENDANTS
+        }
+    }
+
+    fun patchRoutingSummary(profile: String?, state: com.github.kr328.clash.service.model.RuleState?, error: Boolean = false) {
+        val loading = profile != null && state == null && !error
+        binding.mainRoutingLoading.visibility = if (loading) View.VISIBLE else View.GONE
+        binding.mainRoutingCounts.visibility = if (loading) View.GONE else View.VISIBLE
+        binding.mainRoutingCounts.isClickable = error
+        binding.mainRoutingCounts.isFocusable = error
+        binding.mainRoutingCounts.setOnClickListener { requests.trySend(Request.RefreshRouting) }
+        binding.mainRoutingProfile.text = profile ?: context.getString(R.string.routing_no_subscription)
+        binding.mainRoutingAdd.isEnabled = profile != null && state != null
+        binding.mainRoutingCounts.text = when {
+            error -> context.getString(R.string.routing_load_error)
+            profile == null -> context.getString(R.string.routing_no_subscription_hint)
+            state == null -> context.getString(R.string.routing_open_to_load)
+            else -> context.getString(R.string.routing_counts_fmt,
+                state.rules.count { it.enabled && !it.deleted && it.source == com.github.kr328.clash.service.model.RuleSource.MANUAL },
+                state.rules.count { it.enabled && !it.deleted && it.source == com.github.kr328.clash.service.model.RuleSource.PROVIDER },
+                state.providers.count { it.enabled })
         }
     }
 

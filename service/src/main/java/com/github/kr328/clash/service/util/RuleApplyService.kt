@@ -171,17 +171,9 @@ class RuleApplyService(
             // can't see (the engine gate is the real check).
             allowUnknownPolicy = mergedSnapshot.proxyProviders.isNotEmpty(),
         )
-        // Soft engine check: ask mihomo whether it would accept the merged
-        // YAML and surface its verdict in the log. We do NOT block the write
-        // on failure - ParseRawConfig also loads provider files, which means
-        // a broken provider .mrs/.yaml on disk would block legitimate rule
-        // edits (toggle/delete) that have nothing to do with the provider.
-        // Use the log to spot issues; the runtime apply will hard-fail later
-        // if mihomo really can't load, and at that point the user fixes the
-        // provider, not their edits.
-        Clash.validateProfileBytes(mergedYaml)?.let { engineError ->
-            Log.w("Engine flagged merged config (continuing anyway): $engineError")
-        }
+        // Raw/logical edits require semantic validation, not just a YAML snapshot.
+        val engineError = Clash.validateProfileBytes(mergedYaml)
+        require(engineError == null) { engineError.orEmpty() }
         return RuleDryRun(currentYaml, mergedYaml, normalized)
     }
 

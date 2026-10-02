@@ -2,6 +2,7 @@ package com.github.kr328.clash.design
 
 import android.content.Context
 import android.text.InputType
+import android.text.InputFilter
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.ArrayAdapter
@@ -17,6 +18,10 @@ import com.github.kr328.clash.design.util.RuleTypeIcons
 import com.github.kr328.clash.design.util.RuleTypeMeta
 import com.github.kr328.clash.service.model.RuleItem
 import com.github.kr328.clash.service.model.RuleSource
+import com.github.kr328.clash.service.model.RuleState
+import com.github.kr328.clash.service.util.RuleMapper
+import com.github.kr328.clash.service.util.RuleTextInput
+import com.github.kr328.clash.service.util.RuleValidator
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.color.MaterialColors
@@ -30,6 +35,7 @@ data class RuleEditResult(
     val policy: String,
     val enabled: Boolean,
     val deleted: Boolean = false,
+    val raw: String = "",
 )
 
 class RuleEditSheet(
@@ -38,6 +44,7 @@ class RuleEditSheet(
     private val knownPolicies: Set<String>,
     private val onConfirm: (RuleEditResult) -> Unit,
     private val onDelete: (() -> Unit)? = null,
+    private val onPickApp: (((String) -> Unit) -> Unit)? = null,
 ) {
     private val dialog = AppBottomSheetDialog(context, fitContentHeight = true)
     private val root: View = LayoutInflater.from(context).inflate(R.layout.bottom_sheet_rule_edit, null)
@@ -58,6 +65,16 @@ class RuleEditSheet(
     private val btnDelete: MaterialButton = root.findViewById(R.id.btn_delete)
     private val btnCancel: MaterialButton = root.findViewById(R.id.btn_cancel)
     private val btnConfirm: MaterialButton = root.findViewById(R.id.btn_confirm)
+    private val sourceSwitch: MaterialSwitch = root.findViewById(R.id.switch_source)
+    private val rawLayout: TextInputLayout = root.findViewById(R.id.raw_layout)
+    private val rawInput: TextInputEditText = root.findViewById(R.id.input_raw)
+    private val noResolveSwitch: MaterialSwitch = root.findViewById(R.id.switch_no_resolve)
+    private val typeRow: View = root.findViewById(R.id.type_row)
+    private val policyLabel: View = root.findViewById(R.id.policy_label)
+    private val pickApp: MaterialButton = root.findViewById(R.id.btn_pick_app)
+    private var originalRaw = ""
+    private var rejectPolicy = "REJECT"
+    private var changingMode = false
 
     private var selectedMeta: RuleTypeMeta = RuleTypeCatalog.common.first()
     // Picker shows the real proxy/group names only. knownPolicies (UPPERCASED, for
@@ -82,6 +99,33 @@ class RuleEditSheet(
         typeInput.setOnClickListener { showTypePicker() }
         typeLayout.setEndIconOnClickListener { showTypePicker() }
         valueInput.addTextChangedListener { refreshFormState() }
+        rawInput.filters = arrayOf(InputFilter.LengthFilter(RuleTextInput.MAX_LENGTH))
+        rawInput.addTextChangedListener { refreshFormState() }
+        noResolveSwitch.setOnCheckedChangeListener { _, _ -> refreshFormState() }
+        pickApp.setOnClickListener {
+            onPickApp?.invoke { name -> if (dialog.isShowing) valueInput.setText(name) }
+        }
+        sourceSwitch.setOnCheckedChangeListener { _, rawMode ->
+            if (changingMode) return@setOnCheckedChangeListener
+            changingMode = true
+            if (rawMode) {
+                rawInput.setText(RuleMapper.toRuleLine(formRule()))
+            } else {
+                val parsed = runCatching { RuleTextInput.parse(rawInput.text.toString()).single() }.getOrNull()
+                if (parsed == null || RuleMapper.isOpaqueType(parsed.type)) {
+                    sourceSwitch.isChecked = true
+                } else {
+                    originalRaw = parsed.raw
+                    selectedMeta = RuleEditFormHelper.metaForType(parsed.type)
+                    valueInput.setText(parsed.value)
+                    selectPolicy(parsed.policy)
+                    noResolveSwitch.isChecked = parsed.raw.split(',').drop(3).any { it.trim() == "no-resolve" }
+                }
+            }
+            changingMode = false
+            applySelectedMeta()
+            refreshFormState()
+        }
         groupInput.addTextChangedListener { onGroupChanged() }
         groupInput.setOnItemClickListener { _, _, _, _ -> onGroupChanged() }
         groupInput.setOnFocusChangeListener { _, _ -> refreshPolicyWarning() }
@@ -122,6 +166,12 @@ class RuleEditSheet(
     fun showEdit(rule: RuleItem) {
         title.text = context.getString(R.string.rules_hub_edit_rule)
         selectedMeta = RuleEditFormHelper.metaForType(rule.type)
+        originalRaw = RuleMapper.toRuleLine(rule)
+        changingMode = true
+        rawInput.setText(originalRaw)
+        sourceSwitch.isChecked = RuleMapper.isOpaqueType(rule.type)
+        noResolveSwitch.isChecked = rule.raw.split(',').drop(3).any { it.trim() == "no-resolve" }
+        changingMode = false
         applySelectedMeta()
         valueInput.setText(rule.value)
         selectPolicy(rule.policy)
@@ -183,16 +233,37 @@ class RuleEditSheet(
 
     private fun selectType(meta: RuleTypeMeta) {
         selectedMeta = meta
+        originalRaw = ""
+        noResolveSwitch.isChecked = false
+        changingMode = true
+        sourceSwitch.isChecked = RuleMapper.isOpaqueType(meta.mihomoType)
+        if (sourceSwitch.isChecked) rawInput.setText(when (meta.mihomoType) {
+            "AND" -> "AND,((NETWORK,UDP),(DST-PORT,443)),REJECT"
+            "OR" -> "OR,((DOMAIN-SUFFIX,example.com),(DOMAIN-SUFFIX,example.org)),DIRECT"
+            "NOT" -> "NOT,((NETWORK,UDP)),DIRECT"
+            else -> ""
+        })
+        changingMode = false
         applySelectedMeta()
         refreshFormState()
     }
 
     private fun applySelectedMeta() {
+        val rawMode = sourceSwitch.isChecked
+        typeRow.visibility = if (rawMode) View.GONE else View.VISIBLE
+        policyLabel.visibility = if (rawMode) View.GONE else View.VISIBLE
+        policyBuiltinGroup.visibility = if (rawMode) View.GONE else View.VISIBLE
+        groupLayout.visibility = if (rawMode) View.GONE else View.VISIBLE
+        rawLayout.visibility = if (rawMode) View.VISIBLE else View.GONE
+        val appRule = !rawMode && selectedMeta.mihomoType == "PROCESS-NAME"
+        pickApp.visibility = if (appRule && onPickApp != null && android.os.Build.VERSION.SDK_INT >= 29) View.VISIBLE else View.GONE
+        valueLayout.helperText = if (appRule) context.getString(R.string.routing_app_rule_hint) else null
+        noResolveSwitch.visibility = if (!rawMode && supportsNoResolve()) View.VISIBLE else View.GONE
         val icon = RuleTypeIcons.forMihomoType(selectedMeta.mihomoType)
         typeInput.setText(RuleEditFormHelper.displayTitle(context, selectedMeta))
         typeInput.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, 0, 0, 0)
         typeInput.compoundDrawablePadding = (12 * context.resources.displayMetrics.density).toInt()
-        if (selectedMeta.requiresValue) {
+        if (selectedMeta.requiresValue && !rawMode) {
             valueLayout.visibility = View.VISIBLE
             valueLayout.hint = RuleEditFormHelper.displayHint(context, selectedMeta)
             valueInput.inputType = when (selectedMeta.keyboard) {
@@ -227,6 +298,7 @@ class RuleEditSheet(
             }
             normalized.equals("REJECT", ignoreCase = true) ||
                 normalized.equals("REJECT-DROP", ignoreCase = true) -> {
+                rejectPolicy = normalized.uppercase()
                 policyBuiltinGroup.check(R.id.btn_policy_reject)
                 groupInput.setText("", false)
             }
@@ -246,12 +318,24 @@ class RuleEditSheet(
     private fun resolvedPolicy(): String {
         when (policyBuiltinGroup.checkedButtonId) {
             R.id.btn_policy_direct -> return "DIRECT"
-            R.id.btn_policy_reject -> return "REJECT"
+            R.id.btn_policy_reject -> return rejectPolicy
         }
         return groupInput.text?.toString()?.trim().orEmpty()
     }
 
     private fun refreshFormState() {
+        if (sourceSwitch.isChecked) {
+            val error = runCatching {
+                val rule = RuleTextInput.parse(rawInput.text.toString()).single()
+                RuleValidator.validate(RuleState(rules = listOf(rule)), policyOptions.toSet())
+            }.exceptionOrNull()
+            rawLayout.error = if (error != null) context.getString(R.string.routing_invalid_line) else null
+            validationError.visibility = View.GONE
+            policyWarning.visibility = View.GONE
+            livePreview.text = rawInput.text.toString()
+            btnConfirm.isEnabled = error == null
+            return
+        }
         val value = valueInput.text?.toString().orEmpty()
         val policy = resolvedPolicy()
         val valueError = if (selectedMeta.requiresValue) {
@@ -273,7 +357,7 @@ class RuleEditSheet(
         livePreview.text = if (policy.isBlank()) {
             context.getString(R.string.rule_edit_live_preview_empty)
         } else {
-            RuleEditFormHelper.previewLine(selectedMeta.mihomoType, value, policy)
+            RuleMapper.toRuleLine(formRule())
         }
 
         refreshPolicyWarning()
@@ -330,20 +414,29 @@ class RuleEditSheet(
 
     private fun submit() {
         if (!btnConfirm.isEnabled) return
-        val value = if (selectedMeta.requiresValue) {
-            valueInput.text?.toString()?.trim().orEmpty()
-        } else {
-            ""
-        }
+        val rule = if (sourceSwitch.isChecked) RuleTextInput.parse(rawInput.text.toString()).single() else formRule()
         onConfirm(
             RuleEditResult(
-                type = selectedMeta.mihomoType,
-                value = value,
-                policy = resolvedPolicy(),
+                type = rule.type,
+                value = rule.value,
+                policy = rule.policy,
                 enabled = enabledSwitch.isChecked,
+                raw = RuleMapper.toRuleLine(rule),
             ),
         )
         dialog.dismiss()
+    }
+
+    private fun supportsNoResolve() = selectedMeta.mihomoType in setOf("IP-CIDR", "IP-CIDR6", "IP-ASN", "IP-SUFFIX", "GEOIP", "RULE-SET")
+
+    private fun formRule(): RuleItem {
+        val base = RuleItem("", type = selectedMeta.mihomoType,
+            value = if (selectedMeta.requiresValue) valueInput.text.toString().trim() else "",
+            policy = resolvedPolicy(), raw = originalRaw)
+        val parameters = if (originalRaw.substringBefore(',').equals(base.type, true))
+            originalRaw.split(',').drop(3).map { it.trim() }.filter { it != "no-resolve" } else emptyList()
+        val suffix = parameters + if (supportsNoResolve() && noResolveSwitch.isChecked) listOf("no-resolve") else emptyList()
+        return base.copy(raw = (listOf(base.type, base.value, base.policy) + suffix).joinToString(","))
     }
 
     private fun paddingHorizontalPx(): Int = (16 * context.resources.displayMetrics.density).toInt()
@@ -357,6 +450,7 @@ class RuleEditSheet(
             id: String,
         ): RuleItem = RuleItem(
             id = id,
+            raw = result.raw,
             type = result.type,
             value = result.value,
             policy = result.policy,

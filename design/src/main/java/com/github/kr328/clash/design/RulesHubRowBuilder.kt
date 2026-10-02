@@ -69,11 +69,8 @@ object RulesHubRowBuilder {
         if (item.value.isBlank() && item.policy.isBlank() && item.raw.isNotBlank()) {
             return item.raw
         }
-        return when {
-            item.type.equals("MATCH", true) -> "MATCH,${item.policy}"
-            item.type == "LEGACY" -> item.value
-            else -> "${item.type},${item.value},${item.policy}"
-        }
+        return if (item.type == "LEGACY") item.value
+        else com.github.kr328.clash.service.util.RuleMapper.toRuleLine(item)
     }
 
     fun buildRuleExpression(item: RuleItem): String {

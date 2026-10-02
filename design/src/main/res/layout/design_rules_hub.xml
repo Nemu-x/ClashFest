@@ -1,11 +1,11 @@
-<?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<?xml version="1.0" ?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_home_canvas">
-
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rules_list"
         android:layout_width="match_parent"
@@ -13,8 +13,7 @@
         android:clipToPadding="false"
         android:paddingBottom="88dp"
         android:scrollbars="vertical"
-        tools:listitem="@layout/item_rules_hub_row_manual" />
-
+        tools:listitem="@layout/item_rules_hub_row_manual"/>
     <TextView
         android:id="@+id/no_profile_notice"
         android:layout_width="match_parent"
@@ -24,8 +23,7 @@
         android:text="@string/rules_hub_no_profile"
         android:textAppearance="@style/TextAppearance.App.BodyMedium"
         android:textColor="?attr/colorOnSurfaceVariant"
-        android:visibility="gone" />
-
+        android:visibility="gone"/>
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/save_bar"
         style="@style/AppCard.Filled"
@@ -36,36 +34,54 @@
         app:cardCornerRadius="0dp"
         app:cardElevation="8dp"
         app:strokeWidth="0dp">
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
-            android:orientation="horizontal"
+            android:orientation="vertical"
             android:paddingHorizontal="16dp"
             android:paddingVertical="12dp">
-
             <TextView
                 android:id="@+id/status_text"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:ellipsize="end"
                 android:maxLines="2"
                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                 android:textColor="?attr/colorError"
                 android:visibility="gone"
                 tools:text="Validation error"
-                tools:visibility="visible" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_save"
-                android:layout_width="wrap_content"
+                tools:visibility="visible"/>
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:minWidth="120dp"
-                android:text="@string/rules_hub_save"
-                android:textAllCaps="false" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_import_rules"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minWidth="0dp"
+                    android:text="@string/routing_paste"/>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_edit_source"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minWidth="0dp"
+                    android:text="@string/routing_source"/>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_save"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:minWidth="0dp"
+                    android:text="@string/rules_hub_save"
+                    android:textAllCaps="false"/>
+            </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

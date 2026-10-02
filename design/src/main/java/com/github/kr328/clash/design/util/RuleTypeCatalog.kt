@@ -96,12 +96,18 @@ object RuleTypeCatalog {
         // v1.19.28+): value = the rematch mark name, policy = where they go on
         // the second pass. Only meaningful when the config declares a rematch
         // proxy, hence advanced.
-        "REMATCH-NAME",
+        "REMATCH-NAME", "AND", "OR", "NOT",
     ).map { type ->
         val numeric = type in setOf("SRC-PORT", "IN-PORT", "UID", "DSCP")
         RuleTypeMeta(
             mihomoType = type,
             group = RuleTypeMeta.Group.ADVANCED,
+            titleRes = when (type) {
+                "AND" -> R.string.routing_type_and
+                "OR" -> R.string.routing_type_or
+                "NOT" -> R.string.routing_type_not
+                else -> 0
+            },
             keyboard = if (numeric) RuleTypeMeta.Keyboard.NUMBER else RuleTypeMeta.Keyboard.TEXT,
             validate = when (type) {
                 "SRC-PORT", "IN-PORT" -> ::port

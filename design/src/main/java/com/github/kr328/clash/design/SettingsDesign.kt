@@ -46,6 +46,8 @@ class SettingsDesign(context: Context) : Design<SettingsDesign.Request>(context)
             if (ui.tunnelsEnabled) View.VISIBLE else View.GONE
         binding.cardOverride.visibility =
             if (ui.expertEnabled) View.VISIBLE else View.GONE
+        binding.expertGroup.visibility = if (ui.dnsHostsEnabled || ui.tunnelsEnabled || ui.expertEnabled) View.VISIBLE else View.GONE
+        binding.expertLabel.visibility = binding.expertGroup.visibility
     }
 
     fun request(request: Request) {

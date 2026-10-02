@@ -20,6 +20,7 @@
             android:textStyle="bold" />
 
         <LinearLayout
+            android:id="@+id/type_row"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
@@ -73,7 +74,51 @@
                 android:inputType="text" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switch_source"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="@string/routing_source_mode" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_pick_app"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="@string/routing_pick_app"
+            android:visibility="gone" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/raw_layout"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/routing_rule_line"
+            android:visibility="gone"
+            app:helperText="@string/routing_engine_check">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/input_raw"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="top"
+                android:minLines="3"
+                android:maxLines="8"
+                android:inputType="textMultiLine|textNoSuggestions"
+                android:fontFamily="monospace" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switch_no_resolve"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="@string/routing_no_resolve"
+            android:visibility="gone" />
+
         <TextView
+            android:id="@+id/policy_label"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
@@ -97,7 +142,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:minWidth="0dp"
-                android:text="DIRECT"
+                android:text="@string/routing_direct"
                 android:textAllCaps="true" />
 
             <com.google.android.material.button.MaterialButton
@@ -107,7 +152,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:minWidth="0dp"
-                android:text="REJECT"
+                android:text="@string/routing_reject"
                 android:textAllCaps="true" />
         </com.google.android.material.button.MaterialButtonToggleGroup>
 

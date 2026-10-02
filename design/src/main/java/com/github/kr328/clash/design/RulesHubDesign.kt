@@ -22,6 +22,9 @@ class RulesHubDesign(context: Context) : Design<RulesHubDesign.Request>(context)
     sealed class Request {
         object Save : Request()
         object AddManual : Request()
+        object ImportRules : Request()
+        object EditSource : Request()
+        object Reload : Request()
         data class EditManual(val ruleId: String) : Request()
         data class ToggleRule(val ruleId: String, val enabled: Boolean) : Request()
         data class RestoreRule(val ruleId: String) : Request()
@@ -128,12 +131,25 @@ class RulesHubDesign(context: Context) : Design<RulesHubDesign.Request>(context)
         adapter.attachItemTouchHelper(recycler)
 
         btnSave.setOnClickListener { requests.trySend(Request.Save) }
+        rootView.findViewById<View>(R.id.btn_import_rules).setOnClickListener { requests.trySend(Request.ImportRules) }
+        rootView.findViewById<View>(R.id.btn_edit_source).setOnClickListener { requests.trySend(Request.EditSource) }
+        noProfileNotice.setOnClickListener { requests.trySend(Request.Reload) }
     }
 
     fun showNoProfile() {
+        noProfileNotice.setText(R.string.rules_hub_no_profile)
+        noProfileNotice.isClickable = false
+        noProfileNotice.isFocusable = false
         noProfileNotice.visibility = View.VISIBLE
         recycler.visibility = View.GONE
         saveBar.visibility = View.GONE
+    }
+
+    fun showLoadFailure() {
+        showNoProfile()
+        noProfileNotice.setText(R.string.routing_load_error)
+        noProfileNotice.isClickable = true
+        noProfileNotice.isFocusable = true
     }
 
     fun bind(
@@ -168,6 +184,11 @@ class RulesHubDesign(context: Context) : Design<RulesHubDesign.Request>(context)
     }
 
     fun knownPolicies(): Set<String> = RulesHubRowBuilder.knownPolicies(proxyOptions)
+    fun expandSubscriptionRules() {
+        subscriptionExpanded = true
+        providerDefsExpanded = false
+        renderList()
+    }
     fun policyOptions(): List<String> = proxyOptions
 
     fun mutateRule(id: String, transform: (RuleItem) -> RuleItem) {
@@ -178,9 +199,13 @@ class RulesHubDesign(context: Context) : Design<RulesHubDesign.Request>(context)
     }
 
     fun addManualRule(rule: RuleItem) {
+        addManualRules(listOf(rule))
+    }
+
+    fun addManualRules(rules: List<RuleItem>) {
         val (manual, provider) = RulesHubRowBuilder.partitionRules(workingState.rules)
         workingState = workingState.copy(
-            rules = RulesHubRowBuilder.mergeOrderedRules(listOf(rule) + manual, provider),
+            rules = RulesHubRowBuilder.mergeOrderedRules(rules + manual, provider),
         )
         renderList()
     }
@@ -189,6 +214,7 @@ class RulesHubDesign(context: Context) : Design<RulesHubDesign.Request>(context)
         mutateRule(id) { old ->
             old.copy(
                 type = result.type,
+                raw = result.raw,
                 value = result.value,
                 policy = result.policy,
                 enabled = result.enabled,
