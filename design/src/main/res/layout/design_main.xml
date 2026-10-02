@@ -287,7 +287,7 @@
                 android:clipToPadding="false"
                 android:gravity="center_horizontal"
                 android:orientation="vertical"
-                android:paddingTop="2dp">
+                android:paddingTop="24dp">
 
                 <TextView
                     android:id="@+id/main_status_label"
@@ -303,32 +303,32 @@
 
                 <FrameLayout
                     android:id="@+id/main_power_shell"
-                    android:layout_width="210dp"
-                    android:layout_height="210dp"
-                    android:layout_marginTop="12dp"
+                    android:layout_width="248dp"
+                    android:layout_height="248dp"
+                    android:layout_marginTop="28dp"
                     android:clipChildren="false"
                     android:clipToPadding="false">
 
                     <View
                         android:id="@+id/power_halo"
-                        android:layout_width="240dp"
-                        android:layout_height="240dp"
+                        android:layout_width="280dp"
+                        android:layout_height="280dp"
                         android:layout_gravity="center"
                         android:alpha="0.12"
                         android:background="@drawable/bg_power_glow" />
 
                     <View
                         android:id="@+id/power_ring_outer"
-                        android:layout_width="190dp"
-                        android:layout_height="190dp"
+                        android:layout_width="228dp"
+                        android:layout_height="228dp"
                         android:layout_gravity="center"
                         android:alpha="0.0"
                         android:background="@drawable/bg_power_ring" />
 
                     <View
                         android:id="@+id/power_ring_inner"
-                        android:layout_width="174dp"
-                        android:layout_height="174dp"
+                        android:layout_width="212dp"
+                        android:layout_height="212dp"
                         android:layout_gravity="center"
                         android:alpha="0.0"
                         android:background="@drawable/bg_power_ring" />
@@ -336,8 +336,8 @@
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/main_power_card"
                         style="@style/Widget.Material3.Button.IconButton.Filled"
-                        android:layout_width="148dp"
-                        android:layout_height="148dp"
+                        android:layout_width="180dp"
+                        android:layout_height="180dp"
                         android:layout_gravity="center"
                         android:contentDescription="@string/tap_to_start"
                         android:focusedByDefault="true"
@@ -347,11 +347,11 @@
                         android:insetRight="0dp"
                         android:insetBottom="0dp"
                         android:padding="0dp"
-                        app:cornerRadius="74dp"
+                        app:cornerRadius="90dp"
                         app:icon="@drawable/ic_baseline_bolt"
                         app:iconGravity="textStart"
                         app:iconPadding="0dp"
-                        app:iconSize="48dp" />
+                        app:iconSize="56dp" />
 
                     <!-- Top-light sheen overlaid on the button so it reads as a lit 3D orb.
                          High elevation draws it above the button fill; outlineProvider=none
@@ -359,8 +359,8 @@
                     <!-- Dome vignette (deepens the rim → volumetric fill). Connected-only. -->
                     <View
                         android:id="@+id/power_dome"
-                        android:layout_width="148dp"
-                        android:layout_height="148dp"
+                        android:layout_width="180dp"
+                        android:layout_height="180dp"
                         android:layout_gravity="center"
                         android:alpha="0"
                         android:background="@drawable/bg_power_dome"
@@ -370,8 +370,8 @@
 
                     <View
                         android:id="@+id/power_sheen"
-                        android:layout_width="148dp"
-                        android:layout_height="148dp"
+                        android:layout_width="180dp"
+                        android:layout_height="180dp"
                         android:layout_gravity="center"
                         android:background="@drawable/bg_power_sheen"
                         android:elevation="14dp"
@@ -381,8 +381,8 @@
                     <!-- Rotating glint (alive light sweep). Connected-only; rotation driven in code. -->
                     <View
                         android:id="@+id/power_sweep"
-                        android:layout_width="148dp"
-                        android:layout_height="148dp"
+                        android:layout_width="180dp"
+                        android:layout_height="180dp"
                         android:layout_gravity="center"
                         android:alpha="0"
                         android:background="@drawable/bg_power_sweep"
@@ -422,7 +422,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="20dp"
-                android:layout_marginTop="18dp"
+                android:layout_marginTop="32dp"
                 app:cardBackgroundColor="?attr/colorSurfaceContainer"
                 app:cardCornerRadius="22dp"
                 app:cardElevation="6dp"

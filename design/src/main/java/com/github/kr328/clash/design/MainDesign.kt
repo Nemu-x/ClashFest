@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
+import android.os.SystemClock
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
@@ -51,6 +52,7 @@ import com.github.kr328.clash.design.model.HomeBackgroundStyle
 import com.github.kr328.clash.design.store.UiStore
 import com.github.kr328.clash.design.ui.ToastDuration
 import com.github.kr328.clash.design.util.applyLinearAdapter
+import com.github.kr328.clash.design.util.ClickGuard
 import com.github.kr328.clash.design.util.isTelevision
 import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.design.util.patchDataSet
@@ -156,6 +158,8 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
 
     private val binding = DesignMainBinding
         .inflate(context.layoutInflater, context.root, false)
+
+    private val clickGuard = ClickGuard<Request>(600L, SystemClock::elapsedRealtime)
 
     private var clashRunningState: Boolean = false
     private var tunnelStartingState: Boolean = false
@@ -1453,6 +1457,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         onCheckUpdates: (((Boolean) -> Unit, (String?) -> Unit) -> Unit)? = null,
     ) {
         withContext(Dispatchers.Main) {
+            if (clickGuard.isOpen(Request.OpenAbout)) return@withContext
             val binding = DesignAboutBinding.inflate(context.layoutInflater).apply {
                 this.versionName = versionName
                 this.coreVersion = coreVersion
@@ -1550,7 +1555,14 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
                 }
             }
 
-            dialog.show()
+            if (!clickGuard.tryOpen(Request.OpenAbout)) return@withContext
+            dialog.setOnDismissListener { clickGuard.close(Request.OpenAbout) }
+            try {
+                dialog.show()
+            } catch (error: Throwable) {
+                clickGuard.close(Request.OpenAbout)
+                throw error
+            }
         }
     }
 
@@ -1984,7 +1996,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
 
         val card = binding.mainPowerCard
         card.setOnClickListener {
-            requests.trySend(Request.ToggleStatus)
+            request(Request.ToggleStatus)
         }
         card.setOnTouchListener { v, event ->
             when (event.actionMasked) {
@@ -2050,6 +2062,11 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     }
 
     fun request(request: Request) {
+        when (request) {
+            Request.PatchModeDirect, Request.PatchModeGlobal, Request.PatchModeRule,
+            Request.CycleTheme -> Unit
+            else -> if (!clickGuard.accept(request)) return
+        }
         requests.trySend(request)
     }
 }
