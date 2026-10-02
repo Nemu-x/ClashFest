@@ -68,11 +68,9 @@ subprojects {
             minSdk = 21
             targetSdk = 35
 
-            versionName = "1.2.1"
-            // major * 10_000_000 + minor * 100_000 + patch * 1_000.
-            // Up to 0.10.2 the major was not encoded at all (0.10.2 -> 1_002_000), which would
-            // have made 1.0.0 compute to 0 and break updates — Android requires this to increase.
-            versionCode = 10201000
+            versionName = "0.1.0"
+            // Keep Android's update counter increasing when resetting the fork's display version.
+            versionCode = 10201001
 
             resValue("string", "release_name", "v$versionName")
             resValue("integer", "release_code", "$versionCode")
@@ -114,9 +112,6 @@ subprojects {
             create("alpha") {
                 isDefault = true
                 dimension = flavorDimensionList[0]
-                if (!removeSuffix) {
-                    versionNameSuffix = ".Alpha"
-                }
 
                 if (isApp) {
                     resValue("string", "launch_name", "@string/launch_name_alpha")
@@ -131,9 +126,6 @@ subprojects {
             create("meta") {
 
                 dimension = flavorDimensionList[0]
-                if (!removeSuffix) {
-                    versionNameSuffix = ".Meta"
-                }
                 if (isApp) {
                     resValue("string", "launch_name", "@string/launch_name_meta")
                     resValue("string", "application_name", "@string/application_name_meta")
@@ -174,7 +166,7 @@ subprojects {
             named("release") {
                 isMinifyEnabled = isApp
                 isShrinkResources = isApp
-                signingConfig = signingConfigs.findByName("release") ?: signingConfigs["debug"]
+                signingConfig = signingConfigs.findByName("release")
                 proguardFiles(
                     getDefaultProguardFile("proguard-android-optimize.txt"),
                     "proguard-rules.pro"
@@ -212,6 +204,15 @@ subprojects {
 
     // Align Kotlin bytecode with Java (fixes: javac 21 vs Kotlin 21 mismatch when defaults differ).
     afterEvaluate {
+        if (isApp) {
+            tasks.matching { it.name.startsWith("package") && it.name.endsWith("Release") }.configureEach {
+                doFirst {
+                    check(rootProject.file("signing.properties").isFile && rootProject.file("release.keystore").isFile) {
+                        "Release signing is required: provide signing.properties and release.keystore."
+                    }
+                }
+            }
+        }
         tasks.withType<KotlinCompile>().configureEach {
             compilerOptions.jvmTarget.set(JvmTarget.JVM_21)
         }

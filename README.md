@@ -49,7 +49,7 @@ defaults for everyday use.
 | x86_64 (emulators, Chromebooks, x86 TV boxes) | [mikan-alpha-x86_64.apk](https://github.com/getmikan/MikanApp/releases/latest/download/mikan-alpha-x86_64.apk) |
 | x86 (32-bit Intel) | [mikan-alpha-x86.apk](https://github.com/getmikan/MikanApp/releases/latest/download/mikan-alpha-x86.apk) |
 
-Dev builds from the `dev` branch: [dev-latest pre-release](https://github.com/getmikan/MikanApp/releases/tag/dev-latest) (debug-signed — installs alongside the release, not over it). All releases & changelog: [Releases](https://github.com/getmikan/MikanApp/releases). The app checks for updates itself under **Settings → About & updates**.
+Dev builds from the `dev` branch: [dev-latest pre-release](https://github.com/getmikan/MikanApp/releases/tag/dev-latest) (debug-signed; Android cannot update a release installation with a debug APK). All releases & changelog: [Releases](https://github.com/getmikan/MikanApp/releases). The app checks for updates itself under **Settings → About & updates**.
 
 ## Highlights
 
@@ -144,6 +144,26 @@ are or aren't a fit. Have an idea? Open an [issue](https://github.com/getmikan/M
 # Windows
 .\gradlew.bat assembleAlphaDebug
 ```
+
+**Signed release**
+
+Put the private `release.keystore` and `signing.properties` in the repository root.
+The properties file contains `keystore.password`, `key.alias` and `key.password`.
+Both files are ignored by Git. Keep a secure backup and reuse the same key for
+every update; Android checks that the signing certificate matches.
+
+```powershell
+.\gradlew.bat :app:assembleAlphaRelease
+```
+
+Release builds require these signing files and never use the debug certificate.
+They enable code optimization and resource shrinking. The version shown in the
+app is `0.1.0`; Android's internal version code continues increasing from the fork.
+
+Tag releases (`v*`) use the `production-release` GitHub Actions environment with
+`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and
+`ANDROID_KEY_PASSWORD` secrets. Private signing files are removed before upload;
+only APKs are published.
 
 ---
 
