@@ -28,7 +28,7 @@
                 android:lineSpacingMultiplier="1.5"
                 android:paddingHorizontal="@dimen/logcat_padding_horizontal"
                 android:paddingVertical="@dimen/logcat_padding_vertical"
-                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                android:textAppearance="@style/TextAppearance.App.BodySmall"
                 android:textIsSelectable="true" />
         </com.github.kr328.clash.design.view.ObservableScrollView>
 

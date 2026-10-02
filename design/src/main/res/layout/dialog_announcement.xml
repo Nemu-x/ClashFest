@@ -35,7 +35,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/announcement_sheet_title"
-            android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
+            android:textAppearance="@style/TextAppearance.App.TitleLarge"
             android:textColor="?attr/colorOnSurface" />
     </LinearLayout>
 
@@ -43,19 +43,19 @@
         android:id="@+id/announcement_sheet_source"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="8dp"
         android:layout_marginStart="36dp"
         android:background="@drawable/bg_announcement_sheet_source_pill"
-        android:paddingHorizontal="10dp"
-        android:paddingVertical="3dp"
-        android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="4dp"
+        android:textAppearance="@style/TextAppearance.App.LabelMedium"
         android:textColor="?attr/colorOnSurfaceVariant"
         tools:text="From VPN Demo" />
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="14dp"
+        android:layout_marginTop="16dp"
         android:overScrollMode="ifContentScrolls"
         android:scrollbars="vertical">
 
@@ -64,7 +64,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:lineSpacingMultiplier="1.15"
-            android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+            android:textAppearance="@style/TextAppearance.App.BodyLarge"
             android:textColor="?attr/colorOnSurface"
             android:textIsSelectable="true"
             tools:text="Full announcement body. Any length here, sheet scrolls naturally if it overflows." />
@@ -73,7 +73,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
+        android:layout_marginTop="16dp"
         android:orientation="horizontal">
 
         <com.google.android.material.button.MaterialButton
@@ -81,7 +81,7 @@
             style="@style/AppButton.Tonal"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="6dp"
+            android:layout_marginEnd="8dp"
             android:layout_weight="1"
             android:text="@string/sub_announcement_open_link"
             android:textAllCaps="false"
@@ -97,7 +97,7 @@
             style="@style/AppButton.Tonal"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="6dp"
+            android:layout_marginEnd="8dp"
             android:layout_weight="1"
             android:text="@string/sub_announcement_support"
             android:textAllCaps="false"

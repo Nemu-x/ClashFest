@@ -300,7 +300,7 @@ class ThemeSettingsDesign(
 
     private fun showCustomAccentDialog() {
         val hsv = FloatArray(3)
-        Color.colorToHSV(uiStore.customAccent ?: 0xFF4CAF50.toInt(), hsv)
+        Color.colorToHSV(uiStore.customAccent ?: 0xFFFFA021.toInt(), hsv)
 
         val svView = com.github.kr328.clash.design.view.SaturationValueView(context).apply {
             layoutParams = android.widget.LinearLayout.LayoutParams(MATCH, dp(200))
@@ -487,7 +487,7 @@ class ThemeSettingsDesign(
 
     private val ThemePalette.previewColors: IntArray
         get() = when (this) {
-            ThemePalette.Clash -> intArrayOf(0xFF2FA36B.toInt(), 0xFFB6F6D3.toInt(), 0xFFF8FAFD.toInt(), 0xFF4E6357.toInt())
+            ThemePalette.Clash -> intArrayOf(0xFFFFA021.toInt(), 0xFFFFE3BD.toInt(), 0xFFFAF8F5.toInt(), 0xFF715A42.toInt())
             ThemePalette.Blue -> intArrayOf(0xFF2563EB.toInt(), 0xFFD9E2FF.toInt(), 0xFFF0F4FF.toInt(), 0xFF2F6878.toInt())
             ThemePalette.Violet -> intArrayOf(0xFF7C3AED.toInt(), 0xFFEADDFF.toInt(), 0xFFF8F1FF.toInt(), 0xFF85536D.toInt())
             ThemePalette.Rose -> intArrayOf(0xFFC0265A.toInt(), 0xFFFFD9E2.toInt(), 0xFFFFF0F4.toInt(), 0xFF7D5735.toInt())

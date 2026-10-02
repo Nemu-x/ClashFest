@@ -49,12 +49,12 @@
                     style="@style/AppCard.Filled"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="18dp"
+                    android:layout_marginTop="16dp"
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?attr/selectableItemBackground"
-                    app:cardBackgroundColor="?attr/colorPrimaryContainer"
-                    app:cardCornerRadius="24dp"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp">
 
                     <LinearLayout
@@ -62,14 +62,14 @@
                         android:layout_height="wrap_content"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:padding="18dp">
+                        android:padding="16dp">
 
                         <ImageView
                             android:layout_width="32dp"
                             android:layout_height="32dp"
                             android:contentDescription="@string/rules_hub_nav_title"
                             android:src="@drawable/ic_baseline_route"
-                            app:tint="?attr/colorOnPrimaryContainer" />
+                            app:tint="?attr/colorOnSurface" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -83,7 +83,7 @@
                                 android:layout_height="wrap_content"
                                 android:text="@string/rules_hub_nav_title"
                                 android:textAppearance="@style/TextAppearance.App.TitleMedium"
-                                android:textColor="?attr/colorOnPrimaryContainer"
+                                android:textColor="?attr/colorOnSurface"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -92,7 +92,7 @@
                                 android:layout_marginTop="4dp"
                                 android:text="@string/rules_hub_nav_summary"
                                 android:textAppearance="@style/TextAppearance.App.BodySmall"
-                                android:textColor="?attr/colorOnPrimaryContainer" />
+                                android:textColor="?attr/colorOnSurface" />
                         </LinearLayout>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
@@ -109,12 +109,12 @@
                         style="@style/AppCard.Filled"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="10dp"
+                        android:layout_marginBottom="12dp"
                         android:clickable="true"
                         android:focusable="true"
                         android:foreground="?attr/selectableItemBackground"
                         app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                        app:cardCornerRadius="22dp"
+                        app:cardCornerRadius="16dp"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp">
 
@@ -135,7 +135,7 @@
                             <LinearLayout
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:layout_marginStart="14dp"
+                                android:layout_marginStart="16dp"
                                 android:layout_weight="1"
                                 android:orientation="vertical">
 
@@ -150,7 +150,7 @@
                                 <TextView
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginTop="3dp"
+                                    android:layout_marginTop="4dp"
                                     android:text="@string/proxy_chain_intro"
                                     android:textAppearance="@style/TextAppearance.App.BodySmall"
                                     android:textColor="?attr/colorOnSurfaceVariant" />
@@ -167,7 +167,7 @@
                         android:focusable="true"
                         android:foreground="?attr/selectableItemBackground"
                         app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                        app:cardCornerRadius="22dp"
+                        app:cardCornerRadius="16dp"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp">
 
@@ -188,7 +188,7 @@
                             <LinearLayout
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:layout_marginStart="14dp"
+                                android:layout_marginStart="16dp"
                                 android:layout_weight="1"
                                 android:orientation="vertical">
 
@@ -203,7 +203,7 @@
                                 <TextView
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginTop="3dp"
+                                    android:layout_marginTop="4dp"
                                     android:text="@string/routing_hub_per_app_summary"
                                     android:textAppearance="@style/TextAppearance.App.BodySmall"
                                     android:textColor="?attr/colorOnSurfaceVariant" />

@@ -4,7 +4,7 @@
     style="@style/AppCard.Filled"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="10dp"
+    android:layout_marginBottom="12dp"
     app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
     app:cardCornerRadius="16dp"
     app:cardElevation="0dp"
@@ -14,7 +14,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="14dp">
+        android:padding="16dp">
 
         <com.google.android.material.textfield.TextInputLayout
             style="@style/AppTextInputLayout"

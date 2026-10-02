@@ -1059,7 +1059,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     private fun renderActiveProfileCard(profile: Profile?) {
         val p = profile
         binding.mainActiveProfileValue.text = p?.name.orEmpty().ifBlank { context.getString(R.string.not_selected) }
-        binding.mainActiveProfileMeta.text = p?.let { "${profileMetaLabel(it)} • ${usageLabel(it)}" }.orEmpty()
+        binding.mainActiveProfileMeta.text = p?.let { usageLabel(it) }.orEmpty()
         binding.mainActiveProfileMeta.visibility = if (p != null) View.VISIBLE else View.GONE
         val showUpdate = p?.imported == true && p.type != Profile.Type.File
         binding.mainActiveProfileUpdate.visibility = if (showUpdate) View.VISIBLE else View.GONE
@@ -1126,27 +1126,6 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     private fun resolveSupportUrl(): String? =
         activeAnnouncementSupportUrl?.takeIf { it.isNotBlank() }
             ?: uiStore.supportUrl.takeIf { it.isNotBlank() }
-
-    private fun profileMetaLabel(profile: Profile): String {
-        val base = profileTypeLabel(profile)
-        val daysLeft = daysLeftValue(profile) ?: return base
-        return "$base • ${context.getString(R.string.sub_announcement_days_left)} $daysLeft"
-    }
-
-    private fun profileTypeLabel(profile: Profile): String = when (profile.type) {
-        Profile.Type.Url -> context.getString(R.string.url)
-        Profile.Type.File -> context.getString(R.string.file)
-        Profile.Type.External -> context.getString(R.string.external)
-    }
-
-    private fun daysLeftValue(profile: Profile): Int? {
-        val expireAt = profile.expire.takeIf { it > 0L } ?: return null
-        val now = System.currentTimeMillis()
-        if (expireAt <= now) return 0
-
-        val millisLeft = expireAt - now
-        return ((millisLeft + 86_400_000L - 1L) / 86_400_000L).toInt().coerceAtLeast(1)
-    }
 
     private fun usageLabel(profile: Profile): String {
         val headerUsage = if (profile.type == Profile.Type.Url) {
@@ -1358,6 +1337,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         sheet.detailMenu.setOnClickListener {
             if (subscriptionClickGuard.accept(profile.uuid to it.id)) profileMenuRequests.trySend(profile to it)
         }
+        sheet.detailUse.visibility = if (profile.active) View.GONE else View.VISIBLE
         sheet.detailUse.isEnabled = !profile.active && !activating
         sheet.detailUse.setText(when {
             activating -> R.string.subscription_activating

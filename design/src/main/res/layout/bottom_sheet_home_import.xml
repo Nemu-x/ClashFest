@@ -6,7 +6,7 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:paddingStart="20dp"
-    android:paddingTop="18dp"
+    android:paddingTop="16dp"
     android:paddingEnd="20dp"
     android:paddingBottom="24dp">
 
@@ -46,7 +46,7 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="14dp">
+            android:padding="16dp">
 
             <ImageView
                 android:layout_width="40dp"
@@ -98,7 +98,7 @@
         style="@style/AppCard.Filled"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="12dp"
         android:clickable="true"
         android:focusable="true"
         app:cardBackgroundColor="?attr/colorSurfaceContainer"
@@ -113,7 +113,7 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="14dp">
+            android:padding="16dp">
 
             <ImageView
                 android:layout_width="40dp"
@@ -165,7 +165,7 @@
         style="@style/AppCard.Filled"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="12dp"
         android:clickable="true"
         android:focusable="true"
         app:cardBackgroundColor="?attr/colorSurfaceContainer"
@@ -180,7 +180,7 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="14dp">
+            android:padding="16dp">
 
             <ImageView
                 android:layout_width="40dp"
@@ -232,7 +232,7 @@
         style="@style/AppCard.Filled"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="12dp"
         android:clickable="true"
         android:focusable="true"
         app:cardBackgroundColor="?attr/colorSurfaceContainer"
@@ -247,7 +247,7 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="14dp">
+            android:padding="16dp">
 
             <ImageView
                 android:layout_width="40dp"
@@ -299,7 +299,7 @@
         style="@style/AppCard.Filled"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="12dp"
         android:clickable="true"
         android:focusable="true"
         app:cardBackgroundColor="?attr/colorSurfaceContainer"
@@ -314,7 +314,7 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="14dp">
+            android:padding="16dp">
 
             <ImageView
                 android:layout_width="40dp"

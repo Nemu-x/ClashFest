@@ -5,7 +5,7 @@
     style="@style/AppCard.Filled"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="10dp"
+    android:layout_marginBottom="12dp"
     app:cardBackgroundColor="?attr/colorSurfaceContainer"
     app:cardCornerRadius="18dp"
     app:cardElevation="0dp"
@@ -16,7 +16,7 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="14dp">
+        android:padding="16dp">
 
         <TextView
             android:id="@+id/rule_index"

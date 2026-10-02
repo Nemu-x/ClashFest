@@ -52,7 +52,7 @@
                         android:ellipsize="end"
                         android:maxLines="1"
                         android:text="@string/about_powered_by"
-                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+                        android:textAppearance="@style/TextAppearance.App.TitleMedium" />
 
                     <TextView
                         android:id="@+id/about_brand_tagline"
@@ -73,7 +73,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:text="@string/about_brand_powered_by"
-                        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                        android:textAppearance="@style/TextAppearance.App.BodySmall"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         android:visibility="gone"
                         tools:visibility="visible" />
@@ -84,28 +84,28 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:text="@string/launch_name_meta"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                        android:textAppearance="@style/TextAppearance.App.BodyMedium" />
                 </LinearLayout>
 
                 <ImageButton
                     android:id="@+id/about_github_icon"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
                     android:background="@drawable/bg_m3_status_chip_neutral"
                     android:contentDescription="@string/about_github_repo"
-                    android:padding="6dp"
+                    android:padding="8dp"
                     android:src="@drawable/ic_github_logo"
                     android:visibility="gone"
                     app:tint="?attr/colorOnSurface" />
 
                 <ImageButton
                     android:id="@+id/about_telegram_icon"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:layout_marginStart="6dp"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="8dp"
                     android:background="@drawable/bg_m3_status_chip_neutral"
                     android:contentDescription="@string/about_telegram_community"
-                    android:padding="6dp"
+                    android:padding="8dp"
                     android:src="@drawable/ic_telegram_plane"
                     android:visibility="gone"
                     app:tint="?attr/colorOnSurface" />
@@ -128,13 +128,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:layout_marginBottom="10dp" />
+                android:layout_marginBottom="12dp" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/about_app_version_label"
-                android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+                android:textAppearance="@style/TextAppearance.App.BodySmall" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -155,7 +155,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text="@{coreVersion}"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                android:textAppearance="@style/TextAppearance.App.BodyMedium" />
 
             <TextView
                 android:id="@+id/about_update_status"
@@ -191,7 +191,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:layout_marginBottom="10dp"
+                android:layout_marginBottom="12dp"
                 android:visibility="gone" />
 
             <com.google.android.material.chip.ChipGroup
@@ -208,7 +208,7 @@
                 style="@style/Widget.Material3.Button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="12dp"
                 android:text="@string/about_brand_renew"
                 android:textAllCaps="false"
                 android:visibility="gone" />
@@ -218,7 +218,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:text="@string/about_authors_title"
-                android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                android:textAppearance="@style/TextAppearance.App.TitleSmall"
                 android:textColor="?attr/colorOnSurface" />
 
             <TextView

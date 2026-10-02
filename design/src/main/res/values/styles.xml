@@ -14,21 +14,25 @@
          overlay is too faint on the neutralised theme, so the explicit ring makes
          the focused control unmistakable. -->
     <style name="AppButton" parent="Widget.Material3.Button">
+        <item name="cornerRadius">12dp</item>
         <item name="android:foreground">@drawable/focus_ring</item>
         <item name="android:stateListAnimator">@animator/focus_scale</item>
     </style>
 
     <style name="AppButton.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="cornerRadius">12dp</item>
         <item name="android:foreground">@drawable/focus_ring</item>
         <item name="android:stateListAnimator">@animator/focus_scale</item>
     </style>
 
     <style name="AppButton.Text" parent="Widget.Material3.Button.TextButton">
+        <item name="cornerRadius">12dp</item>
         <item name="android:foreground">@drawable/focus_ring</item>
         <item name="android:stateListAnimator">@animator/focus_scale</item>
     </style>
 
     <style name="AppButton.Tonal" parent="Widget.Material3.Button.TonalButton">
+        <item name="cornerRadius">12dp</item>
         <item name="android:foreground">@drawable/focus_ring</item>
         <item name="android:stateListAnimator">@animator/focus_scale</item>
     </style>
@@ -48,19 +52,22 @@
 
     <style name="AppCard.Outlined" parent="Widget.Material3.CardView.Outlined" />
 
-    <!-- Lumen lux edge: a whisper of light on every filled card, app-wide (batch). Cards that
-         want no edge can override strokeWidth=0dp locally. -->
+    <!-- Neutral borders keep cards readable in both themes. -->
     <style name="AppCard.Filled" parent="Widget.Material3.CardView.Filled">
-        <item name="strokeColor">@color/lumen_hairline</item>
+        <item name="cardCornerRadius">16dp</item>
+        <item name="strokeColor">?attr/colorOutlineVariant</item>
         <item name="strokeWidth">1dp</item>
     </style>
 
     <style name="AppCard.Surface" parent="Widget.Material3.CardView.Filled">
-        <item name="strokeColor">@color/lumen_hairline</item>
+        <item name="cardCornerRadius">16dp</item>
+        <item name="strokeColor">?attr/colorOutlineVariant</item>
         <item name="strokeWidth">1dp</item>
     </style>
 
-    <style name="AppCard.Action" parent="Widget.Material3.CardView.Filled" />
+    <style name="AppCard.Action" parent="Widget.Material3.CardView.Filled">
+        <item name="cardCornerRadius">16dp</item>
+    </style>
 
     <style name="AppCard.BottomNav" parent="Widget.Material3.CardView.Filled" />
 
@@ -119,45 +126,53 @@
     </style>
 
     <!-- ========== Material 3 TextAppearance Styles ========== -->
-    <!-- Redesign 1.0 (Lumen): Space Grotesk on all Display/Headline/Title text app-wide (premium
-         geometric titles + values). Body/Label stay on the system font for neutral legibility. -->
+    <!-- Shared typography for Mikan screens. -->
     <!-- Display -->
     <style name="TextAppearance.App.DisplayLarge" parent="TextAppearance.Material3.DisplayLarge">
-        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="fontFamily">sans-serif-medium</item>
     </style>
 
     <style name="TextAppearance.App.DisplayMedium" parent="TextAppearance.Material3.DisplayMedium">
-        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="fontFamily">sans-serif-medium</item>
     </style>
 
     <style name="TextAppearance.App.DisplaySmall" parent="TextAppearance.Material3.DisplaySmall">
-        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="fontFamily">sans-serif-medium</item>
     </style>
 
     <!-- Headline -->
     <style name="TextAppearance.App.HeadlineLarge" parent="TextAppearance.Material3.HeadlineLarge">
-        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="fontFamily">sans-serif-medium</item>
     </style>
 
     <style name="TextAppearance.App.HeadlineMedium" parent="TextAppearance.Material3.HeadlineMedium">
-        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="fontFamily">sans-serif-medium</item>
     </style>
 
     <style name="TextAppearance.App.HeadlineSmall" parent="TextAppearance.Material3.HeadlineSmall">
-        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="fontFamily">sans-serif-medium</item>
     </style>
 
     <!-- Title -->
     <style name="TextAppearance.App.TitleLarge" parent="TextAppearance.Material3.TitleLarge">
-        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="fontFamily">sans-serif-medium</item>
     </style>
 
     <style name="TextAppearance.App.TitleMedium" parent="TextAppearance.Material3.TitleMedium">
-        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="fontFamily">sans-serif-medium</item>
     </style>
 
     <style name="TextAppearance.App.TitleSmall" parent="TextAppearance.Material3.TitleSmall">
-        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="fontFamily">sans-serif-medium</item>
     </style>
 
     <!-- Body -->

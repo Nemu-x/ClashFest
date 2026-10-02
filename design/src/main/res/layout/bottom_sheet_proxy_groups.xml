@@ -8,7 +8,7 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:paddingHorizontal="16dp"
-        android:paddingTop="6dp"
+        android:paddingTop="8dp"
         android:paddingBottom="20dp">
 
         <!--
@@ -32,7 +32,8 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:ellipsize="end"
-                android:fontFamily="@font/space_grotesk"
+                android:fontFamily="sans-serif-medium"
+                app:fontFamily="sans-serif-medium"
                 android:maxLines="1"
                 android:textAppearance="@style/TextAppearance.App.BodyMedium"
                 android:textColor="?attr/colorOnSurface"
@@ -56,8 +57,8 @@
                 android:id="@+id/proxy_sheet_sub_status_dot"
                 android:layout_width="7dp"
                 android:layout_height="7dp"
-                android:layout_marginStart="10dp"
-                android:layout_marginEnd="6dp"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="8dp"
                 android:background="@drawable/dot_status" />
 
             <TextView
@@ -75,7 +76,7 @@
             android:id="@+id/proxy_sheet_group_scroll"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="12dp"
             android:background="@drawable/bg_segmented_track"
             android:clipToPadding="false"
             android:fadingEdge="horizontal"
@@ -92,7 +93,7 @@
                 android:gravity="center_vertical"
                 android:minHeight="40dp"
                 android:orientation="horizontal"
-                android:padding="3dp" />
+                android:padding="4dp" />
         </HorizontalScrollView>
 
         <!--
@@ -104,7 +105,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="12dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -115,12 +116,12 @@
                 android:background="@drawable/bg_proxy_search_pill"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="14dp">
+                android:paddingHorizontal="16dp">
 
                 <ImageView
                     android:layout_width="20dp"
                     android:layout_height="20dp"
-                    android:layout_marginEnd="10dp"
+                    android:layout_marginEnd="12dp"
                     android:importantForAccessibility="no"
                     android:src="@drawable/ic_baseline_search"
                     app:tint="?attr/colorOnSurfaceVariant" />
@@ -145,7 +146,7 @@
                     android:id="@+id/proxy_sheet_search_clear"
                     android:layout_width="18dp"
                     android:layout_height="18dp"
-                    android:layout_marginStart="6dp"
+                    android:layout_marginStart="8dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:clickable="true"
                     android:contentDescription="@string/profile_proxy_search_clear"
@@ -160,7 +161,7 @@
                 style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="8dp"
                 android:contentDescription="@string/profile_proxy_sort"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
@@ -176,7 +177,7 @@
                 style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="8dp"
                 android:contentDescription="@string/profile_proxy_filter"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
@@ -191,7 +192,7 @@
                 android:id="@+id/proxy_sheet_ping_slot"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:layout_marginStart="6dp">
+                android:layout_marginStart="8dp">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/proxy_sheet_ping_button"
@@ -223,7 +224,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="16dp"
             android:gravity="center_vertical|end"
             android:orientation="horizontal">
 
@@ -231,7 +232,7 @@
                 android:id="@+id/proxy_sheet_tested_dot"
                 android:layout_width="6dp"
                 android:layout_height="6dp"
-                android:layout_marginEnd="6dp"
+                android:layout_marginEnd="8dp"
                 android:background="@drawable/dot_status" />
 
             <TextView
@@ -257,8 +258,8 @@
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
                 android:overScrollMode="never"
-                android:paddingHorizontal="6dp"
-                android:paddingTop="6dp"
+                android:paddingHorizontal="8dp"
+                android:paddingTop="8dp"
                 android:paddingBottom="8dp"
                 tools:listitem="@layout/adapter_home_proxy_node" />
 

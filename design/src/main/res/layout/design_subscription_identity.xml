@@ -40,7 +40,7 @@
                     android:layout_height="wrap_content"
                     android:paddingHorizontal="4dp"
                     android:paddingTop="12dp"
-                    android:paddingBottom="6dp"
+                    android:paddingBottom="8dp"
                     android:text="@string/subscription_section_device"
                     android:textAllCaps="true"
                     android:textAppearance="@style/TextAppearance.App.LabelLarge"
@@ -53,7 +53,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="24dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="0dp">
 
@@ -61,13 +61,13 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="14dp">
+                        android:padding="16dp">
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/subscription_hwid_title"
-                            android:textAppearance="@style/TextAppearance.Material3.TitleSmall" />
+                            android:textAppearance="@style/TextAppearance.App.TitleSmall" />
 
                         <TextView
                             android:id="@+id/text_hwid"
@@ -75,7 +75,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
                             android:fontFamily="monospace"
-                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                            android:textAppearance="@style/TextAppearance.App.BodyMedium" />
 
                         <com.github.kr328.clash.design.view.ActionLabel
                             android:layout_width="match_parent"
@@ -92,8 +92,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:paddingHorizontal="4dp"
-                    android:paddingTop="18dp"
-                    android:paddingBottom="6dp"
+                    android:paddingTop="16dp"
+                    android:paddingBottom="8dp"
                     android:text="@string/subscription_section_deeplinks"
                     android:textAllCaps="true"
                     android:textAppearance="@style/TextAppearance.App.LabelLarge"
@@ -106,7 +106,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="24dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="0dp">
 
@@ -114,13 +114,13 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="14dp">
+                        android:padding="16dp">
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/subscription_scheme_title"
-                            android:textAppearance="@style/TextAppearance.Material3.TitleSmall" />
+                            android:textAppearance="@style/TextAppearance.App.TitleSmall" />
 
                         <TextView
                             android:id="@+id/text_scheme_list"
@@ -128,7 +128,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
                             android:fontFamily="monospace"
-                            android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+                            android:textAppearance="@style/TextAppearance.App.BodySmall" />
 
                         <com.github.kr328.clash.design.view.ActionLabel
                             android:layout_width="match_parent"
@@ -145,8 +145,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:paddingHorizontal="4dp"
-                    android:paddingTop="18dp"
-                    android:paddingBottom="6dp"
+                    android:paddingTop="16dp"
+                    android:paddingBottom="8dp"
                     android:text="@string/subscription_section_diagnostics"
                     android:textAllCaps="true"
                     android:textAppearance="@style/TextAppearance.App.LabelLarge"
@@ -159,7 +159,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="24dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="0dp">
 
@@ -167,13 +167,13 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="14dp">
+                        android:padding="16dp">
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/subscription_hwid_diagnostics_title"
-                            android:textAppearance="@style/TextAppearance.Material3.TitleSmall" />
+                            android:textAppearance="@style/TextAppearance.App.TitleSmall" />
 
                         <TextView
                             android:id="@+id/text_hwid_diagnostics"
@@ -181,7 +181,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
                             android:fontFamily="monospace"
-                            android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+                            android:textAppearance="@style/TextAppearance.App.BodySmall" />
 
                         <com.github.kr328.clash.design.view.ActionLabel
                             android:layout_width="match_parent"
@@ -198,8 +198,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:paddingHorizontal="4dp"
-                    android:paddingTop="18dp"
-                    android:paddingBottom="6dp"
+                    android:paddingTop="16dp"
+                    android:paddingBottom="8dp"
                     android:text="@string/subscription_section_api"
                     android:textAllCaps="true"
                     android:textAppearance="@style/TextAppearance.App.LabelLarge"
@@ -212,7 +212,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="24dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="0dp">
 
@@ -220,20 +220,20 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="14dp">
+                        android:padding="16dp">
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/subscription_response_headers_title"
-                            android:textAppearance="@style/TextAppearance.Material3.TitleSmall" />
+                            android:textAppearance="@style/TextAppearance.App.TitleSmall" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
+                            android:layout_marginTop="8dp"
                             android:text="@string/subscription_response_headers_summary"
-                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textAppearance="@style/TextAppearance.App.BodySmall"
                             android:textColor="?attr/colorOnSurfaceVariant" />
 
                         <com.github.kr328.clash.design.view.ActionLabel
@@ -248,8 +248,8 @@
                         <View
                             android:layout_width="match_parent"
                             android:layout_height="1dp"
-                            android:layout_marginTop="14dp"
-                            android:layout_marginBottom="10dp"
+                            android:layout_marginTop="16dp"
+                            android:layout_marginBottom="12dp"
                             android:background="?attr/colorOutlineVariant" />
 
                         <TextView

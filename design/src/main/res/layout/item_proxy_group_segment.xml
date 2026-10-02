@@ -28,7 +28,7 @@
         android:id="@+id/segment_count"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="6dp"
+        android:layout_marginStart="8dp"
         android:background="@drawable/bg_segment_count"
         android:duplicateParentState="true"
         android:gravity="center"

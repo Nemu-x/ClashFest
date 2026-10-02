@@ -3,22 +3,22 @@
     <!-- Material 3 Dark Color Scheme for ClashFest -->
 
     <!-- Primary Colors -->
-    <color name="md3_dark_primary">#00E676</color>
-    <color name="md3_dark_onPrimary">#00390E</color>
-    <color name="md3_dark_primaryContainer">#00531A</color>
-    <color name="md3_dark_onPrimaryContainer">#9AFF92</color>
+    <color name="md3_dark_primary">#FFA021</color>
+    <color name="md3_dark_onPrimary">#251507</color>
+    <color name="md3_dark_primaryContainer">#4D3214</color>
+    <color name="md3_dark_onPrimaryContainer">#FFDFB1</color>
 
     <!-- Secondary Colors -->
-    <color name="md3_dark_secondary">#8B5CF6</color>
-    <color name="md3_dark_onSecondary">#FFFFFF</color>
-    <color name="md3_dark_secondaryContainer">#6D3FD7</color>
-    <color name="md3_dark_onSecondaryContainer">#E6DDFF</color>
+    <color name="md3_dark_secondary">#D8BFA5</color>
+    <color name="md3_dark_onSecondary">#33271B</color>
+    <color name="md3_dark_secondaryContainer">#463729</color>
+    <color name="md3_dark_onSecondaryContainer">#F3DEC8</color>
 
     <!-- Tertiary Colors -->
-    <color name="md3_dark_tertiary">#5A9BB3</color>
-    <color name="md3_dark_onTertiary">#001F29</color>
-    <color name="md3_dark_tertiaryContainer">#1E4858</color>
-    <color name="md3_dark_onTertiaryContainer">#C1E8FA</color>
+    <color name="md3_dark_tertiary">#D8BFA5</color>
+    <color name="md3_dark_onTertiary">#33271B</color>
+    <color name="md3_dark_tertiaryContainer">#463729</color>
+    <color name="md3_dark_onTertiaryContainer">#F3DEC8</color>
 
     <!-- Error Colors -->
     <color name="md3_dark_error">#FFB4AB</color>
@@ -28,32 +28,32 @@
 
     <!-- Background Colors — Lumen "obsidian": deep neutral near-black (warm-neutral, no blue
          cast) so cards read premium against the canvas and any dynamic accent sits cleanly. -->
-    <color name="md3_dark_background">#0A0A0B</color>
-    <color name="md3_dark_onBackground">#EDECEF</color>
+    <color name="md3_dark_background">#11100E</color>
+    <color name="md3_dark_onBackground">#F4EFE8</color>
 
     <!-- Surface Colors -->
-    <color name="md3_dark_surface">#141415</color>
-    <color name="md3_dark_onSurface">#EDECEF</color>
+    <color name="md3_dark_surface">#191714</color>
+    <color name="md3_dark_onSurface">#F4EFE8</color>
 
     <!-- Surface Variant Colors -->
-    <color name="md3_dark_surfaceVariant">#201F22</color>
-    <color name="md3_dark_onSurfaceVariant">#9B9AA0</color>
+    <color name="md3_dark_surfaceVariant">#302A24</color>
+    <color name="md3_dark_onSurfaceVariant">#C5BCAF</color>
 
     <!-- Outline Colors -->
-    <color name="md3_dark_outline">#55545A</color>
-    <color name="md3_dark_outlineVariant">#333237</color>
+    <color name="md3_dark_outline">#948779</color>
+    <color name="md3_dark_outlineVariant">#443B31</color>
 
     <!-- Surface Container Colors — deliberate depth ladder (recessed → raised) -->
-    <color name="md3_dark_surfaceContainerLowest">#0B0B0C</color>
-    <color name="md3_dark_surfaceContainerLow">#141416</color>
-    <color name="md3_dark_surfaceContainer">#1A1A1C</color>
-    <color name="md3_dark_surfaceContainerHigh">#212023</color>
-    <color name="md3_dark_surfaceContainerHighest">#29282B</color>
+    <color name="md3_dark_surfaceContainerLowest">#11100E</color>
+    <color name="md3_dark_surfaceContainerLow">#1D1A16</color>
+    <color name="md3_dark_surfaceContainer">#24201B</color>
+    <color name="md3_dark_surfaceContainerHigh">#2D2721</color>
+    <color name="md3_dark_surfaceContainerHighest">#373029</color>
 
     <!-- Inverse Colors -->
-    <color name="md3_dark_inverseSurface">#E6EDF3</color>
-    <color name="md3_dark_inverseOnSurface">#1D2733</color>
-    <color name="md3_dark_inversePrimary">#2FA36B</color>
+    <color name="md3_dark_inverseSurface">#F4EFE8</color>
+    <color name="md3_dark_inverseOnSurface">#302A24</color>
+    <color name="md3_dark_inversePrimary">#A64F00</color>
 
     <!-- Proxy Delay Colors (dark variants) -->
     <color name="delay_good">#66BB6A</color>

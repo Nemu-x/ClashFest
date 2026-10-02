@@ -40,7 +40,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="14dp"
+                    android:layout_marginBottom="16dp"
                     android:text="@string/properties_editor_intro"
                     android:textAppearance="@style/TextAppearance.App.BodyMedium"
                     android:textColor="?attr/colorOnSurfaceVariant" />
@@ -51,7 +51,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="24dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="0dp">
 
@@ -59,14 +59,14 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:paddingTop="14dp"
+                        android:paddingTop="16dp"
                         android:paddingBottom="8dp">
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:paddingHorizontal="16dp"
-                            android:paddingBottom="10dp"
+                            android:paddingBottom="12dp"
                             android:text="@string/properties_section_subscription"
                             android:textAppearance="@style/TextAppearance.App.TitleSmall"
                             android:textColor="?attr/colorOnSurface"
@@ -196,7 +196,7 @@
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
                                     android:text="@string/subscription_user_agent_strict"
-                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textAppearance="@style/TextAppearance.App.BodyMedium"
                                     android:textColor="?attr/colorOnSurface" />
 
                                 <TextView
@@ -204,7 +204,7 @@
                                     android:layout_height="wrap_content"
                                     android:layout_marginTop="2dp"
                                     android:text="@string/subscription_user_agent_strict_summary"
-                                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                                    android:textAppearance="@style/TextAppearance.App.BodySmall"
                                     android:textColor="?attr/colorOnSurfaceVariant" />
                             </LinearLayout>
 
@@ -233,7 +233,7 @@
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
                                     android:text="@string/subscription_update_via_proxy"
-                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                                    android:textAppearance="@style/TextAppearance.App.BodyMedium"
                                     android:textColor="?attr/colorOnSurface" />
 
                                 <TextView
@@ -241,7 +241,7 @@
                                     android:layout_height="wrap_content"
                                     android:layout_marginTop="2dp"
                                     android:text="@string/subscription_update_via_proxy_summary"
-                                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                                    android:textAppearance="@style/TextAppearance.App.BodySmall"
                                     android:textColor="?attr/colorOnSurfaceVariant" />
                             </LinearLayout>
 
@@ -259,7 +259,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="24dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="0dp">
 
@@ -267,14 +267,14 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:paddingTop="14dp"
+                        android:paddingTop="16dp"
                         android:paddingBottom="8dp">
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:paddingHorizontal="16dp"
-                            android:paddingBottom="10dp"
+                            android:paddingBottom="12dp"
                             android:text="@string/properties_section_configuration"
                             android:textAppearance="@style/TextAppearance.App.TitleSmall"
                             android:textColor="?attr/colorOnSurface"

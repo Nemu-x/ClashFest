@@ -15,7 +15,7 @@
         android:layout_width="32dp"
         android:layout_height="32dp"
         android:contentDescription="@string/rules_hub_drag_handle"
-        android:padding="6dp"
+        android:padding="8dp"
         android:src="@drawable/ic_baseline_menu"
         app:tint="?attr/colorOnSurfaceVariant" />
 
@@ -32,7 +32,7 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:paddingVertical="10dp">
+        android:paddingVertical="12dp">
 
         <TextView
             android:id="@+id/rule_line"
@@ -68,9 +68,9 @@
                 android:id="@+id/source_chip"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="8dp"
                 android:background="@drawable/bg_m3_status_chip_neutral"
-                android:paddingHorizontal="6dp"
+                android:paddingHorizontal="8dp"
                 android:paddingVertical="1dp"
                 android:text="@string/effective_rules_source_manual"
                 android:textAppearance="@style/TextAppearance.App.LabelSmall"
@@ -81,7 +81,7 @@
             android:id="@+id/target_missing"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
+            android:layout_marginTop="4dp"
             android:text="@string/rules_hub_target_missing"
             android:textAppearance="@style/TextAppearance.App.LabelSmall"
             android:textColor="?attr/colorError"
@@ -100,7 +100,7 @@
         android:layout_height="36dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/edit"
-        android:padding="6dp"
+        android:padding="8dp"
         android:src="@drawable/ic_baseline_edit"
         app:tint="?attr/colorOnSurfaceVariant" />
 </LinearLayout>

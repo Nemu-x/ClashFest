@@ -18,7 +18,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="20dp"
-        android:layout_marginBottom="10dp"
+        android:layout_marginBottom="12dp"
         android:clipChildren="false"
         android:orientation="vertical">
 
@@ -28,7 +28,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-            app:cardCornerRadius="22dp"
+            app:cardCornerRadius="16dp"
             app:cardElevation="0dp"
             app:rippleColor="?attr/colorControlHighlight"
             app:strokeColor="?attr/colorOutlineVariant"
@@ -51,8 +51,8 @@
                     android:gravity="center_vertical"
                     android:minHeight="78dp"
                     android:orientation="horizontal"
-                    android:paddingStart="14dp"
-                    android:paddingEnd="10dp">
+                    android:paddingStart="16dp"
+                    android:paddingEnd="12dp">
 
                     <FrameLayout
                         android:layout_width="40dp"
@@ -141,7 +141,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="8dp"
                                 android:paddingHorizontal="8dp"
-                                android:paddingVertical="3dp"
+                                android:paddingVertical="4dp"
                                 android:textAppearance="@style/TextAppearance.App.LabelSmall"
                                 android:visibility="gone"
                                 tools:text="Active"
@@ -151,7 +151,7 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="3dp"
+                            android:layout_marginTop="4dp"
                             android:gravity="center_vertical"
                             android:orientation="horizontal">
 
@@ -183,8 +183,8 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="8dp"
                                 android:background="@drawable/bg_m3_expiry_chip_warning"
-                                android:paddingHorizontal="10dp"
-                                android:paddingVertical="3dp"
+                                android:paddingHorizontal="12dp"
+                                android:paddingVertical="4dp"
                                 android:textAppearance="@style/TextAppearance.App.LabelSmall"
                                 android:visibility="gone"
                                 tools:text="2d left"
@@ -195,7 +195,7 @@
                             android:id="@+id/usage_progress"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
+                            android:layout_marginTop="8dp"
                             android:max="1000"
                             android:visibility="gone"
                             app:trackCornerRadius="2dp"
@@ -238,7 +238,7 @@
                             android:clickable="true"
                             android:contentDescription="@string/profile_ping_all"
                             android:focusable="true"
-                            android:padding="10dp"
+                            android:padding="12dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/ic_speedometer_ping"
                             android:visibility="gone"
@@ -296,8 +296,8 @@
                     android:id="@+id/server_selection_summary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="18dp"
-                    android:layout_marginBottom="10dp"
+                    android:layout_marginHorizontal="16dp"
+                    android:layout_marginBottom="12dp"
                     android:ellipsize="end"
                     android:maxLines="2"
                     android:textAppearance="@style/TextAppearance.App.BodySmall"

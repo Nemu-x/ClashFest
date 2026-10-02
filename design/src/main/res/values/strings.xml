@@ -19,7 +19,7 @@
     <string name="main_selected_route_fmt">Group: %1$s · Server: %2$s</string>
     <string name="main_session_title">Session</string>
     <string name="main_profile_title">Profile</string>
-    <string name="main_active_profile_title">Active profile</string>
+    <string name="main_active_profile_title">Subscription</string>
     <string name="main_routing_summary">Rules, apps and route providers</string>
     <string name="main_mode_sheet_title">Connection mode</string>
     <string name="main_mode_sheet_summary">Choose the simple behavior for this session.</string>
@@ -1228,8 +1228,8 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="companion_show_pin_summary">Pair a PC (e.g. SlothClash) by entering a code</string>
     <string name="companion_pin_dialog_message">Enter this PIN on the other device (valid 60s)</string>
     <string name="companion_starting">Starting remote control… try again in a moment</string>
-    <string name="main_node_title">Node</string>
-    <string name="main_node_choose">Choose node</string>
+    <string name="main_node_title">Server</string>
+    <string name="main_node_choose">Choose server</string>
     <string name="rule_mode_short">Rule</string>
     <string name="global_mode_short">Global</string>
     <string name="main_speed_fmt">↓ %1$s/s   ↑ %2$s/s</string>

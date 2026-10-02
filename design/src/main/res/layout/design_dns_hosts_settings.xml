@@ -47,9 +47,9 @@
                 style="@style/AppCard.Filled"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
+                android:layout_marginTop="16dp"
                 app:cardBackgroundColor="?attr/colorPrimaryContainer"
-                app:cardCornerRadius="20dp"
+                app:cardCornerRadius="16dp"
                 app:cardElevation="0dp">
 
                 <LinearLayout
@@ -110,14 +110,14 @@
                     android:id="@+id/dns_enable"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
+                    android:layout_marginTop="12dp"
                     android:text="@string/dns_hosts_enable_dns" />
 
                 <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/block_ipv6"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
+                    android:layout_marginTop="12dp"
                     android:text="@string/dns_hosts_block_ipv6" />
 
                 <TextView
@@ -140,7 +140,7 @@
                     android:id="@+id/mode_group"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
+                    android:layout_marginTop="8dp"
                     app:singleSelection="true">
 
                     <com.google.android.material.button.MaterialButton
@@ -198,7 +198,7 @@
                     android:id="@+id/cache_group"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
+                    android:layout_marginTop="8dp"
                     app:singleSelection="true">
 
                     <com.google.android.material.button.MaterialButton
@@ -233,7 +233,7 @@
                     style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="18dp"
+                    android:layout_marginTop="16dp"
                     android:hint="@string/dns_hosts_proxy_dns"
                     app:helperText="@string/dns_hosts_list_hint">
 
@@ -300,7 +300,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="22dp"
+                    android:layout_marginTop="24dp"
                     android:text="@string/dns_hosts_section_hosts"
                     android:textAppearance="@style/TextAppearance.App.TitleSmall"
                     android:textColor="?attr/colorPrimary"
@@ -310,7 +310,7 @@
                     style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
+                    android:layout_marginTop="12dp"
                     android:hint="@string/dns_hosts_hosts_hint"
                     app:helperText="@string/dns_hosts_hosts_helper">
 
@@ -327,7 +327,7 @@
                     android:id="@+id/status_text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
+                    android:layout_marginTop="16dp"
                     android:textAppearance="@style/TextAppearance.App.BodySmall"
                     android:textColor="?attr/colorError"
                     android:visibility="gone"
@@ -337,7 +337,7 @@
                     android:id="@+id/btn_save"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="18dp"
+                    android:layout_marginTop="16dp"
                     android:text="@string/dns_hosts_save"
                     android:textAllCaps="false" />
             </LinearLayout>

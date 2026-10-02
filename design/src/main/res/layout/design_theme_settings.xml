@@ -114,7 +114,7 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="18dp"
+                    android:layout_marginTop="16dp"
                     android:baselineAligned="false"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
@@ -300,7 +300,7 @@
                     style="@style/Widget.Material3.Button.TextButton"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:layout_marginTop="18dp"
+                    android:layout_marginTop="16dp"
                     android:text="@string/theme_reset"
                     android:textAllCaps="false" />
             </LinearLayout>

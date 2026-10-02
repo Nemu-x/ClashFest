@@ -6,12 +6,12 @@
     unchecked switch tracks, etc.) don't pick up the operator accent tint.
 -->
 <resources>
-    <color name="brand_neutral_surface_variant">#E7E0EC</color>
-    <color name="brand_neutral_on_surface_variant">#49454F</color>
-    <color name="brand_neutral_outline">#79747E</color>
-    <color name="brand_neutral_outline_variant">#CAC4D0</color>
-    <color name="brand_neutral_surface_container">#F3EDF7</color>
-    <color name="brand_neutral_surface_container_low">#F7F2FA</color>
-    <color name="brand_neutral_surface_container_high">#ECE6F0</color>
-    <color name="brand_neutral_surface_container_highest">#E6E0E9</color>
+    <color name="brand_neutral_surface_variant">#EBE4DB</color>
+    <color name="brand_neutral_on_surface_variant">#625A50</color>
+    <color name="brand_neutral_outline">#847B70</color>
+    <color name="brand_neutral_outline_variant">#D8CFC3</color>
+    <color name="brand_neutral_surface_container">#EEE8DF</color>
+    <color name="brand_neutral_surface_container_low">#F4EFE8</color>
+    <color name="brand_neutral_surface_container_high">#E8E1D7</color>
+    <color name="brand_neutral_surface_container_highest">#E2D9CE</color>
 </resources>

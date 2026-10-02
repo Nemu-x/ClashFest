@@ -6,12 +6,12 @@
         style="@style/AppCard.Filled"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="10dp"
+        android:layout_marginBottom="12dp"
         android:clickable="true"
         android:focusable="true"
         android:foreground="?attr/selectableItemBackground"
         app:cardBackgroundColor="?attr/colorSurfaceContainer"
-        app:cardCornerRadius="22dp"
+        app:cardCornerRadius="16dp"
         app:cardElevation="0dp">
 
         <LinearLayout
@@ -23,15 +23,15 @@
 
             <FrameLayout
                 android:id="@+id/icon_view"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
-                android:layout_marginEnd="14dp"
-                android:background="@drawable/bg_flag_circle">
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="16dp"
+                android:background="@android:color/transparent">
 
                 <ImageView
                     android:id="@+id/icon_image"
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
                     android:layout_gravity="center"
                     android:importantForAccessibility="no"
                     app:tint="?attr/colorPrimary" />
@@ -55,7 +55,7 @@
                     android:id="@+id/summary_view"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="3dp"
+                    android:layout_marginTop="4dp"
                     android:textAppearance="@style/TextAppearance.App.BodySmall"
                     android:textColor="?attr/colorOnSurfaceVariant" />
             </LinearLayout>

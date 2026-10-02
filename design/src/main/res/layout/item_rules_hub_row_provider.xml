@@ -24,7 +24,7 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:paddingVertical="10dp">
+        android:paddingVertical="12dp">
 
         <TextView
             android:id="@+id/rule_line"
@@ -60,11 +60,11 @@
                 android:id="@+id/rule_meta"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="8dp"
                 android:background="@drawable/bg_m3_status_chip_neutral"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:paddingHorizontal="6dp"
+                android:paddingHorizontal="8dp"
                 android:paddingVertical="1dp"
                 android:textAppearance="@style/TextAppearance.App.LabelSmall"
                 android:textColor="?attr/colorOnSurfaceVariant"
@@ -83,7 +83,7 @@
         android:layout_height="36dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/rule_action_restore"
-        android:padding="6dp"
+        android:padding="8dp"
         android:src="@drawable/ic_baseline_restore"
         android:visibility="gone"
         app:tint="?attr/colorPrimary"

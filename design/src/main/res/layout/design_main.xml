@@ -105,7 +105,8 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:ellipsize="end"
-                            android:fontFamily="@font/space_grotesk"
+                            android:fontFamily="sans-serif-medium"
+                            app:fontFamily="sans-serif-medium"
                             android:letterSpacing="0.01"
                             android:maxLines="1"
                             android:text="@string/launch_name_meta"
@@ -120,7 +121,7 @@
                             android:layout_marginStart="8dp"
                             android:background="?attr/selectableItemBackgroundBorderless"
                             android:contentDescription="@string/update_badge_description"
-                            android:padding="6dp"
+                            android:padding="8dp"
                             android:src="@drawable/ic_outline_system_update"
                             android:visibility="gone"
                             app:tint="?attr/colorPrimary"
@@ -173,7 +174,7 @@
                 android:id="@+id/profile_section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="12dp"
                 android:visibility="@{hasProfiles ? View.GONE : View.VISIBLE}">
 
                 <androidx.recyclerview.widget.RecyclerView
@@ -407,8 +408,9 @@
                     android:id="@+id/main_speed"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:fontFamily="@font/space_grotesk"
+                    android:layout_marginTop="12dp"
+                    android:fontFamily="sans-serif-medium"
+                    app:fontFamily="sans-serif-medium"
                     android:letterSpacing="0.01"
                     android:textAppearance="@style/TextAppearance.App.TitleMedium"
                     android:textColor="?attr/colorOnSurface"
@@ -424,7 +426,7 @@
                 android:layout_marginHorizontal="20dp"
                 android:layout_marginTop="32dp"
                 app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                app:cardCornerRadius="22dp"
+                app:cardCornerRadius="16dp"
                 app:cardElevation="6dp"
                 app:strokeColor="@color/lumen_hairline"
                 app:strokeWidth="1dp">
@@ -444,13 +446,12 @@
                         android:gravity="center_vertical"
                         android:onClick="@{() -> self.request(Request.OpenRouting)}"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="14dp"
+                        android:paddingHorizontal="16dp"
                         android:visibility="gone">
 
                         <ImageView
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:background="@drawable/bg_flag_circle"
                             android:padding="9dp"
                             android:src="@drawable/ic_baseline_route"
                             app:tint="?attr/colorPrimary"
@@ -502,13 +503,12 @@
                         android:gravity="center_vertical"
                         android:onClick="@{() -> self.request(Request.OpenCompanion)}"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="14dp"
+                        android:paddingHorizontal="16dp"
                         android:visibility="gone">
 
                         <ImageView
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:background="@drawable/bg_flag_circle"
                             android:padding="9dp"
                             android:src="@drawable/ic_baseline_stack"
                             app:tint="?attr/colorPrimary"
@@ -553,7 +553,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="66dp"
-                        android:layout_marginEnd="14dp"
+                        android:layout_marginEnd="16dp"
                         android:visibility="gone" />
 
                     <!-- Redesign 1.0: Mode as an in-place segmented control (Rule / Global; Direct
@@ -564,12 +564,11 @@
                         android:layout_height="64dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="14dp">
+                        android:paddingHorizontal="16dp">
 
                         <ImageView
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:background="@drawable/bg_flag_circle"
                             android:padding="9dp"
                             android:src="@drawable/ic_baseline_stack"
                             app:tint="?attr/colorPrimary"
@@ -632,7 +631,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="66dp"
-                        android:layout_marginEnd="14dp" />
+                        android:layout_marginEnd="16dp" />
 
                     <LinearLayout
                         android:id="@+id/main_active_profile_row"
@@ -645,15 +644,14 @@
                         android:gravity="center_vertical"
                         android:onClick="@{() -> self.request(Request.OpenProfiles)}"
                         android:orientation="horizontal"
-                        android:paddingStart="14dp"
-                        android:paddingTop="10dp"
-                        android:paddingEnd="10dp"
-                        android:paddingBottom="10dp">
+                        android:paddingStart="16dp"
+                        android:paddingTop="12dp"
+                        android:paddingEnd="12dp"
+                        android:paddingBottom="12dp">
 
                         <ImageView
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:background="@drawable/bg_flag_circle"
                             android:padding="9dp"
                             android:src="@drawable/ic_baseline_subscriptions"
                             app:tint="?attr/colorPrimary"
@@ -686,9 +684,6 @@
                                 android:textColor="?attr/colorOnSurfaceVariant"
                                 tools:text="Zhapon VPN" />
 
-                            <!-- One text, up to two lines: "URL • Days left: 22 • 5.01 GiB / 100 GiB".
-                                 Two side-by-side single-line views squeezed the traffic value into
-                                 a few dp next to the update/support buttons and ellipsised it. -->
                             <TextView
                                 android:id="@+id/main_active_profile_meta"
                                 android:layout_width="match_parent"
@@ -698,7 +693,7 @@
                                 android:maxLines="2"
                                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                                 android:textColor="?attr/colorOnSurfaceVariant"
-                                tools:text="URL • Days left: 22 • 310.40 MiB / ∞" />
+                                tools:text="310.40 MiB / ∞" />
                         </LinearLayout>
 
                         <LinearLayout
@@ -711,21 +706,21 @@
 
                             <ImageButton
                                 android:id="@+id/main_active_profile_update"
-                                android:layout_width="36dp"
-                                android:layout_height="36dp"
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
                                 android:background="?attr/selectableItemBackgroundBorderless"
                                 android:contentDescription="@string/profile_force_update"
-                                android:padding="8dp"
+                                android:padding="12dp"
                                 android:src="@drawable/ic_baseline_sync"
                                 app:tint="?attr/colorOnSurfaceVariant" />
 
                             <ImageButton
                                 android:id="@+id/main_active_profile_support"
-                                android:layout_width="36dp"
-                                android:layout_height="36dp"
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
                                 android:background="?attr/selectableItemBackgroundBorderless"
                                 android:contentDescription="@string/sub_announcement_support"
-                                android:padding="8dp"
+                                android:padding="12dp"
                                 android:src="@drawable/ic_baseline_headset_mic"
                                 android:visibility="gone"
                                 app:tint="?attr/colorPrimary" />
@@ -745,7 +740,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="66dp"
-                        android:layout_marginEnd="14dp" />
+                        android:layout_marginEnd="16dp" />
 
                     <!-- Node picker row (redesign 1.0): opens the proxy sheet for the active
                          profile. Click wired in MainDesign (openProxySheetWhenReady). -->
@@ -758,7 +753,7 @@
                         android:focusable="true"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="14dp">
+                        android:paddingHorizontal="16dp">
 
                         <FrameLayout
                             android:id="@+id/main_active_node_flag_card"
@@ -832,12 +827,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="20dp"
-                android:layout_marginTop="14dp"
+                android:layout_marginTop="16dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:visibility="gone"
                 app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                app:cardCornerRadius="22dp"
+                app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
                 app:strokeColor="@color/lumen_hairline"
                 app:strokeWidth="1dp">
@@ -848,8 +843,8 @@
                     android:gravity="center_vertical"
                     android:minHeight="52dp"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="14dp"
-                    android:paddingVertical="10dp">
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="12dp">
 
                     <FrameLayout
                         android:layout_width="34dp"
@@ -888,7 +883,7 @@
                     <ImageView
                         android:layout_width="16dp"
                         android:layout_height="16dp"
-                        android:layout_marginStart="10dp"
+                        android:layout_marginStart="12dp"
                         android:contentDescription="@null"
                         android:rotation="-90"
                         android:src="@drawable/ic_baseline_expand_more"
@@ -901,7 +896,7 @@
 
         <LinearLayout
             android:id="@+id/main_profiles_page"
-            android:background="@drawable/bg_home_canvas"
+            android:background="?attr/colorBackground"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
@@ -913,8 +908,8 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:paddingHorizontal="20dp"
-                android:paddingTop="24dp"
-                android:paddingBottom="16dp">
+                android:paddingTop="16dp"
+                android:paddingBottom="12dp">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -925,10 +920,12 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:fontFamily="sans-serif-medium"
+                        app:fontFamily="sans-serif-medium"
                         android:text="@string/nav_subscriptions"
                         android:textAppearance="@style/TextAppearance.App.TitleLarge"
                         android:textColor="?attr/colorOnSurface"
-                        android:textStyle="bold" />
+                        android:textSize="22sp" />
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/profiles_tab_add"
                         style="@style/Widget.Material3.Button.IconButton.Filled"
@@ -956,13 +953,6 @@
                         app:iconSize="24dp"
                         app:iconTint="?attr/colorOnSurfaceVariant" />
                 </LinearLayout>
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/subscriptions_list_hint"
-                    android:textAppearance="@style/TextAppearance.App.BodySmall"
-                    android:textColor="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
             <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
                 android:id="@+id/profiles_tab_refresh"
@@ -990,7 +980,6 @@
                         <ImageView
                             android:layout_width="64dp"
                             android:layout_height="64dp"
-                            android:background="@drawable/bg_flag_circle"
                             android:importantForAccessibility="no"
                             android:padding="16dp"
                             android:src="@drawable/ic_baseline_subscriptions"
@@ -1000,6 +989,8 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="24dp"
                             android:gravity="center"
+                            android:fontFamily="sans-serif-medium"
+                            app:fontFamily="sans-serif-medium"
                             android:text="@string/main_no_profiles_title"
                             android:textAppearance="@style/TextAppearance.App.TitleMedium"
                             android:textColor="?attr/colorOnSurface" />
@@ -1008,6 +999,8 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
                             android:gravity="center"
+                            android:fontFamily="sans-serif"
+                            app:fontFamily="sans-serif"
                             android:text="@string/main_no_profiles_subtitle"
                             android:textAppearance="@style/TextAppearance.App.BodyMedium"
                             android:textColor="?attr/colorOnSurfaceVariant" />
@@ -1043,7 +1036,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:paddingHorizontal="20dp"
-                android:paddingTop="18dp"
+                android:paddingTop="16dp"
                 android:paddingBottom="24dp">
 
                 <TextView
@@ -1072,7 +1065,7 @@
                     android:foreground="?attr/selectableItemBackground"
                     android:onClick="@{() -> self.request(Request.OpenRouting)}"
                     app:cardBackgroundColor="?attr/colorPrimaryContainer"
-                    app:cardCornerRadius="24dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp">
 
                     <LinearLayout
@@ -1080,7 +1073,7 @@
                         android:layout_height="wrap_content"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:padding="18dp">
+                        android:padding="16dp">
 
                         <ImageView
                             android:layout_width="34dp"
@@ -1125,7 +1118,7 @@
                     android:foreground="?attr/selectableItemBackground"
                     android:onClick="@{() -> self.request(Request.OpenProxyChain)}"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="22dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp">
 
                     <LinearLayout
@@ -1138,8 +1131,7 @@
                         <ImageView
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:background="@drawable/bg_flag_circle"
-                            android:padding="10dp"
+                            android:padding="12dp"
                             android:contentDescription="@string/proxy_chain_title"
                             android:src="@drawable/ic_baseline_swap_horiz"
                             app:tint="?attr/colorPrimary" />
@@ -1147,7 +1139,7 @@
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="14dp"
+                            android:layout_marginStart="16dp"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
@@ -1162,7 +1154,7 @@
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="3dp"
+                                android:layout_marginTop="4dp"
                                 android:text="@string/proxy_chain_intro"
                                 android:maxLines="2"
                                 android:ellipsize="end"
@@ -1182,7 +1174,7 @@
                     android:foreground="?attr/selectableItemBackground"
                     android:onClick="@{() -> self.request(Request.OpenPerAppRouting)}"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="22dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp">
 
                     <LinearLayout
@@ -1195,8 +1187,7 @@
                         <ImageView
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:background="@drawable/bg_flag_circle"
-                            android:padding="10dp"
+                            android:padding="12dp"
                             android:contentDescription="@string/access_control_packages"
                             android:src="@drawable/ic_baseline_subscriptions"
                             app:tint="?attr/colorPrimary" />
@@ -1204,7 +1195,7 @@
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="14dp"
+                            android:layout_marginStart="16dp"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
@@ -1219,7 +1210,7 @@
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="3dp"
+                                android:layout_marginTop="4dp"
                                 android:text="@string/routing_hub_per_app_summary"
                                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                                 android:textColor="?attr/colorOnSurfaceVariant" />
@@ -1253,7 +1244,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="22dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
                     app:strokeColor="@color/lumen_hairline"
                     app:strokeWidth="1dp">
@@ -1283,7 +1274,7 @@
                             <LinearLayout
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:layout_marginStart="14dp"
+                                android:layout_marginStart="16dp"
                                 android:layout_weight="1"
                                 android:orientation="vertical">
 
@@ -1317,7 +1308,7 @@
                             android:id="@+id/operator_greeting"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="14dp"
+                            android:layout_marginTop="16dp"
                             android:textAppearance="@style/TextAppearance.App.BodyLarge"
                             android:textColor="?attr/colorOnSurface"
                             android:visibility="gone"
@@ -1346,7 +1337,7 @@
                             style="@style/Widget.Material3.Button.TonalButton"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="10dp"
+                            android:layout_marginTop="12dp"
                             android:text="@string/about_brand_cabinet"
                             android:textAllCaps="false"
                             android:visibility="gone"
@@ -1383,7 +1374,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:paddingHorizontal="20dp"
-                android:paddingTop="18dp"
+                android:paddingTop="16dp"
                 android:paddingBottom="24dp">
 
                 <TextView
@@ -1406,13 +1397,13 @@
                     style="@style/AppCard.Filled"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="18dp"
+                    android:layout_marginTop="16dp"
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?attr/selectableItemBackground"
                     android:onClick="@{() -> self.request(Request.OpenSettings)}"
                     app:cardBackgroundColor="?attr/colorPrimaryContainer"
-                    app:cardCornerRadius="24dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp">
 
                     <LinearLayout
@@ -1420,7 +1411,7 @@
                         android:layout_height="wrap_content"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:padding="18dp">
+                        android:padding="16dp">
 
                         <ImageView
                             android:layout_width="34dp"
@@ -1465,7 +1456,7 @@
                     android:foreground="?attr/selectableItemBackground"
                     android:onClick="@{() -> self.request(Request.OpenThemeSettings)}"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="22dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp">
 
                     <LinearLayout
@@ -1478,8 +1469,7 @@
                         <ImageView
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:background="@drawable/bg_flag_circle"
-                            android:padding="10dp"
+                            android:padding="12dp"
                             android:contentDescription="@string/theme_settings"
                             android:src="@drawable/ic_baseline_brightness_4"
                             app:tint="?attr/colorPrimary" />
@@ -1487,7 +1477,7 @@
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="14dp"
+                            android:layout_marginStart="16dp"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
@@ -1502,7 +1492,7 @@
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="3dp"
+                                android:layout_marginTop="4dp"
                                 android:text="@string/main_open_theme_summary"
                                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                                 android:textColor="?attr/colorOnSurfaceVariant" />
@@ -1520,7 +1510,7 @@
                     android:foreground="?attr/selectableItemBackground"
                     android:onClick="@{() -> self.request(Request.OpenAppSettings)}"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="22dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp">
 
                     <LinearLayout
@@ -1533,8 +1523,7 @@
                         <ImageView
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:background="@drawable/bg_flag_circle"
-                            android:padding="10dp"
+                            android:padding="12dp"
                             android:contentDescription="@string/subscription_identity"
                             android:src="@drawable/ic_baseline_subscriptions"
                             app:tint="?attr/colorPrimary" />
@@ -1542,7 +1531,7 @@
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="14dp"
+                            android:layout_marginStart="16dp"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
@@ -1557,7 +1546,7 @@
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="3dp"
+                                android:layout_marginTop="4dp"
                                 android:text="@string/main_open_subscription_identity_summary"
                                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                                 android:textColor="?attr/colorOnSurfaceVariant" />
@@ -1575,7 +1564,7 @@
                     android:foreground="?attr/selectableItemBackground"
                     android:onClick="@{() -> self.request(Request.OpenConnections)}"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="22dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp">
 
                     <LinearLayout
@@ -1588,8 +1577,7 @@
                         <ImageView
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:background="@drawable/bg_flag_circle"
-                            android:padding="10dp"
+                            android:padding="12dp"
                             android:contentDescription="@string/nav_connections"
                             android:src="@drawable/ic_baseline_swap_horiz"
                             app:tint="?attr/colorPrimary" />
@@ -1597,7 +1585,7 @@
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="14dp"
+                            android:layout_marginStart="16dp"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
@@ -1612,7 +1600,7 @@
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="3dp"
+                                android:layout_marginTop="4dp"
                                 android:text="@string/main_open_connections_summary"
                                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                                 android:textColor="?attr/colorOnSurfaceVariant" />
@@ -1630,7 +1618,7 @@
                     android:foreground="?attr/selectableItemBackground"
                     android:onClick="@{() -> self.request(Request.OpenLogs)}"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="22dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp">
 
                     <LinearLayout
@@ -1643,8 +1631,7 @@
                         <ImageView
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:background="@drawable/bg_flag_circle"
-                            android:padding="10dp"
+                            android:padding="12dp"
                             android:contentDescription="@string/logs"
                             android:src="@drawable/ic_baseline_article"
                             app:tint="?attr/colorPrimary" />
@@ -1652,7 +1639,7 @@
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="14dp"
+                            android:layout_marginStart="16dp"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
@@ -1667,7 +1654,7 @@
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="3dp"
+                                android:layout_marginTop="4dp"
                                 android:text="@string/main_open_logs_summary"
                                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                                 android:textColor="?attr/colorOnSurfaceVariant" />
@@ -1685,7 +1672,7 @@
                     android:foreground="?attr/selectableItemBackground"
                     android:onClick="@{() -> self.request(Request.OpenAbout)}"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="22dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp">
 
                     <LinearLayout
@@ -1698,8 +1685,7 @@
                         <ImageView
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:background="@drawable/bg_flag_circle"
-                            android:padding="10dp"
+                            android:padding="12dp"
                             android:contentDescription="@string/about"
                             android:src="@drawable/ic_baseline_info"
                             app:tint="?attr/colorPrimary" />
@@ -1707,7 +1693,7 @@
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="14dp"
+                            android:layout_marginStart="16dp"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
@@ -1722,7 +1708,7 @@
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="3dp"
+                                android:layout_marginTop="4dp"
                                 android:text="@string/main_open_about_summary"
                                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                                 android:textColor="?attr/colorOnSurfaceVariant" />
@@ -1755,7 +1741,7 @@
                 android:gravity="center"
                 android:orientation="horizontal"
                 android:paddingHorizontal="4dp"
-                android:paddingVertical="3dp">
+                android:paddingVertical="4dp">
 
                 <LinearLayout
                     android:id="@+id/main_nav_home"

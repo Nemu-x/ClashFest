@@ -12,7 +12,7 @@
         android:focusable="true"
         android:foreground="?attr/selectableItemBackground"
         app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-        app:cardCornerRadius="24dp"
+        app:cardCornerRadius="16dp"
         app:cardElevation="0dp"
         app:strokeWidth="0dp">
         <LinearLayout
@@ -25,25 +25,33 @@
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
-                <ImageView
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:layout_marginEnd="12dp"
-                    android:background="@drawable/bg_flag_circle"
-                    android:importantForAccessibility="no"
-                    android:padding="8dp"
-                    android:src="@drawable/ic_baseline_subscriptions"
-                    app:tint="?attr/colorPrimary" />
-                <TextView
-                    android:id="@+id/subscription_name"
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:ellipsize="end"
-                    android:maxLines="2"
-                    android:textAppearance="@style/TextAppearance.App.TitleMedium"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textStyle="bold" />
+                    android:orientation="vertical">
+                    <TextView
+                        android:id="@+id/subscription_name"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:fontFamily="sans-serif-medium"
+                        app:fontFamily="sans-serif-medium"
+                        android:maxLines="2"
+                        android:textAppearance="@style/TextAppearance.App.TitleMedium"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="16sp" />
+                    <TextView
+                        android:id="@+id/subscription_status"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:fontFamily="sans-serif"
+                        app:fontFamily="sans-serif"
+                        android:text="@string/subscription_in_use"
+                        android:textAppearance="@style/TextAppearance.App.BodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/subscription_menu"
                     style="@style/Widget.Material3.Button.IconButton"
@@ -58,21 +66,12 @@
                     app:iconTint="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
             <TextView
-                android:id="@+id/subscription_status"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/bg_m3_status_chip"
-                android:paddingHorizontal="12dp"
-                android:paddingVertical="4dp"
-                android:text="@string/subscription_in_use"
-                android:textAppearance="@style/TextAppearance.App.LabelMedium"
-                android:textColor="?attr/colorOnPrimaryContainer" />
-            <TextView
                 android:id="@+id/subscription_usage"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="8dp"
+                android:fontFamily="sans-serif"
+                app:fontFamily="sans-serif"
                 android:textAppearance="@style/TextAppearance.App.BodyMedium"
                 android:textColor="?attr/colorOnSurface" />
             <com.google.android.material.progressindicator.LinearProgressIndicator
@@ -87,7 +86,9 @@
                 android:id="@+id/subscription_expiry"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="4dp"
+                android:fontFamily="sans-serif"
+                app:fontFamily="sans-serif"
                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                 android:textColor="?attr/colorOnSurfaceVariant" />
             <TextView
@@ -96,6 +97,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:accessibilityLiveRegion="polite"
+                android:fontFamily="sans-serif"
+                app:fontFamily="sans-serif"
                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:visibility="gone" />
@@ -105,6 +108,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:minHeight="48dp"
+                android:fontFamily="sans-serif-medium"
+                app:fontFamily="sans-serif-medium"
                 android:text="@string/subscription_retry"
                 android:visibility="gone" />
         </LinearLayout>

@@ -5,7 +5,7 @@
     style="@style/AppCard.Filled"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="10dp"
+    android:layout_marginBottom="12dp"
     app:cardBackgroundColor="?attr/colorSurfaceContainer"
     app:cardCornerRadius="18dp"
     app:cardElevation="0dp"
@@ -15,7 +15,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="14dp">
+        android:padding="16dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -44,7 +44,7 @@
                     android:id="@+id/request_row_subtitle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="3dp"
+                    android:layout_marginTop="4dp"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:textAppearance="@style/TextAppearance.App.BodySmall"
@@ -56,7 +56,7 @@
                 android:id="@+id/request_row_status"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
+                android:layout_marginStart="12dp"
                 android:background="@drawable/bg_m3_status_chip_neutral"
                 android:paddingHorizontal="9dp"
                 android:paddingVertical="4dp"

@@ -43,7 +43,7 @@
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="16dp"
-            android:paddingVertical="10dp">
+            android:paddingVertical="12dp">
 
             <TextView
                 android:id="@+id/status_text"

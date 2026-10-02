@@ -8,7 +8,7 @@
         android:id="@+id/screen_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="6dp"
+        android:paddingTop="8dp"
         android:paddingBottom="12dp"
         android:textAppearance="@style/TextAppearance.App.TitleLarge"
         android:textColor="?attr/colorOnSurface"

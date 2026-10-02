@@ -8,7 +8,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="12dp"
         app:cardBackgroundColor="?attr/colorSurfaceContainer"
-        app:cardCornerRadius="20dp"
+        app:cardCornerRadius="16dp"
         app:cardElevation="0dp">
 
         <TextView
@@ -16,7 +16,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingHorizontal="16dp"
-            android:paddingVertical="14dp"
+            android:paddingVertical="16dp"
             android:textAppearance="@style/TextAppearance.App.BodyMedium"
             android:textColor="?attr/colorOnSurfaceVariant" />
     </com.google.android.material.card.MaterialCardView>

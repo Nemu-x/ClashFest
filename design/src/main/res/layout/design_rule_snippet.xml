@@ -39,7 +39,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="24dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="0dp">
 
@@ -53,7 +53,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/rule_existing_providers"
-                            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                            android:textAppearance="@style/TextAppearance.App.TitleMedium"
                             android:textColor="?attr/colorOnSurface" />
 
                         <TextView
@@ -61,7 +61,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="@string/rule_existing_provider_toggle_hint"
-                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                            android:textAppearance="@style/TextAppearance.App.BodyMedium" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_update_all_rule_sets"

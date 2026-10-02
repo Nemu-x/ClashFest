@@ -49,13 +49,13 @@
                     style="@style/AppCard.Filled"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="18dp"
+                    android:layout_marginTop="16dp"
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?attr/selectableItemBackground"
                     android:onClick="@{() -> self.request(Request.StartApp)}"
-                    app:cardBackgroundColor="?attr/colorPrimaryContainer"
-                    app:cardCornerRadius="24dp"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp">
 
                     <LinearLayout
@@ -63,14 +63,14 @@
                         android:layout_height="wrap_content"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:padding="18dp">
+                        android:padding="16dp">
 
                         <ImageView
                             android:layout_width="32dp"
                             android:layout_height="32dp"
                             android:contentDescription="@string/app"
                             android:src="@drawable/ic_baseline_settings"
-                            app:tint="?attr/colorOnPrimaryContainer" />
+                            app:tint="?attr/colorOnSurface" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -84,7 +84,7 @@
                                 android:layout_height="wrap_content"
                                 android:text="@string/app"
                                 android:textAppearance="@style/TextAppearance.App.TitleMedium"
-                                android:textColor="?attr/colorOnPrimaryContainer"
+                                android:textColor="?attr/colorOnSurface"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -93,7 +93,7 @@
                                 android:layout_marginTop="4dp"
                                 android:text="@string/advanced_hub_app_summary"
                                 android:textAppearance="@style/TextAppearance.App.BodySmall"
-                                android:textColor="?attr/colorOnPrimaryContainer" />
+                                android:textColor="?attr/colorOnSurface" />
                         </LinearLayout>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
@@ -108,7 +108,7 @@
                     android:foreground="?attr/selectableItemBackground"
                     android:onClick="@{() -> self.request(Request.StartCompanion)}"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="22dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp">
 
                     <LinearLayout
@@ -121,8 +121,7 @@
                         <ImageView
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:background="@drawable/bg_flag_circle"
-                            android:padding="10dp"
+                            android:padding="12dp"
                             android:contentDescription="@string/companion_title"
                             android:src="@drawable/ic_baseline_stack"
                             app:tint="?attr/colorPrimary" />
@@ -130,7 +129,7 @@
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="14dp"
+                            android:layout_marginStart="16dp"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
@@ -145,7 +144,7 @@
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="3dp"
+                                android:layout_marginTop="4dp"
                                 android:text="@string/companion_hub_summary"
                                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                                 android:textColor="?attr/colorOnSurfaceVariant" />
@@ -163,7 +162,7 @@
                     android:foreground="?attr/selectableItemBackground"
                     android:onClick="@{() -> self.request(Request.StartGeo)}"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="22dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp">
 
                     <LinearLayout
@@ -176,8 +175,7 @@
                         <ImageView
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:background="@drawable/bg_flag_circle"
-                            android:padding="10dp"
+                            android:padding="12dp"
                             android:contentDescription="@string/settings_geo"
                             android:src="@drawable/ic_baseline_language"
                             app:tint="?attr/colorPrimary" />
@@ -185,7 +183,7 @@
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="14dp"
+                            android:layout_marginStart="16dp"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
@@ -200,7 +198,7 @@
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="3dp"
+                                android:layout_marginTop="4dp"
                                 android:text="@string/advanced_hub_geo_summary"
                                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                                 android:textColor="?attr/colorOnSurfaceVariant" />
@@ -218,7 +216,7 @@
                     android:foreground="?attr/selectableItemBackground"
                     android:onClick="@{() -> self.request(Request.StartNetwork)}"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="22dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp">
 
                     <LinearLayout
@@ -231,8 +229,7 @@
                         <ImageView
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:background="@drawable/bg_flag_circle"
-                            android:padding="10dp"
+                            android:padding="12dp"
                             android:contentDescription="@string/network"
                             android:src="@drawable/ic_baseline_vpn_lock"
                             app:tint="?attr/colorPrimary" />
@@ -240,7 +237,7 @@
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="14dp"
+                            android:layout_marginStart="16dp"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
@@ -255,7 +252,7 @@
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="3dp"
+                                android:layout_marginTop="4dp"
                                 android:text="@string/advanced_hub_network_summary"
                                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                                 android:textColor="?attr/colorOnSurfaceVariant" />
@@ -273,7 +270,7 @@
                     android:foreground="?attr/selectableItemBackground"
                     android:onClick="@{() -> self.request(Request.StartMetaFeatures)}"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="22dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp">
 
                     <LinearLayout
@@ -286,8 +283,7 @@
                         <ImageView
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:background="@drawable/bg_flag_circle"
-                            android:padding="10dp"
+                            android:padding="12dp"
                             android:contentDescription="@string/meta_features"
                             android:src="@drawable/ic_baseline_extension"
                             app:tint="?attr/colorPrimary" />
@@ -295,7 +291,7 @@
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="14dp"
+                            android:layout_marginStart="16dp"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
@@ -310,7 +306,7 @@
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="3dp"
+                                android:layout_marginTop="4dp"
                                 android:text="@string/advanced_meta_features_summary"
                                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                                 android:textColor="?attr/colorOnSurfaceVariant" />
@@ -330,7 +326,7 @@
                     android:onClick="@{() -> self.request(Request.StartDnsHosts)}"
                     android:visibility="gone"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="22dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp">
 
                     <LinearLayout
@@ -343,8 +339,7 @@
                         <ImageView
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:background="@drawable/bg_flag_circle"
-                            android:padding="10dp"
+                            android:padding="12dp"
                             android:contentDescription="@string/dns_hosts_title"
                             android:src="@drawable/ic_baseline_language"
                             app:tint="?attr/colorPrimary" />
@@ -352,7 +347,7 @@
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="14dp"
+                            android:layout_marginStart="16dp"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
@@ -367,7 +362,7 @@
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="3dp"
+                                android:layout_marginTop="4dp"
                                 android:text="@string/dns_hosts_entry_summary"
                                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                                 android:textColor="?attr/colorOnSurfaceVariant" />
@@ -387,7 +382,7 @@
                     android:onClick="@{() -> self.request(Request.StartTunnels)}"
                     android:visibility="gone"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="22dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp">
 
                     <LinearLayout
@@ -400,8 +395,7 @@
                         <ImageView
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:background="@drawable/bg_flag_circle"
-                            android:padding="10dp"
+                            android:padding="12dp"
                             android:contentDescription="@string/tunnels_title"
                             android:src="@drawable/ic_baseline_swap_horiz"
                             app:tint="?attr/colorPrimary" />
@@ -409,7 +403,7 @@
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="14dp"
+                            android:layout_marginStart="16dp"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
@@ -424,7 +418,7 @@
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="3dp"
+                                android:layout_marginTop="4dp"
                                 android:text="@string/tunnels_entry_summary"
                                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                                 android:textColor="?attr/colorOnSurfaceVariant" />
@@ -444,7 +438,7 @@
                     android:onClick="@{() -> self.request(Request.StartOverride)}"
                     android:visibility="gone"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="22dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp">
 
                     <LinearLayout
@@ -457,8 +451,7 @@
                         <ImageView
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:background="@drawable/bg_flag_circle"
-                            android:padding="10dp"
+                            android:padding="12dp"
                             android:contentDescription="@string/config_override"
                             android:src="@drawable/ic_baseline_bolt"
                             app:tint="?attr/colorPrimary" />
@@ -466,7 +459,7 @@
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="14dp"
+                            android:layout_marginStart="16dp"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
@@ -481,7 +474,7 @@
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="3dp"
+                                android:layout_marginTop="4dp"
                                 android:text="@string/config_override_summary"
                                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                                 android:textColor="?attr/colorOnSurfaceVariant" />

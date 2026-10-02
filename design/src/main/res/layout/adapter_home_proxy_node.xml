@@ -12,8 +12,8 @@
     android:gravity="center_vertical"
     android:minHeight="56dp"
     android:orientation="horizontal"
-    android:paddingStart="14dp"
-    android:paddingEnd="14dp"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
     android:paddingVertical="9dp">
 
     <!-- Selection is now shown by the accent outline (bg_proxy_node_row) + check, so the left
@@ -105,7 +105,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_proto_chip"
-                android:paddingHorizontal="6dp"
+                android:paddingHorizontal="8dp"
                 android:paddingVertical="2dp"
                 android:fontFamily="monospace"
                 android:letterSpacing="0.08"
@@ -124,7 +124,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:background="@drawable/bg_proto_chip"
-                android:paddingHorizontal="6dp"
+                android:paddingHorizontal="8dp"
                 android:paddingVertical="2dp"
                 android:fontFamily="monospace"
                 android:letterSpacing="0.08"
@@ -143,7 +143,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:background="@drawable/bg_proto_chip"
-                android:paddingHorizontal="6dp"
+                android:paddingHorizontal="8dp"
                 android:paddingVertical="2dp"
                 android:fontFamily="monospace"
                 android:letterSpacing="0.08"
@@ -160,7 +160,7 @@
                 android:id="@+id/proxy_subtitle_sep"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="6dp"
+                android:layout_marginHorizontal="8dp"
                 android:text="·"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="11sp"
@@ -188,7 +188,7 @@
         android:id="@+id/latency_capsule"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
+        android:layout_marginStart="12dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:clickable="true"
         android:contentDescription="@string/proxy_ping_node"
@@ -197,7 +197,7 @@
         android:minHeight="36dp"
         android:minWidth="58dp"
         android:orientation="horizontal"
-        android:paddingHorizontal="6dp">
+        android:paddingHorizontal="8dp">
 
         <View
             android:id="@+id/latency_dot"
@@ -210,7 +210,8 @@
             android:id="@+id/proxy_delay"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/space_grotesk"
+            android:fontFamily="sans-serif-medium"
+            app:fontFamily="sans-serif-medium"
             android:gravity="center"
             android:textAppearance="@style/TextAppearance.App.LabelMedium"
             android:textStyle="bold"
@@ -221,7 +222,7 @@
         android:id="@+id/selected_check"
         android:layout_width="20dp"
         android:layout_height="20dp"
-        android:layout_marginStart="10dp"
+        android:layout_marginStart="12dp"
         android:importantForAccessibility="no"
         android:src="@drawable/ic_baseline_check"
         android:visibility="gone"

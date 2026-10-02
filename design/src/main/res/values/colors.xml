@@ -1,30 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Light (legacy names kept for compatibility) -->
-    <color name="color_clash_light">#2FA36B</color>
+    <color name="color_clash_light">#A64F00</color>
     <color name="color_system_ui_overlay">#50000000</color>
-    <color name="color_light_background">#FFF4F7FB</color>
-    <color name="color_light_surface">#FFF8FAFD</color>
-    <color name="color_light_text_primary">#FF1D2733</color>
-    <color name="color_light_text_secondary">#FF5C6978</color>
-    <color name="color_light_clash_stopped">#FF7F8A98</color>
-    <color name="color_light_control_disabled">#FFCAD2DC</color>
+    <color name="color_light_background">#FAF8F5</color>
+    <color name="color_light_surface">#FAF8F5</color>
+    <color name="color_light_text_primary">#24211E</color>
+    <color name="color_light_text_secondary">#625A50</color>
+    <color name="color_light_clash_stopped">#847B70</color>
+    <color name="color_light_control_disabled">#D8CFC3</color>
     <color name="color_error">#FFB00020</color>
 
     <!-- Dark Tech palette (ClashFest default dark) — retuned from cool blue-grey to neutral
          "obsidian" so windowBackground / dashboard gradient match the md3_dark surface ramp
          (Home canvas). These feed android:windowBackground + bg_main_gradient. -->
-    <color name="tech_bg">#0A0A0B</color>
-    <color name="tech_surface">#141415</color>
-    <color name="tech_card">#1A1A1C</color>
+    <color name="tech_bg">#11100E</color>
+    <color name="tech_surface">#191714</color>
+    <color name="tech_card">#24201B</color>
     <!-- Neon green (cyberpunk primary) -->
-    <color name="tech_primary">#00E676</color>
-    <color name="tech_on_primary">#0B0F14</color>
-    <color name="tech_secondary">#8B5CF6</color>
-    <color name="tech_secondary_soft">#664ADE80</color>
-    <color name="tech_text_primary">#E6EDF3</color>
-    <color name="tech_text_secondary">#9BA3AF</color>
-    <color name="tech_divider">#333237</color>
+    <color name="tech_primary">#FFA021</color>
+    <color name="tech_on_primary">#251507</color>
+    <color name="tech_secondary">#D8BFA5</color>
+    <color name="tech_secondary_soft">#66D8BFA5</color>
+    <color name="tech_text_primary">#F4EFE8</color>
+    <color name="tech_text_secondary">#C5BCAF</color>
+    <color name="tech_divider">#443B31</color>
 
     <!-- Legacy dark aliases → Dark Tech -->
     <color name="color_clash_dark">@color/tech_primary</color>
@@ -33,13 +33,13 @@
     <color name="color_dark_control_disabled">#809BA3AF</color>
 
     <!-- Home dashboard -->
-    <color name="main_gradient_top">#141416</color>
+    <color name="main_gradient_top">#191714</color>
     <color name="main_gradient_bottom">@color/tech_bg</color>
-    <color name="main_gradient_top_light">#E5ECF4</color>
-    <color name="main_gradient_bottom_light">#F2F6FA</color>
+    <color name="main_gradient_top_light">#FAF8F5</color>
+    <color name="main_gradient_bottom_light">#FAF8F5</color>
     <color name="main_card_glass">#4D1A2330</color>
     <!-- Readable on both tech_primary (active) and tech_card (inactive) mode chips -->
-    <color name="tech_mode_chip_label">#E6EDF3</color>
+    <color name="tech_mode_chip_label">#F4EFE8</color>
     <color name="theme_true_black_bg">#000000</color>
     <color name="theme_true_black_surface">#050505</color>
     <color name="theme_true_black_surface_high">#101010</color>

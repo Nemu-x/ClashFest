@@ -33,7 +33,7 @@ class UiStore(context: Context) {
 
     var dynamicColors: Boolean by store.boolean(
         key = "dynamic_colors",
-        defaultValue = true,
+        defaultValue = false,
     )
 
     var themePalette: ThemePalette by store.enum(

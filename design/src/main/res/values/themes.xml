@@ -13,18 +13,37 @@
         <item name="paddingBottomSystemWindowInsets">false</item>
         <item name="paddingLeftSystemWindowInsets">false</item>
 
-        <item name="colorPrimary">@color/color_clash_light</item>
-        <item name="colorOnPrimary">@android:color/white</item>
+        <item name="colorPrimary">@color/md3_light_primary</item>
         <item name="colorControlNormal">@color/color_light_text_primary</item>
         <item name="colorClashStopped">@color/color_light_clash_stopped</item>
         <item name="colorControlDisabled">@color/color_light_control_disabled</item>
 
         <item name="colorPrimaryDark">?attr/colorPrimary</item>
-        <item name="colorSecondary">?attr/colorPrimary</item>
-        <item name="colorOnSecondary">?attr/colorOnPrimary</item>
+        <item name="colorSecondary">@color/md3_light_secondary</item>
+        <item name="colorOnSecondary">@color/md3_light_onSecondary</item>
         <item name="colorControlActivated">?attr/colorPrimary</item>
         <item name="android:textColor">?attr/colorControlNormal</item>
         <item name="android:windowBackground">@color/color_light_background</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="fontFamily">sans-serif</item>
+        <item name="colorPrimaryContainer">@color/md3_light_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/md3_light_onPrimaryContainer</item>
+        <item name="colorOnPrimary">@color/md3_light_onPrimary</item>
+        <item name="colorSecondaryContainer">@color/md3_light_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/md3_light_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/md3_light_tertiary</item>
+        <item name="colorOnTertiary">@color/md3_light_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/md3_light_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/md3_light_onTertiaryContainer</item>
+        <item name="colorSurface">@color/md3_light_surface</item>
+        <item name="colorOnSurface">@color/md3_light_onSurface</item>
+        <item name="colorSurfaceVariant">@color/md3_light_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/md3_light_onSurfaceVariant</item>
+        <item name="colorOutline">@color/md3_light_outline</item>
+        <item name="colorOutlineVariant">@color/md3_light_outlineVariant</item>
+        <item name="colorSurfaceContainerLow">@color/md3_light_surfaceContainerLow</item>
+        <item name="colorSurfaceContainer">@color/md3_light_surfaceContainer</item>
+        <item name="colorSurfaceContainerHigh">@color/md3_light_surfaceContainerHigh</item>
     </style>
 
     <style name="AppFullScreenDialogDarkBase" parent="Theme.Material3.Dark.Dialog">
@@ -36,11 +55,10 @@
         <item name="paddingBottomSystemWindowInsets">false</item>
         <item name="paddingLeftSystemWindowInsets">false</item>
 
-        <item name="colorPrimary">@color/tech_primary</item>
-        <item name="colorOnPrimary">@color/tech_on_primary</item>
-        <item name="colorSecondary">@color/tech_secondary</item>
-        <item name="colorOnSecondary">@color/tech_text_primary</item>
-        <item name="colorSurface">@color/tech_surface</item>
+        <item name="colorPrimary">@color/md3_dark_primary</item>
+        <item name="colorSecondary">@color/md3_dark_secondary</item>
+        <item name="colorOnSecondary">@color/md3_dark_onSecondary</item>
+        <item name="colorSurface">@color/md3_dark_surface</item>
         <item name="colorControlDisabled">@color/color_dark_control_disabled</item>
         <item name="android:windowBackground">@color/tech_bg</item>
 
@@ -48,6 +66,25 @@
         <item name="colorControlActivated">?attr/colorPrimary</item>
         <item name="colorClashStopped">@color/tech_card</item>
         <item name="android:textColor">@color/tech_text_primary</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="fontFamily">sans-serif</item>
+        <item name="colorPrimaryContainer">@color/md3_dark_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/md3_dark_onPrimaryContainer</item>
+        <item name="colorOnPrimary">@color/md3_dark_onPrimary</item>
+        <item name="colorSecondaryContainer">@color/md3_dark_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/md3_dark_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/md3_dark_tertiary</item>
+        <item name="colorOnTertiary">@color/md3_dark_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/md3_dark_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/md3_dark_onTertiaryContainer</item>
+        <item name="colorOnSurface">@color/md3_dark_onSurface</item>
+        <item name="colorSurfaceVariant">@color/md3_dark_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/md3_dark_onSurfaceVariant</item>
+        <item name="colorOutline">@color/md3_dark_outline</item>
+        <item name="colorOutlineVariant">@color/md3_dark_outlineVariant</item>
+        <item name="colorSurfaceContainerLow">@color/md3_dark_surfaceContainerLow</item>
+        <item name="colorSurfaceContainer">@color/md3_dark_surfaceContainer</item>
+        <item name="colorSurfaceContainerHigh">@color/md3_dark_surfaceContainerHigh</item>
     </style>
 
     <style name="AppFullScreenDialogLight" parent="AppFullScreenDialogLightBase">
@@ -66,19 +103,38 @@
         <item name="paddingBottomSystemWindowInsets">false</item>
         <item name="paddingLeftSystemWindowInsets">false</item>
 
-        <item name="colorPrimary">@color/color_clash_light</item>
-        <item name="colorOnPrimary">@android:color/white</item>
+        <item name="colorPrimary">@color/md3_light_primary</item>
         <item name="colorControlNormal">@color/color_light_text_primary</item>
         <item name="colorClashStopped">@color/color_light_clash_stopped</item>
         <item name="colorControlDisabled">@color/color_light_control_disabled</item>
 
         <item name="colorPrimaryDark">?attr/colorPrimary</item>
-        <item name="colorSecondary">?attr/colorPrimary</item>
-        <item name="colorOnSecondary">?attr/colorOnPrimary</item>
+        <item name="colorSecondary">@color/md3_light_secondary</item>
+        <item name="colorOnSecondary">@color/md3_light_onSecondary</item>
         <item name="colorControlActivated">?attr/colorPrimary</item>
         <item name="android:textColor">?attr/colorControlNormal</item>
 
         <item name="bottomSheetStyle">@style/AppBottomSheetStyle</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="fontFamily">sans-serif</item>
+        <item name="colorPrimaryContainer">@color/md3_light_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/md3_light_onPrimaryContainer</item>
+        <item name="colorOnPrimary">@color/md3_light_onPrimary</item>
+        <item name="colorSecondaryContainer">@color/md3_light_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/md3_light_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/md3_light_tertiary</item>
+        <item name="colorOnTertiary">@color/md3_light_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/md3_light_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/md3_light_onTertiaryContainer</item>
+        <item name="colorSurface">@color/md3_light_surface</item>
+        <item name="colorOnSurface">@color/md3_light_onSurface</item>
+        <item name="colorSurfaceVariant">@color/md3_light_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/md3_light_onSurfaceVariant</item>
+        <item name="colorOutline">@color/md3_light_outline</item>
+        <item name="colorOutlineVariant">@color/md3_light_outlineVariant</item>
+        <item name="colorSurfaceContainerLow">@color/md3_light_surfaceContainerLow</item>
+        <item name="colorSurfaceContainer">@color/md3_light_surfaceContainer</item>
+        <item name="colorSurfaceContainerHigh">@color/md3_light_surfaceContainerHigh</item>
     </style>
 
     <style name="AppBottomSheetDialogDarkBase" parent="Theme.Material3.Dark.BottomSheetDialog">
@@ -87,11 +143,10 @@
         <item name="paddingBottomSystemWindowInsets">false</item>
         <item name="paddingLeftSystemWindowInsets">false</item>
 
-        <item name="colorPrimary">@color/tech_primary</item>
-        <item name="colorOnPrimary">@color/tech_on_primary</item>
-        <item name="colorSecondary">@color/tech_secondary</item>
-        <item name="colorOnSecondary">@color/tech_text_primary</item>
-        <item name="colorSurface">@color/tech_surface</item>
+        <item name="colorPrimary">@color/md3_dark_primary</item>
+        <item name="colorSecondary">@color/md3_dark_secondary</item>
+        <item name="colorOnSecondary">@color/md3_dark_onSecondary</item>
+        <item name="colorSurface">@color/md3_dark_surface</item>
         <item name="colorControlDisabled">@color/color_dark_control_disabled</item>
 
         <item name="colorPrimaryDark">?attr/colorPrimary</item>
@@ -103,6 +158,25 @@
         <item name="android:windowBackground">@android:color/transparent</item>
 
         <item name="bottomSheetStyle">@style/AppBottomSheetStyle</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="fontFamily">sans-serif</item>
+        <item name="colorPrimaryContainer">@color/md3_dark_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/md3_dark_onPrimaryContainer</item>
+        <item name="colorOnPrimary">@color/md3_dark_onPrimary</item>
+        <item name="colorSecondaryContainer">@color/md3_dark_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/md3_dark_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/md3_dark_tertiary</item>
+        <item name="colorOnTertiary">@color/md3_dark_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/md3_dark_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/md3_dark_onTertiaryContainer</item>
+        <item name="colorOnSurface">@color/md3_dark_onSurface</item>
+        <item name="colorSurfaceVariant">@color/md3_dark_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/md3_dark_onSurfaceVariant</item>
+        <item name="colorOutline">@color/md3_dark_outline</item>
+        <item name="colorOutlineVariant">@color/md3_dark_outlineVariant</item>
+        <item name="colorSurfaceContainerLow">@color/md3_dark_surfaceContainerLow</item>
+        <item name="colorSurfaceContainer">@color/md3_dark_surfaceContainer</item>
+        <item name="colorSurfaceContainerHigh">@color/md3_dark_surfaceContainerHigh</item>
     </style>
 
     <style name="AppBottomSheetDialogLight" parent="AppBottomSheetDialogLightBase">
@@ -116,9 +190,9 @@
     </style>
 
     <style name="AppThemeLightBase" parent="Theme.Material3.Light.NoActionBar">
-        <!-- App-wide body font: Manrope (Cyrillic-safe, pairs with Space Grotesk on titles). -->
-        <item name="android:fontFamily">@font/manrope</item>
-        <item name="fontFamily">@font/manrope</item>
+        <!-- Neutral system typography keeps every screen legible. -->
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="fontFamily">sans-serif</item>
         <item name="homeGlowColor">#0DFFFFFF</item>
         <item name="android:windowBackground">@color/color_light_background</item>
         <item name="android:ambientShadowAlpha">0.08</item>
@@ -224,9 +298,9 @@
     </style>
 
     <style name="AppThemeDarkBase" parent="Theme.Material3.Dark.NoActionBar">
-        <!-- App-wide body font: Manrope (Cyrillic-safe, pairs with Space Grotesk on titles). -->
-        <item name="android:fontFamily">@font/manrope</item>
-        <item name="fontFamily">@font/manrope</item>
+        <!-- Neutral system typography keeps every screen legible. -->
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="fontFamily">sans-serif</item>
         <item name="homeGlowColor">#2BFFFFFF</item>
         <item name="android:windowBackground">@color/tech_bg</item>
         <item name="android:ambientShadowAlpha">0.12</item>
