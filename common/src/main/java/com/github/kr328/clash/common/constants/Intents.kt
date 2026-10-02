@@ -30,9 +30,9 @@ object Intents {
     /** Explicit-component intent to MainActivity: open the Home node picker (notification action). */
     val ACTION_OPEN_NODE_PICKER = "$packageName.intent.action.OPEN_NODE_PICKER"
 
-    // Home-screen speed widget (#101). Fired by the widget's on/off tap (explicit component to
-    // the provider). Live traffic frames are rendered directly by the service via
-    // SpeedWidgetRenderer — no broadcast needed for updates.
+    val ACTION_OPEN_PROFILES = "$packageName.intent.action.OPEN_PROFILES"
+
+    // Explicit immutable widget PendingIntent to the private toggle activity.
     val ACTION_WIDGET_TOGGLE = "$packageName.intent.action.WIDGET_TOGGLE"
 
     const val EXTRA_STOP_REASON = "stop_reason"

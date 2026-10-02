@@ -327,12 +327,21 @@
             </intent-filter>
         </service>
 
+        <activity
+            android:name=".WidgetToggleActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" />
+
         <receiver
             android:name=".SpeedWidget"
             android:exported="false"
             android:label="@string/widget_speed_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"

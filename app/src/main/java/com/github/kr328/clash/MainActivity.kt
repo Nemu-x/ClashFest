@@ -551,6 +551,9 @@ class MainActivity : BaseActivity<MainDesign>() {
             if (intent?.action == Intents.ACTION_OPEN_NODE_PICKER) {
                 openNodePickerFromIntent()
             }
+            if (intent?.action == Intents.ACTION_OPEN_PROFILES) {
+                openProfilesFromIntent()
+            }
             // Mirror onDestroy for the replaced design; its jobs/tickers already died with the
             // previous runDashboard scope.
             previous?.cancel()
@@ -1830,6 +1833,16 @@ class MainActivity : BaseActivity<MainDesign>() {
         }
         if (intent.action == Intents.ACTION_OPEN_NODE_PICKER) {
             openNodePickerFromIntent()
+        }
+        if (intent.action == Intents.ACTION_OPEN_PROFILES) {
+            openProfilesFromIntent()
+        }
+    }
+
+    private fun openProfilesFromIntent() {
+        design?.let {
+            it.openProfilesTab()
+            intent.action = null
         }
     }
 

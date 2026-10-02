@@ -40,4 +40,12 @@
     <plurals name="notification_days_left">
         <item quantity="other">剩余 %d 天</item>
     </plurals>
+    <string name="widget_speed_label">Mikan VPN</string>
+    <string name="widget_state_off">Mikan VPN 已关闭。点击连接。</string>
+    <string name="widget_state_on">Mikan VPN 已开启。点击断开。</string>
+    <string name="widget_state_starting">Mikan VPN 正在连接。</string>
+    <string name="widget_state_stopping">Mikan VPN 正在断开。</string>
+    <string name="widget_permission_denied">请允许 VPN 连接以使用小组件。</string>
+    <string name="widget_action_failed">无法切换 VPN。请打开 Mikan 并重试。</string>
+    <string name="widget_choose_subscription">请先在 Mikan 中选择订阅。</string>
 </resources>

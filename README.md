@@ -56,7 +56,7 @@ Dev builds from the `dev` branch: [dev-latest pre-release](https://github.com/ge
 | Area | What you get |
 |------|----------------|
 | **Home** | Active node card, compact subscription actions, circular tab swipe, import from URL / QR / clipboard |
-| **Widget** | Home-screen speed widget — live ↑/↓ rate, tap to connect/disconnect (responsive: 1 cell = on/off, wider = live speed) |
+| **Widget** | Orange 1×1 VPN switch with a short state animation. Uses the selected subscription, saved server and routing settings; asks for Android VPN permission when needed. |
 | **Modes** | Rule / Global quick switch from Home |
 | **Profiles** | Dedicated Profiles tab manager with collapsible proxy groups + per-profile **read-only config viewer** (YAML highlighting, copy / share) |
 | **Proxy chain** | Chain two proxies per profile (first hop → exit) with explicit *save* vs *use-now* and optional YAML preview |

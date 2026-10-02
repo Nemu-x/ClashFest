@@ -28,4 +28,12 @@
     <string name="update_failed_action_support">Поддержка</string>
     <string name="update_failed_action_retry">Повторить</string>
     <string name="update_failure">Ошибка обновления</string>
+    <string name="widget_speed_label">Mikan VPN</string>
+    <string name="widget_state_off">Mikan VPN выключен. Нажмите, чтобы подключиться.</string>
+    <string name="widget_state_on">Mikan VPN включён. Нажмите, чтобы отключиться.</string>
+    <string name="widget_state_starting">Mikan VPN подключается.</string>
+    <string name="widget_state_stopping">Mikan VPN отключается.</string>
+    <string name="widget_permission_denied">Разрешите подключение VPN, чтобы использовать виджет.</string>
+    <string name="widget_action_failed">Не удалось переключить VPN. Откройте Mikan и попробуйте снова.</string>
+    <string name="widget_choose_subscription">Сначала выберите подписку в Mikan.</string>
 </resources>

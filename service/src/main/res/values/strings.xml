@@ -49,6 +49,13 @@
 
     <!-- Home-screen speed widget (#101). Kept in :service because the widget RemoteViews are
          built here (direct update from the running VPN service). -->
-    <string name="widget_speed_label">Mikan Speed</string>
+    <string name="widget_speed_label">Mikan VPN</string>
     <string name="widget_off">Off</string>
+    <string name="widget_state_off">Mikan VPN is off. Tap to connect.</string>
+    <string name="widget_state_on">Mikan VPN is on. Tap to disconnect.</string>
+    <string name="widget_state_starting">Mikan VPN is connecting.</string>
+    <string name="widget_state_stopping">Mikan VPN is disconnecting.</string>
+    <string name="widget_permission_denied">Allow the VPN connection to use the widget.</string>
+    <string name="widget_action_failed">Could not switch VPN. Open Mikan and try again.</string>
+    <string name="widget_choose_subscription">Select a subscription in Mikan first.</string>
 </resources>

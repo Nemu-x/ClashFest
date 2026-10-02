@@ -1,110 +1,29 @@
 package com.github.kr328.clash.service.clash.module
 
 import android.app.Service
-import android.appwidget.AppWidgetManager
-import android.content.Intent
-import android.os.PowerManager
-import androidx.core.content.getSystemService
 import com.github.kr328.clash.common.constants.Intents
-import com.github.kr328.clash.common.util.ticker
-import com.github.kr328.clash.core.Clash
-import com.github.kr328.clash.core.util.trafficDownload
-import com.github.kr328.clash.core.util.trafficUpload
+import com.github.kr328.clash.service.StatusProvider
 import com.github.kr328.clash.service.widget.SpeedWidgetRenderer
+import com.github.kr328.clash.service.widget.SpeedWidgetRenderer.State
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.selects.select
-import java.util.concurrent.TimeUnit
 
-/**
- * Drives the home-screen speed widget (#101) straight from the running VPN service: on each
- * tick it queries live traffic and renders the widget via [SpeedWidgetRenderer.renderAll] —
- * a direct AppWidgetManager update, no broadcast, so it never has to cold-start the app's UI
- * process (which is what made the earlier broadcast approach update erratically).
- *
- * Ticks fast (1s) only while the screen is on; the whole point is a glanceable instantaneous
- * rate that nobody can see with the screen off. On stop it renders a final "not running" frame.
- */
 class SpeedWidgetModule(service: Service) : Module<Unit>(service) {
-    private val widgetManager = AppWidgetManager.getInstance(service)
-
-    private var widgetsPresent = false
-
-    /**
-     * Widgets are rarely added or removed, so this AppWidgetManager IPC is only worth running on
-     * the slow path — screen-on, profile-loaded, and every idle tick (~30s). A newly-added widget
-     * still renders immediately via the provider's onUpdate; live frames catch up here. (O-05)
-     */
-    private fun refreshWidgetsPresent(): Boolean {
-        widgetsPresent = runCatching {
-            widgetManager.getAppWidgetIds(SpeedWidgetRenderer.provider(service)).isNotEmpty()
-        }.getOrDefault(false)
-
-        return widgetsPresent
-    }
-
-    private fun push(running: Boolean) {
-        if (!widgetsPresent) return
-        val now = if (running) Clash.queryTrafficNow() else 0L
-        SpeedWidgetRenderer.renderAll(
-            service,
-            running = running,
-            up = now.trafficUpload(),
-            down = now.trafficDownload(),
-        )
-    }
-
-    override suspend fun run() = coroutineScope {
-        var interactive = service.getSystemService<PowerManager>()?.isInteractive ?: true
-
-        val screenToggle = receiveBroadcast(false, Channel.CONFLATED) {
-            addAction(Intent.ACTION_SCREEN_ON)
-            addAction(Intent.ACTION_SCREEN_OFF)
-        }
+    override suspend fun run() {
         val profileLoaded = receiveBroadcast(capacity = Channel.CONFLATED) {
             addAction(Intents.ACTION_PROFILE_LOADED)
         }
-
-        val tickerFast = ticker(TimeUnit.SECONDS.toMillis(1))
-        val tickerIdle = ticker(TimeUnit.SECONDS.toMillis(30))
-
-        refreshWidgetsPresent()
-        push(running = true)
-
         try {
-            while (true) {
-                select<Unit> {
-                    screenToggle.onReceive {
-                        interactive = it.action == Intent.ACTION_SCREEN_ON
-                        if (interactive) {
-                            refreshWidgetsPresent()
-                            push(running = true)
-                        }
-                    }
-                    profileLoaded.onReceive {
-                        refreshWidgetsPresent()
-                        push(running = true)
-                    }
-                    // The 1s ticker only earns its wakeups when a widget is actually on a home
-                    // screen to receive the frames. Most installs have none, and waking a service
-                    // coroutine every second for the whole time the screen is on to discover that
-                    // again is pure battery. Falling back to the idle ticker keeps re-checking
-                    // presence every ~30s, so a widget added later is picked up on its own.
-                    if (interactive && widgetsPresent) {
-                        tickerFast.onReceive { push(running = true) }
-                    } else {
-                        tickerIdle.onReceive {
-                            refreshWidgetsPresent()
-                            push(running = true)
-                        }
-                    }
-                }
-            }
+            renderCurrent()
+            for (event in profileLoaded) renderCurrent()
         } finally {
-            // Re-check rather than trusting the cached flag: the final "not running" frame is the
-            // one the user is left looking at, so it must reach a widget added since the last poll.
-            refreshWidgetsPresent()
-            push(running = false)
+            SpeedWidgetRenderer.renderAll(service, State.Off)
         }
+    }
+
+    private fun renderCurrent() {
+        SpeedWidgetRenderer.renderAll(
+            service,
+            State.fromStatus(StatusProvider.serviceRunning, StatusProvider.currentProfile != null),
+        )
     }
 }
