@@ -251,7 +251,7 @@ object SubscriptionMetadataFetcher {
     private fun parseNetworkStack(raw: String?): String? {
         if (raw.isNullOrBlank()) return null
         return when (raw.trim().lowercase()) {
-            "auto", "system", "gvisor", "mixed" -> raw.trim().lowercase()
+            "auto", "system", "gvisor", "mixed", "mips" -> raw.trim().lowercase()
             else -> null
         }
     }

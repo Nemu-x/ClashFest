@@ -185,13 +185,15 @@ class NetworkSettingsDesign(
                     "auto",
                     "system",
                     "gvisor",
-                    "mixed"
+                    "mixed",
+                    "mips",
                 ),
                 valuesText = arrayOf(
                     R.string.tun_stack_auto,
                     R.string.tun_stack_system,
                     R.string.tun_stack_gvisor,
-                    R.string.tun_stack_mixed
+                    R.string.tun_stack_mixed,
+                    R.string.tun_stack_mips,
                 ),
                 title = R.string.tun_stack_mode,
                 configure = vpnDependencies::add,
@@ -212,7 +214,7 @@ class NetworkSettingsDesign(
                     operator?.trim()?.lowercase() to TunStackResolver.resolve(setting, operator, cfg)
                 }
                 when {
-                    operatorLock in setOf("system", "gvisor", "mixed") && operatorLock != setting ->
+                    operatorLock in setOf("system", "gvisor", "mixed", "mips") && operatorLock != setting ->
                         stackPref.summary = context.getString(R.string.tun_stack_operator_fmt, effective)
                     setting == TunStackResolver.AUTO ->
                         stackPref.summary = context.getString(R.string.tun_stack_auto_fmt, effective)

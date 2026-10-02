@@ -21,6 +21,9 @@ func Start(fd int, stack, gateway, portal, dns string) (io.Closer, error) {
 	if !ok {
 		tunStack = C.TunSystem
 	}
+	// Info, not debug: the effective stack (incl. the fallback) is the first thing
+	// support asks for, and the in-app Logs screen only shows info and above.
+	log.Infoln("TUN: stack = %s (requested %q)", tunStack.String(), stack)
 
 	var prefix4 []netip.Prefix
 	var prefix6 []netip.Prefix

@@ -48,7 +48,7 @@ because these existed before our operator API.
 | `announce` / `Announce` / `Announcement` / `X-Announcement` | string (UTF-8 or `base64:`) | Operator broadcast — home announcement card body. A literal `\n` (two characters) becomes a line break. |
 | `announce-url` / `Announcement-URL` / `X-Announcement-URL` | URL | Tap target for the announcement bar |
 | `share-links` / `X-Share-Links` / `X-Share-Links-Policy` | boolean | **Per-subscription:** hides Share/Copy-link actions and locks URL editing for that profile |
-| `X-Network-Stack` / `Network-Stack` / `X-NetworkStack-enabled` | enum `system`\|`gvisor`\|`mixed`\|`auto` | **Per-subscription:** locks the TUN stack over the user's setting (`auto` = don't lock). Default is `system`. See [operator-api/headers.md](operator-api/headers.md#x-network-stack). |
+| `X-Network-Stack` / `Network-Stack` / `X-NetworkStack-enabled` | enum `system`\|`gvisor`\|`mixed`\|`mips`\|`auto` | **Per-subscription:** locks the TUN stack over the user's setting (`auto` = don't lock). Default is `system`. See [operator-api/headers.md](operator-api/headers.md#x-network-stack). |
 | `X-Bypass-Preset` / `bypass-preset` | preset id (`ru`\|`ir`\|`cn`) or `none` | **Per-subscription, recommendation only:** suggests a regional per-app bypass preset (apps routed outside the tunnel, e.g. local banks). The client shows a one-time confirm dialog per (profile, value) — **never auto-applies**, because per-app bypass exposes the user's real IP to those apps. `none` withdraws the recommendation. Unknown ids and presets with zero installed matches are ignored silently. |
 | `x-hwid-active` | boolean | Panel HWID acceptance — shown in HWID diagnostics |
 | `x-hwid-not-supported` | boolean | Panel HWID feature unsupported |

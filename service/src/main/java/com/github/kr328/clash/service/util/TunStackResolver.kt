@@ -1,15 +1,19 @@
 package com.github.kr328.clash.service.util
 
 /**
- * Resolves which TUN network stack to hand the VpnService fd (system / gvisor / mixed).
+ * Resolves which TUN network stack to hand the VpnService fd (system / gvisor / mixed / mips).
+ *
+ * `mips` is mihomo's own pure-Go userspace stack (metacubex/mipstack, the engine default since
+ * 1.19.32). It is offered as an option, not made the default here: the kernel stack stays the
+ * cheapest on battery and teardown.
  *
  * Precedence (highest first):
- *  1. **Operator lock** — an `X-Network-Stack` subscription header of `system`/`gvisor`/`mixed`
+ *  1. **Operator lock** — an `X-Network-Stack` subscription header of `system`/`gvisor`/`mixed`/`mips`
  *     forces that stack, over the user's manual choice (operator policy, like the share-links lock).
  *     A header value of `auto` (or absent) means "don't lock" and falls through.
- *  2. **User setting** — an explicit app-setting choice of `system`/`gvisor`/`mixed`.
+ *  2. **User setting** — an explicit app-setting choice of `system`/`gvisor`/`mixed`/`mips`.
  *  3. **[AUTO] setting** — follow the *subscription*: the active profile's composed `config.yaml`
- *     declares `tun.stack` (mixed→mixed, system→system, gvisor→gvisor). Falls back to [DEFAULT] when
+ *     declares `tun.stack` (mixed→mixed, system→system, gvisor→gvisor, mips→mips). Falls back to [DEFAULT] when
  *     the subscription doesn't declare a usable stack.
  *  4. **Default `system`** — matches upstream CMFA. Used when the app setting is absent (its default
  *     is `system`, not `auto`).
@@ -22,7 +26,7 @@ object TunStackResolver {
     private const val DEFAULT = "system"
 
     /** Stacks mihomo's TUN listener understands. An unknown value is ignored rather than crashing. */
-    private val KNOWN = setOf("gvisor", "system", "mixed", "lwip")
+    private val KNOWN = setOf("gvisor", "system", "mixed", "lwip", "mips")
 
     /**
      * @param setting       the app-setting stack: an explicit stack, or [AUTO] to follow the subscription.

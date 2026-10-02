@@ -13,10 +13,19 @@ class TunStackResolverTest {
         assertEquals("gvisor", resolve("gvisor"))
         assertEquals("mixed", resolve("mixed"))
         assertEquals("system", resolve("system"))
+        assertEquals("mips", resolve("mips"))
+    }
+
+    @Test fun mips_isUsableFromEveryLayer() {
+        // mihomo's own userspace stack (default upstream since 1.19.32): user pick, subscription, operator.
+        assertEquals("mips", resolve("mips"))
+        assertEquals("mips", resolve(auto, config = "tun:\n  enable: true\n  stack: mips\n"))
+        assertEquals("mips", resolve("system", operator = "mips"))
+        assertEquals("mips", resolve(auto, operator = "MIPS", config = "tun:\n  stack: gvisor\n"))
     }
 
     @Test fun auto_followsSubscriptionStack() {
-        for (stack in listOf("gvisor", "system", "mixed", "lwip")) {
+        for (stack in listOf("gvisor", "system", "mixed", "lwip", "mips")) {
             assertEquals(stack, resolve(auto, config = "tun:\n  enable: true\n  stack: $stack\n"))
         }
     }
