@@ -177,6 +177,17 @@ class ServiceStore(context: Context) {
         defaultValue = true
     )
 
+    /**
+     * Opt-in: rewrite REALITY nodes to advertise X25519MLKEM768 and use the chrome fingerprint
+     * (see RealityCompat). Xray-core 26.9.8+ requires it, but older servers silently drop such a
+     * ClientHello (1.2.0 shipped it on by default and broke whole subscriptions), so it is OFF
+     * unless the user turns it on. Applied at compose time only, never baked into the base.
+     */
+    var realityMlkemCompat by store.boolean(
+        key = "reality_mlkem_compat",
+        defaultValue = false
+    )
+
     var geoDataSourcePreset: GeoDataSourcePreset by store.enum(
         key = "geo_data_source_preset",
         defaultValue = GeoDataSourcePreset.Global,
@@ -375,6 +386,18 @@ class ServiceStore(context: Context) {
         private const val KEY_ALLOW_EXTERNAL_CONTROL = "allow_external_control"
         private const val KEY_ACTIVE_PROFILE = "active_profile"
         private const val MIGRATION_ALLOW_BYPASS_OFF_V1 = "migration_allow_bypass_off_v1"
+        private const val MIGRATION_REALITY_COMPAT_REFETCH_V1 = "migration_reality_compat_refetch_v1"
+
+        /**
+         * 1.2.0 baked the REALITY rewrite into every imported subscription base. One re-fetch per
+         * URL profile restores the operator's config; true exactly once after the upgrade.
+         */
+        fun consumeRealityCompatRefetch(context: Context): Boolean {
+            val prefs = PreferenceProvider.createSharedPreferencesFromContext(context)
+            if (prefs.getBoolean(MIGRATION_REALITY_COMPAT_REFETCH_V1, false)) return false
+            prefs.edit().putBoolean(MIGRATION_REALITY_COMPAT_REFETCH_V1, true).apply()
+            return true
+        }
         private const val MIGRATION_EXTERNAL_CONTROL_DEFAULT_V1 = "migration_external_control_default_v1"
 
         /** One-time upgrade migrations. Each is idempotent and guarded by its own flag. */

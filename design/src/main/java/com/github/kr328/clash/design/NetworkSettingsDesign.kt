@@ -85,6 +85,14 @@ class NetworkSettingsDesign(
                 summary = R.string.seed_default_geo_mirrors_summary,
             )
 
+            // Applied when the config is composed at VPN start, so it needs a restart.
+            switch(
+                value = srvStore::realityMlkemCompat,
+                title = R.string.reality_mlkem_compat,
+                summary = R.string.reality_mlkem_compat_summary,
+                configure = vpnDependencies::add,
+            )
+
             switch(
                 value = srvStore::keepConnectionsOnOldProxy,
                 title = R.string.keep_connections_on_old_proxy,

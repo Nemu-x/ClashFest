@@ -17,6 +17,7 @@ import com.github.kr328.clash.common.util.setUUID
 import com.github.kr328.clash.service.data.Imported
 import com.github.kr328.clash.service.data.ImportedDao
 import com.github.kr328.clash.service.model.Profile
+import com.github.kr328.clash.service.store.ServiceStore
 import com.github.kr328.clash.service.util.importedDir
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -57,9 +58,15 @@ class ProfileReceiver : BroadcastReceiver() {
 
             Log.i("Reschedule all profiles update")
 
-            ImportedDao().queryAll()
-                .filter { it.type != Profile.Type.File }
-                .forEach { scheduleNext(context, it) }
+            val subscriptions = ImportedDao().queryAll().filter { it.type != Profile.Type.File }
+            subscriptions.forEach { scheduleNext(context, it) }
+
+            // 1.2.0 rewrote REALITY nodes inside every stored subscription base; the only way
+            // back to the operator's config is a fresh fetch. Once, right after the upgrade.
+            if (subscriptions.isNotEmpty() && ServiceStore.consumeRealityCompatRefetch(context)) {
+                Log.i("Re-fetching ${subscriptions.size} subscription(s) to drop the 1.2.0 REALITY rewrite")
+                subscriptions.forEach { context.sendBroadcast(updateIntentOf(context, it)) }
+            }
         }
 
         fun cancelNext(context: Context, imported: Imported) {
@@ -108,10 +115,13 @@ class ProfileReceiver : BroadcastReceiver() {
             initialized = false
         }
 
-        private fun pendingIntentOf(context: Context, imported: Imported): PendingIntent {
-            val intent = Intent(Intents.ACTION_PROFILE_REQUEST_UPDATE)
+        private fun updateIntentOf(context: Context, imported: Imported): Intent =
+            Intent(Intents.ACTION_PROFILE_REQUEST_UPDATE)
                 .setComponent(ProfileReceiver::class.componentName)
                 .setUUID(imported.uuid)
+
+        private fun pendingIntentOf(context: Context, imported: Imported): PendingIntent {
+            val intent = updateIntentOf(context, imported)
 
             return PendingIntent.getBroadcast(
                 context,

@@ -115,6 +115,20 @@ class RealityCompatTest {
     }
 
     @Test
+    fun composerAppliesOnlyWhenOptedIn() {
+        val geo = GeoDataUrls(geoIp = "", geoSite = "", mmdb = "", asn = "")
+        val off = ConfigComposer.compose(base, UserLayer(), geo, com.github.kr328.clash.service.model.ProxyHardeningMode.Off)
+        // r1 has no flag and no fingerprint in the source; both must stay that way when opted out
+        // ("ok" carries the flag in the source itself, so a whole-text check would be wrong).
+        assertFalse((proxies(off)["r1"]!!["reality-opts"] as Map<*, *>).containsKey("support-x25519mlkem768"))
+        assertFalse(proxies(off)["r1"]!!.containsKey("client-fingerprint"))
+        assertEquals("firefox", proxies(off)["r2"]!!["client-fingerprint"])
+        val on = ConfigComposer.compose(base, UserLayer(), geo, com.github.kr328.clash.service.model.ProxyHardeningMode.Off, realityCompat = true)
+        assertTrue(on.contains("support-x25519mlkem768: true"))
+        assertEquals("chrome", proxies(on)["r2"]!!["client-fingerprint"])
+    }
+
+    @Test
     fun nullOnNonMapInput() {
         assertNull(RealityCompat.applyToText("- just\n- a list\n"))
     }

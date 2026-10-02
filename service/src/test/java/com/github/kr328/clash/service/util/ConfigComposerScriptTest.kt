@@ -69,9 +69,9 @@ class ConfigComposerScriptTest {
     fun `hardening runs after the script`() {
         // A script that re-opens a loopback listener must not survive hardening.
         val layer = UserLayer(script = UserScript(source = "x"))
-        val out = ConfigComposer.compose(base, layer, geo, ProxyHardeningMode.Strict) { yaml, _ ->
+        val out = ConfigComposer.compose(base, layer, geo, ProxyHardeningMode.Strict, scriptRunner = { yaml, _ ->
             yaml + "external-controller: 0.0.0.0:9090\n"
-        }
+        })
         assertTrue(
             "hardener must still rebind what the script opened, got:\n$out",
             !out.contains("0.0.0.0:9090"),

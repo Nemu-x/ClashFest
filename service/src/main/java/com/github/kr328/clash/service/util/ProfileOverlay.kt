@@ -31,6 +31,7 @@ object ProfileOverlay {
         hardeningMode: ProxyHardeningMode,
         parseSnapshot: (File) -> ProfileSnapshot?,
         scriptRunner: ConfigScriptRunner = ConfigScriptRunner.Disabled,
+        realityCompat: Boolean = false,
     ): Boolean {
         ProfileMigration.migrateIfNeeded(
             profileDir = profileDir,
@@ -47,6 +48,7 @@ object ProfileOverlay {
             geoDataUrls = geoDataUrls,
             hardeningMode = hardeningMode,
             scriptRunner = scriptRunner,
+            realityCompat = realityCompat,
         )
     }
 
@@ -82,6 +84,7 @@ object ProfileOverlay {
             hardeningMode = store.proxyHardeningMode,
             parseSnapshot = { d -> runCatching { Clash.parseProfileSnapshot(d) }.getOrNull() },
             scriptRunner = scriptRunner,
+            realityCompat = store.realityMlkemCompat,
         )
     }
 }

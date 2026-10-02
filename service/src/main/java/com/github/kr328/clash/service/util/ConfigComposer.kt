@@ -68,6 +68,7 @@ object ConfigComposer {
         geoDataUrls: GeoDataUrls,
         hardeningMode: ProxyHardeningMode,
         scriptRunner: ConfigScriptRunner = ConfigScriptRunner.Disabled,
+        realityCompat: Boolean = false,
     ): String {
         var doc = fetchedYaml
 
@@ -101,9 +102,11 @@ object ConfigComposer {
             doc = scriptRunner.apply(doc, it)
         }
 
-        // REALITY nodes must advertise ML-KEM for Xray 26.9+; compatibility, not security,
-        // so it runs regardless of the hardening mode.
-        doc = RealityCompat.applyToText(doc) ?: doc
+        // Opt-in (ServiceStore.realityMlkemCompat): REALITY nodes advertise ML-KEM for
+        // Xray 26.9+. Older servers silently drop such a ClientHello, so never on by default.
+        if (realityCompat) {
+            doc = RealityCompat.applyToText(doc) ?: doc
+        }
 
         // Hardening LAST — on everything that will reach the engine.
         return YamlHardener.hardenYaml(doc, hardeningMode) ?: doc
