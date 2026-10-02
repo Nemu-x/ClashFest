@@ -156,4 +156,23 @@ class WritePipelineOracleFixtureTest {
         assertEquals("127.0.0.1:1053", dns["listen"])
         File(dir, "dns_listener.yaml").writeText(hardened)
     }
+
+    @Test
+    fun emit_hardened_json_profile_fixture_for_go_oracle() {
+        val dir = listOf(
+            "../core/src/main/golang/native/snapshot/testdata/hardening",
+            "core/src/main/golang/native/snapshot/testdata/hardening",
+        ).map(::File).first { it.parentFile.parentFile.parentFile.exists() }
+        dir.mkdirs()
+
+        val json = """{"mixed-port":7890,"allow-lan":true,"proxies":[{"name":"on","type":"socks5","server":"127.0.0.1","port":1080,"username":"yes","password":"0123"}],"proxy-groups":[{"name":"VPN","type":"select","proxies":["on"]}],"rules":["MATCH,VPN"],"dns":{"enable":true,"nameserver":["https://1.1.1.1/dns-query"]}}"""
+        val sanitized = assertNotNull(GeoUrlSanitizer.sanitizeYaml(json))
+        val hardened = assertNotNull(YamlHardener.hardenYaml(sanitized, ProxyHardeningMode.Strict))
+        val root = MihomoConfigDocument.parseOrThrow(hardened).root
+        assertEquals(MihomoConfigDocument.parseOrThrow(json).root["proxies"], root["proxies"])
+        assertEquals(false, root["allow-lan"])
+        assertEquals(false, root["geo-auto-update"])
+        assertTrue(!root.containsKey("mixed-port"))
+        File(dir, "json_profile.yaml").writeText(hardened)
+    }
 }
