@@ -47,7 +47,7 @@ class MainApplication : Application() {
             ServiceStore.runMigrations(this)
             Remote.launch()
             setupShortcuts()
-            AppUpdateChecker.schedulePeriodic(this)
+            if (BuildConfig.SELF_UPDATE) AppUpdateChecker.schedulePeriodic(this)
         } else {
             sendServiceRecreated()
         }

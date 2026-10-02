@@ -798,7 +798,6 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="tips_properties"><![CDATA[Accept Only <strong>Clash Config</strong>(including <strong>Proxy</strong>/<strong>Rules</strong>)]]></string>
     <string name="tips_help"><![CDATA[ClashFest for Android is a <strong>freeware</strong> and we do <strong>NOT</strong> provide any service for it]]></string>
 
-    <string name="google_play_url" translatable="false">https://play.google.com/store/apps/details?id=com.github.kr328.clash</string>
     <string name="about_github_repo">ClashFest on GitHub</string>
     <string name="clashfest_repo_url" translatable="false">https://github.com/Nemu-x/ClashFest</string>
     <string name="about_telegram_community">ClashFest on Telegram — bug reports &amp; discussion</string>

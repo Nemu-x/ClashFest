@@ -45,7 +45,28 @@ dependencies {
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 }
 
+// Distribution switches, read from -P / gradle.properties so a store build does not need a
+// flavour of its own. Defaults keep the GitHub release behaviour.
+//   clashfest.selfUpdate=false  — no GitHub update check / APK download (F-Droid policy);
+//                                 also drops REQUEST_INSTALL_PACKAGES and the update
+//                                 components from the release manifest (src/fdroid overlay).
+//   clashfest.bundleGeo=false   — do not download the geo databases into assets at build
+//                                 time; mihomo fetches them from the trusted mirrors on first
+//                                 use (GeoLite2-ASN carries a non-free licence).
+val selfUpdateEnabled = (findProperty("clashfest.selfUpdate") as? String)?.toBoolean() ?: true
+val bundleGeoEnabled = (findProperty("clashfest.bundleGeo") as? String)?.toBoolean() ?: true
+
 android {
+    defaultConfig {
+        buildConfigField("boolean", "SELF_UPDATE", selfUpdateEnabled.toString())
+    }
+
+    if (!selfUpdateEnabled) {
+        sourceSets.getByName("release") {
+            manifest.srcFile("src/fdroid/AndroidManifest.xml")
+        }
+    }
+
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
@@ -172,11 +193,20 @@ task("downloadGeoFiles") {
 }
 
 afterEvaluate {
-    val downloadGeoFilesTask = tasks["downloadGeoFiles"]
-    tasks.forEach {
-        if (it.name.startsWith("assemble")) {
-            it.dependsOn(downloadGeoFilesTask)
+    if (bundleGeoEnabled) {
+        val downloadGeoFilesTask = tasks["downloadGeoFiles"]
+        tasks.forEach {
+            if (it.name.startsWith("assemble")) {
+                it.dependsOn(downloadGeoFilesTask)
+            }
         }
+    } else {
+        // Nothing bundled: make sure a stale local download (including databases we used to
+        // ship, e.g. Country.mmdb) does not sneak into the APK.
+        file(geoFilesDownloadDir).listFiles()
+            ?.filter { it.isFile && it.extension in setOf("mmdb", "metadb", "dat") }
+            ?.forEach { it.delete() }
+        logger.lifecycle("clashfest.bundleGeo=false: geo databases are not bundled")
     }
 }
 

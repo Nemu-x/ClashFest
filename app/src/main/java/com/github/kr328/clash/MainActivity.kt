@@ -811,26 +811,41 @@ class MainActivity : BaseActivity<MainDesign>() {
                         MainDesign.Request.OpenAppSettings ->
                             startActivity(SubscriptionIdentityActivity::class.intent)
 
-                        MainDesign.Request.OpenAbout ->
+                        MainDesign.Request.OpenAbout -> {
+                            // Store builds (F-Droid) ship without the GitHub updater: no status
+                            // line and no "Check updates" button.
+                            val onCheckUpdates: (((Boolean) -> Unit, (String?) -> Unit) -> Unit)? =
+                                if (!BuildConfig.SELF_UPDATE) {
+                                    null
+                                } else {
+                                    { setLoading, setStatus ->
+                                        if (!isCheckingUpdates) {
+                                            launch {
+                                                isCheckingUpdates = true
+                                                setStatus(null)
+                                                setLoading(true)
+                                                try {
+                                                    checkForUpdates(design, setStatus)
+                                                } finally {
+                                                    isCheckingUpdates = false
+                                                    setLoading(false)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             design.showAbout(
                                 versionName = queryAppVersionName(),
                                 coreVersion = queryCoreVersionName(),
-                                initialUpdateStatus = AppUpdateChecker.peekCachedRelease(this@MainActivity)
-                                    ?.let { getString(R.string.about_update_available, it.tagName) },
-                            ) { setLoading, setStatus ->
-                                if (isCheckingUpdates) return@showAbout
-                                launch {
-                                    isCheckingUpdates = true
-                                    setStatus(null)
-                                    setLoading(true)
-                                    try {
-                                        checkForUpdates(design, setStatus)
-                                    } finally {
-                                        isCheckingUpdates = false
-                                        setLoading(false)
-                                    }
-                                }
-                            }
+                                initialUpdateStatus = if (!BuildConfig.SELF_UPDATE) {
+                                    null
+                                } else {
+                                    AppUpdateChecker.peekCachedRelease(this@MainActivity)
+                                        ?.let { getString(R.string.about_update_available, it.tagName) }
+                                },
+                                onCheckUpdates = onCheckUpdates,
+                            )
+                        }
 
                         MainDesign.Request.OpenImportClipboard ->
                             importFromClipboard(design)
@@ -1815,6 +1830,7 @@ class MainActivity : BaseActivity<MainDesign>() {
     }
 
     private fun syncPendingApkDownload() {
+        if (!BuildConfig.SELF_UPDATE) return
         val pending = updatePrefs.getLong("pending_download_id", -1L)
         if (pending > 0L) {
             pendingApkDownloadId = pending
@@ -1834,6 +1850,10 @@ class MainActivity : BaseActivity<MainDesign>() {
      * surfaces while the activity is in the foreground.
      */
     private fun refreshUpdateBadge(design: MainDesign) {
+        if (!BuildConfig.SELF_UPDATE) {
+            design.setUpdateBadgeVisible(false)
+            return
+        }
         design.setUpdateBadgeVisible(AppUpdateChecker.isUpdateAvailable(this))
         launch {
             runCatching { AppUpdateChecker.maybeOpportunisticCheck(this@MainActivity) }
