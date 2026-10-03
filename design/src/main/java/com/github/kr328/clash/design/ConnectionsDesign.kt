@@ -4,27 +4,25 @@ import android.content.Context
 import android.view.View
 import android.widget.ArrayAdapter
 import androidx.core.widget.addTextChangedListener
-import com.github.kr328.clash.core.model.ConnectionTracker
 import com.github.kr328.clash.core.model.ConnectionsSnapshot
 import com.github.kr328.clash.design.adapter.ConnectionsAdapter
 import com.github.kr328.clash.design.databinding.DesignConnectionsBinding
 import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.design.util.root
 import com.github.kr328.clash.design.util.toBytesString
+import com.github.kr328.clash.design.util.ConnectionFilterMode
+import com.github.kr328.clash.design.util.ConnectionListRevision
+import com.github.kr328.clash.design.util.filterConnections
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class ConnectionsDesign(context: Context) : Design<ConnectionsDesign.Request>(context) {
-    enum class FilterMode {
-        ALL,
-        TCP,
-        UDP,
-        DIRECT,
-        PROXY,
-        REJECT,
-    }
-
     sealed class Request {
         object OpenLogcat : Request()
         object OpenRequestHistory : Request()
@@ -35,14 +33,16 @@ class ConnectionsDesign(context: Context) : Design<ConnectionsDesign.Request>(co
     private val binding = DesignConnectionsBinding
         .inflate(context.layoutInflater, context.root, false)
 
-    private val adapter = ConnectionsAdapter { connection ->
+    private val adapter = ConnectionsAdapter(this) { connection ->
         if (connection.id.isNotBlank()) {
             requests.trySend(Request.CloseConnection(connection.id))
         }
     }
     private var lastSnapshot: ConnectionsSnapshot = ConnectionsSnapshot()
     private var searchQuery: String = ""
-    private var filterMode: FilterMode = FilterMode.ALL
+    private var filterMode = ConnectionFilterMode.ALL
+    private var filterJob: Job? = null
+    private val filterRevision = ConnectionListRevision()
 
     override val root: View
         get() = binding.root
@@ -51,6 +51,19 @@ class ConnectionsDesign(context: Context) : Design<ConnectionsDesign.Request>(co
         binding.self = this
         binding.header.screenTitle.text = context.getString(R.string.connections_title)
         binding.connectionsList.adapter = adapter
+        binding.root.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(view: View) {
+                adapter.resumeBackgroundWork()
+                applyFilteredList()
+            }
+
+            override fun onViewDetachedFromWindow(view: View) {
+                filterRevision.next()
+                filterJob?.cancel()
+                filterJob = null
+                adapter.cancelBackgroundWork()
+            }
+        })
         binding.btnConnectionsOpenLog.setOnClickListener {
             requests.trySend(Request.OpenLogcat)
         }
@@ -68,9 +81,9 @@ class ConnectionsDesign(context: Context) : Design<ConnectionsDesign.Request>(co
         }
         binding.connectionsSearch.addTextChangedListener {
             searchQuery = it?.toString().orEmpty()
-            applyFilteredList()
+            applyFilteredList(debounce = true)
         }
-        val filterModes = FilterMode.values().toList()
+        val filterModes = ConnectionFilterMode.values().toList()
         val filterLabels = listOf(
             context.getString(R.string.connections_filter_all),
             context.getString(R.string.connections_filter_tcp),
@@ -84,7 +97,7 @@ class ConnectionsDesign(context: Context) : Design<ConnectionsDesign.Request>(co
         )
         binding.connectionsFilterDropdown.setText(filterLabels[filterModes.indexOf(filterMode)], false)
         binding.connectionsFilterDropdown.setOnItemClickListener { _, _, position, _ ->
-            filterMode = filterModes.getOrElse(position) { FilterMode.ALL }
+            filterMode = filterModes.getOrElse(position) { ConnectionFilterMode.ALL }
             applyFilteredList()
         }
         renderSnapshot(ConnectionsSnapshot())
@@ -106,54 +119,28 @@ class ConnectionsDesign(context: Context) : Design<ConnectionsDesign.Request>(co
         applyFilteredList()
     }
 
-    private fun applyFilteredList() {
-        val q = searchQuery.trim().lowercase()
-        val list = lastSnapshot.connections.filter { connection ->
-            matchesFilter(connection) && (q.isEmpty() || matchesQuery(connection, q))
+    private fun applyFilteredList(debounce: Boolean = false) {
+        val revision = filterRevision.next()
+        filterJob?.cancel()
+        adapter.cancelPendingUpdates()
+        if (!binding.root.isAttachedToWindow) return
+        val connections = lastSnapshot.connections
+        val query = searchQuery
+        val mode = filterMode
+        filterJob = launch(Dispatchers.Main.immediate) {
+            if (debounce) delay(200L)
+            val list = withContext(Dispatchers.Default) {
+                val jobContext = currentCoroutineContext()
+                filterConnections(connections, mode, query) { jobContext.ensureActive() }
+            }
+            if (!filterRevision.isCurrent(revision)) return@launch
+            adapter.submit(list) {
+                if (!filterRevision.isCurrent(revision)) return@submit
+                val empty = list.isEmpty()
+                binding.connectionsEmptyHint.visibility = if (empty) View.VISIBLE else View.GONE
+                binding.connectionsList.visibility = if (empty) View.GONE else View.VISIBLE
+            }
         }
-        adapter.submit(list)
-        val empty = list.isEmpty()
-        binding.connectionsEmptyHint.visibility = if (empty) View.VISIBLE else View.GONE
-        binding.connectionsList.visibility = if (empty) View.GONE else View.VISIBLE
-    }
-
-    private fun matchesFilter(c: ConnectionTracker): Boolean {
-        val network = c.metadata?.network?.lowercase().orEmpty()
-        val rule = c.rule.lowercase()
-        val chain = c.chains.joinToString(" ").lowercase()
-        val providerChain = c.providerChains.joinToString(" ").lowercase()
-        val direct = rule == "direct" || c.chains.any { it.equals("direct", ignoreCase = true) }
-        val rejected = rule.contains("reject") ||
-            chain.contains("reject") ||
-            providerChain.contains("reject")
-        return when (filterMode) {
-            FilterMode.ALL -> true
-            FilterMode.TCP -> network == "tcp"
-            FilterMode.UDP -> network == "udp"
-            FilterMode.DIRECT -> direct
-            FilterMode.PROXY -> !direct && !rejected && (c.chains.isNotEmpty() || c.providerChains.isNotEmpty())
-            FilterMode.REJECT -> rejected
-        }
-    }
-
-    private fun matchesQuery(c: ConnectionTracker, q: String): Boolean {
-        if (c.id.lowercase().contains(q)) return true
-        if (c.rule.lowercase().contains(q)) return true
-        if (c.rulePayload.lowercase().contains(q)) return true
-        if (c.chains.any { it.lowercase().contains(q) }) return true
-        if (c.providerChains.any { it.lowercase().contains(q) }) return true
-        val m = c.metadata ?: return false
-        return sequenceOf(
-            m.host,
-            m.process,
-            m.processPath,
-            m.network,
-            m.sniffHost,
-            m.destinationIP,
-            m.sourceIP,
-            m.inboundName,
-            m.remoteDestination,
-        ).any { it.lowercase().contains(q) }
     }
 
     fun request(request: Request) {

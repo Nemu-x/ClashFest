@@ -13,16 +13,22 @@ import androidx.recyclerview.widget.RecyclerView
 import com.github.kr328.clash.core.model.ConnectionTracker
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.util.diffWith
+import com.github.kr328.clash.design.util.ConnectionListRevision
 import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.design.util.toBytesString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** Lists policy hops only; dialer-proxy used inside the leaf is not reported as a chain hop. */
 class ConnectionsAdapter(
+    private val ownerScope: CoroutineScope,
     private val onClose: (ConnectionTracker) -> Unit,
 ) : RecyclerView.Adapter<ConnectionsAdapter.Holder>() {
     class Holder(view: View) : RecyclerView.ViewHolder(view) {
@@ -57,12 +63,30 @@ class ConnectionsAdapter(
     // and cancelled in onDetached so background icon-resolution does not outlive the UI.
     private var ioScope: CoroutineScope? = null
     private var mainScope: CoroutineScope? = null
+    private var diffJob: Job? = null
+    private val listRevision = ConnectionListRevision()
 
-    fun submit(items: List<ConnectionTracker>) {
-        expandedIds.retainAll(items.mapTo(mutableSetOf(), ConnectionTracker::id))
-        val diff = rows.diffWith(items, id = ConnectionTracker::id)
-        rows = items
-        diff.dispatchUpdatesTo(this)
+    fun cancelPendingUpdates() {
+        listRevision.next()
+        diffJob?.cancel()
+        diffJob = null
+    }
+
+    fun submit(items: List<ConnectionTracker>, onCommitted: () -> Unit) {
+        cancelPendingUpdates()
+        val revision = listRevision.next()
+        val previousRows = rows
+        diffJob = mainScope?.launch {
+            val (diff, ids) = withContext(Dispatchers.Default) {
+                previousRows.diffWith(items, id = ConnectionTracker::id) to
+                    items.mapTo(mutableSetOf(), ConnectionTracker::id)
+            }
+            if (!listRevision.isCurrent(revision)) return@launch
+            expandedIds.retainAll(ids)
+            rows = items
+            diff.dispatchUpdatesTo(this@ConnectionsAdapter)
+            onCommitted()
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
@@ -120,18 +144,17 @@ class ConnectionsAdapter(
         val expanded = c.id in expandedIds
         holder.expand.rotation = if (expanded) 180f else 0f
         holder.details.visibility = if (expanded) View.VISIBLE else View.GONE
-        holder.details.text = formatDetails(ctx, c, app)
+        holder.details.text = if (expanded) formatDetails(ctx, c, app) else ""
         holder.root.setOnClickListener {
-            if (!expandedIds.add(c.id)) {
-                expandedIds.remove(c.id)
-            }
             val adapterPosition = holder.bindingAdapterPosition
-            if (adapterPosition != RecyclerView.NO_POSITION) {
-                notifyItemChanged(adapterPosition)
+            val current = rows.getOrNull(adapterPosition)?.takeIf { it.id == c.id } ?: return@setOnClickListener
+            if (!expandedIds.add(current.id)) {
+                expandedIds.remove(current.id)
             }
+            notifyItemChanged(adapterPosition)
         }
         holder.close.setOnClickListener {
-            onClose(c)
+            rows.getOrNull(holder.bindingAdapterPosition)?.takeIf { it.id == c.id }?.let(onClose)
         }
     }
 
@@ -139,14 +162,23 @@ class ConnectionsAdapter(
 
     override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
         super.onAttachedToRecyclerView(recyclerView)
+        resumeBackgroundWork()
+    }
+
+    fun resumeBackgroundWork() {
         if (ioScope == null) {
-            ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-            mainScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+            ioScope = CoroutineScope(SupervisorJob(ownerScope.coroutineContext[Job]) + Dispatchers.IO)
+            mainScope = CoroutineScope(SupervisorJob(ownerScope.coroutineContext[Job]) + Dispatchers.Main.immediate)
         }
     }
 
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
         super.onDetachedFromRecyclerView(recyclerView)
+        cancelBackgroundWork()
+    }
+
+    fun cancelBackgroundWork() {
+        cancelPendingUpdates()
         ioScope?.cancel()
         mainScope?.cancel()
         ioScope = null
@@ -197,6 +229,7 @@ class ConnectionsAdapter(
         synchronized(cacheLock) {
             appCache.get(key)?.let { return it }
             val scope = ioScope
+            val callbackScope = mainScope
             if (scope != null && pendingAppKeys.add(key)) {
                 scope.launch {
                     val resolved = runCatching {
@@ -210,11 +243,12 @@ class ConnectionsAdapter(
                             known = false,
                         )
                     }
+                    currentCoroutineContext().ensureActive()
                     synchronized(cacheLock) {
                         pendingAppKeys.remove(key)
                         appCache.put(key, resolved)
                     }
-                    mainScope?.launch {
+                    callbackScope?.launch {
                         notifyRowsForKey(key)
                     }
                 }
