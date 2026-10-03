@@ -29,6 +29,9 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.toBitmap
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.github.kr328.clash.common.branding.BrandManifest
 import com.github.kr328.clash.service.branding.BrandStore
@@ -59,6 +62,8 @@ import com.github.kr328.clash.design.store.UiStore
 import com.github.kr328.clash.design.ui.ToastDuration
 import com.github.kr328.clash.design.util.applyLinearAdapter
 import com.github.kr328.clash.design.util.ClickGuard
+import com.github.kr328.clash.design.util.hostActivity
+import com.github.kr328.clash.design.util.shouldAnimatePowerAmbient
 import com.github.kr328.clash.design.util.isTelevision
 import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.design.util.patchDataSet
@@ -214,6 +219,14 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
      * and rebuilds the animators.
      */
     private var lastBreathRunning: Boolean? = null
+    private val hostLifecycle = (context.hostActivity() as? LifecycleOwner)?.lifecycle
+    private val powerLifecycleObserver = LifecycleEventObserver { _, event ->
+        when (event) {
+            Lifecycle.Event.ON_START -> updateBreathAnimator(clashRunningState, tunnelStartingState)
+            Lifecycle.Event.ON_STOP, Lifecycle.Event.ON_DESTROY -> updateBreathAnimator(false, false)
+            else -> Unit
+        }
+    }
     private var brandHolder: com.github.kr328.clash.design.branding.BrandHolder =
         com.github.kr328.clash.design.branding.BrandHolder.EMPTY
     private val uiStore = UiStore(context)
@@ -909,7 +922,14 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
      * starts at a known frame instead of jumping from a mid-cycle value.
      */
     private fun updateBreathAnimator(requestedRunning: Boolean, starting: Boolean) {
-        val running = requestedRunning && !clickGuard.isOpen(Request.OpenAbout)
+        val running = shouldAnimatePowerAmbient(
+            running = requestedRunning,
+            attached = binding.mainPowerCard.isAttachedToWindow,
+            activityVisible = hostLifecycle?.currentState?.isAtLeast(Lifecycle.State.STARTED) == true,
+            homeVisible = currentTab == MainTab.Home,
+            aboutOpen = clickGuard.isOpen(Request.OpenAbout),
+            animationsEnabled = Build.VERSION.SDK_INT < Build.VERSION_CODES.O || ValueAnimator.areAnimatorsEnabled(),
+        )
         // Skip rebuild when the state hasn't actually changed — keeps the
         // breath loop running smoothly through unrelated applyPowerVisuals
         // calls (brand refresh, mode change, etc).
@@ -944,10 +964,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             button.scaleX = 1.0f
             button.scaleY = 1.0f
             innerRing.animate().cancel()
-            innerRing.animate()
-                .alpha(0.18f)
-                .setDuration(260L)
-                .start()
+            innerRing.alpha = 0.18f
             return
         }
 
@@ -2106,6 +2123,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
                 if (it == tab) ViewGroup.FOCUS_AFTER_DESCENDANTS
                 else ViewGroup.FOCUS_BLOCK_DESCENDANTS
         }
+        updateBreathAnimator(clashRunningState, tunnelStartingState)
     }
 
     fun patchRoutingSummary(profile: String?, state: com.github.kr328.clash.service.model.RuleState?, error: Boolean = false) {
@@ -2204,9 +2222,18 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
 
         val card = binding.mainPowerCard
         card.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
-            override fun onViewAttachedToWindow(view: View) = Unit
+            override fun onViewAttachedToWindow(view: View) {
+                hostLifecycle?.addObserver(powerLifecycleObserver)
+                updateBreathAnimator(clashRunningState, tunnelStartingState)
+            }
 
             override fun onViewDetachedFromWindow(view: View) {
+                hostLifecycle?.removeObserver(powerLifecycleObserver)
+                updateBreathAnimator(false, false)
+                card.animate().cancel()
+                binding.powerHalo.animate().cancel()
+                binding.powerDome.animate().cancel()
+                binding.powerSweep.animate().cancel()
                 powerIconAnimator?.end()
                 powerIconAnimator = null
             }

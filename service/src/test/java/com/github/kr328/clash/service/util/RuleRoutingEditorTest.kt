@@ -38,9 +38,9 @@ class RuleRoutingEditorTest {
         val base = "proxies: []\nrules:\n  - MATCH,DIRECT\n"
         val text = "IP-CIDR,10.0.0.0/8,DIRECT,no-resolve\nAND,((NETWORK,UDP),(DST-PORT,443)),REJECT\nOR,((DOMAIN,one.example),(DOMAIN,two.example)),DIRECT\nNOT,((NETWORK,UDP)),DIRECT\nMATCH,DIRECT"
         val state = RuleState(rules = RuleTextInput.parse(text))
-        val yaml = RuleMapper.mergeStateIntoConfig(base, state, GeoDataUrls("", "", ""))
+        val yaml = RuleMapper.mergeStateIntoConfig(base, state, GeoDataUrls("", "", "", ""))
         val expected = "proxies: []\nrules:\n" + text.lines().joinToString("\n") { "  - $it" } + "\n"
-        val invalid = RuleMapper.mergeStateIntoConfig(base, RuleState(rules = RuleTextInput.parse("AND,((NETWORK,UDP),(DST-PORT,443)),missing-target")), GeoDataUrls("", "", ""))
+        val invalid = RuleMapper.mergeStateIntoConfig(base, RuleState(rules = RuleTextInput.parse("AND,((NETWORK,UDP),(DST-PORT,443)),missing-target")), GeoDataUrls("", "", "", ""))
         val dir = Files.createTempDirectory("mikan-routing-oracle").toFile()
         try {
             File(dir, "expected.yaml").writeText(expected)
