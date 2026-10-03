@@ -25,6 +25,10 @@ git checkout -b chore/core-X.Y.Z
 git -C core/src/foss/golang/clash fetch --depth=1 origin tag vX.Y.Z
 git -C core/src/foss/golang/clash checkout vX.Y.Z
 
+# 1b. check the ClashFest patch series still applies (see docs/core-patches.md);
+#     Gradle does this before every Go build, but failing here is cheaper
+for p in core/patches/mihomo/*.patch; do git -C core/src/foss/golang/clash apply --check "$p" || echo "REBASE $p"; done
+
 # 2. bump the mihomo require line in both go.mod (cosmetic, replace wins, but keeps `go list` honest)
 sed -i 's#metacubex/mihomo v<old>#metacubex/mihomo vX.Y.Z#' core/src/foss/golang/go.mod core/src/main/golang/go.mod
 
@@ -36,6 +40,9 @@ sed -i 's#metacubex/mihomo v<old>#metacubex/mihomo vX.Y.Z#' core/src/foss/golang
 ./gradlew assembleAlphaDebug
 adb logcat | grep "Init core"      # gitVersion must show the NEW tag
 ```
+
+The submodule shows as modified after a build: that is the patch series applied by
+`:core:applyCorePatches` (reverted by `clean`). Never commit it into the submodule.
 
 CI compiles the core with the patched Go toolchain (`.github/scripts` / `.github/patch`, same as
 upstream CMFA) and populates the embedded Root CA bundle before the build; nothing to do locally.
