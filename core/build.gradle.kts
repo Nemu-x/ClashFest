@@ -70,6 +70,22 @@ fun mihomoGit(vararg args: String): Boolean {
 fun corePatches(): List<File> =
     corePatchDir.listFiles { f -> f.isFile && f.name.endsWith(".patch") }.orEmpty().sortedBy { it.name }
 
+// Paths a patch series touches (both sides of every file header). Only these have to be
+// pristine before applying: CI and the F-Droid recipe legitimately overwrite other tracked
+// files in the submodule (the embedded Root CA bundle), and that must not look like a
+// developer's stray edit.
+fun corePatchPaths(patches: List<File>): Set<String> =
+    patches.flatMap { patch ->
+        Regex("""^(?:---|\+\+\+) [ab]/(\S+)""", RegexOption.MULTILINE).findAll(patch.readText())
+            .map { it.groupValues[1] }.toList()
+    }.toSet()
+
+fun mihomoGitOutput(vararg args: String): String =
+    providers.exec {
+        commandLine(listOf("git", "-C", mihomoDir.absolutePath) + args)
+        isIgnoreExitValue = true
+    }.standardOutput.asText.get().trim()
+
 val applyCorePatches by tasks.registering {
     description = "Apply the ClashFest patch series to the mihomo submodule working tree"
     group = "build setup"
@@ -84,10 +100,12 @@ val applyCorePatches by tasks.registering {
             logger.lifecycle("mihomo patches: ${patches.size} already applied")
             return@doLast
         }
-        if (!mihomoGit("diff", "--quiet", "--exit-code")) {
+        val paths = corePatchPaths(patches).toList()
+        val dirty = mihomoGitOutput(*(listOf("status", "--porcelain", "--") + paths).toTypedArray())
+        if (dirty.isNotEmpty()) {
             throw GradleException(
-                "mihomo submodule has local modifications that are not the ClashFest patch series. " +
-                    "Run `git -C core/src/foss/golang/clash checkout -- .` (or stash your work) and retry.",
+                "mihomo submodule has local modifications in files the ClashFest patch series touches:\n" +
+                    dirty + "\nRun `git -C core/src/foss/golang/clash checkout -- <file>` (or stash your work) and retry.",
             )
         }
         patches.forEach { patch ->

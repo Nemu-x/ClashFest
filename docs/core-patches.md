@@ -18,8 +18,9 @@ test task. It treats the submodule tree as a state machine:
 | anything else | fail and name the offending patch |
 
 So a core bump that moves the patched lines stops the build at this task instead of shipping an
-unpatched `libclash.so`. Local edits in the submodule that are not the series also stop it; stash
-them or `git -C core/src/foss/golang/clash checkout -- .`.
+unpatched `libclash.so`. Local edits in the files a patch touches also stop it; stash them or
+`git -C core/src/foss/golang/clash checkout -- <file>`. Other files in the submodule may be
+modified freely: CI and the F-Droid recipe overwrite the embedded Root CA bundle before building.
 
 `:core:revertCorePatches` undoes the series and runs on `clean`. The submodule therefore shows as
 modified while a build tree is set up; never commit the applied patches into the submodule.
