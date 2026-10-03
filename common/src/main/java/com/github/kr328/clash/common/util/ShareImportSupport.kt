@@ -5,7 +5,7 @@ package com.github.kr328.clash.common.util
  */
 object ShareImportSupport {
 
-    fun isMierusSubscriptionPayload(trimmed: String): Boolean {
+    fun isShareLinkPayload(trimmed: String): Boolean {
         val t = trimmed.trim()
         if (t.isEmpty()) return false
         var any = false
@@ -13,7 +13,9 @@ object ShareImportSupport {
             val s = line.trim()
             if (s.isEmpty()) continue
             any = true
-            if (!s.startsWith("mierus://", ignoreCase = true)) return false
+            if (!s.startsWith("mierus://", ignoreCase = true) &&
+                !s.startsWith("vless://", ignoreCase = true)
+            ) return false
         }
         return any
     }
@@ -23,6 +25,6 @@ object ShareImportSupport {
         if (t.startsWith("http://", ignoreCase = true)) return true
         if (t.startsWith("https://", ignoreCase = true)) return true
         if (t.startsWith("content:", ignoreCase = true)) return true
-        return isMierusSubscriptionPayload(t)
+        return isShareLinkPayload(t)
     }
 }

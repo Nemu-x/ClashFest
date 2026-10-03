@@ -303,17 +303,17 @@ func FetchAndValid(
 	configPath := P.Join(path, "config.yaml")
 
 	trimmed := strings.TrimSpace(url)
-	if isInlineMierusImport(trimmed) {
+	if isInlineShareImport(trimmed) {
 		bytes, _ := json.Marshal(&Status{
 			Action:      "FetchConfiguration",
-			Args:        []string{"mierus"},
+			Args:        []string{"share-links"},
 			Progress:    -1,
 			MaxProgress: -1,
 		})
 
 		reportStatus(string(bytes))
 
-		if err := writeConfigFromMierusShare(configPath, trimmed); err != nil {
+		if err := writeConfigFromShareLinks(configPath, trimmed); err != nil {
 			return err
 		}
 
@@ -367,6 +367,9 @@ func FetchAndValid(
 	// content:// file import, and an existing config revalidated later.
 	// Plain (non-age) bodies pass through untouched.
 	if err := decryptConfigInPlace(configPath); err != nil {
+		return err
+	}
+	if err := convertShareLinksInPlace(configPath); err != nil {
 		return err
 	}
 
