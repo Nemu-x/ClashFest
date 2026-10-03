@@ -21,6 +21,7 @@ import com.github.kr328.clash.design.store.UiStore
 import com.github.kr328.clash.design.ui.ToastDuration
 import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.design.util.root
+import com.github.kr328.clash.core.model.RealityMlkemPolicy
 import com.github.kr328.clash.service.model.ProxyHardeningMode
 import com.github.kr328.clash.service.store.ServiceStore
 import com.github.kr328.clash.service.util.TunStackResolver
@@ -85,11 +86,32 @@ class NetworkSettingsDesign(
                 summary = R.string.seed_default_geo_mirrors_summary,
             )
 
-            // Applied when the config is composed at VPN start, so it needs a restart.
-            switch(
-                value = srvStore::realityMlkemCompat,
-                title = R.string.reality_mlkem_compat,
-                summary = R.string.reality_mlkem_compat_summary,
+            // Both land in the core at profile load (docs/core-patches.md), so they need a restart.
+            selectableList(
+                value = srvStore::realityMlkemPolicy,
+                values = RealityMlkemPolicy.values(),
+                valuesText = arrayOf(
+                    R.string.reality_mlkem_auto,
+                    R.string.reality_mlkem_on,
+                    R.string.reality_mlkem_off,
+                ),
+                title = R.string.reality_mlkem_policy,
+                configure = vpnDependencies::add,
+            )
+
+            val realityVersionNullable = object {
+                var value: String?
+                    get() = srvStore.realityClientVersion.takeIf { it.isNotBlank() }
+                    set(v) {
+                        srvStore.realityClientVersion = v?.trim().orEmpty()
+                    }
+            }
+            editableText(
+                value = realityVersionNullable::value,
+                adapter = NullableTextAdapter.String,
+                title = R.string.reality_client_version,
+                placeholder = R.string.reality_client_version_placeholder,
+                empty = R.string.reality_client_version_placeholder,
                 configure = vpnDependencies::add,
             )
 

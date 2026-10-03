@@ -363,6 +363,21 @@ Java_com_github_kr328_clash_core_bridge_Bridge_nativeValidateProfileBytes(JNIEnv
 }
 
 JNIEXPORT void JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeSetRealityPolicy(JNIEnv *env, jobject thiz,
+                                                                      jstring version, jint mlkem) {
+    TRACE_METHOD();
+
+    if (version == NULL) {
+        setRealityPolicy(NULL, mlkem);
+        return;
+    }
+
+    scoped_string _version = get_string(version);
+
+    setRealityPolicy(_version, mlkem);
+}
+
+JNIEXPORT void JNICALL
 Java_com_github_kr328_clash_core_bridge_Bridge_nativeSetAgeSecretKey(JNIEnv *env, jobject thiz,
                                                                      jstring key) {
     TRACE_METHOD();

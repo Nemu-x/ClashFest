@@ -119,6 +119,11 @@ class ConfigurationModule(service: Service) : Module<ConfigurationModule.LoadExc
                 // fetch) still needs the engine-side key at load.
                 Clash.setAgeSecretKey(active.ageSecretKey?.takeIf { it.isNotBlank() })
 
+                // REALITY compatibility knobs live in the core (patch series); like the age
+                // key they are process-global and must be set before the profile loads.
+                store.migrateRealityPolicy()
+                Clash.setRealityPolicy(store.realityClientVersion, store.realityMlkemPolicy)
+
                 fun applySessionOverrideBeforeLoad() {
                     val sessionOverride = Clash.queryOverride(Clash.OverrideSlot.Session)
                     val hardened = ProxyHardener.applyTo(

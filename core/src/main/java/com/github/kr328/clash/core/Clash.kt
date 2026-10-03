@@ -329,6 +329,16 @@ object Clash {
         Bridge.nativeSetAgeSecretKey(key)
     }
 
+    /**
+     * Pushes the REALITY compatibility policy into the core (patch series 0001/0002,
+     * see docs/core-patches.md): the Xray-style client version carried in the
+     * ClientHello (blank keeps the core default) and the X25519MLKEM768 key-share
+     * policy. Process-global; set before loading a profile.
+     */
+    fun setRealityPolicy(clientVersion: String?, mlkem: RealityMlkemPolicy) {
+        Bridge.nativeSetRealityPolicy(clientVersion?.trim()?.takeIf { it.isNotEmpty() }, mlkem.native)
+    }
+
     fun genX25519KeyPair(): AgeKeyPair =
         Json.Default.decodeFromString(AgeKeyPair.serializer(), checkNotNull(Bridge.nativeGenX25519KeyPair()))
 

@@ -51,6 +51,7 @@ object Bridge {
     )
 
     external fun nativeSetAgeSecretKey(key: String?)
+    external fun nativeSetRealityPolicy(version: String?, mlkem: Int)
     external fun nativeGenX25519KeyPair(): String?
     external fun nativeGenHybridKeyPair(): String?
     external fun nativeVeritySecretKeys(secretKeys: String): Boolean

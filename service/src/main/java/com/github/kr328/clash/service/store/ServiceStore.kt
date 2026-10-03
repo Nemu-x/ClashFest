@@ -1,6 +1,7 @@
 package com.github.kr328.clash.service.store
 
 import android.content.Context
+import com.github.kr328.clash.core.model.RealityMlkemPolicy
 import com.github.kr328.clash.common.store.Store
 import com.github.kr328.clash.common.store.asStoreProvider
 import android.os.Build
@@ -187,6 +188,43 @@ class ServiceStore(context: Context) {
         key = "reality_mlkem_compat",
         defaultValue = false
     )
+
+    /**
+     * REALITY X25519MLKEM768 key-share policy, applied inside the core (patch 0002,
+     * docs/core-patches.md). Auto learns per server and is the default; On also keeps
+     * the compose-time rewrite (chrome fingerprint + support-x25519mlkem768) that the
+     * old boolean used to drive.
+     */
+    var realityMlkemPolicy: RealityMlkemPolicy by store.enum(
+        key = "reality_mlkem_policy",
+        defaultValue = RealityMlkemPolicy.Auto,
+        values = RealityMlkemPolicy.values()
+    )
+
+    /**
+     * Xray-style client version the REALITY ClientHello carries (patch 0001). Servers
+     * with `minClientVer` / `maxClientVer` compare against it; blank = core default.
+     */
+    var realityClientVersion by store.string(
+        key = "reality_client_version",
+        defaultValue = ""
+    )
+
+    private var realityPolicyMigrated by store.boolean(
+        key = "reality_mlkem_policy_migrated",
+        defaultValue = false
+    )
+
+    /** The old opt-in boolean becomes the explicit On policy exactly once. */
+    fun migrateRealityPolicy() {
+        if (realityPolicyMigrated) return
+        if (realityMlkemCompat) realityMlkemPolicy = RealityMlkemPolicy.On
+        realityPolicyMigrated = true
+    }
+
+    /** Compose-time REALITY rewrite is now a consequence of the explicit On policy. */
+    val realityComposeRewrite: Boolean
+        get() = realityMlkemPolicy == RealityMlkemPolicy.On
 
     var geoDataSourcePreset: GeoDataSourcePreset by store.enum(
         key = "geo_data_source_preset",
