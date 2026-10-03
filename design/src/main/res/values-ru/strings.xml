@@ -1364,4 +1364,5 @@
     <string name="data_size_eib">%1$.2f ЭиБ</string>
     <string name="subscription_usage_format">%1$s / %2$s</string>
     <string name="connections_uid_short">UID %1$d</string>
+    <string name="remote_service_unavailable">Не удалось подключиться к сервису Mikan. Откройте приложение заново и повторите попытку.</string>
 </resources>

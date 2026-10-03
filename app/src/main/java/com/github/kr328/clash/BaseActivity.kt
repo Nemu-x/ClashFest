@@ -45,8 +45,24 @@ fun nightModeFor(darkMode: DarkMode): Int = when (darkMode) {
 }
 
 abstract class BaseActivity<D : Design<*>> : AppCompatActivity(),
-    CoroutineScope by MainScope(),
+    CoroutineScope,
     Broadcasts.Observer {
+
+    private val activityScope = MainScope()
+    override val coroutineContext = activityScope.coroutineContext + CoroutineExceptionHandler { _, error ->
+        if (error is com.github.kr328.clash.common.util.RemoteServiceUnavailableException) {
+            launch {
+                if (!isFinishing) {
+                    design?.showExceptionToast(error)
+                        ?: android.widget.Toast.makeText(this@BaseActivity, R.string.remote_service_unavailable,
+                            android.widget.Toast.LENGTH_LONG).show()
+                }
+            }
+        } else {
+            val thread = Thread.currentThread()
+            thread.uncaughtExceptionHandler?.uncaughtException(thread, error)
+        }
+    }
     
     protected val uiStore by lazy { UiStore(this) }
 
@@ -132,7 +148,13 @@ abstract class BaseActivity<D : Design<*>> : AppCompatActivity(),
         }
 
         launch {
-            main()
+            try {
+                main()
+            } catch (_: com.github.kr328.clash.common.util.RemoteServiceUnavailableException) {
+                android.widget.Toast.makeText(this@BaseActivity, R.string.remote_service_unavailable,
+                    android.widget.Toast.LENGTH_LONG).show()
+                finish()
+            }
         }
     }
 

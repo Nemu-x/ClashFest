@@ -1,19 +1,30 @@
 package com.github.kr328.clash.remote
 
+import com.github.kr328.clash.common.util.RemoteServiceUnavailableException
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 class Resource<T> {
     private interface Callback<T> {
         val isActive: Boolean
         fun accept(value: T)
+        fun fail(error: Exception)
     }
 
     private val pending: MutableSet<Callback<T>> = mutableSetOf()
 
     private var value: T? = null
+    private var failure: Exception? = null
 
-    suspend fun get(): T {
+    val isReady: Boolean
+        @Synchronized get() = value != null
+
+    suspend fun get(timeoutMillis: Long = 10_000L): T =
+        withTimeoutOrNull(timeoutMillis) { await() } ?: throw RemoteServiceUnavailableException()
+
+    private suspend fun await(): T {
         return suspendCancellableCoroutine { ctx ->
             val callback = object : Callback<T> {
                 override val isActive: Boolean
@@ -21,6 +32,10 @@ class Resource<T> {
 
                 override fun accept(value: T) {
                     ctx.resume(value)
+                }
+
+                override fun fail(error: Exception) {
+                    ctx.resumeWithException(error)
                 }
             }
 
@@ -41,10 +56,22 @@ class Resource<T> {
     }
 
     @Synchronized
+    fun fail(error: Exception) {
+        value = null
+        failure = error
+        val callbacks = pending.toList()
+        pending.clear()
+        callbacks.forEach { it.fail(error) }
+    }
+
+    @Synchronized
     private fun get(callback: Callback<T>) {
         val v = value
+        val error = failure
 
-        if (v == null) {
+        if (error != null) {
+            callback.fail(error)
+        } else if (v == null) {
             if (callback.isActive) pending.add(callback)
         } else {
             callback.accept(v)
@@ -54,6 +81,7 @@ class Resource<T> {
     @Synchronized
     private fun setAndNotify(value: T?) {
         this.value = value
+        failure = null
 
         // A disconnected service can reconnect while the caller's screen is still alive.
         // The caller's own coroutine cancellation removes its waiter on screen teardown.

@@ -2,6 +2,7 @@ package com.github.kr328.clash.util
 
 import android.os.DeadObjectException
 import com.github.kr328.clash.common.log.Log
+import com.github.kr328.clash.common.util.RemoteServiceUnavailableException
 import com.github.kr328.clash.remote.Remote
 import com.github.kr328.clash.service.remote.IClashManager
 import com.github.kr328.clash.service.remote.IProfileManager
@@ -11,8 +12,8 @@ import kotlinx.coroutines.withContext
 import kotlin.coroutines.CoroutineContext
 
 /**
- * Bounded retry on [DeadObjectException] with exponential backoff (50ms..1s, ~10 attempts).
- * Prevents 100% CPU spin if the remote service is permanently dead.
+ * Wait at most 10s for each service connection, with bounded DeadObject retries.
+ * Profile downloads and other work after connection retain their own timeouts.
  */
 private const val REMOTE_MAX_RETRIES = 10
 private const val REMOTE_BACKOFF_BASE_MS = 50L
@@ -32,11 +33,8 @@ suspend fun <T> withClash(
             attempt += 1
             Log.w("Remote services panic (clash, attempt $attempt)")
             Remote.service.remote.reset(remote)
-            val backoff = if (attempt <= REMOTE_MAX_RETRIES) {
-                (REMOTE_BACKOFF_BASE_MS shl (attempt - 1)).coerceAtMost(REMOTE_BACKOFF_MAX_MS)
-            } else {
-                REMOTE_BACKOFF_MAX_MS
-            }
+            if (attempt >= REMOTE_MAX_RETRIES) throw RemoteServiceUnavailableException(e)
+            val backoff = (REMOTE_BACKOFF_BASE_MS shl (attempt - 1)).coerceAtMost(REMOTE_BACKOFF_MAX_MS)
             delay(backoff)
         }
     }
@@ -56,11 +54,8 @@ suspend fun <T> withProfile(
             attempt += 1
             Log.w("Remote services panic (profile, attempt $attempt)")
             Remote.service.remote.reset(remote)
-            val backoff = if (attempt <= REMOTE_MAX_RETRIES) {
-                (REMOTE_BACKOFF_BASE_MS shl (attempt - 1)).coerceAtMost(REMOTE_BACKOFF_MAX_MS)
-            } else {
-                REMOTE_BACKOFF_MAX_MS
-            }
+            if (attempt >= REMOTE_MAX_RETRIES) throw RemoteServiceUnavailableException(e)
+            val backoff = (REMOTE_BACKOFF_BASE_MS shl (attempt - 1)).coerceAtMost(REMOTE_BACKOFF_MAX_MS)
             delay(backoff)
         }
     }

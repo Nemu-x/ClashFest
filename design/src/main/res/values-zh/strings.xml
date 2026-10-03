@@ -1293,4 +1293,5 @@
     <string name="data_size_eib">%1$.2f EiB</string>
     <string name="subscription_usage_format">%1$s / %2$s</string>
     <string name="connections_uid_short">UID %1$d</string>
+    <string name="remote_service_unavailable">无法连接到 Mikan 服务。请重新打开应用后重试。</string>
 </resources>

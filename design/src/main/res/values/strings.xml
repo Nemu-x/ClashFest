@@ -1373,4 +1373,5 @@ Password: %4$s</string>
     <string name="subscription_usage_format">%1$s / %2$s</string>
     <string name="connections_uid_short">UID %1$d</string>
     <string name="rule_providers_yaml_hint" translatable="false">rule-providers:</string>
+    <string name="remote_service_unavailable">Could not connect to Mikan. Reopen the app and try again.</string>
 </resources>

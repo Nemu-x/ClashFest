@@ -1,6 +1,7 @@
 package com.github.kr328.clash.design.util
 
 import com.github.kr328.clash.design.Design
+import com.github.kr328.clash.common.util.RemoteServiceUnavailableException
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.ui.ToastDuration
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -19,5 +20,8 @@ suspend fun Design<*>.showExceptionToast(message: CharSequence) {
 }
 
 suspend fun Design<*>.showExceptionToast(exception: Exception) {
-    showExceptionToast(exception.message ?: "Unknown")
+    showExceptionToast(
+        if (exception is RemoteServiceUnavailableException) context.getString(R.string.remote_service_unavailable)
+        else exception.message ?: "Unknown",
+    )
 }

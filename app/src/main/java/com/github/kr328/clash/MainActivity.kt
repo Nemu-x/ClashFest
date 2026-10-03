@@ -75,6 +75,7 @@ import com.github.kr328.clash.util.startClashService
 import com.github.kr328.clash.util.stopClashService
 import com.github.kr328.clash.util.withClash
 import com.github.kr328.clash.util.withProfile
+import com.github.kr328.clash.util.shouldPollHomeTraffic
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.github.kr328.clash.qr.QrScanResult
 import com.github.kr328.clash.qr.ScanQrCode
@@ -82,6 +83,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
@@ -573,12 +575,13 @@ class MainActivity : BaseActivity<MainDesign>() {
 
     /**
      * The dashboard event loop — the moved (not rewritten) body of the pre-soft-recreate [main].
-     * Wrapped in [coroutineScope] so resolving cancels every child (tickers, the refresh
+     * Wrapped in [supervisorScope] so a failed local action does not stop the request consumer.
+     * Resolving cancels every child (tickers, the refresh
      * consumer, proxy-detail jobs) via structured concurrency, with no manual bookkeeping of the
      * old run. Only a [softRecreateRequests] signal resolves it; activity teardown cancels it by
      * exception like before.
      */
-    private suspend fun runDashboard(design: MainDesign): DashboardExit = coroutineScope {
+    private suspend fun runDashboard(design: MainDesign): DashboardExit = supervisorScope {
         // A fresh design starts from its default traffic label; drop the memo so the first
         // fetchTraffic of this run always pushes the real total.
         lastForwardedTrafficTotal = Long.MIN_VALUE
@@ -637,6 +640,7 @@ class MainActivity : BaseActivity<MainDesign>() {
         var announcementRefreshPending = false
         var proxyDetailJob: Job? = null
         var homeProxyPatchJob: Job? = null
+        var trafficRefreshJob: Job? = null
         var lastDashboardRefreshRequestAt = 0L
 
         fun scheduleDashboardRefresh(includeAnnouncement: Boolean = false, force: Boolean = false) {
@@ -654,6 +658,19 @@ class MainActivity : BaseActivity<MainDesign>() {
         fun scheduleProxyDetailsRefresh(profile: Profile, group: String) {
             if (group.isNotBlank()) {
                 proxyDetailRequests.trySend(profile to group)
+            }
+        }
+
+        fun scheduleTrafficRefresh() {
+            if (!shouldPollHomeTraffic(clashRunning, activityStarted, design.currentTab == MainDesign.MainTab.Home) ||
+                !Remote.service.remote.isReady || trafficRefreshJob?.isActive == true
+            ) return
+            trafficRefreshJob = launch {
+                try {
+                    design.fetchTraffic()
+                } catch (_: com.github.kr328.clash.common.util.RemoteServiceUnavailableException) {
+                    Log.d("Traffic refresh skipped: remote service unavailable")
+                }
             }
         }
 
@@ -746,6 +763,7 @@ class MainActivity : BaseActivity<MainDesign>() {
                         Event.ConnectionsChanged ->
                             scheduleDashboardRefresh(force = true)
 
+                        Event.ActivityStop -> trafficRefreshJob?.cancel()
                         else -> Unit
                     }
                 }
@@ -794,11 +812,8 @@ class MainActivity : BaseActivity<MainDesign>() {
                                         }
                                     }
                                 } finally {
-                                    // Keep lock short so rapid taps don't enqueue duplicate start/stop sequences.
-                                    launch {
-                                        delay(350L)
-                                        isToggleStatusInFlight = false
-                                    }
+                                    // ClickGuard owns the cooldown; failures must release this operation lock too.
+                                    isToggleStatusInFlight = false
                                     scheduleDashboardRefresh(force = true)
                                 }
                             }
@@ -852,7 +867,12 @@ class MainActivity : BaseActivity<MainDesign>() {
                         MainDesign.Request.OpenAbout -> design.onOpenAbout?.invoke()
 
                         MainDesign.Request.OpenImportClipboard ->
-                            importFromClipboard(design)
+                            launch { importFromClipboard(design) }
+
+                        MainDesign.Request.MainTabChanged -> {
+                            if (design.currentTab == MainDesign.MainTab.Home) scheduleTrafficRefresh()
+                            else trafficRefreshJob?.cancel()
+                        }
 
                         MainDesign.Request.OpenImportQr ->
                             scanLauncher.launch(null)
@@ -1167,14 +1187,14 @@ class MainActivity : BaseActivity<MainDesign>() {
                     launch { withProfile { reorder(ordered.map { it.uuid.toString() }) } }
                 }
 
-                if (clashRunning && activityStarted) {
+                if (shouldPollHomeTraffic(clashRunning, activityStarted, design.currentTab == MainDesign.MainTab.Home)) {
                     val interactive = getSystemService<PowerManager>()?.isInteractive ?: true
                     // Pick the ticker BEFORE registering the select branch so that the idle
                     // ticker (and only it) wakes us when the screen is off, instead of both
                     // tickers competing.
                     val trafficTicker = if (interactive) tickerInteractive else tickerIdle
                     trafficTicker.onReceive {
-                        launch { design.fetchTraffic() }
+                        scheduleTrafficRefresh()
                     }
                 }
 

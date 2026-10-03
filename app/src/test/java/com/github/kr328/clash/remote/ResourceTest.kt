@@ -6,12 +6,58 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.supervisorScope
+import com.github.kr328.clash.common.util.RemoteServiceUnavailableException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.test.assertFailsWith
 
 class ResourceTest {
+    @Test
+    fun timeoutIsAnAvailabilityErrorAndDoesNotPoisonReconnect() = runBlocking {
+        val resource = Resource<String>()
+        assertFailsWith<RemoteServiceUnavailableException> { resource.get(timeoutMillis = 25L) }
+        resource.set("reconnected")
+        assertEquals("reconnected", resource.get())
+    }
+
+    @Test
+    fun bindingFailureReleasesPendingAndFutureCallersUntilRetry() = runBlocking {
+        supervisorScope {
+            val resource = Resource<String>()
+            val waiting = async(start = CoroutineStart.UNDISPATCHED) { resource.get() }
+            val error = RemoteServiceUnavailableException()
+            resource.fail(error)
+            assertEquals(error.message, assertFailsWith<RemoteServiceUnavailableException> { waiting.await() }.message)
+            assertEquals(error.message, assertFailsWith<RemoteServiceUnavailableException> { resource.get() }.message)
+            assertFalse(resource.isReady)
+
+            resource.set(null)
+            val retry = async(start = CoroutineStart.UNDISPATCHED) { resource.get() }
+            try {
+                assertFalse(retry.isCompleted)
+                resource.set("ready")
+                assertEquals("ready", retry.await())
+                assertTrue(resource.isReady)
+            } finally {
+                retry.cancel()
+            }
+        }
+    }
+
+    @Test
+    fun callersOwnTimeoutRemainsCancellation() = runBlocking {
+        val resource = Resource<String>()
+        assertFailsWith<TimeoutCancellationException> {
+            withTimeout(25L) { resource.get(timeoutMillis = 1_000L) }
+        }
+        resource.set("ready")
+        assertEquals("ready", resource.get())
+    }
+
     @Test
     fun resumedCallerCanCancelAnotherWaiterDuringReconnect() = runBlocking {
         val resource = Resource<String>()

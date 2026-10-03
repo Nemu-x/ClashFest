@@ -98,6 +98,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         OpenImportClipboard,
         OpenImportQr,
         CycleTheme,
+        MainTabChanged,
         OpenLogs,
         OpenConnections,
         /** Routing rules list screen. */
@@ -2124,6 +2125,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
                 else ViewGroup.FOCUS_BLOCK_DESCENDANTS
         }
         updateBreathAnimator(clashRunningState, tunnelStartingState)
+        requests.trySend(Request.MainTabChanged)
     }
 
     fun patchRoutingSummary(profile: String?, state: com.github.kr328.clash.service.model.RuleState?, error: Boolean = false) {
