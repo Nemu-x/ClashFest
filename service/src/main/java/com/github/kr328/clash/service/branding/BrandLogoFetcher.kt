@@ -39,6 +39,7 @@ object BrandLogoFetcher {
     private const val MAX_BYTES = 512 * 1024
     private const val MAX_REDIRECTS = 3
     private const val MAX_DECODED_BYTES = 4 * 1024 * 1024
+    private const val CACHE_TTL_MS = 6L * 60L * 60L * 1000L
     private val ALLOWED_CONTENT_TYPES = setOf(
         "image/png",
         "image/webp",
@@ -63,6 +64,13 @@ object BrandLogoFetcher {
         }
 
         try {
+            if (!isAllowedLiteralHost(parsed.host)) return@withContext null
+            val dir = File(context.filesDir, "brand")
+            val name = sha256Hex(urlString) + ".bin"
+            val target = File(dir, name)
+            if (isCacheFresh(target.isFile, target.length(), target.lastModified(), System.currentTimeMillis())) {
+                return@withContext target.absolutePath
+            }
             val bytes = openWithSafeRedirects(parsed, 0) ?: return@withContext null
             if (bytes.size > MAX_BYTES) return@withContext null
 
@@ -73,9 +81,7 @@ object BrandLogoFetcher {
             val pixels = bounds.outWidth.toLong() * bounds.outHeight.toLong()
             if (pixels * 4 > MAX_DECODED_BYTES) return@withContext null
 
-            val dir = File(context.filesDir, "brand").apply { mkdirs() }
-            val name = sha256Hex(urlString) + ".bin"
-            val target = File(dir, name)
+            dir.mkdirs()
             val tmp = File(dir, "$name.tmp")
             tmp.outputStream().use { it.write(bytes) }
             if (!tmp.renameTo(target)) {
@@ -88,6 +94,10 @@ object BrandLogoFetcher {
             null
         }
     }
+
+    internal fun isCacheFresh(isFile: Boolean, size: Long, modifiedAt: Long, now: Long): Boolean =
+        isFile && size in 1L..MAX_BYTES.toLong() && modifiedAt > 0L &&
+            now >= modifiedAt && now - modifiedAt < CACHE_TTL_MS
 
     private fun openWithSafeRedirects(url: HttpUrl, hop: Int): ByteArray? {
         if (hop > MAX_REDIRECTS) return null

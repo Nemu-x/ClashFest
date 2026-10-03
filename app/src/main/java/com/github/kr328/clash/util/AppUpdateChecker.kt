@@ -12,6 +12,8 @@ import androidx.core.app.NotificationManagerCompat
 import com.github.kr328.clash.MainActivity
 import com.github.kr328.clash.UpdateCheckReceiver
 import com.github.kr328.clash.UpdateDownloadActivity
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import com.github.kr328.clash.design.R as DesignR
 import com.github.kr328.clash.service.R as ServiceR
 
@@ -27,6 +29,7 @@ object AppUpdateChecker {
     private const val KEY_LATEST_APK_URL = "latest_apk_url"
     private const val KEY_LATEST_APK_NAME = "latest_apk_name"
     private const val KEY_LAST_CHECK_AT = "last_check_at"
+    private const val KEY_NEXT_PERIODIC_CHECK_AT = "next_periodic_check_at"
     private const val PERIODIC_REQUEST_CODE = 1101
     private const val OPEN_APP_REQUEST_CODE = 1102
     private const val ACTION_DOWNLOAD_REQUEST_CODE = 1104
@@ -36,6 +39,7 @@ object AppUpdateChecker {
     private const val OPPORTUNISTIC_THROTTLE_MS = 6L * 60L * 60L * 1000L // 6h
     private const val CHANNEL_ID = "app_update_channel"
     const val NOTIFICATION_ID = 1103
+    private val checkLock = Mutex()
 
     fun dismissUpdateNotification(context: Context) {
         NotificationManagerCompat.from(context.applicationContext).cancel(NOTIFICATION_ID)
@@ -100,22 +104,42 @@ object AppUpdateChecker {
      * MainActivity.onResume so the badge picks up new releases that landed between
      * AlarmManager ticks, without burning battery on every screen entry.
      */
-    suspend fun maybeOpportunisticCheck(context: Context) {
+    suspend fun maybeOpportunisticCheck(context: Context) = checkLock.withLock {
         val prefs = context.applicationContext
             .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val lastAt = prefs.getLong(KEY_LAST_CHECK_AT, 0L)
-        if (System.currentTimeMillis() - lastAt < OPPORTUNISTIC_THROTTLE_MS) return
+        if (!isCheckDue(System.currentTimeMillis(), lastAt)) return@withLock
         checkAndNotify(context)
+    }
+
+    internal fun isCheckDue(now: Long, lastAt: Long): Boolean =
+        lastAt <= 0L || now < lastAt || now - lastAt >= OPPORTUNISTIC_THROTTLE_MS
+
+    internal fun nextPeriodicCheckAt(now: Long, lastAt: Long, scheduledAt: Long): Long = when {
+        scheduledAt > now -> scheduledAt.coerceAtMost(now + INTERVAL_MS)
+        scheduledAt > 0L -> now + INTERVAL_MS
+        lastAt > 0L -> (lastAt + INTERVAL_MS)
+            .coerceIn(now + FIRST_DELAY_MS, now + INTERVAL_MS)
+        else -> now + FIRST_DELAY_MS
     }
 
     fun schedulePeriodic(context: Context) {
         val app = context.applicationContext
         val alarmManager = app.getSystemService(AlarmManager::class.java) ?: return
         val pending = periodicPendingIntent(app)
+        val prefs = app.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val now = System.currentTimeMillis()
+        val nextAt = nextPeriodicCheckAt(
+            now,
+            prefs.getLong(KEY_LAST_CHECK_AT, 0L),
+            prefs.getLong(KEY_NEXT_PERIODIC_CHECK_AT, 0L),
+        )
+        // A cold start for the alarm itself must not schedule another first-run check in 30m.
+        prefs.edit().putLong(KEY_NEXT_PERIODIC_CHECK_AT, nextAt).apply()
 
         alarmManager.setInexactRepeating(
             AlarmManager.ELAPSED_REALTIME_WAKEUP,
-            SystemClock.elapsedRealtime() + FIRST_DELAY_MS,
+            SystemClock.elapsedRealtime() + (nextAt - now),
             INTERVAL_MS,
             pending,
         )

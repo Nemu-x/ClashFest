@@ -10,6 +10,13 @@ import java.util.UUID
  * can show the correct announcement/support/userinfo before the next network refresh.
  */
 object SubscriptionMetaCache {
+    const val REFRESH_INTERVAL_SECONDS = 6L * 3600L
+
+    fun isRefreshDue(profileId: String, lastProfileId: String, lastFetchSeconds: Long, nowSeconds: Long): Boolean {
+        val age = nowSeconds - lastFetchSeconds
+        return profileId != lastProfileId || lastFetchSeconds <= 0L || age !in 0 until REFRESH_INTERVAL_SECONDS
+    }
+
     data class Entry(
         val announcement: String = "",
         val announcementUrl: String = "",

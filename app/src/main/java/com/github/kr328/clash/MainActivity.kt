@@ -41,7 +41,6 @@ import com.github.kr328.clash.common.util.intent
 import com.github.kr328.clash.common.util.setUUID
 import com.github.kr328.clash.common.util.ticker
 import com.github.kr328.clash.core.Clash
-import com.github.kr328.clash.core.bridge.*
 import com.github.kr328.clash.core.model.Proxy
 import com.github.kr328.clash.core.util.trafficDownload
 import com.github.kr328.clash.core.util.trafficUpload
@@ -68,6 +67,7 @@ import com.github.kr328.clash.util.BypassPresets
 import com.github.kr328.clash.util.GitHubReleaseUpdate
 import com.github.kr328.clash.util.UpdateApkVerifier
 import com.github.kr328.clash.util.AppUpdateChecker
+import com.github.kr328.clash.util.AboutVersions
 import com.github.kr328.clash.util.showProfileQuickEditSheet
 import com.github.kr328.clash.util.closeConnectionsAfterUserProxySwitchIfEnabled
 import com.github.kr328.clash.util.startClashService
@@ -88,6 +88,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
@@ -106,6 +108,7 @@ class MainActivity : BaseActivity<MainDesign>() {
     private var lastForwardedTrafficTotal: Long = Long.MIN_VALUE
     private var isCheckingUpdates: Boolean = false
     private var isToggleStatusInFlight: Boolean = false
+    private val subscriptionMetadataSyncMutex = Mutex()
 
     // When the user requests a stop, the service keeps reporting serviceRunning=true for a
     // second or two while it tears down. A dashboard refresh landing in that window would
@@ -581,6 +584,44 @@ class MainActivity : BaseActivity<MainDesign>() {
         isToggleStatusInFlight = false
         isCheckingUpdates = false
 
+        design.onOpenAbout = {
+            launch {
+                // Store builds (F-Droid) ship without the GitHub updater: no status
+                // line and no "Check updates" button.
+                val onCheckUpdates: (((Boolean) -> Unit, (String?) -> Unit) -> Unit)? =
+                    if (!BuildConfig.SELF_UPDATE) {
+                        null
+                    } else {
+                        { setLoading, setStatus ->
+                            if (!isCheckingUpdates) {
+                                launch {
+                                    isCheckingUpdates = true
+                                    setStatus(null)
+                                    setLoading(true)
+                                    try {
+                                        checkForUpdates(design, setStatus)
+                                    } finally {
+                                        isCheckingUpdates = false
+                                        setLoading(false)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                design.showAbout(
+                    versionName = AboutVersions.app,
+                    coreVersion = AboutVersions.core,
+                    initialUpdateStatus = if (!BuildConfig.SELF_UPDATE) {
+                        null
+                    } else {
+                        AppUpdateChecker.peekCachedRelease(this@MainActivity)
+                            ?.let { getString(R.string.about_update_available, it.tagName) }
+                    },
+                    onCheckUpdates = onCheckUpdates,
+                )
+            }
+        }
+
         // Keep the companion agent alive whenever the app is open if the user enabled it — the
         // foreground service doesn't survive a process restart on its own, so a paired controller
         // could otherwise never reach this device after the app was killed.
@@ -589,9 +630,6 @@ class MainActivity : BaseActivity<MainDesign>() {
         ) {
             com.github.kr328.clash.companion.agent.CompanionGatewayService.start(this@MainActivity)
         }
-        design.fetch()
-        refreshAnnouncement(design)
-
         design.onUpdateBadgeTap = { showUpdateAvailableDialog() }
         refreshUpdateBadge(design)
 
@@ -657,6 +695,9 @@ class MainActivity : BaseActivity<MainDesign>() {
                 } while (refreshRequests.tryReceive().isSuccess)
             }
         }
+
+        // Service startup must not gate local actions such as opening the import sheet.
+        scheduleDashboardRefresh(includeAnnouncement = true, force = true)
 
         var exit: DashboardExit? = null
         while (exit == null) {
@@ -811,41 +852,7 @@ class MainActivity : BaseActivity<MainDesign>() {
                         MainDesign.Request.OpenAppSettings ->
                             startActivity(SubscriptionIdentityActivity::class.intent)
 
-                        MainDesign.Request.OpenAbout -> {
-                            // Store builds (F-Droid) ship without the GitHub updater: no status
-                            // line and no "Check updates" button.
-                            val onCheckUpdates: (((Boolean) -> Unit, (String?) -> Unit) -> Unit)? =
-                                if (!BuildConfig.SELF_UPDATE) {
-                                    null
-                                } else {
-                                    { setLoading, setStatus ->
-                                        if (!isCheckingUpdates) {
-                                            launch {
-                                                isCheckingUpdates = true
-                                                setStatus(null)
-                                                setLoading(true)
-                                                try {
-                                                    checkForUpdates(design, setStatus)
-                                                } finally {
-                                                    isCheckingUpdates = false
-                                                    setLoading(false)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            design.showAbout(
-                                versionName = queryAppVersionName(),
-                                coreVersion = queryCoreVersionName(),
-                                initialUpdateStatus = if (!BuildConfig.SELF_UPDATE) {
-                                    null
-                                } else {
-                                    AppUpdateChecker.peekCachedRelease(this@MainActivity)
-                                        ?.let { getString(R.string.about_update_available, it.tagName) }
-                                },
-                                onCheckUpdates = onCheckUpdates,
-                            )
-                        }
+                        MainDesign.Request.OpenAbout -> design.onOpenAbout?.invoke()
 
                         MainDesign.Request.OpenImportClipboard ->
                             importFromClipboard(design)
@@ -1661,24 +1668,6 @@ class MainActivity : BaseActivity<MainDesign>() {
         return now - last >= interval
     }
 
-    private suspend fun queryAppVersionName(): String {
-        return withContext(Dispatchers.IO) {
-            val raw = packageManager.getPackageInfo(packageName, 0).versionName ?: "unknown"
-            val semver = Regex("""(\d+\.\d+\.\d+)""").find(raw)?.groupValues?.getOrNull(1) ?: raw
-            val channel = if (BuildConfig.DEBUG) "Debug" else "Release"
-            "$semver.$channel"
-        }
-    }
-
-    private suspend fun queryCoreVersionName(): String {
-        return withContext(Dispatchers.IO) {
-            val raw = Bridge.nativeCoreVersion().replace("_", "-")
-            val semver = Regex("""v?(\d+\.\d+\.\d+)""").find(raw)?.groupValues?.getOrNull(1)
-            val normalized = semver ?: raw
-            "Mihomo $normalized"
-        }
-    }
-
     private suspend fun checkForUpdates(design: MainDesign, setStatus: (String?) -> Unit) {
         val latest = GitHubReleaseUpdate.fetchLatest()
         if (latest == null) {
@@ -2244,20 +2233,22 @@ class MainActivity : BaseActivity<MainDesign>() {
      * profile-update-interval, subscription-userinfo, …) from the *active* URL profile.
      * Throttled to once per ~6 hours; user-edited fields stay user-edited.
      */
-    private suspend fun syncSubscriptionMetadata() {
-        val active = runCatching { withProfile { queryActive() } }.getOrNull() ?: return
-        if (active.type != Profile.Type.Url) return
-        val url = active.source.takeIf { it.isNotBlank() } ?: return
+    private suspend fun syncSubscriptionMetadata() = subscriptionMetadataSyncMutex.withLock {
+        val active = runCatching { withProfile { queryActive() } }.getOrNull() ?: return@withLock
+        if (active.type != Profile.Type.Url) return@withLock
+        val url = active.source.takeIf { it.isNotBlank() } ?: return@withLock
 
         val now = System.currentTimeMillis() / 1000L
-        val cooldown = 6L * 3600L
+        val cooldown = SubscriptionMetaCache.REFRESH_INTERVAL_SECONDS
         val activeId = active.uuid.toString()
-        val sameProfileThrottle =
-            uiStore.subscriptionUserinfo.isNotBlank() &&
-                activeId == uiStore.subscriptionMetadataLastFetchProfileId &&
-                now - uiStore.subscriptionMetadataLastFetch < cooldown
-        if (sameProfileThrottle) {
-            return
+        if (!SubscriptionMetaCache.isRefreshDue(
+                activeId,
+                uiStore.subscriptionMetadataLastFetchProfileId,
+                uiStore.subscriptionMetadataLastFetch,
+                now,
+            )
+        ) {
+            return@withLock
         }
 
         // Prefer the per-profile header snapshot the Go fetch persisted
@@ -2315,7 +2306,7 @@ class MainActivity : BaseActivity<MainDesign>() {
             // still mark the attempt to avoid hammering the server every screen-on
             uiStore.subscriptionMetadataLastFetch = now
             uiStore.subscriptionMetadataLastFetchProfileId = activeId
-            return
+            return@withLock
         }
         uiStore.subscriptionMetadataLastFetch = now
         uiStore.subscriptionMetadataLastFetchProfileId = activeId
