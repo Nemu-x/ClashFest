@@ -22,6 +22,7 @@ import com.github.kr328.clash.log.LogcatFilter
 import com.github.kr328.clash.log.LogcatReader
 import com.github.kr328.clash.util.logsDir
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withContext
@@ -47,7 +48,11 @@ class LogcatActivity : BaseActivity<LogcatDesign>() {
 
     private suspend fun mainLocalFile(file: LogFile) {
         val messages = try {
-            LogcatReader(this, file).readAll()
+            withContext(Dispatchers.IO) {
+                LogcatReader(this@LogcatActivity, file).use { it.readAll() }
+            }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("Fail to read log file ${file.fileName}: ${e.message}")
             return showInvalid()
