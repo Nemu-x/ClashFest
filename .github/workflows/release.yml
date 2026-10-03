@@ -122,7 +122,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
-            gh release upload "${GITHUB_REF_NAME}" release-artifacts/*.apk --clobber
-          else
-            gh release create "${GITHUB_REF_NAME}" release-artifacts/*.apk --generate-notes
+            echo "Release already exists; preserving its published APKs, hashes and notes."
+            exit 0
           fi
+          version="${GITHUB_REF_NAME#v}"
+          notes="docs/releases/${version}.md"
+          if [ ! -s "$notes" ]; then
+            echo "Release notes missing: $notes (English text with a Russian details section required)."
+            exit 1
+          fi
+          (cd release-artifacts && sha256sum *.apk > SHA256SUMS.txt)
+          gh release create "${GITHUB_REF_NAME}" --verify-tag \
+            --title "Mikan ${version}" --notes-file "$notes" \
+            release-artifacts/*.apk release-artifacts/SHA256SUMS.txt
