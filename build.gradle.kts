@@ -57,7 +57,7 @@ subprojects {
         defaultConfig {
             if (isApp) {
                 val customApplicationId = queryConfigProperty("custom.application.id") as? String?
-                applicationId = customApplicationId.takeIf { it?.isNotBlank() == true } ?: "com.getmikan.mikanapp"
+                applicationId = customApplicationId.takeIf { it?.isNotBlank() == true } ?: "com.nemu.clashfest.clash"
             }
 
             project.name.let { name ->
@@ -70,7 +70,7 @@ subprojects {
 
             versionName = "0.1.2"
             // Keep Android's update counter increasing when resetting the fork's display version.
-            versionCode = 10201010
+            versionCode = 10201011
 
             resValue("string", "release_name", "v$versionName")
             resValue("integer", "release_code", "$versionCode")
