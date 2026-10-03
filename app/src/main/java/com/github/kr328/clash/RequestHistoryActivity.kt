@@ -7,11 +7,13 @@ import com.github.kr328.clash.design.RequestHistoryDesign
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.ui.ToastDuration
 import com.github.kr328.clash.design.util.showExceptionToast
+import com.github.kr328.clash.log.RequestHistoryTrackingSession
 import com.github.kr328.clash.service.model.RequestHistorySnapshot
 import com.github.kr328.clash.service.model.formatRequestHistoryExport
 import com.github.kr328.clash.util.withClash
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
@@ -35,6 +37,7 @@ class RequestHistoryActivity : BaseActivity<RequestHistoryDesign>() {
                 runCatching {
                     json.decodeFromString(RequestHistorySnapshot.serializer(), raw)
                 }.getOrElse {
+                    if (it is CancellationException) throw it
                     Log.w("Request history decode failed; raw size=${raw.length}", it)
                     null
                 }
@@ -45,24 +48,35 @@ class RequestHistoryActivity : BaseActivity<RequestHistoryDesign>() {
             querySnapshot()?.let { design.patchSnapshot(it) }
         }
 
-        val refreshJob = launch {
-            while (isActive) {
-                if (activityStarted) {
-                    runCatching { refresh() }.onFailure {
-                        Log.w("Request history refresh failed", it)
-                    }
+        val tracking = RequestHistoryTrackingSession(
+            scope = this,
+            start = { withClash { startRequestHistoryTracking() } },
+            stop = { withClash { stopRequestHistoryTracking() } },
+            refresh = { refresh() },
+            onFailure = {
+                Log.w("Request history refresh failed", it)
+                if (it is com.github.kr328.clash.common.util.RemoteServiceUnavailableException && activityStarted) {
+                    launch { design.showExceptionToast(it) }
                 }
-                delay(2000)
-            }
-        }
-
-        runCatching { withClash { startRequestHistoryTracking() } }
+            },
+        )
 
         try {
-            refresh()
+            tracking.setVisible(activityStarted)
 
             while (isActive) {
                 select<Unit> {
+                    events.onReceive {
+                        when (it) {
+                            Event.ActivityStart -> tracking.setVisible(activityStarted)
+                            Event.ActivityStop -> tracking.setVisible(false)
+                            Event.ServiceRecreated -> {
+                                tracking.setVisible(false)
+                                tracking.setVisible(activityStarted)
+                            }
+                            else -> Unit
+                        }
+                    }
                     design.requests.onReceive {
                         when (it) {
                             RequestHistoryDesign.Request.Clear -> launch {
@@ -77,14 +91,15 @@ class RequestHistoryActivity : BaseActivity<RequestHistoryDesign>() {
                                     "mikan-request-history.csv",
                                 )
                                 if (output != null) {
-                                    runCatching {
+                                    try {
                                         withContext(Dispatchers.IO) {
                                             writeExport(snapshot, output)
                                         }
-                                    }.onSuccess {
                                         design.showToast(R.string.file_exported, ToastDuration.Long)
-                                    }.onFailure { e ->
-                                        design.showExceptionToast(e as? Exception ?: Exception(e))
+                                    } catch (cancelled: CancellationException) {
+                                        throw cancelled
+                                    } catch (error: Exception) {
+                                        design.showExceptionToast(error)
                                     }
                                 }
                             }
@@ -93,8 +108,9 @@ class RequestHistoryActivity : BaseActivity<RequestHistoryDesign>() {
                 }
             }
         } finally {
-            refreshJob.cancel()
-            runCatching { withClash { stopRequestHistoryTracking() } }
+            withContext(NonCancellable) {
+                tracking.setVisible(false)
+            }
         }
     }
 

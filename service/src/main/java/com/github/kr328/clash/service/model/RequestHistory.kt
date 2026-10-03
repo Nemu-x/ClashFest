@@ -5,6 +5,7 @@ import com.github.kr328.clash.core.Clash
 import com.github.kr328.clash.core.model.ConnectionMetadata
 import com.github.kr328.clash.core.model.ConnectionTracker
 import com.github.kr328.clash.core.model.ConnectionsSnapshot
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -12,6 +13,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.coroutines.coroutineContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.text.SimpleDateFormat
@@ -145,7 +147,9 @@ object RequestHistoryRepository {
         // polls every 2s while open; if those polls stop for IDLE_TIMEOUT_MS the
         // tracker assumes the consumer died without a clean stopTracking (process
         // kill, crash) and self-cancels to avoid a process-scoped battery leak.
-        lastConsumerActivityAt = System.currentTimeMillis()
+        synchronized(trackerLock) {
+            lastConsumerActivityAt = System.currentTimeMillis()
+        }
         return store.snapshot()
     }
 
@@ -167,12 +171,19 @@ object RequestHistoryRepository {
                     ingestSnapshot()
                     delay(SAMPLE_INTERVAL_MS)
                     val idleMs = System.currentTimeMillis() - lastConsumerActivityAt
-                    if (idleMs > IDLE_TIMEOUT_MS) {
-                        Log.w("Request history tracker idle for ${idleMs}ms; auto-stopping")
-                        synchronized(trackerLock) {
+                    val stoppedForIdle = synchronized(trackerLock) {
+                        if (trackerJob === coroutineContext[Job] &&
+                            System.currentTimeMillis() - lastConsumerActivityAt > IDLE_TIMEOUT_MS
+                        ) {
                             trackerRefCount = 0
                             trackerJob = null
+                            true
+                        } else {
+                            false
                         }
+                    }
+                    if (stoppedForIdle) {
+                        Log.w("Request history tracker idle for ${idleMs}ms; auto-stopping")
                         break
                     }
                 }
@@ -192,12 +203,14 @@ object RequestHistoryRepository {
 
     private fun ingestSnapshot() {
         val raw = runCatching { Clash.queryConnectionsSnapshot() }.getOrElse {
+            if (it is CancellationException) throw it
             Log.w("Request history snapshot query failed", it)
             return
         }
         val snap = runCatching {
             ingestJson.decodeFromString(ConnectionsSnapshot.serializer(), raw)
         }.getOrElse {
+            if (it is CancellationException) throw it
             Log.w("Request history snapshot decode failed; raw size=${raw.length}", it)
             return
         }
