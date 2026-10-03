@@ -68,9 +68,9 @@ subprojects {
             minSdk = 21
             targetSdk = 35
 
-            versionName = "0.1.1"
+            versionName = "0.1.2"
             // Keep Android's update counter increasing when resetting the fork's display version.
-            versionCode = 10201009
+            versionCode = 10201010
 
             resValue("string", "release_name", "v$versionName")
             resValue("integer", "release_code", "$versionCode")
