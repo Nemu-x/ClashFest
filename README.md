@@ -51,6 +51,31 @@ defaults for everyday use.
 
 Dev builds from the `dev` branch: [dev-latest pre-release](https://github.com/getmikan/MikanApp/releases/tag/dev-latest) (debug-signed; Android cannot update a release installation with a debug APK). All releases & changelog: [Releases](https://github.com/getmikan/MikanApp/releases). The app checks for updates itself under **Settings → About & updates**.
 
+## Moving from ClashFest or an earlier Mikan installation
+
+New Mikan builds use their own Android application ID (`com.getmikan.mikanapp.alpha`
+for the standard APK). They install alongside ClashFest and earlier Mikan builds
+that used the ClashFest ID, rather than replacing them.
+
+For this one-time move, install the new APK manually, add your original subscription
+links, and select your server and routing settings again. Keep the old installation
+until the new one connects successfully. Android keeps each app's data separate;
+subscriptions and settings are not copied automatically. The old installation's
+in-app updater rejects APKs with the new ID because it checks the package and signature.
+Later updates of the new Mikan installation use its normal updater.
+
+<details>
+<summary>Переход со старой установки — по-русски</summary>
+
+Новые сборки Mikan устанавливаются отдельно от ClashFest и старых сборок Mikan.
+Один раз установите новый APK вручную, добавьте исходные ссылки подписок и заново
+выберите сервер и настройки маршрутизации. Старое приложение оставьте, пока не
+проверите подключение в новом. Подписки и настройки автоматически не переносятся.
+Обновлятор старой установки не примет APK с новым ID; последующие обновления
+нового Mikan устанавливаются обычным способом.
+
+</details>
+
 ## Highlights
 
 | Area | What you get |

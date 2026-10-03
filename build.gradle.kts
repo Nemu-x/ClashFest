@@ -57,7 +57,7 @@ subprojects {
         defaultConfig {
             if (isApp) {
                 val customApplicationId = queryConfigProperty("custom.application.id") as? String?
-                applicationId = customApplicationId.takeIf { it?.isNotBlank() == true } ?: "com.nemu.clashfest.clash"
+                applicationId = customApplicationId.takeIf { it?.isNotBlank() == true } ?: "com.getmikan.mikanapp"
             }
 
             project.name.let { name ->
