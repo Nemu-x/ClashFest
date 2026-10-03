@@ -15,7 +15,7 @@ class UpdateCheckReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                AppUpdateChecker.checkAndNotify(context)
+                AppUpdateChecker.maybeOpportunisticCheck(context)
             } catch (e: Exception) {
                 Log.w("Periodic update check failed: ${LogRedaction.throwableMessage(e)}")
             } finally {

@@ -25,10 +25,9 @@ suspend fun <T> withClash(
     var attempt = 0
     while (true) {
         val remote = Remote.service.remote.get()
-        val client = remote.clash()
 
         try {
-            return withContext(context) { client.block() }
+            return withContext(context) { remote.clash().block() }
         } catch (e: DeadObjectException) {
             attempt += 1
             Log.w("Remote services panic (clash, attempt $attempt)")
@@ -50,10 +49,9 @@ suspend fun <T> withProfile(
     var attempt = 0
     while (true) {
         val remote = Remote.service.remote.get()
-        val client = remote.profile()
 
         try {
-            return withContext(context) { client.block() }
+            return withContext(context) { remote.profile().block() }
         } catch (e: DeadObjectException) {
             attempt += 1
             Log.w("Remote services panic (profile, attempt $attempt)")
