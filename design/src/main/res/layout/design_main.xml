@@ -349,10 +349,10 @@
                         android:insetBottom="0dp"
                         android:padding="0dp"
                         app:cornerRadius="90dp"
-                        app:icon="@drawable/ic_baseline_bolt"
+                        app:icon="@drawable/ic_clash"
                         app:iconGravity="textStart"
                         app:iconPadding="0dp"
-                        app:iconSize="56dp" />
+                        app:iconSize="96dp" />
 
                     <!-- Top-light sheen overlaid on the button so it reads as a lit 3D orb.
                          High elevation draws it above the button fill; outlineProvider=none
@@ -425,11 +425,9 @@
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="20dp"
                 android:layout_marginTop="32dp"
-                app:cardBackgroundColor="?attr/colorSurfaceContainer"
+                app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="6dp"
-                app:strokeColor="@color/lumen_hairline"
-                app:strokeWidth="1dp">
+                app:cardElevation="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -556,88 +554,11 @@
                         android:layout_marginEnd="16dp"
                         android:visibility="gone" />
 
-                    <!-- Redesign 1.0: Mode as an in-place segmented control (Rule / Global; Direct
-                         normalises to Rule). Segments wired in MainDesign to PatchModeRule/Global. -->
-                    <LinearLayout
-                        android:id="@+id/main_mode_row"
-                        android:layout_width="match_parent"
-                        android:layout_height="64dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="16dp">
-
-                        <ImageView
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:padding="9dp"
-                            android:src="@drawable/ic_baseline_stack"
-                            app:tint="?attr/colorPrimary"
-                            tools:ignore="ContentDescription" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:text="@string/mode"
-                            android:textAppearance="@style/TextAppearance.App.TitleSmall"
-                            android:textColor="?attr/colorOnSurface"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/main_mode_value"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@{mode}"
-                            android:visibility="gone"
-                            tools:ignore="HardcodedText" />
-
-                        <com.google.android.material.button.MaterialButtonToggleGroup
-                            android:id="@+id/main_mode_segment"
-                            android:layout_width="176dp"
-                            android:layout_height="40dp"
-                            app:selectionRequired="true"
-                            app:singleSelection="true">
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/main_mode_rule"
-                                style="?attr/materialButtonOutlinedStyle"
-                                android:layout_width="0dp"
-                                android:layout_height="match_parent"
-                                android:layout_weight="1"
-                                android:insetTop="0dp"
-                                android:insetBottom="0dp"
-                                android:minWidth="0dp"
-                                android:paddingHorizontal="4dp"
-                                android:text="@string/rule_mode_short"
-                                android:textAppearance="@style/TextAppearance.App.LabelLarge" />
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/main_mode_global"
-                                style="?attr/materialButtonOutlinedStyle"
-                                android:layout_width="0dp"
-                                android:layout_height="match_parent"
-                                android:layout_weight="1"
-                                android:insetTop="0dp"
-                                android:insetBottom="0dp"
-                                android:minWidth="0dp"
-                                android:paddingHorizontal="4dp"
-                                android:text="@string/global_mode_short"
-                                android:textAppearance="@style/TextAppearance.App.LabelLarge" />
-                        </com.google.android.material.button.MaterialButtonToggleGroup>
-                    </LinearLayout>
-
-                    <com.google.android.material.divider.MaterialDivider
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="66dp"
-                        android:layout_marginEnd="16dp" />
-
                     <LinearLayout
                         android:id="@+id/main_active_profile_row"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:minHeight="64dp"
+                        android:minHeight="72dp"
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true"
@@ -646,16 +567,17 @@
                         android:orientation="horizontal"
                         android:paddingStart="16dp"
                         android:paddingTop="12dp"
-                        android:paddingEnd="12dp"
+                        android:paddingEnd="16dp"
                         android:paddingBottom="12dp">
 
                         <ImageView
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:padding="9dp"
+                            android:background="@drawable/bg_flag_circle"
+                            android:padding="8dp"
                             android:src="@drawable/ic_baseline_subscriptions"
                             app:tint="?attr/colorPrimary"
-                            tools:ignore="ContentDescription" />
+                            android:importantForAccessibility="no" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -668,27 +590,26 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:text="@string/main_active_profile_title"
-                                android:textAppearance="@style/TextAppearance.App.TitleSmall"
-                                android:textColor="?attr/colorOnSurface"
-                                android:textStyle="bold" />
+                                android:textAppearance="@style/TextAppearance.App.LabelMedium"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
 
                             <TextView
                                 android:id="@+id/main_active_profile_value"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
+                                android:layout_marginTop="4dp"
                                 android:ellipsize="end"
-                                android:maxLines="1"
+                                android:maxLines="2"
                                 android:text="@{profileName}"
-                                android:textAppearance="@style/TextAppearance.App.BodySmall"
-                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textAppearance="@style/TextAppearance.App.BodyLarge"
+                                android:textColor="?attr/colorOnSurface"
                                 tools:text="Zhapon VPN" />
 
                             <TextView
                                 android:id="@+id/main_active_profile_meta"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
+                                android:layout_marginTop="4dp"
                                 android:ellipsize="end"
                                 android:maxLines="2"
                                 android:textAppearance="@style/TextAppearance.App.BodySmall"
@@ -696,64 +617,27 @@
                                 tools:text="310.40 MiB / ∞" />
                         </LinearLayout>
 
-                        <LinearLayout
-                            android:id="@+id/main_active_profile_actions"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <ImageButton
-                                android:id="@+id/main_active_profile_update"
-                                android:layout_width="48dp"
-                                android:layout_height="48dp"
-                                android:background="?attr/selectableItemBackgroundBorderless"
-                                android:contentDescription="@string/profile_force_update"
-                                android:padding="12dp"
-                                android:src="@drawable/ic_baseline_sync"
-                                app:tint="?attr/colorOnSurfaceVariant" />
-
-                            <ImageButton
-                                android:id="@+id/main_active_profile_support"
-                                android:layout_width="48dp"
-                                android:layout_height="48dp"
-                                android:background="?attr/selectableItemBackgroundBorderless"
-                                android:contentDescription="@string/sub_announcement_support"
-                                android:padding="12dp"
-                                android:src="@drawable/ic_baseline_headset_mic"
-                                android:visibility="gone"
-                                app:tint="?attr/colorPrimary" />
-                        </LinearLayout>
-
                         <ImageView
-                            android:layout_width="28dp"
-                            android:layout_height="28dp"
-                            android:padding="4dp"
-                            android:rotation="-90"
-                            android:src="@drawable/ic_baseline_expand_more"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_marginStart="12dp"
+                            android:src="@drawable/ic_baseline_chevron_right"
                             app:tint="?attr/colorOnSurfaceVariant"
-                            tools:ignore="ContentDescription" />
+                            android:importantForAccessibility="no" />
                     </LinearLayout>
 
-                    <com.google.android.material.divider.MaterialDivider
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="66dp"
-                        android:layout_marginEnd="16dp" />
-
-                    <!-- Node picker row (redesign 1.0): opens the proxy sheet for the active
-                         profile. Click wired in MainDesign (openProxySheetWhenReady). -->
                     <LinearLayout
                         android:id="@+id/main_active_node_row"
                         android:layout_width="match_parent"
-                        android:layout_height="64dp"
+                        android:layout_height="wrap_content"
+                        android:minHeight="72dp"
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="16dp">
+                        android:paddingHorizontal="16dp"
+                        android:paddingVertical="12dp">
 
                         <FrameLayout
                             android:id="@+id/main_active_node_flag_card"
@@ -768,7 +652,7 @@
                                 android:layout_height="match_parent"
                                 android:scaleType="centerCrop"
                                 android:visibility="gone"
-                                tools:ignore="ContentDescription" />
+                                android:importantForAccessibility="no" />
 
                             <TextView
                                 android:id="@+id/main_active_node_flag_emoji"
@@ -793,30 +677,144 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:text="@string/main_node_title"
-                                android:textAppearance="@style/TextAppearance.App.TitleSmall"
-                                android:textColor="?attr/colorOnSurface"
-                                android:textStyle="bold" />
+                                android:textAppearance="@style/TextAppearance.App.LabelMedium"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                 />
 
                             <TextView
                                 android:id="@+id/main_active_node_value"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
                                 android:ellipsize="end"
-                                android:maxLines="1"
+                                android:maxLines="2"
                                 android:text="@string/main_node_choose"
-                                android:textAppearance="@style/TextAppearance.App.BodySmall"
-                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textAppearance="@style/TextAppearance.App.BodyLarge"
+                                android:textColor="?attr/colorOnSurface"
                                 tools:text="Spain Auto" />
                         </LinearLayout>
 
                         <ImageView
-                            android:layout_width="28dp"
-                            android:layout_height="28dp"
-                            android:padding="4dp"
-                            android:rotation="-90"
-                            android:src="@drawable/ic_baseline_expand_more"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_marginStart="12dp"
+                            android:src="@drawable/ic_baseline_chevron_right"
                             app:tint="?attr/colorOnSurfaceVariant"
-                            tools:ignore="ContentDescription" />
+                            android:importantForAccessibility="no" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/main_active_profile_actions"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="12dp"
+                        android:paddingTop="8dp">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/main_active_profile_update"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginHorizontal="4dp"
+                            android:contentDescription="@string/profile_force_update"
+                            android:minWidth="0dp"
+                            android:minHeight="48dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:paddingHorizontal="8dp"
+                            android:text="@string/update"
+                            android:textAllCaps="false"
+                            android:textAppearance="@style/TextAppearance.App.LabelMedium"
+                            app:cornerRadius="12dp"
+                            app:icon="@drawable/ic_baseline_sync"
+                            app:iconSize="20dp"
+                            app:iconPadding="8dp"
+                            app:iconGravity="textStart" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/main_active_profile_support"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginHorizontal="4dp"
+                            android:minWidth="0dp"
+                            android:minHeight="48dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:paddingHorizontal="8dp"
+                            android:text="@string/sub_announcement_support"
+                            android:textAllCaps="false"
+                            android:textAppearance="@style/TextAppearance.App.LabelMedium"
+                            android:visibility="gone"
+                            app:cornerRadius="12dp"
+                            app:icon="@drawable/ic_baseline_headset_mic"
+                            app:iconSize="20dp"
+                            app:iconPadding="8dp"
+                            app:iconGravity="textStart" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/main_mode_row"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="start"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/mode"
+                            android:textAppearance="@style/TextAppearance.App.LabelMedium"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
+
+                        <TextView
+                            android:id="@+id/main_mode_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@{mode}"
+                            android:visibility="gone"
+                            tools:ignore="HardcodedText" />
+
+                        <com.google.android.material.button.MaterialButtonToggleGroup
+                            android:id="@+id/main_mode_segment"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:layout_marginTop="8dp"
+                            app:selectionRequired="true"
+                            app:singleSelection="true">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/main_mode_rule"
+                                style="?attr/materialButtonOutlinedStyle"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:minWidth="0dp"
+                                android:paddingHorizontal="12dp"
+                                android:textAllCaps="false"
+                                android:text="@string/rule_mode_short"
+                                android:textAppearance="@style/TextAppearance.App.LabelLarge" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/main_mode_global"
+                                style="?attr/materialButtonOutlinedStyle"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:minWidth="0dp"
+                                android:paddingHorizontal="12dp"
+                                android:textAllCaps="false"
+                                android:text="@string/global_mode_short"
+                                android:textAppearance="@style/TextAppearance.App.LabelLarge" />
+                        </com.google.android.material.button.MaterialButtonToggleGroup>
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

@@ -6,6 +6,7 @@
     unchecked switch tracks, etc.) don't pick up the operator accent tint.
 -->
 <resources>
+    <color name="mikan_power_icon_idle">#777777</color>
     <color name="brand_neutral_surface_variant">#EBE4DB</color>
     <color name="brand_neutral_on_surface_variant">#625A50</color>
     <color name="brand_neutral_outline">#847B70</color>

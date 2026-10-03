@@ -1,36 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  Bottom-nav item background. `state_selected` = the active tab pill.
-  `state_focused` = D-pad focus on TV / keyboard nav: a bright outline so the
-  user always sees WHERE they are (touch UI never showed focus, which made the
-  app unusable with a remote). Focus is drawn on top of selected so a focused
-  active tab reads as both.
--->
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:state_focused="true" android:state_selected="true">
-        <shape android:shape="rectangle">
-            <solid android:color="?attr/colorPrimaryContainer" />
-            <stroke android:width="2dp" android:color="?attr/colorPrimary" />
-            <corners android:radius="12dp" />
-        </shape>
-    </item>
-    <item android:state_focused="true">
-        <shape android:shape="rectangle">
-            <solid android:color="@android:color/transparent" />
-            <stroke android:width="2dp" android:color="?attr/colorPrimary" />
-            <corners android:radius="12dp" />
-        </shape>
-    </item>
-    <item android:state_selected="true">
-        <shape android:shape="rectangle">
-            <solid android:color="?attr/colorPrimaryContainer" />
-            <corners android:radius="12dp" />
-        </shape>
-    </item>
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="?attr/colorControlHighlight">
     <item>
+        <selector>
+            <item android:state_focused="true" android:state_selected="true">
+                <shape android:shape="rectangle">
+                    <solid android:color="?attr/colorSurfaceContainerHigh" />
+                    <stroke android:width="2dp" android:color="?attr/colorPrimary" />
+                    <corners android:radius="16dp" />
+                </shape>
+            </item>
+            <item android:state_focused="true">
+                <shape android:shape="rectangle">
+                    <solid android:color="@android:color/transparent" />
+                    <stroke android:width="2dp" android:color="?attr/colorPrimary" />
+                    <corners android:radius="16dp" />
+                </shape>
+            </item>
+            <item android:state_selected="true">
+                <shape android:shape="rectangle">
+                    <solid android:color="?attr/colorSurfaceContainerHigh" />
+                    <corners android:radius="16dp" />
+                </shape>
+            </item>
+            <item>
+                <shape android:shape="rectangle">
+                    <solid android:color="@android:color/transparent" />
+                    <corners android:radius="16dp" />
+                </shape>
+            </item>
+        </selector>
+    </item>
+    <item android:id="@android:id/mask">
         <shape android:shape="rectangle">
-            <solid android:color="@android:color/transparent" />
-            <corners android:radius="12dp" />
+            <solid android:color="@android:color/white" />
+            <corners android:radius="16dp" />
         </shape>
     </item>
-</selector>
+</ripple>

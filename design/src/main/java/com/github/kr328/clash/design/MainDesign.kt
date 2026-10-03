@@ -5,8 +5,11 @@ import android.content.res.ColorStateList
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import android.net.Uri
 import android.os.SystemClock
+import android.os.Build
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
@@ -23,6 +26,7 @@ import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.toBitmap
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -186,6 +190,9 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     private var powerRingInnerBreathAnimator: ValueAnimator? = null
     private var powerRingOuterBreathAnimator: ValueAnimator? = null
     private var powerSweepAnimator: ValueAnimator? = null
+    private var powerIconAnimator: ValueAnimator? = null
+    private var powerIconProgress = 0f
+    private var powerIconRunning: Boolean? = null
 
     /**
      * The three ambient power effects (button breath, halo breath, conic sweep) are driven by a
@@ -774,51 +781,23 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         val button = binding.mainPowerCard
         val running = clashRunningState
         val starting = tunnelStartingState && !running
-        val (bgAttr, iconAttr, elevationDp) = when {
-            running -> Triple(
-                com.google.android.material.R.attr.colorPrimary,
-                com.google.android.material.R.attr.colorOnPrimary,
-                10f,
-            )
-            starting -> Triple(
-                com.google.android.material.R.attr.colorPrimaryContainer,
-                com.google.android.material.R.attr.colorOnPrimaryContainer,
-                8f,
-            )
-            else -> Triple(
-                // Raised "block" surface (brightest container) reads as a floating element
-                // against the ambient canvas — depth, not a flat Material fill. Redesign 1.0.
-                com.google.android.material.R.attr.colorSurfaceContainerHighest,
-                com.google.android.material.R.attr.colorOnSurfaceVariant,
-                7f,
-            )
+        val elevationDp = when {
+            running -> 10f
+            starting -> 8f
+            else -> 7f
         }
-        // Operator brand accent applies ONLY in the running state — that's the
-        // slot `colorPrimary` filled in the default theme. Idle / starting
-        // states read default M3 surface attrs. Since we no longer run a
-        // dynamic-color harmoniser (which used to derive ALL surface tones
-        // from the brand seed and tint the off-state), surface attrs stay at
-        // their built-in neutral M3 values automatically — no workaround needed.
         val accentBg = brandAccentColor() ?: context.resolveThemedColor(com.google.android.material.R.attr.colorPrimary)
-        val bgColor = if (running) accentBg else context.resolveThemedColor(bgAttr)
+        val bgColor = context.resolveThemedColor(MaterialR.attr.colorSurfaceContainerHighest)
         button.backgroundTintList = ColorStateList.valueOf(bgColor)
-        button.iconTint = ColorStateList.valueOf(context.resolveThemedColor(iconAttr))
-        button.setTextColor(context.resolveThemedColor(iconAttr))
         button.elevation = elevationDp * context.resources.displayMetrics.density
-        // Lux bezel: a lit rim on the button edge — a lighter blend of the fill. Bright and
-        // present when running (glowing orb), whisper-subtle when off (calm disc).
-        val bezelColor = ColorUtils.blendARGB(bgColor, Color.WHITE, if (running) 0.36f else 0.10f)
         button.strokeWidth = (2 * context.resources.displayMetrics.density).toInt()
-        button.setStrokeColor(ColorStateList.valueOf(bezelColor))
-        // Dimensional sheen belongs to the CONNECTED state — off is a calm, near-flat obsidian
-        // disc; on is a lit 3D orb. So the top-light is understated idle, full when running.
+        animatePowerIcon(running, bgColor, accentBg)
         binding.powerSheen.alpha = when {
-            running -> 1.0f
-            starting -> 0.6f
+            running -> 0.35f
+            starting -> 0.25f
             else -> 0.22f
         }
-        // Dome vignette (volumetric fill) + soft shimmer are CONNECTED-only.
-        val overlayAlpha = if (running) 1.0f else 0.0f
+        val overlayAlpha = if (running) 0.25f else 0.0f
         binding.powerDome.animate().alpha(overlayAlpha).setDuration(240L).start()
         binding.powerSweep.backgroundTintList = null
         binding.powerSweep.animate().alpha(overlayAlpha).setDuration(240L).start()
@@ -877,6 +856,46 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         binding.mainStatusLabel.setTextColor(statusTextColor)
 
         updateBreathAnimator(running, starting)
+    }
+
+    private fun animatePowerIcon(running: Boolean, background: Int, accent: Int) {
+        val button = binding.mainPowerCard
+        val icon = button.icon ?: return
+        button.iconTint = null
+        val gray = ContextCompat.getColor(context, R.color.mikan_power_icon_idle)
+        val idleRim = ColorUtils.blendARGB(background, Color.WHITE, 0.10f)
+        fun render(progress: Float) {
+            powerIconProgress = progress
+            val grayWeight = 1f - progress
+            // Blend every original SVG color with gray, keeping the silhouette opaque.
+            icon.colorFilter = ColorMatrixColorFilter(ColorMatrix(floatArrayOf(
+                progress, 0f, 0f, 0f, Color.red(gray) * grayWeight,
+                0f, progress, 0f, 0f, Color.green(gray) * grayWeight,
+                0f, 0f, progress, 0f, Color.blue(gray) * grayWeight,
+                0f, 0f, 0f, 1f, 0f,
+            )))
+            button.setStrokeColor(ColorStateList.valueOf(ColorUtils.blendARGB(idleRim, accent, progress)))
+        }
+        val previous = powerIconRunning
+        powerIconRunning = running
+        val target = if (running) 1f else 0f
+        if (previous == null || !button.isAttachedToWindow ||
+            (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !ValueAnimator.areAnimatorsEnabled())
+        ) {
+            powerIconAnimator?.cancel()
+            powerIconAnimator = null
+            render(target)
+        } else if (previous != running) {
+            powerIconAnimator?.cancel()
+            powerIconAnimator = ValueAnimator.ofFloat(powerIconProgress, target).apply {
+                duration = 560L
+                interpolator = AccelerateDecelerateInterpolator()
+                addUpdateListener { render(it.animatedValue as Float) }
+                start()
+            }
+        } else {
+            render(powerIconProgress)
+        }
     }
 
     /**
@@ -1072,6 +1091,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         binding.mainActiveProfileUpdate.visibility = if (showUpdate) View.VISIBLE else View.GONE
         val showSupport = !resolveSupportUrl().isNullOrBlank()
         binding.mainActiveProfileSupport.visibility = if (showSupport) View.VISIBLE else View.GONE
+        binding.mainActiveProfileActions.visibility = if (showUpdate || showSupport) View.VISIBLE else View.GONE
         // Redesign 1.0: Node row shows the active node as a circular flag icon (like the picker) +
         // the clean name, and opens the proxy picker for the active profile (loads groups first).
         val nodeName = p?.let { profileAdapter.activeNodeDisplayName(it) }
@@ -2183,6 +2203,14 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         binding.profilesTabRefresh.setOnRefreshListener { requestAllSubscriptionUpdates() }
 
         val card = binding.mainPowerCard
+        card.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(view: View) = Unit
+
+            override fun onViewDetachedFromWindow(view: View) {
+                powerIconAnimator?.end()
+                powerIconAnimator = null
+            }
+        })
         card.setOnClickListener {
             request(Request.ToggleStatus)
         }
@@ -2191,7 +2219,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
                 MotionEvent.ACTION_DOWN -> {
                     v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                     v.animate().cancel()
-                    v.animate().scaleX(0.94f).scaleY(0.94f).setDuration(90L).start()
+                    v.animate().scaleX(0.96f).scaleY(0.96f).setDuration(90L).start()
                 }
                 MotionEvent.ACTION_UP,
                 MotionEvent.ACTION_CANCEL,
