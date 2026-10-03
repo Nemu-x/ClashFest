@@ -89,6 +89,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
@@ -107,6 +109,7 @@ class MainActivity : BaseActivity<MainDesign>() {
     private var lastForwardedTrafficTotal: Long = Long.MIN_VALUE
     private var isCheckingUpdates: Boolean = false
     private var isToggleStatusInFlight: Boolean = false
+    private val subscriptionMetadataSyncMutex = Mutex()
 
     // When the user requests a stop, the service keeps reporting serviceRunning=true for a
     // second or two while it tears down. A dashboard refresh landing in that window would
@@ -617,9 +620,6 @@ class MainActivity : BaseActivity<MainDesign>() {
         ) {
             com.github.kr328.clash.companion.agent.CompanionGatewayService.start(this@MainActivity)
         }
-        design.fetch()
-        refreshAnnouncement(design)
-
         design.onUpdateBadgeTap = { showUpdateAvailableDialog() }
         refreshUpdateBadge(design)
 
@@ -685,6 +685,9 @@ class MainActivity : BaseActivity<MainDesign>() {
                 } while (refreshRequests.tryReceive().isSuccess)
             }
         }
+
+        // Service startup must not gate local actions such as opening the import sheet.
+        scheduleDashboardRefresh(includeAnnouncement = true, force = true)
 
         var exit: DashboardExit? = null
         while (exit == null) {
@@ -2262,20 +2265,22 @@ class MainActivity : BaseActivity<MainDesign>() {
      * profile-update-interval, subscription-userinfo, …) from the *active* URL profile.
      * Throttled to once per ~6 hours; user-edited fields stay user-edited.
      */
-    private suspend fun syncSubscriptionMetadata() {
-        val active = runCatching { withProfile { queryActive() } }.getOrNull() ?: return
-        if (active.type != Profile.Type.Url) return
-        val url = active.source.takeIf { it.isNotBlank() } ?: return
+    private suspend fun syncSubscriptionMetadata() = subscriptionMetadataSyncMutex.withLock {
+        val active = runCatching { withProfile { queryActive() } }.getOrNull() ?: return@withLock
+        if (active.type != Profile.Type.Url) return@withLock
+        val url = active.source.takeIf { it.isNotBlank() } ?: return@withLock
 
         val now = System.currentTimeMillis() / 1000L
-        val cooldown = 6L * 3600L
+        val cooldown = SubscriptionMetaCache.REFRESH_INTERVAL_SECONDS
         val activeId = active.uuid.toString()
-        val sameProfileThrottle =
-            uiStore.subscriptionUserinfo.isNotBlank() &&
-                activeId == uiStore.subscriptionMetadataLastFetchProfileId &&
-                now - uiStore.subscriptionMetadataLastFetch < cooldown
-        if (sameProfileThrottle) {
-            return
+        if (!SubscriptionMetaCache.isRefreshDue(
+                activeId,
+                uiStore.subscriptionMetadataLastFetchProfileId,
+                uiStore.subscriptionMetadataLastFetch,
+                now,
+            )
+        ) {
+            return@withLock
         }
 
         // Prefer the per-profile header snapshot the Go fetch persisted
@@ -2333,7 +2338,7 @@ class MainActivity : BaseActivity<MainDesign>() {
             // still mark the attempt to avoid hammering the server every screen-on
             uiStore.subscriptionMetadataLastFetch = now
             uiStore.subscriptionMetadataLastFetchProfileId = activeId
-            return
+            return@withLock
         }
         uiStore.subscriptionMetadataLastFetch = now
         uiStore.subscriptionMetadataLastFetchProfileId = activeId

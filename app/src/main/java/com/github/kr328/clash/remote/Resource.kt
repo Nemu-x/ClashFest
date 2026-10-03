@@ -1,14 +1,12 @@
 package com.github.kr328.clash.remote
 
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 class Resource<T> {
     private interface Callback<T> {
+        val isActive: Boolean
         fun accept(value: T)
-        fun cancel()
     }
 
     private val pending: MutableSet<Callback<T>> = mutableSetOf()
@@ -18,12 +16,11 @@ class Resource<T> {
     suspend fun get(): T {
         return suspendCancellableCoroutine { ctx ->
             val callback = object : Callback<T> {
+                override val isActive: Boolean
+                    get() = ctx.isActive
+
                 override fun accept(value: T) {
                     ctx.resume(value)
-                }
-
-                override fun cancel() {
-                    ctx.resumeWithException(CancellationException("Resource reset"))
                 }
             }
 
@@ -48,7 +45,7 @@ class Resource<T> {
         val v = value
 
         if (v == null) {
-            pending.add(callback)
+            if (callback.isActive) pending.add(callback)
         } else {
             callback.accept(v)
         }
@@ -58,17 +55,15 @@ class Resource<T> {
     private fun setAndNotify(value: T?) {
         this.value = value
 
-        if (value != null) {
-            pending.forEach {
-                it.accept(value)
-            }
-        } else {
-            pending.forEach {
-                it.cancel()
-            }
-        }
+        // A disconnected service can reconnect while the caller's screen is still alive.
+        // The caller's own coroutine cancellation removes its waiter on screen teardown.
+        if (value == null) return
 
+        val callbacks = pending.toList()
         pending.clear()
+        callbacks.forEach {
+            it.accept(value)
+        }
     }
 
     @Synchronized
