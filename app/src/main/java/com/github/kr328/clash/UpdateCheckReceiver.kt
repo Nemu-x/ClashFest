@@ -19,7 +19,13 @@ class UpdateCheckReceiver : BroadcastReceiver() {
             } catch (e: Exception) {
                 Log.w("Periodic update check failed: ${LogRedaction.throwableMessage(e)}")
             } finally {
-                pendingResult.finish()
+                try {
+                    AppUpdateChecker.schedulePeriodic(context, alarmDelivered = true)
+                } catch (e: Exception) {
+                    Log.w("Periodic update scheduling failed: ${LogRedaction.throwableMessage(e)}")
+                } finally {
+                    pendingResult.finish()
+                }
             }
         }
     }

@@ -23,23 +23,28 @@ class AppUpdateScheduleTest {
     }
 
     @Test
-    fun coldStartForDueAlarmAdvancesByADayInsteadOfThirtyMinutes() {
-        assertEquals(now + day, AppUpdateChecker.nextPeriodicCheckAt(now, 0L, now))
-        assertEquals(now + day, AppUpdateChecker.nextPeriodicCheckAt(now, now - day, now - minute))
+    fun dueAlarmRemainsDueUntilTheReceiverHasProcessedIt() {
+        assertEquals(now, AppUpdateChecker.nextPeriodicCheckAt(now, 0L, now))
+        assertEquals(now, AppUpdateChecker.nextPeriodicCheckAt(now, now - day, now - minute))
+        assertEquals(now + day, AppUpdateChecker.nextPeriodicCheckAt(now, 0L, now, alarmDelivered = true))
+        assertEquals(now + day, AppUpdateChecker.nextPeriodicCheckAt(now, now - day, now - minute, alarmDelivered = true))
     }
 
     @Test
     fun migrationUsesTheLastCheckInsteadOfRestartingTheFirstDelay() {
         assertEquals(now + day - minute, AppUpdateChecker.nextPeriodicCheckAt(now, now - minute, 0L))
+        assertEquals(now, AppUpdateChecker.nextPeriodicCheckAt(now, now - day, 0L))
     }
 
     @Test
     fun repeatedAlarmColdStartsKeepDailyCadence() {
         val first = AppUpdateChecker.nextPeriodicCheckAt(now, 0L, 0L)
-        val second = AppUpdateChecker.nextPeriodicCheckAt(first, 0L, first)
+        assertEquals(first, AppUpdateChecker.nextPeriodicCheckAt(first, 0L, first))
+        val second = AppUpdateChecker.nextPeriodicCheckAt(first, 0L, first, alarmDelivered = true)
         assertEquals(first + day, second)
         assertEquals(second, AppUpdateChecker.nextPeriodicCheckAt(first + minute, first, second))
-        assertEquals(second + day, AppUpdateChecker.nextPeriodicCheckAt(second, first, second))
+        assertEquals(second, AppUpdateChecker.nextPeriodicCheckAt(second, first, second))
+        assertEquals(second + day, AppUpdateChecker.nextPeriodicCheckAt(second, first, second, alarmDelivered = true))
     }
 
     @Test

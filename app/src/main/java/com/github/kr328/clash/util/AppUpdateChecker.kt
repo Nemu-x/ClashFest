@@ -115,15 +115,21 @@ object AppUpdateChecker {
     internal fun isCheckDue(now: Long, lastAt: Long): Boolean =
         lastAt <= 0L || now < lastAt || now - lastAt >= OPPORTUNISTIC_THROTTLE_MS
 
-    internal fun nextPeriodicCheckAt(now: Long, lastAt: Long, scheduledAt: Long): Long = when {
+    internal fun nextPeriodicCheckAt(
+        now: Long,
+        lastAt: Long,
+        scheduledAt: Long,
+        alarmDelivered: Boolean = false,
+    ): Long = when {
+        alarmDelivered -> now + INTERVAL_MS
         scheduledAt > now -> scheduledAt.coerceAtMost(now + INTERVAL_MS)
-        scheduledAt > 0L -> now + INTERVAL_MS
+        scheduledAt > 0L -> now
         lastAt > 0L -> (lastAt + INTERVAL_MS)
-            .coerceIn(now + FIRST_DELAY_MS, now + INTERVAL_MS)
+            .coerceIn(now, now + INTERVAL_MS)
         else -> now + FIRST_DELAY_MS
     }
 
-    fun schedulePeriodic(context: Context) {
+    fun schedulePeriodic(context: Context, alarmDelivered: Boolean = false) {
         val app = context.applicationContext
         val alarmManager = app.getSystemService(AlarmManager::class.java) ?: return
         val pending = periodicPendingIntent(app)
@@ -133,8 +139,9 @@ object AppUpdateChecker {
             now,
             prefs.getLong(KEY_LAST_CHECK_AT, 0L),
             prefs.getLong(KEY_NEXT_PERIODIC_CHECK_AT, 0L),
+            alarmDelivered,
         )
-        // A cold start for the alarm itself must not schedule another first-run check in 30m.
+        // Only a delivered alarm advances the deadline; other cold starts keep due work due.
         prefs.edit().putLong(KEY_NEXT_PERIODIC_CHECK_AT, nextAt).apply()
 
         alarmManager.setInexactRepeating(
