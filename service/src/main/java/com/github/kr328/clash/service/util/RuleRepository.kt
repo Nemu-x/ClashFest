@@ -67,11 +67,9 @@ class RuleRepository(private val context: Context) {
         val storedRules = stored.rules.filterNot {
             it.deleted && it.source == RuleSource.MANUAL
         }
-        val byKey = storedRules.associateBy {
-            "${it.type.uppercase()},${it.value.uppercase()},${it.policy.uppercase()}"
-        }
+        val byKey = storedRules.associateBy(::ruleStorageKey)
         val mergedRules = incoming.rules.mapIndexed { index, rule ->
-            val key = "${rule.type.uppercase()},${rule.value.uppercase()},${rule.policy.uppercase()}"
+            val key = ruleStorageKey(rule)
             val old = byKey[key]
             if (old != null) {
                 rule.copy(
@@ -84,7 +82,7 @@ class RuleRepository(private val context: Context) {
                     enabled = old.enabled,
                     deleted = old.deleted,
                     isRestorable = old.isRestorable || rule.isRestorable,
-                    order = index,
+                    order = if (old.source == RuleSource.MANUAL) old.order else index,
                 )
             } else {
                 rule.copy(order = index)
@@ -95,11 +93,9 @@ class RuleRepository(private val context: Context) {
         // - disabled rules (so toggled OFF can be re-enabled later)
         // - deleted provider rules (restore support)
         // - manual rules that user keeps locally
-        val incomingKeys = incoming.rules.map {
-            "${it.type.uppercase()},${it.value.uppercase()},${it.policy.uppercase()}"
-        }.toSet()
+        val incomingKeys = incoming.rules.map(::ruleStorageKey).toSet()
         val retained = storedRules.filter { rule ->
-            val k = "${rule.type.uppercase()},${rule.value.uppercase()},${rule.policy.uppercase()}"
+            val k = ruleStorageKey(rule)
             k !in incomingKeys &&
                 (
                     rule.deleted ||
@@ -107,10 +103,14 @@ class RuleRepository(private val context: Context) {
                         rule.source == RuleSource.MANUAL
                     )
         }
-        retained.forEach { mergedRules.add(it.copy(order = mergedRules.size)) }
+        retained.forEach { mergedRules.add(if (it.source == RuleSource.MANUAL) it else it.copy(order = mergedRules.size)) }
         return stored.copy(
             providers = incoming.providers,
             rules = mergedRules,
         )
     }
 }
+
+internal fun ruleStorageKey(rule: com.github.kr328.clash.service.model.RuleItem): String =
+    if (RuleMapper.isOpaqueType(rule.type)) RuleMapper.toRuleLine(rule)
+    else RuleMapper.toRuleLine(rule).uppercase()

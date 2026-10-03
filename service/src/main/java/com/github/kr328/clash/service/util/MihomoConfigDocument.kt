@@ -1,5 +1,8 @@
 package com.github.kr328.clash.service.util
 
+import org.yaml.snakeyaml.DumperOptions
+import org.yaml.snakeyaml.nodes.MappingNode
+
 /**
  * Block-level YAML patcher used by the WRITE pipeline for partial config
  * edits (proxy-groups, rule-providers, etc).
@@ -14,13 +17,24 @@ class MihomoConfigDocument private constructor(
     private val source: String,
     val root: MutableMap<String, Any?>,
 ) {
+    private val blockSource: String by lazy {
+        val yaml = YamlFormatting.blockYaml()
+        val mapping = yaml.compose(source.reader()) as? MappingNode
+        if (mapping?.flowStyle == DumperOptions.FlowStyle.FLOW) {
+            // JSON and flow-style YAML have no separate top-level lines to patch.
+            yaml.dump(YamlFormatting.parseRootMap(source))
+        } else {
+            source
+        }
+    }
+
     fun extractTopLevelBlock(key: String): String? {
         val value = root[key] ?: return null
         return YamlFormatting.blockYaml().dump(mapOf(key to value)).trimEnd()
     }
 
     fun renderReplacing(vararg keys: String): String {
-        var rendered = source
+        var rendered = blockSource
         for (key in keys) {
             if (!root.containsKey(key)) continue
             rendered = TopLevelYamlBlockPatcher.replace(
@@ -41,7 +55,7 @@ class MihomoConfigDocument private constructor(
      * untouched in the source text.
      */
     fun renderRemoving(vararg keys: String): String {
-        var rendered = source
+        var rendered = blockSource
         for (key in keys) {
             rendered = TopLevelYamlBlockPatcher.remove(text = rendered, key = key)
         }

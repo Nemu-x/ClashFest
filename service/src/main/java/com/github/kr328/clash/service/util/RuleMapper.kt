@@ -294,7 +294,9 @@ object RuleMapper {
         return if (rule.type.equals("MATCH", true)) {
             "MATCH,${rule.policy}"
         } else {
-            "${rule.type},${rule.value},${rule.policy}"
+            val parts = rule.raw.split(',').map { it.trim() }
+            val parameters = if (parts.firstOrNull().equals(rule.type, true)) parts.drop(3) else emptyList()
+            (listOf(rule.type, rule.value, rule.policy) + parameters).joinToString(",")
         }
     }
 
