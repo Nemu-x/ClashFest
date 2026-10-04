@@ -49,13 +49,13 @@ fun <T> PreferenceScreen.selectableList(
         impl.selected = values.indexOf(initial).coerceAtLeast(0)
 
         impl.clicked {
-            if (!isActive || openDialog?.isShowing == true) return@clicked
+            if (!this@selectableList.isActive || openDialog?.isShowing == true) return@clicked
             val dialog = MaterialAlertDialogBuilder(context)
                 .setTitle(impl.title)
                 .setSingleChoiceItems(valuesText.map { context.getText(it) }.toTypedArray(), impl.selected) { choiceDialog, position ->
                     choiceDialog.dismiss()
                     if (position == impl.selected) return@setSingleChoiceItems
-                    launch(Dispatchers.Main) {
+                    this@selectableList.launch(Dispatchers.Main) {
                         withContext(Dispatchers.IO) { value.set(values[position]) }
                         impl.selected = position
                         impl.listener?.onChanged()
@@ -64,7 +64,7 @@ fun <T> PreferenceScreen.selectableList(
                 .setNegativeButton(R.string.cancel, null)
                 .create()
             openDialog = dialog
-            val lifetime = launch(Dispatchers.Main, start = CoroutineStart.UNDISPATCHED) {
+            val lifetime = this@selectableList.launch(Dispatchers.Main, start = CoroutineStart.UNDISPATCHED) {
                 try {
                     awaitCancellation()
                 } finally {
