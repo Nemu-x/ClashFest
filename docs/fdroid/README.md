@@ -20,16 +20,16 @@ release behaviour, so CI and local builds are unaffected:
 
 Everything else is handled in the recipe:
 
-- **Go toolchain.** trixie's `golang-go` (1.24) is older than the `go 1.25` directive of the
-  bridge modules, and the trixie-backports `golang-go` depends on a `golang-1.26-go` that is
-  not in backports. The `sudo` step therefore installs Debian's `golang-1.26-go` /
-  `golang-1.26-src` 1.26.8-1 (forky) from snapshot.debian.org, checked against their
-  sha256: a moving suite would change the compiler under a published version and break
-  reproducibility. It then applies the two runtime patches from `.github/patch/` to GOROOT. Debian's
-  `GOROOT/src` is a symlink into `/usr/share/go-*` and GNU patch does not follow symlinks, so
-  the patches are applied to the resolved source tree. Each patch is skipped when it already
-  reverse-applies: the fdroiddata CI runs all four build blocks in one container.
-  `sudo` runs before the checkout, so the patches are fetched from the pinned commit.
+- **Go toolchain.** Go is built from fdroiddata's `go` srclib at a pinned tag (`go@go1.26.8`),
+  as F-Droid asks: `prebuild` applies the two runtime patches from `.github/patch/` to it,
+  `build` runs `make.bash` and then Gradle with that toolchain first on `PATH` (so the build
+  is a custom `build` step with the Gradle properties passed as `-P`, not a `gradle:` key).
+  Debian's `golang-go` from forky is only the bootstrap compiler: Go 1.26 needs a 1.24.6+
+  bootstrap, trixie ships 1.24.4, and the trixie-backports package depends on a
+  `golang-1.26-go` that is not in backports. The bootstrap version does not affect the
+  output, since Go toolchain builds are reproducible regardless of the bootstrap compiler.
+  fdroidserver resets the srclib before every build block, so the patches apply cleanly
+  even when the fdroiddata CI runs all four blocks in one container.
 - **Vendored artifacts.** `maven/` holds the kr328 Gradle plugin and kaidl as jars. F-Droid's
   scanner rejects committed binaries, so `prebuild` points the build at the JitPack builds of
   the same sources (the coordinates upstream Clash Meta For Android uses) and `scandelete`

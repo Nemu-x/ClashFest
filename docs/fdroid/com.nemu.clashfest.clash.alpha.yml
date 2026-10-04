@@ -22,26 +22,13 @@ Builds:
     subdir: app
     submodules: true
     sudo:
+      - echo "deb https://deb.debian.org/debian forky main" > /etc/apt/sources.list.d/forky.list
       - apt-get update
-      - curl -Lso /tmp/golang-1.26-go_1.26.8-1_amd64.deb https://snapshot.debian.org/file/2808a102d02b72c91163f7a978ec941026efebc5
-      - curl -Lso /tmp/golang-1.26-src_1.26.8-1_all.deb https://snapshot.debian.org/file/9095c2641ca1cb29b1b0581942de265d51b6a24c
-      - echo "9571419effed71d6862a5d03c4afed4d9ef64b7492e691722e9e5ddf25c5330c */tmp/golang-1.26-go_1.26.8-1_amd64.deb"
-        | sha256sum -c -
-      - echo "f072462d3d11c0af2db0835d2e631b0f018b09009e34b86b9e31a8bafc6b6700 */tmp/golang-1.26-src_1.26.8-1_all.deb"
-        | sha256sum -c -
-      - apt-get install -y /tmp/golang-1.26-go_1.26.8-1_amd64.deb /tmp/golang-1.26-src_1.26.8-1_all.deb
-      - ln -sf /usr/lib/go-1.26/bin/go /usr/local/bin/go
-      - curl -Lso /tmp/pidfd 
-        https://raw.githubusercontent.com/Nemu-x/ClashFest/db67160fafa2b5763c601ff5a19337764b7d0e0c/.github/patch/disable_pidfd_on_android.patch
-      - curl -Lso /tmp/futex 
-        https://raw.githubusercontent.com/Nemu-x/ClashFest/db67160fafa2b5763c601ff5a19337764b7d0e0c/.github/patch/remove_64bits_syscall_on_32bit_linux.patch
-      - cd $(readlink -f $(go env GOROOT)/src)/..
-      - patch -Rsfp1 --dry-run < /tmp/pidfd || patch -p1 < /tmp/pidfd
-      - patch -Rsfp1 --dry-run < /tmp/futex || patch -p1 < /tmp/futex
+      - apt-get install -y -t forky golang-go
     init: cp /etc/ssl/certs/ca-certificates.crt ../core/src/foss/golang/clash/component/ca/ca-certificates.crt
-    gradle:
-      - alpha
     output: build/outputs/apk/alpha/release/clashfest-v*-alpha-release-unsigned.apk
+    srclibs:
+      - go@go1.26.8
     prebuild:
       - sed -i -e 
         's|maven(rootProject.projectDir.resolve("maven").toURI())|maven("https://jitpack.io")|'
@@ -51,12 +38,17 @@ Builds:
       - sed -i -e 
         's/com.github.kr328.golang:gradle-plugin/com.github.Kr328.golang-android-plugin:gradle-plugin/'
         -e '/^golang = /s/1.0.4/cc84891461/' -e '/^kaidl = /s/1.15/7710f4347c/' ../gradle/libs.versions.toml
+      - patch -d $$go$$ -p1 < ../.github/patch/disable_pidfd_on_android.patch
+      - patch -d $$go$$ -p1 < ../.github/patch/remove_64bits_syscall_on_32bit_linux.patch
     scandelete:
       - maven
+    build:
+      - pushd $$go$$/src
+      - ./make.bash
+      - popd
+      - PATH=$$go$$/bin:$PATH gradle -Pclashfest.selfUpdate=false -Pclashfest.bundleGeo=false
+        assembleAlphaRelease
     ndk: 29.0.14206865
-    gradleprops:
-      - clashfest.selfUpdate=false
-      - clashfest.bundleGeo=false
 
   - versionName: 1.2.1
     versionCode: 10201002
@@ -64,26 +56,13 @@ Builds:
     subdir: app
     submodules: true
     sudo:
+      - echo "deb https://deb.debian.org/debian forky main" > /etc/apt/sources.list.d/forky.list
       - apt-get update
-      - curl -Lso /tmp/golang-1.26-go_1.26.8-1_amd64.deb https://snapshot.debian.org/file/2808a102d02b72c91163f7a978ec941026efebc5
-      - curl -Lso /tmp/golang-1.26-src_1.26.8-1_all.deb https://snapshot.debian.org/file/9095c2641ca1cb29b1b0581942de265d51b6a24c
-      - echo "9571419effed71d6862a5d03c4afed4d9ef64b7492e691722e9e5ddf25c5330c */tmp/golang-1.26-go_1.26.8-1_amd64.deb"
-        | sha256sum -c -
-      - echo "f072462d3d11c0af2db0835d2e631b0f018b09009e34b86b9e31a8bafc6b6700 */tmp/golang-1.26-src_1.26.8-1_all.deb"
-        | sha256sum -c -
-      - apt-get install -y /tmp/golang-1.26-go_1.26.8-1_amd64.deb /tmp/golang-1.26-src_1.26.8-1_all.deb
-      - ln -sf /usr/lib/go-1.26/bin/go /usr/local/bin/go
-      - curl -Lso /tmp/pidfd 
-        https://raw.githubusercontent.com/Nemu-x/ClashFest/db67160fafa2b5763c601ff5a19337764b7d0e0c/.github/patch/disable_pidfd_on_android.patch
-      - curl -Lso /tmp/futex 
-        https://raw.githubusercontent.com/Nemu-x/ClashFest/db67160fafa2b5763c601ff5a19337764b7d0e0c/.github/patch/remove_64bits_syscall_on_32bit_linux.patch
-      - cd $(readlink -f $(go env GOROOT)/src)/..
-      - patch -Rsfp1 --dry-run < /tmp/pidfd || patch -p1 < /tmp/pidfd
-      - patch -Rsfp1 --dry-run < /tmp/futex || patch -p1 < /tmp/futex
+      - apt-get install -y -t forky golang-go
     init: cp /etc/ssl/certs/ca-certificates.crt ../core/src/foss/golang/clash/component/ca/ca-certificates.crt
-    gradle:
-      - alpha
     output: build/outputs/apk/alpha/release/clashfest-v*-alpha-release-unsigned.apk
+    srclibs:
+      - go@go1.26.8
     prebuild:
       - sed -i -e 
         's|maven(rootProject.projectDir.resolve("maven").toURI())|maven("https://jitpack.io")|'
@@ -93,12 +72,17 @@ Builds:
       - sed -i -e 
         's/com.github.kr328.golang:gradle-plugin/com.github.Kr328.golang-android-plugin:gradle-plugin/'
         -e '/^golang = /s/1.0.4/cc84891461/' -e '/^kaidl = /s/1.15/7710f4347c/' ../gradle/libs.versions.toml
+      - patch -d $$go$$ -p1 < ../.github/patch/disable_pidfd_on_android.patch
+      - patch -d $$go$$ -p1 < ../.github/patch/remove_64bits_syscall_on_32bit_linux.patch
     scandelete:
       - maven
+    build:
+      - pushd $$go$$/src
+      - ./make.bash
+      - popd
+      - PATH=$$go$$/bin:$PATH gradle -Pclashfest.selfUpdate=false -Pclashfest.bundleGeo=false
+        assembleAlphaRelease
     ndk: 29.0.14206865
-    gradleprops:
-      - clashfest.selfUpdate=false
-      - clashfest.bundleGeo=false
 
   - versionName: 1.2.1
     versionCode: 10201003
@@ -106,26 +90,13 @@ Builds:
     subdir: app
     submodules: true
     sudo:
+      - echo "deb https://deb.debian.org/debian forky main" > /etc/apt/sources.list.d/forky.list
       - apt-get update
-      - curl -Lso /tmp/golang-1.26-go_1.26.8-1_amd64.deb https://snapshot.debian.org/file/2808a102d02b72c91163f7a978ec941026efebc5
-      - curl -Lso /tmp/golang-1.26-src_1.26.8-1_all.deb https://snapshot.debian.org/file/9095c2641ca1cb29b1b0581942de265d51b6a24c
-      - echo "9571419effed71d6862a5d03c4afed4d9ef64b7492e691722e9e5ddf25c5330c */tmp/golang-1.26-go_1.26.8-1_amd64.deb"
-        | sha256sum -c -
-      - echo "f072462d3d11c0af2db0835d2e631b0f018b09009e34b86b9e31a8bafc6b6700 */tmp/golang-1.26-src_1.26.8-1_all.deb"
-        | sha256sum -c -
-      - apt-get install -y /tmp/golang-1.26-go_1.26.8-1_amd64.deb /tmp/golang-1.26-src_1.26.8-1_all.deb
-      - ln -sf /usr/lib/go-1.26/bin/go /usr/local/bin/go
-      - curl -Lso /tmp/pidfd 
-        https://raw.githubusercontent.com/Nemu-x/ClashFest/db67160fafa2b5763c601ff5a19337764b7d0e0c/.github/patch/disable_pidfd_on_android.patch
-      - curl -Lso /tmp/futex 
-        https://raw.githubusercontent.com/Nemu-x/ClashFest/db67160fafa2b5763c601ff5a19337764b7d0e0c/.github/patch/remove_64bits_syscall_on_32bit_linux.patch
-      - cd $(readlink -f $(go env GOROOT)/src)/..
-      - patch -Rsfp1 --dry-run < /tmp/pidfd || patch -p1 < /tmp/pidfd
-      - patch -Rsfp1 --dry-run < /tmp/futex || patch -p1 < /tmp/futex
+      - apt-get install -y -t forky golang-go
     init: cp /etc/ssl/certs/ca-certificates.crt ../core/src/foss/golang/clash/component/ca/ca-certificates.crt
-    gradle:
-      - alpha
     output: build/outputs/apk/alpha/release/clashfest-v*-alpha-release-unsigned.apk
+    srclibs:
+      - go@go1.26.8
     prebuild:
       - sed -i -e 
         's|maven(rootProject.projectDir.resolve("maven").toURI())|maven("https://jitpack.io")|'
@@ -135,12 +106,17 @@ Builds:
       - sed -i -e 
         's/com.github.kr328.golang:gradle-plugin/com.github.Kr328.golang-android-plugin:gradle-plugin/'
         -e '/^golang = /s/1.0.4/cc84891461/' -e '/^kaidl = /s/1.15/7710f4347c/' ../gradle/libs.versions.toml
+      - patch -d $$go$$ -p1 < ../.github/patch/disable_pidfd_on_android.patch
+      - patch -d $$go$$ -p1 < ../.github/patch/remove_64bits_syscall_on_32bit_linux.patch
     scandelete:
       - maven
+    build:
+      - pushd $$go$$/src
+      - ./make.bash
+      - popd
+      - PATH=$$go$$/bin:$PATH gradle -Pclashfest.selfUpdate=false -Pclashfest.bundleGeo=false
+        assembleAlphaRelease
     ndk: 29.0.14206865
-    gradleprops:
-      - clashfest.selfUpdate=false
-      - clashfest.bundleGeo=false
 
   - versionName: 1.2.1
     versionCode: 10201004
@@ -148,26 +124,13 @@ Builds:
     subdir: app
     submodules: true
     sudo:
+      - echo "deb https://deb.debian.org/debian forky main" > /etc/apt/sources.list.d/forky.list
       - apt-get update
-      - curl -Lso /tmp/golang-1.26-go_1.26.8-1_amd64.deb https://snapshot.debian.org/file/2808a102d02b72c91163f7a978ec941026efebc5
-      - curl -Lso /tmp/golang-1.26-src_1.26.8-1_all.deb https://snapshot.debian.org/file/9095c2641ca1cb29b1b0581942de265d51b6a24c
-      - echo "9571419effed71d6862a5d03c4afed4d9ef64b7492e691722e9e5ddf25c5330c */tmp/golang-1.26-go_1.26.8-1_amd64.deb"
-        | sha256sum -c -
-      - echo "f072462d3d11c0af2db0835d2e631b0f018b09009e34b86b9e31a8bafc6b6700 */tmp/golang-1.26-src_1.26.8-1_all.deb"
-        | sha256sum -c -
-      - apt-get install -y /tmp/golang-1.26-go_1.26.8-1_amd64.deb /tmp/golang-1.26-src_1.26.8-1_all.deb
-      - ln -sf /usr/lib/go-1.26/bin/go /usr/local/bin/go
-      - curl -Lso /tmp/pidfd 
-        https://raw.githubusercontent.com/Nemu-x/ClashFest/db67160fafa2b5763c601ff5a19337764b7d0e0c/.github/patch/disable_pidfd_on_android.patch
-      - curl -Lso /tmp/futex 
-        https://raw.githubusercontent.com/Nemu-x/ClashFest/db67160fafa2b5763c601ff5a19337764b7d0e0c/.github/patch/remove_64bits_syscall_on_32bit_linux.patch
-      - cd $(readlink -f $(go env GOROOT)/src)/..
-      - patch -Rsfp1 --dry-run < /tmp/pidfd || patch -p1 < /tmp/pidfd
-      - patch -Rsfp1 --dry-run < /tmp/futex || patch -p1 < /tmp/futex
+      - apt-get install -y -t forky golang-go
     init: cp /etc/ssl/certs/ca-certificates.crt ../core/src/foss/golang/clash/component/ca/ca-certificates.crt
-    gradle:
-      - alpha
     output: build/outputs/apk/alpha/release/clashfest-v*-alpha-release-unsigned.apk
+    srclibs:
+      - go@go1.26.8
     prebuild:
       - sed -i -e 
         's|maven(rootProject.projectDir.resolve("maven").toURI())|maven("https://jitpack.io")|'
@@ -177,12 +140,17 @@ Builds:
       - sed -i -e 
         's/com.github.kr328.golang:gradle-plugin/com.github.Kr328.golang-android-plugin:gradle-plugin/'
         -e '/^golang = /s/1.0.4/cc84891461/' -e '/^kaidl = /s/1.15/7710f4347c/' ../gradle/libs.versions.toml
+      - patch -d $$go$$ -p1 < ../.github/patch/disable_pidfd_on_android.patch
+      - patch -d $$go$$ -p1 < ../.github/patch/remove_64bits_syscall_on_32bit_linux.patch
     scandelete:
       - maven
+    build:
+      - pushd $$go$$/src
+      - ./make.bash
+      - popd
+      - PATH=$$go$$/bin:$PATH gradle -Pclashfest.selfUpdate=false -Pclashfest.bundleGeo=false
+        assembleAlphaRelease
     ndk: 29.0.14206865
-    gradleprops:
-      - clashfest.selfUpdate=false
-      - clashfest.bundleGeo=false
 
 AllowedAPKSigningKeys: 91b980057c555ba85b0fb9068f7b5cdee0d39d3810a1c08c34929290e1905fc7
 
