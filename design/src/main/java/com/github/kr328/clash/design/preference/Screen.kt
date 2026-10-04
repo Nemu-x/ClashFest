@@ -34,5 +34,10 @@ fun CoroutineScope.preferenceScreen(
 }
 
 fun PreferenceScreen.addElement(preference: Preference) {
-    root.addView(preference.view, LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+    val params = when (val existing = preference.view.layoutParams) {
+        is LayoutParams -> existing
+        is ViewGroup.MarginLayoutParams -> LayoutParams(existing)
+        else -> LayoutParams(MATCH_PARENT, WRAP_CONTENT)
+    }
+    root.addView(preference.view, params)
 }

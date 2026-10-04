@@ -2,12 +2,13 @@ package com.github.kr328.clash.design.preference
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
-import androidx.appcompat.widget.ListPopupWindow
+import androidx.appcompat.app.AlertDialog
 import com.github.kr328.clash.design.R
-import com.github.kr328.clash.design.adapter.PopupListAdapter
-import com.github.kr328.clash.design.util.getPixels
-import com.github.kr328.clash.design.util.measureWidth
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.reflect.KMutableProperty0
@@ -26,6 +27,7 @@ fun <T> PreferenceScreen.selectableList(
     @DrawableRes icon: Int? = null,
     configure: SelectableListPreference<T>.() -> Unit = {},
 ): SelectableListPreference<T> {
+    require(values.isNotEmpty() && values.size == valuesText.size)
     val impl = object : SelectableListPreference<T>, ClickablePreference by clickable(title, icon) {
         override var selected: Int = 0
             set(value) {
@@ -37,60 +39,45 @@ fun <T> PreferenceScreen.selectableList(
     }
 
     impl.configure()
+    var openDialog: AlertDialog? = null
 
     launch(Dispatchers.Main) {
         val initial = withContext(Dispatchers.IO) {
             value.get()
         }
 
-        impl.selected = values.indexOf(initial)
+        impl.selected = values.indexOf(initial).coerceAtLeast(0)
 
         impl.clicked {
-            popupSelectMenu(impl, value, valuesText.map { context.getText(it) }, values)
+            if (!isActive || openDialog?.isShowing == true) return@clicked
+            val dialog = MaterialAlertDialogBuilder(context)
+                .setTitle(impl.title)
+                .setSingleChoiceItems(valuesText.map { context.getText(it) }.toTypedArray(), impl.selected) { choiceDialog, position ->
+                    choiceDialog.dismiss()
+                    if (position == impl.selected) return@setSingleChoiceItems
+                    launch(Dispatchers.Main) {
+                        withContext(Dispatchers.IO) { value.set(values[position]) }
+                        impl.selected = position
+                        impl.listener?.onChanged()
+                    }
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .create()
+            openDialog = dialog
+            val lifetime = launch(Dispatchers.Main, start = CoroutineStart.UNDISPATCHED) {
+                try {
+                    awaitCancellation()
+                } finally {
+                    dialog.dismiss()
+                }
+            }
+            dialog.setOnDismissListener {
+                if (openDialog === dialog) openDialog = null
+                lifetime.cancel()
+            }
+            dialog.show()
         }
     }
 
     return impl
-}
-
-private fun <T> PreferenceScreen.popupSelectMenu(
-    impl: SelectableListPreference<T>,
-    value: KMutableProperty0<T>,
-    valuesText: List<CharSequence>,
-    values: Array<T>,
-) {
-    ListPopupWindow(context).apply {
-        val adapter = PopupListAdapter(
-            context,
-            valuesText,
-            impl.selected,
-        )
-
-        setAdapter(adapter)
-
-        anchorView = impl.view
-
-        width = adapter.measureWidth(context)
-            .coerceAtLeast(context.getPixels(R.dimen.dialog_menu_min_width))
-
-        isModal = true
-
-        horizontalOffset = context.getPixels(R.dimen.item_header_component_size) +
-                context.getPixels(R.dimen.item_header_margin) * 2
-
-        setOnItemClickListener { _, _, position, _ ->
-            dismiss()
-
-            launch(Dispatchers.Main) {
-                withContext(Dispatchers.IO) {
-                    value.set(values[position])
-                }
-
-                impl.selected = position
-                impl.listener?.onChanged()
-            }
-        }
-
-        show()
-    }
 }
