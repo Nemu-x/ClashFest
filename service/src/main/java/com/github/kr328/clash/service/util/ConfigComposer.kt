@@ -102,7 +102,7 @@ object ConfigComposer {
             doc = scriptRunner.apply(doc, it)
         }
 
-        // Opt-in (ServiceStore.realityMlkemCompat): REALITY nodes advertise ML-KEM for
+        // Opt-in (ServiceStore.realityComposeRewrite, i.e. policy On): REALITY nodes advertise ML-KEM for
         // Xray 26.9+. Older servers silently drop such a ClientHello, so never on by default.
         if (realityCompat) {
             doc = RealityCompat.applyToText(doc) ?: doc

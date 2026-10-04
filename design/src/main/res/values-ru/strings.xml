@@ -534,8 +534,12 @@
     <string name="proxy_switch_selector_failed">Не удалось сменить прокси. Текущие соединения не тронуты.</string>
     <string name="proxy_switch_close_connections_failed">Прокси сменён, но активные соединения закрыть не удалось.</string>
     <string name="network_switch_reaction">Реагировать на смену сети</string>
-    <string name="reality_mlkem_compat">REALITY: предлагать ML-KEM (Xray 26.9+)</string>
-    <string name="reality_mlkem_compat_summary">Добавляет key share X25519MLKEM768 и отпечаток chrome ко всем нодам REALITY. Нужно серверам на Xray-core 26.9.8+, но старые серверы молча бросают такое рукопожатие, и ноды перестают подключаться. Держите выключенным, пока оператор не попросит.</string>
+    <string name="reality_mlkem_policy">REALITY: key share ML-KEM</string>
+    <string name="reality_mlkem_auto">Авто: подбирать по серверу (рекомендуется)</string>
+    <string name="reality_mlkem_on">Всегда предлагать (только Xray 26.9+)</string>
+    <string name="reality_mlkem_off">Никогда (только старые Xray)</string>
+    <string name="reality_client_version">REALITY: версия клиента</string>
+    <string name="reality_client_version_placeholder">По умолчанию ядра (формат Xray x.y.z)</string>
     <string name="network_switch_reaction_summary">При смене сети (Wi-Fi ↔ мобильный интернет) сразу закрывать устаревшие соединения и перепроверять группы прокси — автоматические группы мгновенно выбирают рабочий сервер, не дожидаясь следующей плановой проверки.</string>
 
     <string name="bypass_private_network">Игнорировать частные сети</string>
