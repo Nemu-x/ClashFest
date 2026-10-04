@@ -1,0 +1,128 @@
+name: F-Droid reference APKs
+
+# F-Droid builds ClashFest from source and, because the build is reproducible, publishes our
+# signed APK instead of signing with its own key: the recipe's `Binaries:` points at the
+# clashfest-v<version>-fdroid-<versionCode>.apk assets this workflow attaches to the release.
+# They are built with the recipe itself (docs/fdroid) in F-Droid's buildserver image, so they
+# match F-Droid's build byte for byte; F-Droid refuses to publish a version whose assets differ.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to attach the APKs to (e.g. v1.2.1)
+        required: true
+      commit:
+        description: Source commit F-Droid builds, if it is not the tag's commit (full sha)
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: production-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - abi: armeabi-v7a
+            block: 1
+          - abi: arm64-v8a
+            block: 2
+          - abi: x86
+            block: 3
+          - abi: x86_64
+            block: 4
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve version
+        id: version
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          INPUT_COMMIT: ${{ inputs.commit }}
+          BLOCK: ${{ matrix.block }}
+        run: |
+          tag="${INPUT_TAG:-$GITHUB_REF_NAME}"
+          commit="${INPUT_COMMIT:-$(git rev-list -n 1 "$tag")}"
+          gradle="$(git show "$commit:build.gradle.kts")"
+          name="$(sed -n -E 's/^ *versionName = "(.+)"/\1/p' <<< "$gradle")"
+          base="$(sed -n -E 's/^ *versionCode = ([0-9]+)/\1/p' <<< "$gradle")"
+          if [ "v$name" != "$tag" ]; then
+            echo "versionName $name at $commit does not match tag $tag"
+            exit 1
+          fi
+          code=$((base + BLOCK))
+          {
+            echo "tag=$tag"
+            echo "commit=$commit"
+            echo "name=$name"
+            echo "code=$code"
+            echo "asset=clashfest-v$name-fdroid-$code.apk"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build in the F-Droid buildserver image
+        env:
+          SOURCE_COMMIT: ${{ steps.version.outputs.commit }}
+          VERSION_NAME: ${{ steps.version.outputs.name }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+          BLOCK: ${{ matrix.block }}
+        run: |
+          mkdir -p out
+          docker run --rm \
+            -e SOURCE_COMMIT -e VERSION_NAME -e VERSION_CODE -e BLOCK \
+            -v "$PWD/docs/fdroid/com.nemu.clashfest.clash.alpha.yml:/recipe.yml:ro" \
+            -v "$PWD/.github/scripts/fdroid-build.sh:/fdroid-build.sh:ro" \
+            -v "$PWD/out:/out" \
+            registry.gitlab.com/fdroid/fdroidserver:buildserver-trixie \
+            bash /fdroid-build.sh
+
+      - name: Sign
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ASSET: ${{ steps.version.outputs.asset }}
+        run: |
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)/apksigner"
+          keystore="$RUNNER_TEMP/release.keystore"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore"
+          # Without --alignment-preserved apksigner re-aligns entries and the signature no
+          # longer fits F-Droid's unsigned build.
+          "$apksigner" sign --alignment-preserved --ks "$keystore" --ks-key-alias "$ANDROID_KEY_ALIAS" \
+            --ks-pass env:ANDROID_KEYSTORE_PASSWORD --key-pass env:ANDROID_KEY_PASSWORD \
+            --out "out/$ASSET" out/unsigned.apk
+          rm -f "$keystore"
+          "$apksigner" verify --print-certs "out/$ASSET" | grep 'SHA-256'
+
+      # The check F-Droid runs before publishing: our signature copied onto its unsigned build
+      # must verify.
+      - name: Verify the signature transplants onto the unsigned build
+        env:
+          ASSET: ${{ steps.version.outputs.asset }}
+        run: |
+          export PATH="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1):$PATH"
+          pipx run apksigcopier==1.1.1 compare --unsigned "out/$ASSET" out/unsigned.apk
+
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
+          ASSET: ${{ steps.version.outputs.asset }}
+        run: |
+          for _ in $(seq 1 30); do
+            gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 && break
+            sleep 60
+          done
+          gh release upload "$TAG" "out/$ASSET" --repo "$GITHUB_REPOSITORY" --clobber

@@ -12,26 +12,32 @@ Name: ClashFest
 
 RepoType: git
 Repo: https://github.com/Nemu-x/ClashFest.git
+Binaries: 
+  https://github.com/Nemu-x/ClashFest/releases/download/v%v/clashfest-v%v-fdroid-%c.apk
 
 Builds:
   - versionName: 1.2.1
-    versionCode: 10201000
+    versionCode: 10201001
     commit: db67160fafa2b5763c601ff5a19337764b7d0e0c
     subdir: app
     submodules: true
     sudo:
       - apt-get update
-      - apt-get install -y patch ca-certificates
-      - curl -Lso go.tar.gz https://go.dev/dl/go1.26.8.linux-amd64.tar.gz
-      - echo "d0f743b33e8d8945e6b1f432edd15785c70507121d6e2a723b21285eddf8b57b  go.tar.gz"
+      - curl -Lso /tmp/golang-1.26-go_1.26.8-1_amd64.deb https://snapshot.debian.org/file/2808a102d02b72c91163f7a978ec941026efebc5
+      - curl -Lso /tmp/golang-1.26-src_1.26.8-1_all.deb https://snapshot.debian.org/file/9095c2641ca1cb29b1b0581942de265d51b6a24c
+      - echo "9571419effed71d6862a5d03c4afed4d9ef64b7492e691722e9e5ddf25c5330c */tmp/golang-1.26-go_1.26.8-1_amd64.deb"
         | sha256sum -c -
-      - tar xzf go.tar.gz --strip-components=1 -C /usr/local/
-      - curl -Lso pidfd.patch 
+      - echo "f072462d3d11c0af2db0835d2e631b0f018b09009e34b86b9e31a8bafc6b6700 */tmp/golang-1.26-src_1.26.8-1_all.deb"
+        | sha256sum -c -
+      - apt-get install -y /tmp/golang-1.26-go_1.26.8-1_amd64.deb /tmp/golang-1.26-src_1.26.8-1_all.deb
+      - ln -sf /usr/lib/go-1.26/bin/go /usr/local/bin/go
+      - curl -Lso /tmp/pidfd 
         https://raw.githubusercontent.com/Nemu-x/ClashFest/db67160fafa2b5763c601ff5a19337764b7d0e0c/.github/patch/disable_pidfd_on_android.patch
-      - curl -Lso futex.patch 
+      - curl -Lso /tmp/futex 
         https://raw.githubusercontent.com/Nemu-x/ClashFest/db67160fafa2b5763c601ff5a19337764b7d0e0c/.github/patch/remove_64bits_syscall_on_32bit_linux.patch
-      - patch -p1 -d /usr/local < pidfd.patch
-      - patch -p1 -d /usr/local < futex.patch
+      - cd $(readlink -f $(go env GOROOT)/src)/..
+      - patch -Rsfp1 --dry-run < /tmp/pidfd || patch -p1 < /tmp/pidfd
+      - patch -Rsfp1 --dry-run < /tmp/futex || patch -p1 < /tmp/futex
     init: cp /etc/ssl/certs/ca-certificates.crt ../core/src/foss/golang/clash/component/ca/ca-certificates.crt
     gradle:
       - alpha
@@ -39,7 +45,9 @@ Builds:
     prebuild:
       - sed -i -e 
         's|maven(rootProject.projectDir.resolve("maven").toURI())|maven("https://jitpack.io")|'
-        -e '/isEnable = true/d' -e '/signingConfig /d' ../build.gradle.kts
+        -e '/isEnable = true/d' -e '/signingConfig /d' -e 's/versionCode = [0-9]*/versionCode
+        = $$VERCODE$$/' -e 's/"arm64-v8a", "armeabi-v7a", "x86", "x86_64"/"armeabi-v7a"/g'
+        ../build.gradle.kts
       - sed -i -e 
         's/com.github.kr328.golang:gradle-plugin/com.github.Kr328.golang-android-plugin:gradle-plugin/'
         -e '/^golang = /s/1.0.4/cc84891461/' -e '/^kaidl = /s/1.15/7710f4347c/' ../gradle/libs.versions.toml
@@ -50,8 +58,141 @@ Builds:
       - clashfest.selfUpdate=false
       - clashfest.bundleGeo=false
 
+  - versionName: 1.2.1
+    versionCode: 10201002
+    commit: db67160fafa2b5763c601ff5a19337764b7d0e0c
+    subdir: app
+    submodules: true
+    sudo:
+      - apt-get update
+      - curl -Lso /tmp/golang-1.26-go_1.26.8-1_amd64.deb https://snapshot.debian.org/file/2808a102d02b72c91163f7a978ec941026efebc5
+      - curl -Lso /tmp/golang-1.26-src_1.26.8-1_all.deb https://snapshot.debian.org/file/9095c2641ca1cb29b1b0581942de265d51b6a24c
+      - echo "9571419effed71d6862a5d03c4afed4d9ef64b7492e691722e9e5ddf25c5330c */tmp/golang-1.26-go_1.26.8-1_amd64.deb"
+        | sha256sum -c -
+      - echo "f072462d3d11c0af2db0835d2e631b0f018b09009e34b86b9e31a8bafc6b6700 */tmp/golang-1.26-src_1.26.8-1_all.deb"
+        | sha256sum -c -
+      - apt-get install -y /tmp/golang-1.26-go_1.26.8-1_amd64.deb /tmp/golang-1.26-src_1.26.8-1_all.deb
+      - ln -sf /usr/lib/go-1.26/bin/go /usr/local/bin/go
+      - curl -Lso /tmp/pidfd 
+        https://raw.githubusercontent.com/Nemu-x/ClashFest/db67160fafa2b5763c601ff5a19337764b7d0e0c/.github/patch/disable_pidfd_on_android.patch
+      - curl -Lso /tmp/futex 
+        https://raw.githubusercontent.com/Nemu-x/ClashFest/db67160fafa2b5763c601ff5a19337764b7d0e0c/.github/patch/remove_64bits_syscall_on_32bit_linux.patch
+      - cd $(readlink -f $(go env GOROOT)/src)/..
+      - patch -Rsfp1 --dry-run < /tmp/pidfd || patch -p1 < /tmp/pidfd
+      - patch -Rsfp1 --dry-run < /tmp/futex || patch -p1 < /tmp/futex
+    init: cp /etc/ssl/certs/ca-certificates.crt ../core/src/foss/golang/clash/component/ca/ca-certificates.crt
+    gradle:
+      - alpha
+    output: build/outputs/apk/alpha/release/clashfest-v*-alpha-release-unsigned.apk
+    prebuild:
+      - sed -i -e 
+        's|maven(rootProject.projectDir.resolve("maven").toURI())|maven("https://jitpack.io")|'
+        -e '/isEnable = true/d' -e '/signingConfig /d' -e 's/versionCode = [0-9]*/versionCode
+        = $$VERCODE$$/' -e 's/"arm64-v8a", "armeabi-v7a", "x86", "x86_64"/"arm64-v8a"/g'
+        ../build.gradle.kts
+      - sed -i -e 
+        's/com.github.kr328.golang:gradle-plugin/com.github.Kr328.golang-android-plugin:gradle-plugin/'
+        -e '/^golang = /s/1.0.4/cc84891461/' -e '/^kaidl = /s/1.15/7710f4347c/' ../gradle/libs.versions.toml
+    scandelete:
+      - maven
+    ndk: 29.0.14206865
+    gradleprops:
+      - clashfest.selfUpdate=false
+      - clashfest.bundleGeo=false
+
+  - versionName: 1.2.1
+    versionCode: 10201003
+    commit: db67160fafa2b5763c601ff5a19337764b7d0e0c
+    subdir: app
+    submodules: true
+    sudo:
+      - apt-get update
+      - curl -Lso /tmp/golang-1.26-go_1.26.8-1_amd64.deb https://snapshot.debian.org/file/2808a102d02b72c91163f7a978ec941026efebc5
+      - curl -Lso /tmp/golang-1.26-src_1.26.8-1_all.deb https://snapshot.debian.org/file/9095c2641ca1cb29b1b0581942de265d51b6a24c
+      - echo "9571419effed71d6862a5d03c4afed4d9ef64b7492e691722e9e5ddf25c5330c */tmp/golang-1.26-go_1.26.8-1_amd64.deb"
+        | sha256sum -c -
+      - echo "f072462d3d11c0af2db0835d2e631b0f018b09009e34b86b9e31a8bafc6b6700 */tmp/golang-1.26-src_1.26.8-1_all.deb"
+        | sha256sum -c -
+      - apt-get install -y /tmp/golang-1.26-go_1.26.8-1_amd64.deb /tmp/golang-1.26-src_1.26.8-1_all.deb
+      - ln -sf /usr/lib/go-1.26/bin/go /usr/local/bin/go
+      - curl -Lso /tmp/pidfd 
+        https://raw.githubusercontent.com/Nemu-x/ClashFest/db67160fafa2b5763c601ff5a19337764b7d0e0c/.github/patch/disable_pidfd_on_android.patch
+      - curl -Lso /tmp/futex 
+        https://raw.githubusercontent.com/Nemu-x/ClashFest/db67160fafa2b5763c601ff5a19337764b7d0e0c/.github/patch/remove_64bits_syscall_on_32bit_linux.patch
+      - cd $(readlink -f $(go env GOROOT)/src)/..
+      - patch -Rsfp1 --dry-run < /tmp/pidfd || patch -p1 < /tmp/pidfd
+      - patch -Rsfp1 --dry-run < /tmp/futex || patch -p1 < /tmp/futex
+    init: cp /etc/ssl/certs/ca-certificates.crt ../core/src/foss/golang/clash/component/ca/ca-certificates.crt
+    gradle:
+      - alpha
+    output: build/outputs/apk/alpha/release/clashfest-v*-alpha-release-unsigned.apk
+    prebuild:
+      - sed -i -e 
+        's|maven(rootProject.projectDir.resolve("maven").toURI())|maven("https://jitpack.io")|'
+        -e '/isEnable = true/d' -e '/signingConfig /d' -e 's/versionCode = [0-9]*/versionCode
+        = $$VERCODE$$/' -e 's/"arm64-v8a", "armeabi-v7a", "x86", "x86_64"/"x86"/g'
+        ../build.gradle.kts
+      - sed -i -e 
+        's/com.github.kr328.golang:gradle-plugin/com.github.Kr328.golang-android-plugin:gradle-plugin/'
+        -e '/^golang = /s/1.0.4/cc84891461/' -e '/^kaidl = /s/1.15/7710f4347c/' ../gradle/libs.versions.toml
+    scandelete:
+      - maven
+    ndk: 29.0.14206865
+    gradleprops:
+      - clashfest.selfUpdate=false
+      - clashfest.bundleGeo=false
+
+  - versionName: 1.2.1
+    versionCode: 10201004
+    commit: db67160fafa2b5763c601ff5a19337764b7d0e0c
+    subdir: app
+    submodules: true
+    sudo:
+      - apt-get update
+      - curl -Lso /tmp/golang-1.26-go_1.26.8-1_amd64.deb https://snapshot.debian.org/file/2808a102d02b72c91163f7a978ec941026efebc5
+      - curl -Lso /tmp/golang-1.26-src_1.26.8-1_all.deb https://snapshot.debian.org/file/9095c2641ca1cb29b1b0581942de265d51b6a24c
+      - echo "9571419effed71d6862a5d03c4afed4d9ef64b7492e691722e9e5ddf25c5330c */tmp/golang-1.26-go_1.26.8-1_amd64.deb"
+        | sha256sum -c -
+      - echo "f072462d3d11c0af2db0835d2e631b0f018b09009e34b86b9e31a8bafc6b6700 */tmp/golang-1.26-src_1.26.8-1_all.deb"
+        | sha256sum -c -
+      - apt-get install -y /tmp/golang-1.26-go_1.26.8-1_amd64.deb /tmp/golang-1.26-src_1.26.8-1_all.deb
+      - ln -sf /usr/lib/go-1.26/bin/go /usr/local/bin/go
+      - curl -Lso /tmp/pidfd 
+        https://raw.githubusercontent.com/Nemu-x/ClashFest/db67160fafa2b5763c601ff5a19337764b7d0e0c/.github/patch/disable_pidfd_on_android.patch
+      - curl -Lso /tmp/futex 
+        https://raw.githubusercontent.com/Nemu-x/ClashFest/db67160fafa2b5763c601ff5a19337764b7d0e0c/.github/patch/remove_64bits_syscall_on_32bit_linux.patch
+      - cd $(readlink -f $(go env GOROOT)/src)/..
+      - patch -Rsfp1 --dry-run < /tmp/pidfd || patch -p1 < /tmp/pidfd
+      - patch -Rsfp1 --dry-run < /tmp/futex || patch -p1 < /tmp/futex
+    init: cp /etc/ssl/certs/ca-certificates.crt ../core/src/foss/golang/clash/component/ca/ca-certificates.crt
+    gradle:
+      - alpha
+    output: build/outputs/apk/alpha/release/clashfest-v*-alpha-release-unsigned.apk
+    prebuild:
+      - sed -i -e 
+        's|maven(rootProject.projectDir.resolve("maven").toURI())|maven("https://jitpack.io")|'
+        -e '/isEnable = true/d' -e '/signingConfig /d' -e 's/versionCode = [0-9]*/versionCode
+        = $$VERCODE$$/' -e 's/"arm64-v8a", "armeabi-v7a", "x86", "x86_64"/"x86_64"/g'
+        ../build.gradle.kts
+      - sed -i -e 
+        's/com.github.kr328.golang:gradle-plugin/com.github.Kr328.golang-android-plugin:gradle-plugin/'
+        -e '/^golang = /s/1.0.4/cc84891461/' -e '/^kaidl = /s/1.15/7710f4347c/' ../gradle/libs.versions.toml
+    scandelete:
+      - maven
+    ndk: 29.0.14206865
+    gradleprops:
+      - clashfest.selfUpdate=false
+      - clashfest.bundleGeo=false
+
+AllowedAPKSigningKeys: 91b980057c555ba85b0fb9068f7b5cdee0d39d3810a1c08c34929290e1905fc7
+
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v1\.\d+\.\d+$
+VercodeOperation:
+  - '%c + 1'
+  - '%c + 2'
+  - '%c + 3'
+  - '%c + 4'
 UpdateCheckData: build.gradle.kts|versionCode = (\d+)|.|versionName = "(.+)"
 CurrentVersion: 1.2.1
-CurrentVersionCode: 10201000
+CurrentVersionCode: 10201004
