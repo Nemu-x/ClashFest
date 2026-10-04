@@ -62,4 +62,5 @@
     <string name="yaml_edit_proxy_not_found">未找到代理。</string>
     <string name="yaml_edit_no_chains">没有已保存的代理链。</string>
     <string name="widget_off">已关闭</string>
+    <string name="widget_permission_required">点击小组件以允许 VPN 连接。</string>
 </resources>

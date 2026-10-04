@@ -3,6 +3,7 @@ package com.github.kr328.clash
 import android.content.Intent
 import android.os.Bundle
 import android.os.SystemClock
+import android.net.VpnService
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -11,6 +12,7 @@ import com.github.kr328.clash.common.constants.Intents
 import com.github.kr328.clash.common.log.Log
 import com.github.kr328.clash.common.log.LogRedaction
 import com.github.kr328.clash.remote.StatusClient
+import com.github.kr328.clash.design.store.UiStore
 import com.github.kr328.clash.service.R as ServiceR
 import com.github.kr328.clash.service.widget.SpeedWidgetRenderer
 import com.github.kr328.clash.service.widget.SpeedWidgetRenderer.State
@@ -91,7 +93,9 @@ class WidgetToggleActivity : ComponentActivity(), CoroutineScope by MainScope() 
                 withContext(NonCancellable) {
                     try {
                         val status = snapshot()
-                        paint(State.fromStatus(status.serviceRunning, status.currentProfile != null))
+                        paint(State.fromStatus(status.serviceRunning, status.currentProfile != null,
+                            permissionRequired = !status.serviceRunning && UiStore(this@WidgetToggleActivity).enableVpn &&
+                                VpnService.prepare(this@WidgetToggleActivity) != null))
                     } finally {
                         finish()
                     }
@@ -152,6 +156,6 @@ class WidgetToggleActivity : ComponentActivity(), CoroutineScope by MainScope() 
 
     private companion object {
         const val PERMISSION_PENDING = "permission_pending"
-        val gate = WidgetToggleGate()
+        val gate = WidgetToggleGate.shared
     }
 }

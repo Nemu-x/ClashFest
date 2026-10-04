@@ -16,4 +16,8 @@ internal class WidgetToggleGate {
     fun finish() {
         inFlight = false
     }
+
+    companion object {
+        val shared = WidgetToggleGate()
+    }
 }

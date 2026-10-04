@@ -17,12 +17,16 @@ object SpeedWidgetRenderer {
 
     enum class State(val child: Int, val description: Int, val busy: Boolean = false) {
         Off(0, R.string.widget_state_off),
+        PermissionRequired(0, R.string.widget_permission_required),
         Starting(1, R.string.widget_state_starting, true),
         On(2, R.string.widget_state_on),
         Stopping(3, R.string.widget_state_stopping, true);
 
+        val requiresActivity: Boolean get() = this == PermissionRequired
+
         companion object {
-            fun fromStatus(serviceRunning: Boolean, profileLoaded: Boolean): State = when {
+            fun fromStatus(serviceRunning: Boolean, profileLoaded: Boolean, permissionRequired: Boolean = false): State = when {
+                !serviceRunning && permissionRequired -> PermissionRequired
                 !serviceRunning -> Off
                 !profileLoaded -> Starting
                 else -> On
@@ -43,18 +47,22 @@ object SpeedWidgetRenderer {
             setDisplayedChild(R.id.widget_root, state.child)
             setContentDescription(R.id.widget_root, context.getString(state.description))
             setBoolean(R.id.widget_root, "setEnabled", !state.busy)
-            setOnClickPendingIntent(R.id.widget_root, if (state.busy) null else togglePendingIntent(context))
+            setOnClickPendingIntent(R.id.widget_root, if (state.busy) null else togglePendingIntent(context, state))
         }
         runCatching { manager.updateAppWidget(id, views) }.onFailure {
             Log.w("Unable to refresh VPN widget")
         }
     }
 
-    private fun togglePendingIntent(context: Context): PendingIntent = PendingIntent.getActivity(
-        context, 1,
-        Intent(Intents.ACTION_WIDGET_TOGGLE)
-            .setComponent(ComponentName(context.packageName, TOGGLE_ACTIVITY))
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION),
-        pendingIntentFlags(PendingIntent.FLAG_UPDATE_CURRENT),
-    )
+    private fun togglePendingIntent(context: Context, state: State): PendingIntent {
+        val intent = Intent(Intents.ACTION_WIDGET_TOGGLE)
+        val flags = pendingIntentFlags(PendingIntent.FLAG_UPDATE_CURRENT)
+        return if (state.requiresActivity) {
+            PendingIntent.getActivity(context, 1, intent
+                .setComponent(ComponentName(context.packageName, TOGGLE_ACTIVITY))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION), flags)
+        } else {
+            PendingIntent.getBroadcast(context, 1, intent.setComponent(provider(context)), flags)
+        }
+    }
 }
