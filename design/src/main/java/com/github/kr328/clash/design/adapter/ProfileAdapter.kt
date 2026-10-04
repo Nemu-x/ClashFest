@@ -24,6 +24,9 @@ import com.github.kr328.clash.design.util.FlagParser
 import com.github.kr328.clash.design.util.ParsedFlag
 import com.github.kr328.clash.design.util.toBytesString
 import com.github.kr328.clash.design.util.ClickGuard
+import com.github.kr328.clash.design.util.proxyTransportLabel
+import com.github.kr328.clash.design.util.ProxyOrdering
+import com.github.kr328.clash.design.store.UiStore
 import com.github.kr328.clash.design.databinding.AdapterProfileBinding
 import com.github.kr328.clash.design.databinding.AdapterSubscriptionBinding
 import com.github.kr328.clash.design.databinding.BottomSheetProxyGroupsBinding
@@ -160,6 +163,7 @@ class ProfileAdapter(
 
     private enum class ProxyPickerSort {
         Config,
+        Manual,
         Delay,
         Name,
     }
@@ -1034,7 +1038,9 @@ class ProfileAdapter(
             if (idx >= groupNames.size) idx = 0
             selectedGroupIndex[profile.uuid] = idx
             var query = ""
-            var sort = ProxyPickerSort.Config
+            val uiStore = UiStore(context)
+            val manualOrders = groupNames.associateWith { uiStore.proxyOrderFor(profile.uuid, it) }.toMutableMap()
+            var sort = if (manualOrders.values.any { it.isNotEmpty() }) ProxyPickerSort.Manual else ProxyPickerSort.Config
             var filter: ProxyPickerFilter = ProxyPickerFilter.CurrentGroup
             var selectedScrolledGroupIndex: Int? = null
             // Per-sheet row cache: buildProxyPickerRows walks every group of the profile,
@@ -1061,6 +1067,7 @@ class ProfileAdapter(
             fun sortLabel(s: ProxyPickerSort): String = context.getString(
                 when (s) {
                     ProxyPickerSort.Config -> R.string.profile_proxy_sort_config
+                    ProxyPickerSort.Manual -> R.string.profile_proxy_sort_manual
                     ProxyPickerSort.Delay -> R.string.profile_proxy_sort_delay
                     ProxyPickerSort.Name -> R.string.profile_proxy_sort_name
                 },
@@ -1111,13 +1118,38 @@ class ProfileAdapter(
             // nodeAdapter, and the adapter's selection callback references render(): break that
             // cycle via renderFn, assigned right after render() is defined below.
             var renderFn: (Int) -> Unit = {}
-            val nodeAdapter = ProxyNodeAdapter(profile) {
+            val nodeAdapter = ProxyNodeAdapter(profile, onSelectionChanged = {
                 // Tapping a node sets a pending selection; the cached rows still carry the OLD
                 // `selected` flags, so drop the cache before re-render or submitList would diff
                 // against identical data and the check-mark would never move to the new node.
                 invalidateRowCache()
                 renderFn(selectedGroupIndex[profile.uuid] ?: 0)
-            }
+            }, onNodeActions = { anchor, row ->
+                val names = ProxyOrdering.resolve(
+                    manualOrders[row.groupName].orEmpty(),
+                    rowsForCurrentGroup(selectedGroupIndex[profile.uuid] ?: 0)
+                        .filter { it.groupName == row.groupName }.map { it.proxy.name },
+                )
+                val position = names.indexOf(row.proxy.name)
+                android.widget.PopupMenu(context, anchor).apply {
+                    menu.add(0, 0, 0, R.string.profile_proxy_move_up).isEnabled = position > 0
+                    menu.add(0, 1, 1, R.string.profile_proxy_move_down).isEnabled = position >= 0 && position < names.lastIndex
+                    menu.add(0, 2, 2, R.string.profile_proxy_details)
+                    setOnMenuItemClickListener { item ->
+                        if (item.itemId == 2) {
+                            onProxyYamlDetail(profile, row.groupName, row.proxy.name)
+                        } else {
+                            val moved = ProxyOrdering.move(names, row.proxy.name, if (item.itemId == 0) -1 else 1)
+                            manualOrders[row.groupName] = moved
+                            uiStore.setProxyOrderFor(profile.uuid, row.groupName, moved)
+                            sort = ProxyPickerSort.Manual
+                            updateControlLabels()
+                            renderFn(selectedGroupIndex[profile.uuid] ?: 0)
+                        }
+                        true
+                    }
+                }.show()
+            })
             sheet.proxySheetNodesList.layoutManager = LinearLayoutManager(context)
             sheet.proxySheetNodesList.adapter = nodeAdapter
             // Rebinds during live ping / selection are content-only; suppress the change animation
@@ -1146,6 +1178,7 @@ class ProfileAdapter(
                     sort = sort,
                     filter = filter,
                     currentGroupIndex = selectedIndex,
+                    manualOrders = manualOrders,
                 )
                 nodeAdapter.showGroupInSubtitle = rows.map { it.groupName }.distinct().size > 1
                 nodeAdapter.submitList(rows)
@@ -1173,6 +1206,7 @@ class ProfileAdapter(
                     sort = sort,
                     filter = filter,
                     currentGroupIndex = currentIndex,
+                    manualOrders = manualOrders,
                 )
             }
 
@@ -1295,11 +1329,12 @@ class ProfileAdapter(
             sheet.proxySheetSearchClear.setOnClickListener {
                 sheet.proxySheetSearch.setText("")
             }
-            // Sort dropdown — three fixed options.
+            // Sort dropdown includes the saved display order; it never changes the engine config.
             sheet.proxySheetSortButton.setOnClickListener { anchor ->
                 android.widget.PopupMenu(context, anchor).apply {
                     val options = listOf(
                         ProxyPickerSort.Config,
+                        ProxyPickerSort.Manual,
                         ProxyPickerSort.Delay,
                         ProxyPickerSort.Name,
                     )
@@ -1763,6 +1798,7 @@ class ProfileAdapter(
         pickerRow: ProxyPickerRow,
         showGroupInSubtitle: Boolean,
         onSelectionChanged: () -> Unit,
+        onNodeActions: (View, ProxyPickerRow) -> Unit,
     ) {
         val context = row.context
         val p = pickerRow.proxy
@@ -1833,7 +1869,7 @@ class ProfileAdapter(
             }
 
             val transportInfo = if (showBadge) transportInfoByProfile[profile.uuid]?.get(p.name) else null
-            val transportLabel = transportLabel(transportInfo)
+            val transportLabel = proxyTransportLabel(p.type, transportInfo)
             if (transportLabel != null) {
                 applyProtoChip(transportBadge, transportLabel, ContextCompat.getColor(context, R.color.proto_transport))
             } else {
@@ -1900,7 +1936,7 @@ class ProfileAdapter(
             }
         }
         mainHit.setOnLongClickListener {
-            onProxyYamlDetail(profile, groupName, p.name)
+            onNodeActions(it, pickerRow)
             true
         }
     }
@@ -1919,6 +1955,7 @@ class ProfileAdapter(
     private inner class ProxyNodeAdapter(
         private val profile: Profile,
         private val onSelectionChanged: () -> Unit,
+        private val onNodeActions: (View, ProxyPickerRow) -> Unit,
     ) : ListAdapter<ProxyPickerRow, ProxyNodeViewHolder>(proxyNodeDiff) {
         /** Recomputed by the caller before each submit; true when the rows span more than one group. */
         var showGroupInSubtitle: Boolean = false
@@ -1929,7 +1966,7 @@ class ProfileAdapter(
         }
 
         override fun onBindViewHolder(holder: ProxyNodeViewHolder, position: Int) {
-            bindProxyNodeRow(holder.itemView, profile, getItem(position), showGroupInSubtitle, onSelectionChanged)
+            bindProxyNodeRow(holder.itemView, profile, getItem(position), showGroupInSubtitle, onSelectionChanged, onNodeActions)
         }
     }
 
@@ -1982,6 +2019,7 @@ class ProfileAdapter(
         sort: ProxyPickerSort,
         filter: ProxyPickerFilter,
         currentGroupIndex: Int,
+        manualOrders: Map<String, List<String>>,
     ): List<ProxyPickerRow> {
         val normalizedQuery = query.trim()
         val filtered = rows.asSequence()
@@ -2006,6 +2044,14 @@ class ProfileAdapter(
 
         return when (sort) {
             ProxyPickerSort.Config -> filtered.sortedBy { it.configIndex }
+            ProxyPickerSort.Manual -> {
+                val ranks = rows.groupBy { it.groupName }.mapValues { (group, members) ->
+                    ProxyOrdering.resolve(manualOrders[group].orEmpty(), members.map { it.proxy.name })
+                        .withIndex().associate { it.value to it.index }
+                }
+                filtered.sortedWith(compareBy<ProxyPickerRow> { it.groupIndex }
+                    .thenBy { ranks[it.groupName]?.get(it.proxy.name) ?: it.configIndex })
+            }
             ProxyPickerSort.Delay -> filtered.sortedWith(
                 compareBy<ProxyPickerRow> { if (it.delayMs >= 0) 0 else 1 }
                     .thenBy { if (it.delayMs >= 0) it.delayMs else Int.MAX_VALUE }
@@ -2115,16 +2161,6 @@ class ProfileAdapter(
         val tailIsCityLike = tail.first().isLetter() && tail.all { it.isLetter() || it == '-' || it == '\'' }
         val headHasIdShape = head.any { it.isDigit() || it == '-' || it == '_' || it == '#' }
         return if (tailIsCityLike && headHasIdShape) head to tail else trimmed to null
-    }
-
-    /** "TCP" / "WS" / "GRPC" / "XHTTP" / "H2" / "HTTP"; null when YAML had no transport info. */
-    private fun transportLabel(info: ProxyTransportInfo?): String? {
-        if (info == null) return null
-        return when (val net = info.network.lowercase()) {
-            "" -> "TCP"
-            "h2", "http2" -> "H2"
-            else -> net.uppercase()
-        }
     }
 
     /**

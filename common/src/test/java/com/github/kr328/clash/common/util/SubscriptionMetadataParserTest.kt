@@ -5,6 +5,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class SubscriptionMetadataParserTest {
+    @Test
+    fun zeroExpiryIsDifferentFromAnAbsentExpiry() {
+        assertEquals(0L, SubscriptionUsage.parse("expire=0")?.expireAt)
+        assertNull(SubscriptionUsage.parse("total=100")?.expireAt)
+        assertNull(SubscriptionUsage.parse("expire=-1")?.expireAt)
+    }
+
     private fun parse(vararg headers: Pair<String, String>): SubscriptionMetadata {
         val map = headers.associate { (k, v) -> k.lowercase() to v }
         return SubscriptionMetadataFetcher.parseHeaders { key -> map[key.lowercase()] }

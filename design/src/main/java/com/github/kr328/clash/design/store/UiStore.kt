@@ -12,6 +12,10 @@ import com.github.kr328.clash.design.model.ProfileSortMode
 import com.github.kr328.clash.design.model.ThemeFontWeight
 import com.github.kr328.clash.design.model.ThemePalette
 import com.github.kr328.clash.design.model.ThemeTextScale
+import org.json.JSONArray
+import org.json.JSONObject
+import java.security.MessageDigest
+import java.util.UUID
 
 class UiStore(context: Context) {
     private val store = Store(
@@ -229,6 +233,35 @@ class UiStore(context: Context) {
 
     private val rawAnnouncementPrefs =
         context.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE)
+
+    fun proxyOrderFor(uuid: UUID, group: String): List<String> = runCatching {
+        val array = JSONArray(rawAnnouncementPrefs.getString(proxyOrderKey(uuid, group), "[]"))
+        (0 until array.length().coerceAtMost(10_000)).mapNotNull {
+            (array.opt(it) as? String)?.takeIf(String::isNotBlank)
+        }.distinct()
+    }.getOrDefault(emptyList())
+
+    fun setProxyOrderFor(uuid: UUID, group: String, names: List<String>) {
+        rawAnnouncementPrefs.edit().putString(
+            proxyOrderKey(uuid, group), JSONArray(names.filter(String::isNotBlank).distinct().take(10_000)).toString(),
+        ).apply()
+    }
+
+    private fun proxyOrderKey(uuid: UUID, group: String): String {
+        val hash = MessageDigest.getInstance("SHA-256").digest(group.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+        return "proxy_order_${uuid}_$hash"
+    }
+
+    fun subscriptionUserinfoFor(uuid: UUID): String? {
+        val entry = runCatching {
+            JSONObject(subscriptionMetaCacheJson.ifBlank { "{}" }).optJSONObject(uuid.toString())
+        }.getOrNull()
+        if (entry != null) return entry.optString("u").takeIf(String::isNotBlank)
+        return subscriptionUserinfo.takeIf {
+            subscriptionMetadataLastFetchProfileId == uuid.toString() && it.isNotBlank()
+        }
+    }
 
     private fun announcementReadKey(uuid: java.util.UUID) = "announcement_read_hash_$uuid"
 

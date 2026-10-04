@@ -1365,4 +1365,12 @@
     <string name="subscription_usage_format">%1$s / %2$s</string>
     <string name="connections_uid_short">UID %1$d</string>
     <string name="remote_service_unavailable">Не удалось подключиться к сервису Mikan. Откройте приложение заново и повторите попытку.</string>
+    <string name="profile_proxy_sort_manual">Мой порядок</string>
+    <string name="profile_proxy_move_up">Переместить выше</string>
+    <string name="profile_proxy_move_down">Переместить ниже</string>
+    <string name="profile_proxy_details">Данные сервера</string>
+    <string name="profile_proxy_reorder_hint">Удерживайте сервер, чтобы переместить его выше или ниже.</string>
+    <string name="main_subscription_traffic_left">Трафика осталось: %s</string>
+    <string name="main_subscription_unlimited">Безлимитный трафик</string>
+    <string name="main_subscription_less_than_hour">Осталось меньше часа</string>
 </resources>

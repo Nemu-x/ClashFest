@@ -74,6 +74,7 @@ import com.github.kr328.clash.design.util.resolveThemedColor
 import com.github.kr328.clash.design.util.resolveThemedResourceId
 import com.github.kr328.clash.design.util.root
 import com.github.kr328.clash.design.util.toBytesString
+import com.github.kr328.clash.design.util.subscriptionStatus
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.service.model.Profile
 import com.github.kr328.clash.service.model.ProxyGroupPreviewRow
@@ -1173,16 +1174,26 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             ?: uiStore.supportUrl.takeIf { it.isNotBlank() }
 
     private fun usageLabel(profile: Profile): String {
+        if (!profile.imported || profile.pending) return context.getString(R.string.subscription_not_ready)
         val headerUsage = if (profile.type == Profile.Type.Url) {
             com.github.kr328.clash.common.util.SubscriptionUsage.parse(
-                uiStore.subscriptionUserinfo.takeIf { it.isNotBlank() }
+                uiStore.subscriptionUserinfoFor(profile.uuid)
             )
         } else null
-        val used = headerUsage?.used ?: (profile.upload + profile.download)
-        val usedText = used.toBytesString(context)
-        val total = headerUsage?.total ?: profile.total
-        if (total < 2L) return context.getString(R.string.subscription_usage_format, usedText, context.getString(R.string.sub_announcement_unlimited))
-        return context.getString(R.string.subscription_usage_format, usedText, total.toBytesString(context))
+        val status = subscriptionStatus(profile.upload, profile.download, profile.total, profile.expire, headerUsage)
+        val traffic = status.remainingBytes?.let {
+            context.getString(R.string.main_subscription_traffic_left, it.toBytesString(context))
+        } ?: context.getString(R.string.main_subscription_unlimited)
+        if (status.expireMs <= 0L) return traffic
+        val remaining = status.expireMs - System.currentTimeMillis()
+        val hours = remaining.coerceAtLeast(0) / 3_600_000L
+        val expiry = when {
+            remaining <= 0 -> context.getString(R.string.proxy_sheet_expiry_expired)
+            hours >= 24 -> context.getString(R.string.proxy_sheet_expiry_days_hours, hours / 24, hours % 24)
+            hours > 0 -> context.getString(R.string.proxy_sheet_expiry_hours, hours)
+            else -> context.getString(R.string.main_subscription_less_than_hour)
+        }
+        return "$expiry\n$traffic"
     }
 
     suspend fun patchProxyGroups(

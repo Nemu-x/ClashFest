@@ -346,7 +346,7 @@ data class SubscriptionUsage(
                 upload = map["upload"]?.toLongOrNull(),
                 download = map["download"]?.toLongOrNull(),
                 total = map["total"]?.toLongOrNull(),
-                expireAt = map["expire"]?.toLongOrNull()?.takeIf { it > 0 },
+                expireAt = map["expire"]?.toLongOrNull()?.takeIf { it >= 0 },
             )
         }
     }
