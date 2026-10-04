@@ -44,7 +44,11 @@ object ProfileOverlay {
         )
         return ProfileComposer.materialize(
             profileDir = profileDir,
-            layer = userLayerStore.load(uuid),
+            layer = userLayerStore.load(uuid).let { layer ->
+                layer.subscriptionChain?.let { chain ->
+                    layer.copy(subscriptionChain = userLayerStore.refreshSubscriptionChain(chain, parseSnapshot))
+                } ?: layer
+            },
             geoDataUrls = geoDataUrls,
             hardeningMode = hardeningMode,
             scriptRunner = scriptRunner,

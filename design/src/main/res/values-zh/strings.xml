@@ -1310,4 +1310,23 @@
     <string name="server_ping_requires_active">要通过服务器测试，请先使用此订阅连接 VPN。</string>
     <string name="server_ping_url_requires_proxy">自定义测试网站仅适用于“通过服务器”模式。</string>
     <string name="server_ping_unsupported">不适用</string>
+    <string name="chain_description">手机 → 入口 → 出口 → 网站。VPN 关闭时也可从任意已保存的订阅选择服务器。</string>
+    <string name="chain_entry_title">1. 入口</string>
+    <string name="chain_entry_description">手机能够连接的服务器。</string>
+    <string name="chain_exit_title">2. 出口</string>
+    <string name="chain_exit_description">网站看到的是此服务器的 IP。</string>
+    <string name="chain_server">服务器 · 输入名称搜索</string>
+    <string name="chain_connect">通过代理链连接</string>
+    <string name="chain_remove">删除已保存的代理链</string>
+    <string name="chain_no_subscriptions">请先添加订阅。设置时无需启动 VPN。</string>
+    <string name="chain_no_nodes">没有已保存的服务器。请先更新此订阅。</string>
+    <string name="chain_not_saved">尚未保存代理链。保存会选择出口订阅，并在下次连接时应用代理链，不会启动 VPN。</string>
+    <string name="chain_legacy_saved">此订阅包含旧代理链。可以在此删除，或用以下选择的服务器替换。</string>
+    <string name="chain_saved_route">已保存：%1$s → %2$s</string>
+    <string name="chain_compatibility">入口必须能连接出口。UDP 协议需要入口支持 UDP。代理链使用 Global 模式。</string>
+    <string name="chain_error">无法应用代理链。请确认服务器仍存在、协议兼容，并且没有使用其他代理链。</string>
+    <string name="chain_pick_both">请选择两个不同的服务器。</string>
+    <string name="chain_saved_offline">代理链已保存。VPN 未启动；下次连接将使用出口订阅和此代理链。</string>
+    <string name="chain_connected">已选择代理链。流量通过入口并从第二个服务器出口。</string>
+    <string name="chain_removed">代理链已删除。订阅恢复普通路由。</string>
 </resources>

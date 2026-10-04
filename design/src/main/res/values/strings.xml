@@ -1390,4 +1390,23 @@ Password: %4$s</string>
     <string name="server_ping_requires_active">To test through a server, connect the VPN using this subscription first.</string>
     <string name="server_ping_url_requires_proxy">A custom test website is available in Through server mode.</string>
     <string name="server_ping_unsupported">N/A</string>
+    <string name="chain_description">Phone → entry server → exit server → websites. Choose servers from any saved subscription, even with VPN off.</string>
+    <string name="chain_entry_title">1. Entry</string>
+    <string name="chain_entry_description">A server your phone can reach.</string>
+    <string name="chain_exit_title">2. Exit</string>
+    <string name="chain_exit_description">Websites see the IP of this server.</string>
+    <string name="chain_server">Server · type to search</string>
+    <string name="chain_connect">Connect through this chain</string>
+    <string name="chain_remove">Remove saved chain</string>
+    <string name="chain_no_subscriptions">Add a subscription first. VPN does not need to be running.</string>
+    <string name="chain_no_nodes">No saved servers available. Update this subscription first.</string>
+    <string name="chain_not_saved">No chain saved. Saving selects the exit subscription and applies the chain on the next connection, without starting VPN.</string>
+    <string name="chain_legacy_saved">This subscription contains an older chain. Remove it here or replace it with the servers selected below.</string>
+    <string name="chain_saved_route">Saved: %1$s → %2$s</string>
+    <string name="chain_compatibility">Both servers must be reachable along this route. UDP protocols require UDP support on the entry. The chain uses Global mode.</string>
+    <string name="chain_error">Could not apply the chain. Check that both servers still exist, use compatible protocols and are not already part of another chain.</string>
+    <string name="chain_pick_both">Choose two different servers.</string>
+    <string name="chain_saved_offline">Chain saved. VPN has not been started; your next connection will use the selected exit subscription and this chain.</string>
+    <string name="chain_connected">Chain selected. Traffic passes through the entry and exits through the second server.</string>
+    <string name="chain_removed">Chain removed. The subscription uses its normal routing again.</string>
 </resources>
