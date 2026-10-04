@@ -14,8 +14,15 @@ const write = (relative, bytes) => {
     fs.writeFileSync(target, bytes);
 };
 
-async function solidMark(color) {
-    const { data, info } = await sharp(source).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+async function centeredMark() {
+    // The leaf balances the outer bounds, but the fruit itself sits down and left.
+    // Keep the panel source unchanged; shift the complete artwork on a padded canvas.
+    return sharp({ create: { width: 272, height: 272, channels: 4, background: '#00000000' } })
+        .composite([{ input: source, left: 22, top: -4 }]).webp({ lossless: true }).toBuffer();
+}
+
+async function solidMark(mark, color) {
+    const { data, info } = await sharp(mark).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
     for (let offset = 0; offset < data.length; offset += 4) {
         data[offset] = color[0];
         data[offset + 1] = color[1];
@@ -33,9 +40,9 @@ async function foreground(mark, size, extent = 66) {
 }
 
 async function generate() {
-    const original = fs.readFileSync(source);
-    const white = await solidMark([255, 255, 255]);
-    const gray = await solidMark([154, 154, 154]);
+    const original = await centeredMark();
+    const white = await solidMark(original, [255, 255, 255]);
+    const gray = await solidMark(original, [154, 154, 154]);
     write('design/src/main/res/drawable-nodpi/ic_clash.webp', original);
     write('design/mikan.png', await sharp(original).png().toBuffer());
     write('app/src/main/res/drawable-nodpi/ic_launcher_foreground.png', await foreground(original, 432));
