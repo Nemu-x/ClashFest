@@ -39,6 +39,7 @@ data class UserLayer(
     val ruleProviders: String? = null,
     val relayGroups: List<RelayGroup> = emptyList(),
     val proxyChain: Map<String, String> = emptyMap(),
+    val subscriptionChain: SubscriptionChain? = null,
     val script: UserScript? = null,
 ) {
     /** True when the user has no edits — nothing to compose on top of the subscription. */
@@ -51,6 +52,7 @@ data class UserLayer(
             ruleProviders.isNullOrBlank() &&
             relayGroups.isEmpty() &&
             proxyChain.isEmpty() &&
+            subscriptionChain == null &&
             (script == null || script.source.isBlank())
 
     companion object {
@@ -97,6 +99,9 @@ data class RelayGroup(
  * the rule state and proxy-provider labels are already persisted next to `config.yaml`.
  */
 class UserLayerStore(private val importedDir: File) {
+    fun refreshSubscriptionChain(chain: SubscriptionChain, parse: (File) -> com.github.kr328.clash.core.model.ProfileSnapshot?): SubscriptionChain =
+        SubscriptionChainComposer.refresh(chain, importedDir) { requireNotNull(parse(it)) }
+
     private val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true

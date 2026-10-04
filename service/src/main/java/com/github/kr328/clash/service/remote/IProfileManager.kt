@@ -190,6 +190,11 @@ interface IProfileManager {
     /** Single entry from `proxies:` as YAML, for display. */
     suspend fun readProxyEntryYaml(uuid: UUID, proxyName: String): String?
 
+    suspend fun readSubscriptionChainNodes(uuid: UUID): List<String>
+    suspend fun readSubscriptionChain(uuid: UUID): String?
+    suspend fun previewSubscriptionChain(uuid: UUID, firstProfile: UUID, firstProxy: String, exitProfile: UUID, exitProxy: String): String?
+    suspend fun previewRemoveSubscriptionChain(uuid: UUID): String?
+
     /** Remember selector choice before VPN/engine applies [Clash.patchSelector]. */
     suspend fun rememberProxySelection(uuid: UUID, group: String, name: String)
 

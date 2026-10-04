@@ -55,6 +55,9 @@ import com.github.kr328.clash.service.util.ProxyTransportYamlPreview
 import com.github.kr328.clash.service.util.ProxyYamlPreview
 import com.github.kr328.clash.service.util.RuleApplyService
 import com.github.kr328.clash.service.util.ProxyDialerYamlEdit
+import com.github.kr328.clash.service.util.ChainEndpoint
+import com.github.kr328.clash.service.util.SubscriptionChain
+import com.github.kr328.clash.service.util.SubscriptionChainComposer
 import com.github.kr328.clash.service.util.ProxyGroupsYamlEdit
 import com.github.kr328.clash.service.util.ProxyProvidersYamlEdit
 import com.github.kr328.clash.service.util.RuleProvidersYamlEdit
@@ -1342,7 +1345,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
                 // clean sections are re-derived from config.yaml; raw provider edits carry an
                 // explicit layer mutation (their user delta can't be re-extracted from config.yaml).
                 runCatching { syncLayerFromConfig(cached.uuid) }
-                cached.layerMutation?.let { mut -> runCatching { userLayerStore.update(cached.uuid, mut) } }
+                cached.layerMutation?.let { mut -> userLayerStore.update(cached.uuid, mut) }
                 context.sendProfileChanged(cached.uuid)
                 true
             } catch (e: Exception) {
@@ -1379,6 +1382,54 @@ class ProfileManager(private val context: Context) : IProfileManager,
             } catch (_: Exception) {
                 null
             }
+        }
+    }
+
+    override suspend fun readSubscriptionChainNodes(uuid: UUID): List<String> = withContext(Dispatchers.IO) {
+        if (ImportedDao().queryByUUID(uuid) == null) return@withContext emptyList()
+        val dir = File(context.importedDir, uuid.toString())
+        val file = File(dir, "config.yaml")
+        if (!file.isFile || file.length() > PreviewResourceLimits.MAX_CONFIG_BYTES) return@withContext emptyList()
+        SubscriptionChainComposer.proxies(getOrParseSnapshot(uuid, file), dir).keys.sorted()
+    }
+
+    override suspend fun readSubscriptionChain(uuid: UUID): String? = withContext(Dispatchers.IO) {
+        if (ImportedDao().queryByUUID(uuid) == null) return@withContext null
+        userLayerStore.load(uuid).subscriptionChain?.let { previewJson.encodeToString(SubscriptionChain.serializer(), it) }
+    }
+
+    override suspend fun previewSubscriptionChain(
+        uuid: UUID, firstProfile: UUID, firstProxy: String, exitProfile: UUID, exitProxy: String,
+    ): String? = withContext(Dispatchers.IO) {
+        require(uuid == exitProfile)
+        require(listOf(uuid, firstProfile).all { ImportedDao().queryByUUID(it) != null })
+        syncLayerFromConfig(uuid)
+        val old = userLayerStore.load(uuid).subscriptionChain
+        val chosen = SubscriptionChain(old?.id ?: UUID.randomUUID().toString(),
+            ChainEndpoint(firstProfile.toString(), firstProxy, ""), ChainEndpoint(exitProfile.toString(), exitProxy, ""))
+        val chain = SubscriptionChainComposer.refresh(chosen, context.importedDir) { dir ->
+            getOrParseSnapshot(UUID.fromString(dir.name), File(dir, "config.yaml"))
+        }
+        previewConfigMutation(uuid, context.getString(R.string.yaml_edit_proxy_chain),
+            layerMutation = { it.copy(subscriptionChain = chain) }) { current ->
+            SubscriptionChainComposer.compose(current, chain, old).also { proposed ->
+                require(Clash.validateProfileBytes(proposed) == null) { "The engine rejected this proxy chain" }
+            }
+        }
+    }
+
+    override suspend fun previewRemoveSubscriptionChain(uuid: UUID): String? = withContext(Dispatchers.IO) {
+        val layer = userLayerStore.load(uuid)
+        if (layer.subscriptionChain == null) return@withContext null
+        val profileName = ImportedDao().queryByUUID(uuid)?.name.orEmpty()
+        previewConfigMutation(uuid, context.getString(R.string.yaml_edit_proxy_chain),
+            layerMutation = { it.copy(subscriptionChain = null) }) {
+            val base = com.github.kr328.clash.service.util.ProfileComposer.subscriptionFile(File(context.importedDir, uuid.toString())).readText()
+            val urls = com.github.kr328.clash.service.util.GeoDataSources.resolve(store.geoDataSourcePreset,
+                store.geoDataCustomGeoIp, store.geoDataCustomGeoSite, store.geoDataCustomMmdb, store.geoDataCustomAsn)
+            com.github.kr328.clash.service.util.ConfigComposer.compose(base, layer.copy(subscriptionChain = null), urls,
+                store.proxyHardeningMode, scriptRunner = ConfigScriptPolicy.runnerFor(context, uuid, profileName),
+                realityCompat = store.realityMlkemCompat).also { require(Clash.validateProfileBytes(it) == null) }
         }
     }
 

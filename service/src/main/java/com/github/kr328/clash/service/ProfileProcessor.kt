@@ -341,9 +341,14 @@ object ProfileProcessor {
                     // A user script that stopped working must not stop the subscription from
                     // updating — a scheduled refresh has nobody watching it. Drop the script for
                     // this pass and keep everything else; the code is logged for the editor.
+                    val refreshedLayer = capturedLayer.subscriptionChain?.let { chain ->
+                            capturedLayer.copy(subscriptionChain = com.github.kr328.clash.service.util.SubscriptionChainComposer.refresh(chain, context.importedDir) { dir ->
+                                if (dir.name == snapshot.uuid.toString()) Clash.parseProfileSnapshot(context.processingDir) else Clash.parseProfileSnapshot(dir)
+                            })
+                        } ?: capturedLayer
                     val composed = try {
                         ConfigComposer.compose(
-                            fetchedText, capturedLayer, geoUrls, serviceStore.proxyHardeningMode,
+                            fetchedText, refreshedLayer, geoUrls, serviceStore.proxyHardeningMode,
                             realityCompat = serviceStore.realityMlkemCompat,
                             scriptRunner = ConfigScriptPolicy.runnerFor(context, snapshot.uuid, snapshot.name),
                         )
@@ -351,7 +356,7 @@ object ProfileProcessor {
                         Log.w("User script failed (${e.error.code}) for ${snapshot.uuid}; updating without it: ${e.message}")
                         serviceStore.setUpdateEngineWarning(snapshot.uuid, true)
                         ConfigComposer.compose(
-                            fetchedText, capturedLayer.copy(script = null), geoUrls,
+                            fetchedText, refreshedLayer.copy(script = null), geoUrls,
                             serviceStore.proxyHardeningMode,
                             realityCompat = serviceStore.realityMlkemCompat,
                         )
@@ -361,6 +366,9 @@ object ProfileProcessor {
                     // clean fetched subscription so the update still works, and surface that the local
                     // edits could not be applied. PreexistingBroken uses the fetched body as-is.
                     val composedError = Clash.validateProfileBytes(composed)
+                    if (capturedLayer.subscriptionChain != null && composedError != null) {
+                        error(context.getString(com.github.kr328.clash.service.R.string.subscription_chain_unavailable))
+                    }
                     val verdict = if (composedError == null) {
                         MergeEngineVerdict.Ok
                     } else {

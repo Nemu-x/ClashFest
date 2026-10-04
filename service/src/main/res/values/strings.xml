@@ -72,4 +72,5 @@
     <string name="yaml_edit_group_not_found">Proxy group was not found.</string>
     <string name="yaml_edit_proxy_not_found">Proxy was not found.</string>
     <string name="yaml_edit_no_chains">No saved proxy chains.</string>
+    <string name="subscription_chain_unavailable">The saved proxy chain is unavailable. Check or reselect its entry and exit servers before connecting.</string>
 </resources>

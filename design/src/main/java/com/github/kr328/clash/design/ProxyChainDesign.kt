@@ -3,194 +3,139 @@ package com.github.kr328.clash.design
 import android.content.Context
 import android.view.View
 import android.widget.ArrayAdapter
-import android.widget.AutoCompleteTextView
-import androidx.core.widget.NestedScrollView
 import android.widget.TextView
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.widget.NestedScrollView
+import androidx.core.widget.doAfterTextChanged
 import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.design.util.root
+import com.github.kr328.clash.service.model.Profile
+import com.github.kr328.clash.service.util.SubscriptionChain
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.card.MaterialCardView
-import com.google.android.material.color.MaterialColors
+import com.google.android.material.textfield.MaterialAutoCompleteTextView
+import com.google.android.material.textfield.TextInputLayout
+import java.util.UUID
 
-class ProxyChainDesign(
-    context: Context,
-) : Design<ProxyChainDesign.Request>(context) {
+class ProxyChainDesign(context: Context) : Design<ProxyChainDesign.Request>(context) {
     sealed class Request {
-        /** Write the chain only — no tunnel-mode / selection change. */
-        object SaveChain : Request()
-        /** Write the chain, switch tunnel to Global, select the proxy in GLOBAL (stated to the user). */
+        data class LoadNodes(val uuid: UUID, val first: Boolean) : Request()
+        object Save : Request()
         object UseNow : Request()
-        /** Show the pending YAML change (optional). */
-        object Preview : Request()
         object Clear : Request()
-        object ClearAllDiskChains : Request()
-        object ClearSelectedDiskChain : Request()
     }
+    data class Selection(val firstProfile: UUID, val firstNode: String, val exitProfile: UUID, val exitNode: String)
 
-    private data class DiskRow(
-        val targetYamlName: String,
-        val dialer: String,
-        val file: String,
-    )
-
-    private val rootView: View = context.layoutInflater.inflate(
-        R.layout.design_proxy_chain,
-        context.root,
-        false,
-    )
-
-    private val scroll: NestedScrollView = rootView.findViewById(R.id.proxy_chain_scroll)
-    private val diskChainsDetail: TextView = rootView.findViewById(R.id.disk_chains_detail)
-    private val diskChainSpinner: AutoCompleteTextView = rootView.findViewById(R.id.disk_chain_spinner)
-    private val runtimeOfflineNotice: TextView = rootView.findViewById(R.id.runtime_offline_notice)
-    private val runtimeProxySection: View = rootView.findViewById(R.id.runtime_proxy_section)
-    private val outboundProxySpinner: AutoCompleteTextView = rootView.findViewById(R.id.outbound_proxy_spinner)
-    private val dialerProxySpinner: AutoCompleteTextView = rootView.findViewById(R.id.dialer_proxy_spinner)
-    private val chainStatusCard: MaterialCardView = rootView.findViewById(R.id.chain_status_card)
-    private val chainStatusText: TextView = rootView.findViewById(R.id.chain_status_text)
-    private val btnUseNow: MaterialButton = rootView.findViewById(R.id.btn_use_now)
-    private val btnSaveChain: MaterialButton = rootView.findViewById(R.id.btn_save_chain)
-    private val useNowLabel: String = rootView.context.getString(R.string.proxy_chain_use_now)
-
-    private var diskRows: List<DiskRow> = emptyList()
-    private var allProxies: List<String> = emptyList()
-
-    override val root: View
-        get() = rootView
+    private val view = context.layoutInflater.inflate(R.layout.design_proxy_chain, context.root, false)
+    override val root: View get() = view
+    private val firstProfile: MaterialAutoCompleteTextView = view.findViewById(R.id.chain_first_profile)
+    private val firstNode: MaterialAutoCompleteTextView = view.findViewById(R.id.chain_first_node)
+    private val exitProfile: MaterialAutoCompleteTextView = view.findViewById(R.id.chain_exit_profile)
+    private val exitNode: MaterialAutoCompleteTextView = view.findViewById(R.id.chain_exit_node)
+    private val save: MaterialButton = view.findViewById(R.id.chain_save)
+    private val connect: MaterialButton = view.findViewById(R.id.chain_connect)
+    private val clear: MaterialButton = view.findViewById(R.id.chain_clear)
+    private val status: TextView = view.findViewById(R.id.chain_status)
+    private var profiles: List<Profile> = emptyList()
+    private var firstId: UUID? = null
+    private var exitId: UUID? = null
+    private var firstNames = emptyList<String>()
+    private var exitNames = emptyList<String>()
+    private var savedFirst: String? = null
+    private var savedExit: String? = null
+    private var busy = false
+    private var savedOwner: UUID? = null
+    fun savedProfile(): UUID? = savedOwner
 
     init {
-        ViewCompat.setOnApplyWindowInsetsListener(rootView) { v, insets ->
+        val scroll: NestedScrollView = view.findViewById(R.id.proxy_chain_scroll)
+        val horizontalPadding = context.resources.getDimensionPixelSize(R.dimen.main_padding_horizontal)
+        val bottomPadding = context.resources.getDimensionPixelSize(R.dimen.main_padding_horizontal)
+        ViewCompat.setOnApplyWindowInsetsListener(view) { _, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPaddingRelative(bars.left, 0, bars.right, 0)
-            scroll.setPadding(scroll.paddingLeft, bars.top, scroll.paddingRight, bars.bottom + 16)
+            scroll.setPaddingRelative(horizontalPadding + bars.left, bars.top, horizontalPadding + bars.right, bars.bottom + bottomPadding)
             insets
         }
-        rootView.post { ViewCompat.requestApplyInsets(rootView) }
-
-        btnUseNow.setOnClickListener { requests.trySend(Request.UseNow) }
-        btnSaveChain.setOnClickListener { requests.trySend(Request.SaveChain) }
-        rootView.findViewById<MaterialButton>(R.id.btn_preview).setOnClickListener {
-            requests.trySend(Request.Preview)
-        }
-        rootView.findViewById<MaterialButton>(R.id.btn_clear).setOnClickListener {
-            requests.trySend(Request.Clear)
-        }
-        rootView.findViewById<MaterialButton>(R.id.btn_clear_all_disk_chains).setOnClickListener {
-            requests.trySend(Request.ClearAllDiskChains)
-        }
-        rootView.findViewById<MaterialButton>(R.id.btn_clear_selected_disk_chain).setOnClickListener {
-            requests.trySend(Request.ClearSelectedDiskChain)
-        }
+        view.post { ViewCompat.requestApplyInsets(view) }
+        firstProfile.setOnItemClickListener { _, _, position, _ -> chooseProfile(profiles[position].uuid, true) }
+        exitProfile.setOnItemClickListener { _, _, position, _ -> chooseProfile(profiles[position].uuid, false) }
+        firstNode.doAfterTextChanged { refreshEnabled() }
+        exitNode.doAfterTextChanged { refreshEnabled() }
+        save.setOnClickListener { if (!busy) { setBusy(true); requests.trySend(Request.Save) } }
+        connect.setOnClickListener { if (!busy) { setBusy(true); requests.trySend(Request.UseNow) } }
+        clear.setOnClickListener { if (!busy) { setBusy(true); requests.trySend(Request.Clear) } }
+        refreshEnabled()
     }
 
-    /**
-     * @param rows target YAML name, dialer value, relative file path
-     */
-    fun bindDiskChains(rows: List<Triple<String, String, String>>) {
-        diskRows = rows.map { (t, d, f) -> DiskRow(t, d, f) }
-        val ctx = rootView.context
-        if (diskRows.isEmpty()) {
-            diskChainsDetail.text = ctx.getString(R.string.proxy_chain_saved_empty)
-            diskChainSpinner.setAdapter(
-                ArrayAdapter(ctx, android.R.layout.simple_dropdown_item_1line, emptyList<String>()))
-            diskChainSpinner.isEnabled = false
-            rootView.findViewById<MaterialButton>(R.id.btn_clear_selected_disk_chain).isEnabled = false
-            rootView.findViewById<MaterialButton>(R.id.btn_clear_all_disk_chains).isEnabled = false
-            return
-        }
-        val detail = diskRows.joinToString("\n") { r ->
-            "• ${r.targetYamlName} → ${r.dialer}\n  (${r.file})"
-        }
-        diskChainsDetail.text = detail
-        val labels = diskRows.map { r -> "${r.targetYamlName} → ${r.dialer}" }
-        diskChainSpinner.setAdapter(
-            ArrayAdapter(ctx, android.R.layout.simple_dropdown_item_1line, labels))
-        diskChainSpinner.isEnabled = true
-        rootView.findViewById<MaterialButton>(R.id.btn_clear_selected_disk_chain).isEnabled = true
-        rootView.findViewById<MaterialButton>(R.id.btn_clear_all_disk_chains).isEnabled = true
+    fun bindProfiles(items: List<Profile>, active: UUID?, saved: SubscriptionChain?, legacyCount: Int) {
+        profiles = items
+        view.findViewById<View>(R.id.chain_loading).visibility = View.GONE
+        view.findViewById<View>(R.id.chain_form).visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
+        if (items.isEmpty()) { showStatus(R.string.chain_no_subscriptions); return }
+        val labels = items.map { p -> if (items.count { it.name == p.name } > 1) "${p.name} (${items.indexOf(p) + 1})" else p.name }
+        firstProfile.setAdapter(ArrayAdapter(context, android.R.layout.simple_dropdown_item_1line, labels))
+        exitProfile.setAdapter(ArrayAdapter(context, android.R.layout.simple_dropdown_item_1line, labels))
+        savedFirst = saved?.first?.proxyName
+        savedExit = saved?.exit?.proxyName
+        val first = items.firstOrNull { it.uuid.toString() == saved?.first?.profileId } ?: items.firstOrNull { it.uuid == active } ?: items.first()
+        val exit = items.firstOrNull { it.uuid.toString() == saved?.exit?.profileId } ?: items.firstOrNull { it.uuid == active } ?: items.first()
+        firstProfile.setText(labels[items.indexOf(first)], false)
+        exitProfile.setText(labels[items.indexOf(exit)], false)
+        chooseProfile(first.uuid, true)
+        chooseProfile(exit.uuid, false)
+        bindSaved(active, saved, legacyCount)
     }
 
-    fun selectedDiskChainTarget(): String? {
-        if (diskRows.isEmpty()) return null
-        val ix = (diskChainSpinner.adapter as ArrayAdapter<String>).getPosition(diskChainSpinner.text.toString())
-        if (ix < 0 || ix >= diskRows.size) return null
-        return diskRows[ix].targetYamlName
+    fun bindSaved(owner: UUID?, saved: SubscriptionChain?, legacyCount: Int = 0) {
+        savedOwner = owner.takeIf { saved != null || legacyCount > 0 }
+        val text: TextView = view.findViewById(R.id.chain_saved)
+        text.text = if (saved != null) context.getString(R.string.chain_saved_route, saved.first.proxyName, saved.exit.proxyName)
+            else context.getString(if (legacyCount > 0) R.string.chain_legacy_saved else R.string.chain_not_saved)
+        refreshEnabled()
     }
 
-    /**
-     * Bind both searchable proxy fields to one flat, de-duplicated list across all runtime groups —
-     * the user picks proxies by name, not by group. Empty groups ⇒ offline notice.
-     */
-    fun bindRuntime(
-        groups: List<String>,
-        proxiesByGroup: Map<String, List<String>>,
-    ) {
-        val ctx = rootView.context
-        if (groups.isEmpty()) {
-            allProxies = emptyList()
-            runtimeOfflineNotice.visibility = View.VISIBLE
-            runtimeProxySection.visibility = View.GONE
-            return
-        }
-        allProxies = proxiesByGroup.values.flatten().distinct().sorted()
-        runtimeOfflineNotice.visibility = View.GONE
-        runtimeProxySection.visibility = View.VISIBLE
-
-        val adapter = ArrayAdapter(ctx, android.R.layout.simple_dropdown_item_1line, allProxies)
-        outboundProxySpinner.setAdapter(adapter)
-        dialerProxySpinner.setAdapter(ArrayAdapter(ctx, android.R.layout.simple_dropdown_item_1line, allProxies))
+    private fun chooseProfile(uuid: UUID, first: Boolean) {
+        if (first) { firstId = uuid; firstNames = emptyList(); firstNode.setText("", false) }
+        else { exitId = uuid; exitNames = emptyList(); exitNode.setText("", false) }
+        refreshEnabled()
+        requests.trySend(Request.LoadNodes(uuid, first))
     }
 
-    /** Top field — the FIRST hop (entry / intermediate). Becomes the `dialer-proxy` value. */
-    fun selectedFirstHopName(): String? =
-        outboundProxySpinner.text?.toString()?.trim()?.takeIf { it in allProxies }
-
-    /** Bottom field — the EXIT (visible IP). The `dialer-proxy` is written onto this proxy. */
-    fun selectedExitName(): String? =
-        dialerProxySpinner.text?.toString()?.trim()?.takeIf { it in allProxies }
-
-    enum class ChainStatusKind {
-        Progress,
-        Success,
-        Warning,
-        Error,
+    fun bindNodes(uuid: UUID, first: Boolean, names: List<String>) {
+        if ((if (first) firstId else exitId) != uuid) return
+        val field = if (first) firstNode else exitNode
+        if (first) firstNames = names else exitNames = names
+        field.setAdapter(ArrayAdapter(context, android.R.layout.simple_dropdown_item_1line, names))
+        val remembered = if (first) savedFirst else savedExit
+        if (remembered in names) field.setText(remembered, false)
+        if (first) savedFirst = null else savedExit = null
+        val box: TextInputLayout = view.findViewById(if (first) R.id.chain_first_node_box else R.id.chain_exit_node_box)
+        box.helperText = if (names.isEmpty()) context.getString(R.string.chain_no_nodes) else null
+        refreshEnabled()
     }
 
-    /** Shows last action outcome; persists until the next action. */
-    fun showChainStatus(kind: ChainStatusKind, message: String) {
-        chainStatusCard.visibility = View.VISIBLE
-        chainStatusText.text = message
-        val attr = when (kind) {
-            ChainStatusKind.Progress ->
-                com.google.android.material.R.attr.colorOnSurfaceVariant
-            ChainStatusKind.Success ->
-                com.google.android.material.R.attr.colorPrimary
-            ChainStatusKind.Warning ->
-                com.google.android.material.R.attr.colorSecondary
-            ChainStatusKind.Error ->
-                com.google.android.material.R.attr.colorError
-        }
-        chainStatusText.setTextColor(resolveChainStatusColor(attr))
+    fun selection(): Selection? {
+        val a = firstId ?: return null
+        val b = exitId ?: return null
+        val first = firstNode.text.toString()
+        val exit = exitNode.text.toString()
+        if (first !in firstNames || exit !in exitNames || (a == b && first == exit)) return null
+        return Selection(a, first, b, exit)
     }
 
-    /** [MaterialColors] throws if the theme omits an attr (e.g. colorSecondary on some OEM themes). */
-    private fun resolveChainStatusColor(attr: Int): Int {
-        return try {
-            MaterialColors.getColor(chainStatusText, attr)
-        } catch (_: IllegalArgumentException) {
-            MaterialColors.getColor(
-                chainStatusText,
-                com.google.android.material.R.attr.colorOnSurfaceVariant,
-            )
-        }
+    fun setBusy(value: Boolean) { busy = value; refreshEnabled() }
+    private fun refreshEnabled() {
+        firstProfile.isEnabled = !busy && profiles.isNotEmpty()
+        exitProfile.isEnabled = !busy && profiles.isNotEmpty()
+        firstNode.isEnabled = !busy && firstNames.isNotEmpty()
+        exitNode.isEnabled = !busy && exitNames.isNotEmpty()
+        save.isEnabled = !busy && selection() != null
+        connect.isEnabled = !busy && selection() != null
+        clear.isEnabled = !busy && savedOwner != null
     }
-
-    fun setChainBusy(busy: Boolean) {
-        btnUseNow.isEnabled = !busy
-        btnSaveChain.isEnabled = !busy
-        btnUseNow.text =
-            if (busy) rootView.context.getString(R.string.proxy_chain_connecting) else useNowLabel
+    fun showStatus(resource: Int) {
+        view.findViewById<View>(R.id.chain_loading).visibility = View.GONE
+        status.setText(resource)
+        status.visibility = View.VISIBLE
     }
 }

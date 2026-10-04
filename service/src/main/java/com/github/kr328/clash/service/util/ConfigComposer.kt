@@ -101,6 +101,7 @@ object ConfigComposer {
         layer.script?.effective?.takeIf { it.isNotBlank() }?.let {
             doc = scriptRunner.apply(doc, it)
         }
+        layer.subscriptionChain?.let { doc = SubscriptionChainComposer.compose(doc, it) }
 
         // Opt-in (ServiceStore.realityMlkemCompat): REALITY nodes advertise ML-KEM for
         // Xray 26.9+. Older servers silently drop such a ClientHello, so never on by default.

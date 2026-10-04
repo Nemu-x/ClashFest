@@ -63,4 +63,5 @@
     <string name="yaml_edit_no_chains">没有已保存的代理链。</string>
     <string name="widget_off">已关闭</string>
     <string name="widget_permission_required">点击小组件以允许 VPN 连接。</string>
+    <string name="subscription_chain_unavailable">已保存的代理链不可用。连接前请检查或重新选择入口和出口服务器。</string>
 </resources>

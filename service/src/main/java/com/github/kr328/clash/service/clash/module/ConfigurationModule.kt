@@ -11,6 +11,8 @@ import com.github.kr328.clash.service.store.ServiceStore
 import com.github.kr328.clash.service.util.GeoUrlSanitizer
 import com.github.kr328.clash.service.util.ConfigScriptPolicy
 import com.github.kr328.clash.service.util.ProfileOverlay
+import com.github.kr328.clash.service.util.UserLayerStore
+import com.github.kr328.clash.core.model.TunnelState
 import com.github.kr328.clash.service.util.ProxyDialerYamlEdit
 import com.github.kr328.clash.service.util.ProxyGroupsYamlEdit
 import com.github.kr328.clash.service.util.ProxyHardener
@@ -113,6 +115,11 @@ class ConfigurationModule(service: Service) : Module<ConfigurationModule.LoadExc
                     ?: throw NullPointerException("No profile selected")
 
                 val profileDir = service.importedDir.resolve(active.uuid.toString())
+                val subscriptionChain = UserLayerStore(service.importedDir).load(active.uuid).subscriptionChain
+                val currentConfig = java.io.File(profileDir, "config.yaml")
+                if (subscriptionChain == null && currentConfig.isFile && com.github.kr328.clash.service.util.SubscriptionChainComposer.hasChainAliases(currentConfig.readText())) {
+                    return enqueueEvent(LoadException(service.getString(com.github.kr328.clash.service.R.string.subscription_chain_unavailable)))
+                }
 
                 // age: config.yaml is normally already decrypted at fetch time, but a
                 // File-type profile imported as an age armor (or a pre-decrypt legacy
@@ -127,7 +134,8 @@ class ConfigurationModule(service: Service) : Module<ConfigurationModule.LoadExc
                         seedGeoMirrors = store.seedDefaultGeoMirrors,
                         localProxy = localProxySettings(),
                     )
-                    if (hardened) {
+                    if (subscriptionChain != null) sessionOverride.mode = TunnelState.Mode.Global
+                    if (hardened || subscriptionChain != null) {
                         Clash.patchOverride(Clash.OverrideSlot.Session, sessionOverride)
                     }
                 }
@@ -144,6 +152,7 @@ class ConfigurationModule(service: Service) : Module<ConfigurationModule.LoadExc
                         .map { it.proxy }
 
                     SelectionDao().removeSelections(active.uuid, remove)
+                    subscriptionChain?.let { check(Clash.patchSelector("GLOBAL", it.exitAlias)) }
 
                     StatusProvider.currentProfile = active.name
 
@@ -166,12 +175,16 @@ class ConfigurationModule(service: Service) : Module<ConfigurationModule.LoadExc
                     )
                     if (backup != null) {
                         val newErr = Clash.validateProfileBytes(configFile.readText())
+                        if (subscriptionChain != null && newErr != null) error(service.getString(com.github.kr328.clash.service.R.string.subscription_chain_unavailable))
                         if (newErr != null && Clash.validateProfileBytes(backup) == null) {
                             Log.w("Overlay-composed config invalid at load; restoring previous valid config: $newErr")
                             configFile.writeText(backup)
                         }
                     }
-                }.onFailure { Log.w("Overlay refresh failed for ${active.uuid}; loading existing config.yaml", it) }
+                }.getOrElse {
+                    if (subscriptionChain != null) return enqueueEvent(LoadException(service.getString(com.github.kr328.clash.service.R.string.subscription_chain_unavailable)))
+                    Log.w("Overlay refresh failed for ${active.uuid}; loading existing config.yaml", it)
+                }
 
                 var dialerRecoveryAttempted = false
                 var groupRepairAttempted = false
@@ -187,6 +200,9 @@ class ConfigurationModule(service: Service) : Module<ConfigurationModule.LoadExc
                     } catch (e: kotlinx.coroutines.CancellationException) {
                         throw e // normal stop cancelled the load — not a load failure (O-02)
                     } catch (e: Exception) {
+                        if (subscriptionChain != null) {
+                            return enqueueEvent(LoadException(service.getString(com.github.kr328.clash.service.R.string.subscription_chain_unavailable)))
+                        }
                         loadFailures++
                         if (loadFailures > 48) {
                             Log.e("Profile load: recovery limit exceeded", e)

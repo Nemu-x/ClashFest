@@ -1381,4 +1381,23 @@
     <string name="server_ping_requires_active">Для проверки через сервер сначала подключите VPN с этой подпиской.</string>
     <string name="server_ping_url_requires_proxy">Свой сайт для проверки можно указать в режиме «Через сервер».</string>
     <string name="server_ping_unsupported">Н/Д</string>
+    <string name="chain_description">Телефон → вход → выход → сайты. Серверы можно выбрать из любых сохранённых подписок, даже при выключенном VPN.</string>
+    <string name="chain_entry_title">1. Вход</string>
+    <string name="chain_entry_description">Сервер, до которого может подключиться телефон.</string>
+    <string name="chain_exit_title">2. Выход</string>
+    <string name="chain_exit_description">Сайты будут видеть IP этого сервера.</string>
+    <string name="chain_server">Сервер · введите название для поиска</string>
+    <string name="chain_connect">Подключиться через цепочку</string>
+    <string name="chain_remove">Удалить сохранённую цепочку</string>
+    <string name="chain_no_subscriptions">Сначала добавьте подписку. Включать VPN для настройки не нужно.</string>
+    <string name="chain_no_nodes">Сохранённых серверов нет. Сначала обновите эту подписку.</string>
+    <string name="chain_not_saved">Цепочка не сохранена. Сохранение выберет выходную подписку и применит цепочку при следующем подключении, без запуска VPN.</string>
+    <string name="chain_legacy_saved">В подписке есть ранее настроенная цепочка. Здесь её можно удалить или заменить выбранными ниже серверами.</string>
+    <string name="chain_saved_route">Сохранено: %1$s → %2$s</string>
+    <string name="chain_compatibility">Вход должен быть доступен телефону, а выход — входному серверу. Для протоколов UDP нужна поддержка UDP на входе. Цепочка работает в режиме Global.</string>
+    <string name="chain_error">Не удалось применить цепочку. Проверьте, что оба сервера существуют, протоколы совместимы и серверы уже не участвуют в другой цепочке.</string>
+    <string name="chain_pick_both">Выберите два разных сервера.</string>
+    <string name="chain_saved_offline">Цепочка сохранена. VPN не запускался; следующее подключение использует выбранную выходную подписку и эту цепочку.</string>
+    <string name="chain_connected">Цепочка выбрана. Трафик проходит через вход и выходит через второй сервер.</string>
+    <string name="chain_removed">Цепочка удалена. Подписка снова использует обычную маршрутизацию.</string>
 </resources>

@@ -65,4 +65,5 @@
     <string name="provider_files">Файлы источников</string>
     <string name="update_successfully">Обновление завершено</string>
     <string name="widget_permission_required">Нажмите на виджет, чтобы разрешить VPN-подключение.</string>
+    <string name="subscription_chain_unavailable">Сохранённая цепочка недоступна. Проверьте или заново выберите входной и выходной серверы перед подключением.</string>
 </resources>
