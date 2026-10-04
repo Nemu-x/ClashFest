@@ -1811,16 +1811,7 @@ class ProfileAdapter(
                 .trimStart(' ', '|', '-', '_', '.', ':')
                 .ifBlank { title }
         } ?: title
-        val (namePart, cityPart) = splitNameAndCity(cleanTitle)
-        row.findViewById<TextView>(R.id.proxy_title).text = namePart
-        row.findViewById<TextView>(R.id.proxy_city).apply {
-            if (cityPart != null) {
-                text = cityPart
-                visibility = View.VISIBLE
-            } else {
-                visibility = View.GONE
-            }
-        }
+        row.findViewById<TextView>(R.id.proxy_title).text = cleanTitle
         val flagCard = row.findViewById<View>(R.id.proxy_flag_card)
         val flagImage = row.findViewById<com.google.android.material.imageview.ShapeableImageView>(R.id.proxy_flag_image)
         val flagText = row.findViewById<TextView>(R.id.proxy_flag)
@@ -1850,7 +1841,6 @@ class ProfileAdapter(
         // a single group-type chip (URL-TEST / FALLBACK / …) so groups read distinctly
         // from nodes. Both resolve offline (overlay: type from transport/groups preview).
         val groupTypeLabel = groupTypeLabel(p.type)
-        val showBadge: Boolean
         if (p.type.group) {
             if (groupTypeLabel != null) {
                 applyProtoChip(typeBadge, groupTypeLabel, ContextCompat.getColor(context, groupTypeColor(p.type)))
@@ -1859,9 +1849,8 @@ class ProfileAdapter(
             }
             transportBadge.visibility = View.GONE
             realityBadge.visibility = View.GONE
-            showBadge = groupTypeLabel != null
         } else {
-            showBadge = typeName != "Unknown"
+            val showBadge = typeName != "Unknown"
             if (showBadge) {
                 applyProtoChip(typeBadge, typeName.uppercase(), ContextCompat.getColor(context, protocolFamilyColor(typeName)))
             } else {
@@ -1892,9 +1881,6 @@ class ProfileAdapter(
             visibility = if (subtitle == null) View.GONE else View.VISIBLE
             text = subtitle.orEmpty()
         }
-        row.findViewById<View>(R.id.proxy_subtitle_sep).visibility =
-            if (showBadge && subtitle != null) View.VISIBLE else View.GONE
-
         val delayMs = pickerRow.delayMs
 
         val capsule = row.findViewById<View>(R.id.latency_capsule)
@@ -1914,7 +1900,7 @@ class ProfileAdapter(
         row.findViewById<View>(R.id.selected_bar).visibility =
             if (selected) View.VISIBLE else View.INVISIBLE
         row.findViewById<View>(R.id.selected_check).visibility =
-            if (selected) View.VISIBLE else View.GONE
+            if (selected) View.VISIBLE else View.INVISIBLE
         val mainHit = row.findViewById<View>(R.id.proxy_row_main_hit)
         val tryPickNode: () -> Boolean = {
             val canPickLive = clashRunning && useEngineFor(profile)
@@ -2148,19 +2134,6 @@ class ProfileAdapter(
         }
 
         return resolve(proxyName)
-    }
-
-    private fun splitNameAndCity(text: String): Pair<String, String?> {
-        val trimmed = text.trim()
-        if (trimmed.isEmpty()) return trimmed to null
-        val lastSpace = trimmed.lastIndexOf(' ')
-        if (lastSpace <= 0) return trimmed to null
-        val head = trimmed.substring(0, lastSpace).trim()
-        val tail = trimmed.substring(lastSpace + 1).trim()
-        if (head.isEmpty() || tail.length < 3) return trimmed to null
-        val tailIsCityLike = tail.first().isLetter() && tail.all { it.isLetter() || it == '-' || it == '\'' }
-        val headHasIdShape = head.any { it.isDigit() || it == '-' || it == '_' || it == '#' }
-        return if (tailIsCityLike && headHasIdShape) head to tail else trimmed to null
     }
 
     /**

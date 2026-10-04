@@ -5,7 +5,7 @@
     android:id="@+id/proxy_row_main_hit"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="2dp"
+    android:layout_marginBottom="4dp"
     android:background="@drawable/bg_proxy_node_row"
     android:clickable="true"
     android:focusable="true"
@@ -14,7 +14,7 @@
     android:orientation="horizontal"
     android:paddingStart="16dp"
     android:paddingEnd="16dp"
-    android:paddingVertical="9dp">
+    android:paddingVertical="12dp">
 
     <!-- Selection is now shown by the accent outline (bg_proxy_node_row) + check, so the left
          rail is retired. Kept as a 0-width view because selection tracking reads its visibility. -->
@@ -59,163 +59,141 @@
         android:layout_weight="1"
         android:orientation="vertical">
 
-        <LinearLayout
+        <TextView
+            android:id="@+id/proxy_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:baselineAligned="true"
-            android:gravity="bottom"
-            android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/proxy_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textAppearance="@style/TextAppearance.App.BodyLarge"
-                android:textColor="?attr/colorOnSurface"
-                android:textStyle="bold"
-                tools:text="Host-08" />
-
-            <TextView
-                android:id="@+id/proxy_city"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:paddingBottom="1dp"
-                android:textAppearance="@style/TextAppearance.App.BodyMedium"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:visibility="gone"
-                tools:text="Frankfurt"
-                tools:visibility="visible" />
-        </LinearLayout>
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textAppearance="@style/TextAppearance.App.BodyLarge"
+            android:textColor="?attr/colorOnSurface"
+            android:textStyle="bold"
+            tools:text="AuraVPN | Нидерланды | VLESS XHTTP" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="8dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/proxy_type_badge"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_proto_chip"
-                android:paddingHorizontal="8dp"
-                android:paddingVertical="2dp"
-                android:fontFamily="monospace"
-                android:letterSpacing="0.08"
-                android:maxLines="1"
-                android:textAllCaps="true"
-                android:textSize="10sp"
-                android:textStyle="bold"
-                android:visibility="gone"
-                tools:text="VLESS"
-                tools:textColor="@color/proto_xhttp"
-                tools:visibility="visible" />
-
-            <TextView
-                android:id="@+id/proxy_transport_badge"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:background="@drawable/bg_proto_chip"
-                android:paddingHorizontal="8dp"
-                android:paddingVertical="2dp"
-                android:fontFamily="monospace"
-                android:letterSpacing="0.08"
-                android:maxLines="1"
-                android:textAllCaps="true"
-                android:textSize="10sp"
-                android:textStyle="bold"
-                android:visibility="gone"
-                tools:text="XHTTP"
-                tools:textColor="@color/proto_xhttp"
-                tools:visibility="visible" />
-
-            <TextView
-                android:id="@+id/proxy_reality_badge"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:background="@drawable/bg_proto_chip"
-                android:paddingHorizontal="8dp"
-                android:paddingVertical="2dp"
-                android:fontFamily="monospace"
-                android:letterSpacing="0.08"
-                android:maxLines="1"
-                android:textAllCaps="true"
-                android:textSize="10sp"
-                android:textStyle="bold"
-                android:visibility="gone"
-                tools:text="REALITY"
-                tools:textColor="@color/proto_reality"
-                tools:visibility="visible" />
-
-            <TextView
-                android:id="@+id/proxy_subtitle_sep"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="8dp"
-                android:text="·"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="11sp"
-                android:visibility="gone"
-                tools:visibility="visible" />
-
-            <TextView
-                android:id="@+id/proxy_subtitle"
+            <com.google.android.material.chip.ChipGroup
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="11sp"
-                android:visibility="gone"
-                tools:text="vless · 443"
-                tools:visibility="visible" />
+                android:importantForAccessibility="no"
+                app:chipSpacingHorizontal="8dp"
+                app:chipSpacingVertical="4dp"
+                app:singleLine="false">
+
+                <TextView
+                    android:id="@+id/proxy_type_badge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_proto_chip"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.08"
+                    android:maxLines="1"
+                    android:textAllCaps="true"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:visibility="gone"
+                    tools:text="VLESS"
+                    tools:textColor="@color/proto_xhttp"
+                    tools:visibility="visible" />
+
+                <TextView
+                    android:id="@+id/proxy_transport_badge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_proto_chip"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.08"
+                    android:maxLines="1"
+                    android:textAllCaps="true"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:visibility="gone"
+                    tools:text="XHTTP"
+                    tools:textColor="@color/proto_xhttp"
+                    tools:visibility="visible" />
+
+                <TextView
+                    android:id="@+id/proxy_reality_badge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_proto_chip"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.08"
+                    android:maxLines="1"
+                    android:textAllCaps="true"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:visibility="gone"
+                    tools:text="REALITY"
+                    tools:textColor="@color/proto_reality"
+                    tools:visibility="visible" />
+
+            </com.google.android.material.chip.ChipGroup>
+
+            <!-- Tap target: measures just this node (ProfileAdapter.onPingNode). Borderless ripple keeps the
+                 capsule visually unchanged at rest; focusable so a TV d-pad can reach it too. -->
+            <LinearLayout
+                android:id="@+id/latency_capsule"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="@string/proxy_ping_node"
+                android:focusable="true"
+                android:gravity="center_vertical|end"
+                android:minHeight="36dp"
+                android:minWidth="58dp"
+                android:orientation="horizontal"
+                android:paddingHorizontal="8dp">
+
+                <View
+                    android:id="@+id/latency_dot"
+                    android:layout_width="6dp"
+                    android:layout_height="6dp"
+                    android:layout_marginEnd="7dp"
+                    android:background="@drawable/dot_circle" />
+
+                <TextView
+                    android:id="@+id/proxy_delay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxWidth="64dp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-medium"
+                    app:fontFamily="sans-serif-medium"
+                    android:gravity="center"
+                    android:textAppearance="@style/TextAppearance.App.LabelMedium"
+                    android:textStyle="bold"
+                    tools:text="47ms" />
+            </LinearLayout>
         </LinearLayout>
-    </LinearLayout>
-
-    <!-- Tap target: measures just this node (ProfileAdapter.onPingNode). Borderless ripple keeps the
-         capsule visually unchanged at rest; focusable so a TV d-pad can reach it too. -->
-    <LinearLayout
-        android:id="@+id/latency_capsule"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:clickable="true"
-        android:contentDescription="@string/proxy_ping_node"
-        android:focusable="true"
-        android:gravity="center_vertical|end"
-        android:minHeight="36dp"
-        android:minWidth="58dp"
-        android:orientation="horizontal"
-        android:paddingHorizontal="8dp">
-
-        <View
-            android:id="@+id/latency_dot"
-            android:layout_width="6dp"
-            android:layout_height="6dp"
-            android:layout_marginEnd="7dp"
-            android:background="@drawable/dot_circle" />
 
         <TextView
-            android:id="@+id/proxy_delay"
-            android:layout_width="wrap_content"
+            android:id="@+id/proxy_subtitle"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:fontFamily="sans-serif-medium"
-            app:fontFamily="sans-serif-medium"
-            android:gravity="center"
-            android:textAppearance="@style/TextAppearance.App.LabelMedium"
-            android:textStyle="bold"
-            tools:text="47ms" />
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textAppearance="@style/TextAppearance.App.BodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone"
+            tools:text="vless · 443"
+            tools:visibility="visible" />
     </LinearLayout>
 
     <ImageView
@@ -225,7 +203,7 @@
         android:layout_marginStart="12dp"
         android:importantForAccessibility="no"
         android:src="@drawable/ic_baseline_check"
-        android:visibility="gone"
+        android:visibility="invisible"
         app:tint="?attr/colorPrimary"
         tools:visibility="visible" />
 </LinearLayout>
