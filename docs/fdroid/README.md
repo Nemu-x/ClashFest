@@ -24,10 +24,11 @@ Everything else is handled in the recipe:
   as F-Droid asks: `prebuild` applies the two runtime patches from `.github/patch/` to it,
   `build` runs `make.bash` and then Gradle with that toolchain first on `PATH` (so the build
   is a custom `build` step with the Gradle properties passed as `-P`, not a `gradle:` key).
-  Debian's `golang-go` from forky is only the bootstrap compiler: Go 1.26 needs a 1.24.6+
-  bootstrap, trixie ships 1.24.4, and the trixie-backports package depends on a
-  `golang-1.26-go` that is not in backports. The bootstrap version does not affect the
-  output, since Go toolchain builds are reproducible regardless of the bootstrap compiler.
+  Debian's `golang-1.27-go` from trixie-backports is only the bootstrap compiler
+  (`GOROOT_BOOTSTRAP`): Go 1.26 needs a 1.24.6+ bootstrap, trixie ships 1.24.4, and the
+  backports `golang-go` depends on a `golang-1.26-go` binary that is not in backports. The
+  bootstrap version does not affect the output, since Go toolchain builds are reproducible
+  regardless of the bootstrap compiler.
   fdroidserver resets the srclib before every build block, so the patches apply cleanly
   even when the fdroiddata CI runs all four blocks in one container.
 - **Vendored artifacts.** `maven/` holds the kr328 Gradle plugin and kaidl as jars. F-Droid's
