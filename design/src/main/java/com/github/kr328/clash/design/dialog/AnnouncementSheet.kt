@@ -5,7 +5,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
-import android.widget.LinearLayout
 import android.widget.TextView
 import com.github.kr328.clash.design.R
 import com.google.android.material.button.MaterialButton
@@ -70,22 +69,6 @@ object AnnouncementSheet {
                 context.getString(R.string.announcement_copied),
                 android.widget.Toast.LENGTH_SHORT,
             ).show()
-        }
-
-        // Squeeze the action row if only one button is visible — keeps layout balanced.
-        val actions = (openLink.parent as? LinearLayout)
-        actions?.let { row ->
-            val visibleCount = (0 until row.childCount).count { row.getChildAt(it).visibility == View.VISIBLE }
-            if (visibleCount <= 1) {
-                for (i in 0 until row.childCount) {
-                    val child = row.getChildAt(i)
-                    if (child.visibility == View.VISIBLE) {
-                        (child.layoutParams as? LinearLayout.LayoutParams)?.weight = 0f
-                        (child.layoutParams as? LinearLayout.LayoutParams)?.width =
-                            LinearLayout.LayoutParams.MATCH_PARENT
-                    }
-                }
-            }
         }
 
         dialog.setContentView(view)
