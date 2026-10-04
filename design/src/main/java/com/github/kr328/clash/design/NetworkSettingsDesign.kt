@@ -18,6 +18,7 @@ import com.github.kr328.clash.design.databinding.DesignSettingsCommonBinding
 import android.widget.TextView
 import com.github.kr328.clash.design.preference.*
 import com.github.kr328.clash.design.store.UiStore
+import com.github.kr328.clash.design.model.ServerPingMode
 import com.github.kr328.clash.design.ui.ToastDuration
 import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.design.util.root
@@ -51,6 +52,16 @@ class NetworkSettingsDesign(
         binding.header.screenTitle.text = (context as? Activity)?.title?.toString().orEmpty()
 
         val screen = preferenceScreen(context) {
+            category(R.string.server_ping_title)
+            selectableList(
+                value = uiStore::serverPingMode,
+                values = ServerPingMode.values(),
+                valuesText = arrayOf(R.string.server_ping_direct, R.string.server_ping_through),
+                title = R.string.server_ping_method,
+                icon = R.drawable.ic_speedometer_ping,
+            )
+            tips(R.string.server_ping_explanation)
+
             val vpnDependencies: MutableList<Preference> = mutableListOf()
 
             val vpn = switch(

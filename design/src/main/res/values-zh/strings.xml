@@ -1302,4 +1302,12 @@
     <string name="main_subscription_traffic_left">剩余流量：%s</string>
     <string name="main_subscription_unlimited">无限流量</string>
     <string name="main_subscription_less_than_hour">剩余不到一小时</string>
+    <string name="server_ping_title">服务器延迟</string>
+    <string name="server_ping_method">测试方式</string>
+    <string name="server_ping_direct">到服务器（TCP）</string>
+    <string name="server_ping_through">通过服务器（HTTP）</string>
+    <string name="server_ping_explanation">到服务器：通过 Wi-Fi 或移动网络直接建立 TCP 连接，不经过 VPN。此测试不验证代理认证或网站访问；仅支持 UDP 的协议显示“不适用”。通过服务器：经各代理访问测试网站，测量完整路径。请先连接此订阅。此选项仅影响手动测试；自动选择服务器仍使用订阅的健康检查。</string>
+    <string name="server_ping_requires_active">要通过服务器测试，请先使用此订阅连接 VPN。</string>
+    <string name="server_ping_url_requires_proxy">自定义测试网站仅适用于“通过服务器”模式。</string>
+    <string name="server_ping_unsupported">不适用</string>
 </resources>

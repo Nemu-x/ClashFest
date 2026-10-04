@@ -6,6 +6,7 @@ import com.github.kr328.clash.common.store.asStoreProvider
 import com.github.kr328.clash.core.model.ProxySort
 import com.github.kr328.clash.design.model.AppInfoSort
 import com.github.kr328.clash.design.model.AppLanguage
+import com.github.kr328.clash.design.model.ServerPingMode
 import com.github.kr328.clash.design.model.DarkMode
 import com.github.kr328.clash.design.model.HomeBackgroundStyle
 import com.github.kr328.clash.design.model.ProfileSortMode
@@ -27,6 +28,12 @@ class UiStore(context: Context) {
     var enableVpn: Boolean by store.boolean(
         key = "enable_vpn",
         defaultValue = true
+    )
+
+    var serverPingMode: ServerPingMode by store.enum(
+        key = "server_ping_mode",
+        defaultValue = ServerPingMode.ThroughServer,
+        values = ServerPingMode.values(),
     )
 
     var darkMode: DarkMode by store.enum(

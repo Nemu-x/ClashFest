@@ -1,11 +1,11 @@
 package com.github.kr328.clash.common.util
 
 import android.os.SystemClock
+import android.net.Network
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.InetSocketAddress
-import java.net.Socket
 import java.net.URL
 import java.util.Locale
 
@@ -13,23 +13,27 @@ import java.util.Locale
  * Latency tests that do not require Clash core / VPN — used when the engine is unavailable.
  */
 object StandalonePing {
+    const val TCP_UNSUPPORTED = -2
 
     /**
      * Reads `server` / `port` from a single proxy YAML block (Clash / Mihomo style).
      */
     fun parseServerPortFromProxyYaml(yaml: String): Pair<String, Int>? {
-        val serverLine = Regex("(?m)^\\s*server:\\s*(.+)$").find(yaml) ?: return null
-        var host = serverLine.groupValues[1].trim()
-        if (host.startsWith('"') && host.endsWith('"') && host.length >= 2) {
-            host = host.substring(1, host.length - 1)
-        } else if (host.startsWith('\'') && host.endsWith('\'') && host.length >= 2) {
-            host = host.substring(1, host.length - 1)
-        }
-        host = host.trim()
-        if (host.isEmpty()) return null
-        val portLine = Regex("(?m)^\\s*port:\\s*(\\d+)").find(yaml)
-        val port = portLine?.groupValues?.get(1)?.toIntOrNull()?.takeIf { it > 0 } ?: 443
+        val host = scalar(yaml, "server")?.takeIf { it.isNotBlank() && it.none(Char::isWhitespace) }
+            ?: return null
+        val port = if (Regex("(?m)^\\s*port:").containsMatchIn(yaml)) {
+            scalar(yaml, "port")?.toIntOrNull()?.takeIf { it in 1..65535 } ?: return null
+        } else 443
         return host to port
+    }
+
+    fun supportsTcpProbe(yaml: String): Boolean =
+        scalar(yaml, "type")?.lowercase(Locale.ROOT) !in setOf("hysteria", "hysteria2", "tuic", "wireguard")
+
+    private fun scalar(yaml: String, key: String): String? {
+        val match = Regex("(?m)^[ \\t]*$key:[ \\t]*(?:\"([^\"]*)\"|'([^']*)'|([^#\\r\\n]*))")
+            .find(yaml) ?: return null
+        return match.groupValues.drop(1).firstOrNull { it.isNotEmpty() }?.trim()
     }
 
     /**
@@ -74,12 +78,15 @@ object StandalonePing {
     /**
      * TCP connect to [host]:[port] (e.g. 443) — fallback when URL is not http(s).
      */
-    suspend fun tcpConnectMs(host: String, port: Int = 443): Result<Long> =
+    suspend fun tcpConnectMs(host: String, port: Int, network: Network): Result<Long> =
         withContext(Dispatchers.IO) {
             runCatching {
+                require(host.isNotBlank() && port in 1..65535)
+                val address = network.getAllByName(host).firstOrNull()
+                    ?: error("No server address")
                 val t0 = SystemClock.elapsedRealtime()
-                Socket().use { s ->
-                    s.connect(InetSocketAddress(host, port), 10_000)
+                network.socketFactory.createSocket().use { s ->
+                    s.connect(InetSocketAddress(address, port), 5_000)
                 }
                 (SystemClock.elapsedRealtime() - t0).coerceAtLeast(1L)
             }

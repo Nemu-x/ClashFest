@@ -33,6 +33,7 @@ import com.github.kr328.clash.util.fileName
 import com.github.kr328.clash.util.createEmptyUrlProfileAndOpenEditor
 import com.github.kr328.clash.util.ImportRetry
 import com.github.kr328.clash.util.ProfileRuntimeTarget
+import com.github.kr328.clash.util.DirectServerPing
 import com.github.kr328.clash.common.log.Log
 import com.github.kr328.clash.common.constants.Intents
 import com.github.kr328.clash.common.util.StandalonePing
@@ -51,6 +52,7 @@ import com.github.kr328.clash.design.MainDesign
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.dialog.withModelProgressBar
 import com.github.kr328.clash.design.model.DarkMode
+import com.github.kr328.clash.design.model.ServerPingMode
 import com.github.kr328.clash.design.ui.ToastDuration
 import com.github.kr328.clash.design.util.applyFetchStatus
 import com.github.kr328.clash.design.util.isTelevision
@@ -86,6 +88,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.joinAll
@@ -408,6 +411,14 @@ class MainActivity : BaseActivity<MainDesign>() {
 
     /** Groups already warmed up this session, so a group is url-tested at most once (O-07). */
     private val warmedGroups = java.util.Collections.synchronizedSet(mutableSetOf<String>())
+    private val directPingSlots = kotlinx.coroutines.sync.Semaphore(4)
+
+    private suspend fun measureDirectServer(profile: Profile, name: String): Int =
+        directPingSlots.withPermit {
+            if (StandalonePing.isBuiltinProxyName(name)) return@withPermit -1
+            val yaml = withProfile { readProxyEntryYaml(profile.uuid, name) } ?: return@withPermit -1
+            withContext(Dispatchers.IO) { DirectServerPing.measure(this@MainActivity, yaml) }
+        }
 
     /**
      * Warm up (url-test) a single group and its nested auto subtree — once per session. This is the
@@ -951,14 +962,19 @@ class MainActivity : BaseActivity<MainDesign>() {
                 design.profilePingAllRequests.onReceive { (profile, group, nodeNames, testUrl) ->
                     launch {
                         try {
+                            val pingMode = uiStore.serverPingMode
                             design.setPingingProfile(profile.uuid)
                             design.clearStandalonePingForProfile(profile.uuid)
-                            val engineReady = runCatching {
+                            val engineReady = pingMode == ServerPingMode.ThroughServer && runCatching {
                                 resolveStatusSnapshot().serviceRunning &&
                                     withClash { queryProxyGroupNames(false).isNotEmpty() }
                             }.getOrDefault(false)
-                            val activeUuid = withProfile { queryActive()?.uuid }
-                            if (ProfileRuntimeTarget.canUseEngine(engineReady, activeUuid, profile.uuid)) {
+                            val activeUuid = if (pingMode == ServerPingMode.ThroughServer) withProfile { queryActive()?.uuid } else null
+                            if (pingMode == ServerPingMode.ThroughServer) {
+                                if (!ProfileRuntimeTarget.canUseEngine(engineReady, activeUuid, profile.uuid)) {
+                                    design.showToast(R.string.server_ping_requires_active, ToastDuration.Long)
+                                    return@launch
+                                }
                                 waitForProxyEngineReady()
                                 val groupsToRefresh = collectRuntimeGroupTree(group)
                                     .ifEmpty { linkedSetOf(group).filter { it.isNotBlank() }.toSet() }
@@ -987,16 +1003,13 @@ class MainActivity : BaseActivity<MainDesign>() {
                                 val offlineGroups = withProfile { readProxyGroupsPreview(profile.uuid) }
                                 val pingTargets = collectOfflineLeafProxyNames(group, nodeNames, offlineGroups)
                                 val jobs = pingTargets.map { name -> launch(Dispatchers.IO) {
-                                    if (StandalonePing.isBuiltinProxyName(name)) return@launch
-                                    val yaml = withProfile { readProxyEntryYaml(profile.uuid, name) }
-                                        ?: return@launch
-                                    val hp = StandalonePing.parseServerPortFromProxyYaml(yaml) ?: return@launch
-                                    val ms = StandalonePing.tcpConnectMs(hp.first, hp.second)
-                                        .getOrNull()?.toInt() ?: return@launch
+                                    val ms = measureDirectServer(profile, name)
                                     design.patchStandalonePingResults(profile.uuid, mapOf(name to ms))
                                 } }
                                 jobs.forEach { it.join() }
                             }
+                        } catch (e: CancellationException) {
+                            throw e
                         } catch (e: Exception) {
                             design.showExceptionToast(e)
                         } finally {
@@ -1008,34 +1021,26 @@ class MainActivity : BaseActivity<MainDesign>() {
                 design.proxyPingNodeRequests.onReceive { (profile, group, proxy) ->
                     launch {
                         try {
-                            val engineReady = runCatching {
+                            val pingMode = uiStore.serverPingMode
+                            val engineReady = pingMode == ServerPingMode.ThroughServer && runCatching {
                                 resolveStatusSnapshot().serviceRunning &&
                                     withClash { queryProxyGroupNames(false).isNotEmpty() }
                             }.getOrDefault(false)
-                            val activeUuid = withProfile { queryActive()?.uuid }
+                            val activeUuid = if (pingMode == ServerPingMode.ThroughServer) withProfile { queryActive()?.uuid } else null
                             Log.d("single ping: request $group / $proxy engineReady=$engineReady active=$activeUuid profile=${profile.uuid}")
-                            if (ProfileRuntimeTarget.canUseEngine(engineReady, activeUuid, profile.uuid)) {
+                            if (pingMode == ServerPingMode.ThroughServer) {
+                                if (!ProfileRuntimeTarget.canUseEngine(engineReady, activeUuid, profile.uuid)) {
+                                    design.clearNodePingPending(proxy)
+                                    design.showToast(R.string.server_ping_requires_active, ToastDuration.Long)
+                                    return@launch
+                                }
                                 runSingleProxyHealthCheck(group, proxy)
                             } else {
-                                // Engine not running for this profile: same raw TCP-connect probe
-                                // the offline ping-all uses, narrowed to the tapped node.
-                                val ms = if (StandalonePing.isBuiltinProxyName(proxy)) {
-                                    null
-                                } else {
-                                    withProfile { readProxyEntryYaml(profile.uuid, proxy) }
-                                        ?.let { StandalonePing.parseServerPortFromProxyYaml(it) }
-                                        ?.let { hp ->
-                                            withContext(Dispatchers.IO) {
-                                                StandalonePing.tcpConnectMs(hp.first, hp.second).getOrNull()?.toInt()
-                                            }
-                                        }
-                                }
-                                if (ms != null) {
-                                    design.patchStandalonePingResults(profile.uuid, mapOf(proxy to ms))
-                                } else {
-                                    design.clearNodePingPending(proxy)
-                                }
+                                val ms = measureDirectServer(profile, proxy)
+                                design.patchStandalonePingResults(profile.uuid, mapOf(proxy to ms))
                             }
+                        } catch (e: CancellationException) {
+                            throw e
                         } catch (e: Exception) {
                             design.clearNodePingPending(proxy)
                             design.showExceptionToast(e)

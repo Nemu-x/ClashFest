@@ -32,6 +32,8 @@ import com.github.kr328.clash.design.databinding.AdapterSubscriptionBinding
 import com.github.kr328.clash.design.databinding.BottomSheetProxyGroupsBinding
 import com.github.kr328.clash.design.dialog.AppBottomSheetDialog
 import com.github.kr328.clash.design.model.ProfilePageState
+import com.github.kr328.clash.design.model.ServerPingMode
+import com.github.kr328.clash.common.util.StandalonePing
 import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.common.branding.BrandManifest
 import com.github.kr328.clash.service.model.Profile
@@ -76,6 +78,7 @@ class ProfileAdapter(
     private var excludeNotSelectable: Boolean = false
     /** Prefill for the latency-target dialog; the measurement target itself is never sticky. */
     private var lastLatencyTarget: String = ""
+    private var serverPingMode = ServerPingMode.ThroughServer
     private var proxyDetails: Map<String, ProxyGroup> = emptyMap()
     private var activeProfileUuid: UUID? = null
     private var clashRunning: Boolean = false
@@ -1009,6 +1012,15 @@ class ProfileAdapter(
         if (!profile.imported || proxySheetDialog?.isShowing == true) return
 
         val sheet = BottomSheetProxyGroupsBinding.inflate(context.layoutInflater)
+        val currentPingMode = UiStore(context).serverPingMode
+        if (currentPingMode != serverPingMode) {
+            standalonePingDelays.clear()
+            lastPingAllAt.clear()
+            serverPingMode = currentPingMode
+        }
+        sheet.proxySheetPingMethod.setText(
+            if (serverPingMode == ServerPingMode.ToServer) R.string.server_ping_direct else R.string.server_ping_through
+        )
         val dialog = AppBottomSheetDialog(context)
         proxySheetDialog = dialog
         var dismissCleanup: () -> Unit = {}
@@ -1282,6 +1294,11 @@ class ProfileAdapter(
             }
 
             fun startPing(groupName: String, names: List<String>, testUrl: String) {
+                if (serverPingMode == ServerPingMode.ThroughServer &&
+                    (!clashRunning || activeProfileUuid != profile.uuid)) {
+                    Toast.makeText(context, R.string.server_ping_requires_active, Toast.LENGTH_LONG).show()
+                    return
+                }
                 lastPingAllAt[profile.uuid] = System.currentTimeMillis()
                 onPingAll(profile, groupName, names, testUrl)
                 sheet.root.post(refreshRunnable)
@@ -1299,6 +1316,10 @@ class ProfileAdapter(
             // current group had no rows to measure the gesture returned silently, which from the
             // outside is indistinguishable from a long press that does not work at all.
             sheet.proxySheetPingButton.setOnLongClickListener {
+                if (serverPingMode == ServerPingMode.ToServer) {
+                    Toast.makeText(context, R.string.server_ping_url_requires_proxy, Toast.LENGTH_LONG).show()
+                    return@setOnLongClickListener true
+                }
                 showLatencyTargetDialog(sheet.root.context) { url ->
                     val targets = pingTargets()
                     if (targets == null) {
@@ -2057,13 +2078,8 @@ class ProfileAdapter(
     private fun resolveProxyDelay(uuid: UUID, proxy: Proxy): Int {
         val key = "${uuid}|${proxy.name}"
         val standalone = standalonePingDelays[key]
-        val nested = nestedGroupDelay(uuid, proxy.name)
-        return when {
-            proxy.delay >= 0 -> proxy.delay
-            nested >= 0 -> nested
-            standalone != null -> standalone
-            else -> proxy.delay
-        }
+        val nested = if (serverPingMode == ServerPingMode.ThroughServer) nestedGroupDelay(proxy.name) else -1
+        return serverPingMode.resolveDelay(standalone, proxy.delay, nested)
     }
 
     private fun providerNameForProxy(proxyName: String): String? {
@@ -2099,7 +2115,7 @@ class ProfileAdapter(
         }
     }
 
-    private fun nestedGroupDelay(uuid: UUID, proxyName: String): Int {
+    private fun nestedGroupDelay(proxyName: String): Int {
         val seen = linkedSetOf<String>()
 
         fun resolve(groupName: String): Int {
@@ -2116,21 +2132,14 @@ class ProfileAdapter(
                         when {
                             proxy.delay >= 0 -> proxy.delay
                             proxy.name in proxyDetails -> resolve(proxy.name)
-                            else -> standalonePingDelays["$uuid|${proxy.name}"] ?: -1
+                            else -> -1
                         }
                     }
                     .filter { it >= 0 }
                     .minOrNull() ?: -1
             }
 
-            val offline = offlinePreviewByProfile[uuid]?.get(groupName) ?: return -1
-            return offline.members.asSequence()
-                .map { name ->
-                    val direct = standalonePingDelays["$uuid|$name"]
-                    direct ?: resolve(name)
-                }
-                .filter { it >= 0 }
-                .minOrNull() ?: -1
+            return -1
         }
 
         return resolve(proxyName)
@@ -2217,11 +2226,12 @@ class ProfileAdapter(
     /** Latency capsule text + style; a node with a single-node test in flight shows "…". */
     private fun bindDelayCapsule(capsule: View, dot: View, delayView: TextView, proxyName: String, delayMs: Int) {
         applyDelayStyle(capsule, dot, delayView, delayMs, capsule.context)
-        delayView.text = if (isNodePingPending(proxyName)) NODE_PING_PENDING_TEXT else formatDelay(delayMs)
+        delayView.text = if (isNodePingPending(proxyName)) NODE_PING_PENDING_TEXT else formatDelay(delayMs, delayView.context)
     }
 
-    private fun formatDelay(delayMs: Int): String =
+    private fun formatDelay(delayMs: Int, context: Context): String =
         when {
+            delayMs == StandalonePing.TCP_UNSUPPORTED -> context.getString(R.string.server_ping_unsupported)
             delayMs in 0..Short.MAX_VALUE -> "${delayMs}ms"
             else -> "—"
         }

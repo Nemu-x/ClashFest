@@ -1373,4 +1373,12 @@
     <string name="main_subscription_traffic_left">Трафика осталось: %s</string>
     <string name="main_subscription_unlimited">Безлимитный трафик</string>
     <string name="main_subscription_less_than_hour">Осталось меньше часа</string>
+    <string name="server_ping_title">Пинг серверов</string>
+    <string name="server_ping_method">Способ проверки</string>
+    <string name="server_ping_direct">До сервера (TCP)</string>
+    <string name="server_ping_through">Через сервер (HTTP)</string>
+    <string name="server_ping_explanation">До сервера — время прямого TCP-соединения через Wi-Fi или мобильную сеть, в обход VPN. Эта проверка не проверяет авторизацию прокси и доступ к сайтам; у протоколов только на UDP будет «Н/Д». Через сервер — ответ сайта через каждый прокси с учётом всего маршрута. Сначала подключите эту подписку. Выбор влияет на ручные проверки; автоматический выбор сервера использует проверку из подписки.</string>
+    <string name="server_ping_requires_active">Для проверки через сервер сначала подключите VPN с этой подпиской.</string>
+    <string name="server_ping_url_requires_proxy">Свой сайт для проверки можно указать в режиме «Через сервер».</string>
+    <string name="server_ping_unsupported">Н/Д</string>
 </resources>
