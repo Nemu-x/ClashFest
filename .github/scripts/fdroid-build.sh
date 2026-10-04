@@ -36,7 +36,14 @@ app['CurrentVersion'] = build['versionName']
 app['CurrentVersionCode'] = build['versionCode']
 with open('metadata/com.nemu.clashfest.clash.alpha.yml', 'w') as f:
     yaml.safe_dump(app, f, sort_keys=False, allow_unicode=True)
+with open('srclibs.txt', 'w') as f:
+    f.writelines(s.split('@')[0] + '\n' for s in build.get('srclibs', []))
 EOF
+
+# Srclib definitions (e.g. the Go toolchain) come from fdroiddata, as in F-Droid's own CI.
+while read -r lib; do
+    curl -Lsfo "srclibs/$lib.yml" "https://gitlab.com/fdroid/fdroiddata/-/raw/master/srclibs/$lib.yml"
+done < srclibs.txt
 
 apt-get update
 apt-get dist-upgrade -y
