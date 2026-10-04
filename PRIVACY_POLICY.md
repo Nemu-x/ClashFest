@@ -1,50 +1,53 @@
-## Privacy Policy
+# Privacy Policy
 
-The Mikan is built as an Open Source software. This app is provided by personal at no cost and is intended for use as is.
+**Mikan for Android** · effective October 4, 2026 · [Русская версия](PRIVACY_POLICY.ru.md)
 
-This page is used to inform visitors regarding our policies with the collection, use, and disclosure of Personal Information if anyone decided to use our app.
+Mikan is a free, open-source client for Clash Meta (mihomo) proxy profiles. It is published by the Mikan project (github.com/getmikan) under the GNU GPL v3. This policy explains what the app does with your data. In short: Mikan has no accounts, no analytics, no ads and no servers of its own that collect your data.
 
-If you choose to use our app, then you agree to the collection and use of information in relation to this policy. The Personal Information that we collect is used for providing and improving the app. We will not use or share your information with anyone except as described in this Privacy Policy.
+## What stays on your device
 
-The terms used in this Privacy Policy have the same meanings as in our Terms and Conditions, which is accessible at Mikan unless otherwise defined in this Privacy Policy.
+- The profiles and subscription links you add, your settings, routing rules and the list of apps you choose to route.
+- Connection logs and statistics shown in the app. They are kept on the device and leave it only if you export or share them yourself.
 
-**Information Collection and Use**
+We do not receive any of this. Uninstalling the app or clearing its data removes it.
 
-For a better experience, while using our app, we may require you to provide us with certain personally identifiable information. The information that we request will be retained by us and used as described in this privacy policy.
+## What the app sends, and to whom
 
-The app does use third party services that may collect information used to identify you.
+Mikan connects only where you or your profiles tell it to:
 
-Link to privacy policy of third party service providers used by the app
+- **Your VPN or proxy servers.** When you connect, your internet traffic goes through the servers in the profile you chose. Those servers are run by your provider or by you, not by us; their operator's privacy policy applies to that traffic.
+- **Your subscription provider.** When the app downloads or updates a subscription, it sends the request to the address of that subscription, with the app's name and version and these device details so that the provider can count your devices: a device identifier (a SHA-256 hash of Android's per-app ID and the app's package name, not the raw ID), the Android version and the device model. The provider is chosen by you; we do not receive these details.
+- **Rule and geodata files** (lists used for routing) are downloaded from the addresses written in your profiles or settings, such as GitHub or jsDelivr.
+- **DNS servers** set in your profile or settings, for example 1.1.1.1 or dns.google, receive the domain names you look up.
+- **Update check.** Versions of the app distributed outside Google Play may ask GitHub (api.github.com) whether a new release is out. GitHub sees your IP address, as with any website. The Google Play version is updated through Google Play.
 
-*   [Google Play Services](https://www.google.com/policies/privacy/)
-*   [AppCenter](https://docs.microsoft.com/en-us/appcenter/gdpr/)
+Every service above sees your IP address when the app connects to it, as any internet service does.
 
-**Log Data**
+## Permissions
 
-We want to inform you that whenever you use our app, in a case of an error in the app we collect data and information (through third party products) on your phone called Log Data. This Log Data may include information such as your device Internet Protocol (“IP”) address, device name, operating system version, the configuration of the app when utilizing our App, the time and date of your use of the app, and other statistics.
+- **VPN service** routes your device's traffic through the servers of your profile. This is the app's core function.
+- **Notifications and foreground service** show that the connection is on and keep it running.
+- **Query all packages** lets you choose which apps go through the proxy and which do not. The list of installed apps is used only on the device and is never sent anywhere.
+- **Camera** is used only when you scan a QR code to add a profile or pair a device. Images are processed on the device and are not saved or sent.
+- **Start at boot** restores the connection after a restart, if you turn that on.
+- **Network state** lets the app react when your network changes.
 
-**Cookies**
+## Data we collect
 
-Cookies are files with a small amount of data that are commonly used as anonymous unique identifiers. These are sent to your browser from the websites that you visit and are stored on your device's internal memory.
+None. The Mikan project does not run analytics, crash reporting, advertising or tracking services, and it does not sell or share personal data.
 
-This app does not use these “cookies” explicitly. However, the app may use third party code and libraries that use “cookies” to collect information and improve their services. You have the option to either accept or refuse these cookies and know when a cookie is being sent to your device. If you choose to refuse our cookies, you may not be able to use some portions of this app.
+## Children
 
-**Security**
+Mikan is not directed at children under 13 and does not knowingly collect data from anyone.
 
-We value your trust in providing us your Personal Information, thus we are striving to use commercially acceptable means of protecting it. But remember that no method of transmission over the internet, or method of electronic storage is 100% secure and reliable, and we cannot guarantee its absolute security.
+## Security
 
-**Links to Other Sites**
+Profiles and settings are stored in the app's private storage on your device. Protect access to your device: anyone who can open the app can see your profiles.
 
-This app may contain links to other sites. If you click on a third-party link, you will be directed to that site. Note that these external sites are not operated by us. Therefore, we strongly advise you to review the Privacy Policy of these websites. We have no control over and assume no responsibility for the content, privacy policies, or practices of any third-party sites or services.
+## Changes
 
-**Children’s Privacy**
+If this policy changes, the new version is published at this address with a new effective date.
 
-These Services do not address anyone under the age of 13\. We do not knowingly collect personally identifiable information from children under 13\. In the case we discover that a child under 13 has provided us with personal information, we immediately delete this from our servers. If you are a parent or guardian and you are aware that your child has provided us with personal information, please contact us so that we will be able to do necessary actions.
+## Contact
 
-**Changes to This Privacy Policy**
-
-We may update our Privacy Policy from time to time. Thus, you are advised to review this page periodically for any changes. We will notify you of any changes by posting the new Privacy Policy on this page. These changes are effective immediately after they are posted on this page.
-
-**Contact Us**
-
-If you have any questions or suggestions about our Privacy Policy, do not hesitate to contact us.
+Questions about this policy: open an issue at [github.com/getmikan/MikanApp/issues](https://github.com/getmikan/MikanApp/issues) or write to the [Mikan Telegram channel](https://t.me/mikanvpn).
