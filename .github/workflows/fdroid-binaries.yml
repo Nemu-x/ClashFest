@@ -10,6 +10,8 @@ on:
   push:
     tags:
       - "v*"
+      # Pre-release tags (v1.3.0-rc.1) are not picked up by F-Droid's tag filter.
+      - "!v*-*"
   workflow_dispatch:
     inputs:
       tag:
