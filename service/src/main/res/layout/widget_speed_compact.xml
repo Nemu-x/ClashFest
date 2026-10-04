@@ -11,36 +11,36 @@
         android:layout_width="match_parent" android:layout_height="match_parent"
         android:background="@drawable/widget_bg">
         <ImageView
-            android:layout_width="28dp" android:layout_height="28dp"
+            android:layout_width="40dp" android:layout_height="40dp"
             android:layout_gravity="center"
             android:importantForAccessibility="no"
-            android:src="@drawable/widget_power" android:tint="#8C431B" />
+            android:src="@drawable/widget_mikan_off" />
     </FrameLayout>
     <FrameLayout
         android:layout_width="match_parent" android:layout_height="match_parent"
         android:background="@drawable/widget_bg_busy">
         <ImageView
-            android:layout_width="28dp" android:layout_height="28dp"
+            android:layout_width="40dp" android:layout_height="40dp"
             android:layout_gravity="center"
             android:importantForAccessibility="no"
-            android:src="@drawable/widget_power" android:tint="#8C431B" />
+            android:src="@drawable/widget_mikan_off" />
     </FrameLayout>
     <FrameLayout
         android:layout_width="match_parent" android:layout_height="match_parent"
         android:background="@drawable/widget_bg_on">
         <ImageView
-            android:layout_width="28dp" android:layout_height="28dp"
+            android:layout_width="40dp" android:layout_height="40dp"
             android:layout_gravity="center"
             android:importantForAccessibility="no"
-            android:src="@drawable/widget_power" android:tint="#FFFFFF" />
+            android:src="@drawable/widget_mikan" />
     </FrameLayout>
     <FrameLayout
         android:layout_width="match_parent" android:layout_height="match_parent"
         android:background="@drawable/widget_bg_busy">
         <ImageView
-            android:layout_width="28dp" android:layout_height="28dp"
+            android:layout_width="40dp" android:layout_height="40dp"
             android:layout_gravity="center"
             android:importantForAccessibility="no"
-            android:src="@drawable/widget_power" android:tint="#8C431B" />
+            android:src="@drawable/widget_mikan_off" />
     </FrameLayout>
 </ViewFlipper>

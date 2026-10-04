@@ -882,7 +882,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         fun render(progress: Float) {
             powerIconProgress = progress
             val grayWeight = 1f - progress
-            // Blend every original SVG color with gray, keeping the silhouette opaque.
+            // Blend original artwork colors with gray, preserving transparency.
             icon.colorFilter = ColorMatrixColorFilter(ColorMatrix(floatArrayOf(
                 progress, 0f, 0f, 0f, Color.red(gray) * grayWeight,
                 0f, progress, 0f, 0f, Color.green(gray) * grayWeight,

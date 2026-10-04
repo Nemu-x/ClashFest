@@ -187,9 +187,11 @@ only APKs are published.
 ## Branding
 
 - Product name: **Mikan**; repository: **MikanApp**.
-- The mandarin mark comes from the Mikan panel: `design/mikan.svg` (source)
+- The painted mandarin comes from the Mikan panel: `design/mikan.webp` (transparent source)
   and `design/mikan.png` (PNG export). Launcher, notifications, widget and TV banner
   use the same mark.
+- Android brand assets can be regenerated with Node.js and Sharp:
+  `node packaging/branding/generate.cjs`.
 - Screenshots in `docs/` currently show the upstream appearance.
 
 ---
