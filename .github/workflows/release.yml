@@ -121,8 +121,23 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # A tag with a suffix (v1.3.0-rc.1) is a signed test build: published as a pre-release
+          # and never marked latest, so the in-app updater (releases/latest), the site and
+          # F-Droid (tag filter ^v1\.\d+\.\d+$) all skip it.
+          # A stable release's notes start at the previous stable tag, not at its own rc. Only
+          # the same major is searched: the repo also carries upstream's v2.x tags.
+          flags=()
+          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then
+            flags=(--prerelease --latest=false)
+          else
+            major="${GITHUB_REF_NAME%%.*}"
+            prev="$(git tag --list "${major}.*" --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | grep -vx "${GITHUB_REF_NAME}" | head -n1)"
+            if [ -n "$prev" ]; then
+              flags=(--notes-start-tag "$prev")
+            fi
+          fi
           if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
             gh release upload "${GITHUB_REF_NAME}" release-artifacts/*.apk --clobber
           else
-            gh release create "${GITHUB_REF_NAME}" release-artifacts/*.apk --generate-notes
+            gh release create "${GITHUB_REF_NAME}" release-artifacts/*.apk --generate-notes "${flags[@]}"
           fi
