@@ -20,6 +20,7 @@ import com.github.kr328.clash.core.model.TunnelState
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.util.FlagDrawableLoader
 import com.github.kr328.clash.design.util.FlagParser
+import com.github.kr328.clash.design.util.elapsedIntervalString
 import com.github.kr328.clash.design.util.ParsedFlag
 import com.github.kr328.clash.design.util.toBytesString
 import com.github.kr328.clash.design.databinding.AdapterProfileBinding
@@ -41,6 +42,7 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.android.material.color.MaterialColors
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 class ProfileAdapter(
     private val onClicked: (Profile) -> Unit,
@@ -1575,6 +1577,24 @@ class ProfileAdapter(
         }
     }
 
+    /** "Updated 2 hours ago" for subscription (URL) profiles; hidden for files and unsaved drafts. */
+    private fun bindUpdatedSummary(holder: Holder, profile: Profile, context: Context) {
+        val view = holder.binding.updatedSummary
+        val show = profile.type == Profile.Type.Url && profile.imported && !profile.pending &&
+            profile.updatedAt > 0L
+        if (!show) {
+            view.visibility = View.GONE
+            return
+        }
+        val elapsed = (System.currentTimeMillis() - profile.updatedAt).coerceAtLeast(0L)
+        view.text = if (elapsed < TimeUnit.MINUTES.toMillis(1)) {
+            context.getString(R.string.profile_updated_just_now)
+        } else {
+            context.getString(R.string.profile_updated_fmt, elapsed.elapsedIntervalString(context))
+        }
+        view.visibility = View.VISIBLE
+    }
+
     private fun bindUsageAndProgress(holder: Holder, profile: Profile) {
         val binding = holder.binding
         val used = profile.upload + profile.download
@@ -1643,9 +1663,11 @@ class ProfileAdapter(
         applyActiveVisuals(holder, current)
         bindUsageAndProgress(holder, current)
         bindExpiryChip(holder, current, context)
+        bindUpdatedSummary(holder, current, context)
         if (compactHomeCard) {
             binding.usageSummary.visibility = View.GONE
             binding.usageProgress.visibility = View.GONE
+            binding.updatedSummary.visibility = View.GONE
         }
 
         val canExpandProxiesInline =

@@ -1263,4 +1263,6 @@
     <string name="latency_target_invalid">Введите сайт, например example.com</string>
     <string name="latency_target_run">Проверить</string>
     <string name="latency_target_nothing_to_test">В этой группе нечего проверять</string>
+    <string name="profile_updated_fmt">Обновлено %s</string>
+    <string name="profile_updated_just_now">Обновлено только что</string>
 </resources>
