@@ -259,4 +259,38 @@ class BrandManifestParserTest {
         assertEquals(true, m.lockConfigScript)
         assertEquals("Example VPN", m.name)
     }
+
+    @Test
+    fun primaryProxyGroup_isPolicy_appliesWithoutBrandingEnabled() {
+        val m = parse(mapOf(BrandHeaders.PRIMARY_PROXY_GROUP to "\"Прокси\""))
+        assertEquals("Прокси", m.primaryProxyGroup)
+        assertNull(m.enabled)
+        assertTrue(m.hasPolicy())
+        assertTrue(!m.hasBrandIdentity())
+    }
+
+    @Test
+    fun primaryProxyGroup_acceptsUnhyphenatedAlias() {
+        val alias = parse(mapOf(BrandHeaders.PRIMARY_PROXY_GROUP_ALIAS to "🌐 Default"))
+        assertEquals("🌐 Default", alias.primaryProxyGroup)
+    }
+
+    @Test
+    fun primaryProxyGroup_blank_isAbsent() {
+        val m = parse(mapOf(BrandHeaders.PRIMARY_PROXY_GROUP to "   "))
+        assertNull(m.primaryProxyGroup)
+        assertTrue(!m.hasPolicy())
+    }
+
+    @Test
+    fun primaryProxyGroup_survivesBrandingEnabled() {
+        val m = parse(
+            mapOf(
+                BrandHeaders.BRANDING_ENABLED to "true",
+                BrandHeaders.NAME to "Example VPN",
+                BrandHeaders.PRIMARY_PROXY_GROUP to "Proxy",
+            ),
+        )
+        assertEquals("Proxy", m.primaryProxyGroup)
+    }
 }

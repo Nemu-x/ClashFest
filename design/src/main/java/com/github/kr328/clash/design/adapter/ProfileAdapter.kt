@@ -73,6 +73,7 @@ class ProfileAdapter(
     private var clashRunning: Boolean = false
     private var tunnelMode: TunnelState.Mode? = null
     private var lastGroupHint: String? = null
+    private var primaryProxyGroup: String? = null
     private var expandedUuids: Set<UUID> = emptySet()
     /** Offline proxy groups per profile (expanded cards that are not using live engine data). */
     private var offlinePreviewByProfile: Map<UUID, Map<String, ProxyGroupPreviewRow>> = emptyMap()
@@ -188,6 +189,18 @@ class ProfileAdapter(
         brandManifest = manifest
         this.onOpenBrandUrl = onOpenBrandUrl
         if (changed) notifyDataSetChanged()
+    }
+
+    /**
+     * Operator `X-Brand-Primary-Proxy-Group` for the active profile: pins which group's current node
+     * the summaries show. Ignored outside Rule/Direct mode (Global routes through GLOBAL) and when the
+     * config has no such group.
+     */
+    fun setPrimaryProxyGroup(name: String?) {
+        val cleaned = name?.takeIf { it.isNotBlank() }
+        if (cleaned == primaryProxyGroup) return
+        primaryProxyGroup = cleaned
+        notifyDataSetChanged()
     }
 
     fun setActiveAnnouncement(
@@ -704,6 +717,7 @@ class ProfileAdapter(
         val groups = groupsForSelectionSummary(profile)
         if (groups.isEmpty()) return null
         val uuid = profile.uuid
+        primaryGroupIn(profile, groups)?.let { return it }
         val kept = selectedGroupIndex[uuid]?.takeIf { it in groups.indices }?.let { groups[it] }
         if (kept != null) {
             return kept
@@ -712,6 +726,13 @@ class ProfileAdapter(
         val index = groups.indexOf(picked).takeIf { it >= 0 } ?: 0
         selectedGroupIndex[uuid] = index.coerceIn(0, groups.lastIndex)
         return groups[selectedGroupIndex[uuid]!!]
+    }
+
+    /** The operator's primary group as named in [groups], when it applies to [profile]. */
+    private fun primaryGroupIn(profile: Profile, groups: List<String>): String? {
+        val primary = primaryProxyGroup ?: return null
+        if (profile.uuid != activeProfileUuid || tunnelMode == TunnelState.Mode.Global) return null
+        return groups.firstOrNull { groupsMatchKey(it, primary) }
     }
 
     private fun formatSelectionSummaryForHome(groupName: String): String = displayGroupName(groupName)
@@ -1014,7 +1035,10 @@ class ProfileAdapter(
             sheet.proxySheetEmpty.visibility = View.VISIBLE
         } else {
             val picked = resolvePreferredGroupFromList(profile, groupNames)
-            var idx = selectedGroupIndex[profile.uuid]
+            // Open on the operator's primary group: it's the one Home and the notification show,
+            // so "Change node" lands where the visible node lives.
+            var idx = primaryGroupIn(profile, groupNames)?.let(groupNames::indexOf)?.takeIf { it >= 0 }
+                ?: selectedGroupIndex[profile.uuid]
                 ?: groupNames.indexOf(picked).takeIf { i -> i >= 0 }
                 ?: 0
             if (idx >= groupNames.size) idx = 0

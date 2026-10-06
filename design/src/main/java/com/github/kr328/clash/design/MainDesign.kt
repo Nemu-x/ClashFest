@@ -522,6 +522,8 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             profileAdapter.setBrandManifest(holder.manifest) { url ->
                 onOpenBrandUrl?.invoke(url)
             }
+            profileAdapter.setPrimaryProxyGroup(holder.manifest.primaryProxyGroup)
+            tabProfileAdapter.setPrimaryProxyGroup(holder.manifest.primaryProxyGroup)
         }
     }
 
@@ -1411,6 +1413,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         val fHelp = field(cur.helpUrl); val fStatus = field(cur.statusUrl)
         val fRenew = field(cur.renewUrl); val fCabinet = field(cur.cabinetUrl)
         val fUser = field(cur.userDisplayName); val fGreeting = field(cur.greeting)
+        val fPrimaryGroup = field(cur.primaryProxyGroup)
         val sEnabled = boolSpinner(cur.enabled ?: true)      // default Yes so Apply themes immediately
         val sHideRouting = boolSpinner(cur.hideRouting)
         val sHideGlobal = boolSpinner(cur.hideGlobalMode)
@@ -1438,6 +1441,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         row("Hide Routing tab", sHideRouting); row("Show Operator tab", sOperatorTab)
         row("Hide Global mode (policy — works even with Enabled=No)", sHideGlobal)
         row("User display name", fUser); row("Greeting", fGreeting)
+        row("Primary proxy group (policy)", fPrimaryGroup)
         row("Website URL", fWebsite); row("Support URL", fSupport); row("Telegram URL", fTelegram)
         row("Bot URL", fBot); row("Privacy URL", fPrivacy); row("Terms URL", fTerms)
         row("Help URL", fHelp); row("Status URL", fStatus); row("Renew URL", fRenew); row("Cabinet URL", fCabinet)
@@ -1481,6 +1485,8 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
                         cabinetUrl = s(fCabinet), userDisplayName = s(fUser), greeting = s(fGreeting),
                         hideRouting = sHideRouting.boolValue(), showOperatorTab = sOperatorTab.boolValue(),
                         hideGlobalMode = sHideGlobal.boolValue(),
+                        lockConfigScript = cur.lockConfigScript,
+                        primaryProxyGroup = s(fPrimaryGroup),
                         enabled = sEnabled.boolValue(),
                     ),
                 )
