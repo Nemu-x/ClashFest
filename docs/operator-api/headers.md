@@ -303,9 +303,26 @@ wipes cosmetic branding).
 |---|---|
 | Type | boolean |
 | Status | **v4** |
-| Needs `X-Branding-Enabled`? | **No** — this is the one header that works fully unbranded. |
+| Needs `X-Branding-Enabled`? | **No** — policy headers work fully unbranded. |
 | Applied to | Hides the Home **Global** mode button and pins the app to **Rule** (if the user was in Global, it flips back to Rule). The "Mode" row and the Rule button stay visible. |
-| Notes | Operator control, not branding: stops users from routing all traffic through the proxy and bypassing rules. Because it's policy, it takes effect whether `X-Branding-Enabled` is absent, `true`, or `false`. Every other `X-Brand-*` header still requires `X-Branding-Enabled: true`. |
+| Notes | Operator control, not branding: stops users from routing all traffic through the proxy and bypassing rules. Because it's policy, it takes effect whether `X-Branding-Enabled` is absent, `true`, or `false`. Every non-policy `X-Brand-*` header still requires `X-Branding-Enabled: true`. |
+
+### `X-Brand-Primary-Proxy-Group`
+
+| | |
+|---|---|
+| Type | string (proxy group name; `base64:` prefix accepted for non-ASCII) |
+| Alias | `X-Brand-PrimaryProxyGroup` |
+| Status | proposed |
+| Needs `X-Branding-Enabled`? | **No** |
+| Applied to | The Home **Node** row, the VPN notification's node line and the profile card's "Group · Server" line show the node currently selected in this group (nested groups resolved to the leaf). |
+| Fallback | Group not present in the running config, or the app is in **Global** mode → the default choice (Global: `GLOBAL`; otherwise the group the user last picked a node in, then the first group). |
+| Notes | Display only — it never selects a node or changes routing. Max 128 characters. Quotes around the value are stripped. |
+
+```
+X-Brand-Primary-Proxy-Group: Proxy
+X-Brand-PrimaryProxyGroup: base64:0J/RgNC+0LrRgdC4
+```
 
 ---
 
@@ -431,7 +448,8 @@ Headers that were considered and rejected during the v1 design review:
   config, no need for a header equivalent.
 - `X-Brand-Recommended-Group` — mihomo's Selector default already picks
   the first proxy in the configured list. Operators control this through
-  the YAML, not headers.
+  the YAML, not headers. (Which group the UI *displays* is a different
+  question — see `X-Brand-Primary-Proxy-Group`.)
 - `X-Brand-Locale` / `X-Brand-Theme` — these are user preferences. Letting
   an operator override them silently is hostile UX, even when well-meant.
 - `X-Brand-Max-Devices` / `X-Brand-Current-Devices` — without a current

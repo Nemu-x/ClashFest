@@ -17,6 +17,7 @@ import com.github.kr328.clash.core.model.TunnelState
 import com.github.kr328.clash.service.R
 import com.github.kr328.clash.service.StatusProvider
 import com.github.kr328.clash.service.branding.BrandNotificationChrome
+import com.github.kr328.clash.service.branding.BrandStore
 import com.github.kr328.clash.service.data.ImportedDao
 import com.github.kr328.clash.service.store.ServiceStore
 import java.io.File
@@ -28,8 +29,8 @@ import java.util.UUID
  *
  * - title: operator brand name when the active subscription is branded, else the profile name;
  * - accent colour and large icon from the brand manifest / cached logo file;
- * - the node the traffic currently leaves through (leaf of the first selector, or of GLOBAL in
- *   Global mode) — resolved from the engine, never per tick: on PROFILE_LOADED, on a selector
+ * - the node the traffic currently leaves through (leaf of the operator's
+ *   `X-Brand-Primary-Proxy-Group`, else of the first selector, or of GLOBAL in Global mode) — resolved from the engine, never per tick: on PROFILE_LOADED, on a selector
  *   patch ([Intents.ACTION_PROXY_SELECTION_CHANGED]) and on screen-on, so auto-group flips show
  *   up at the latest when the user next looks at the phone;
  * - days left, from the imported profile's `expire` (one Room read per profile load);
@@ -48,6 +49,7 @@ class ClashNotificationPresenter(private val service: Service) {
     private var largeIconPath: String? = null
     private var daysLeft: Int? = null
     private var currentNode: String? = null
+    private var primaryProxyGroup: String? = null
 
     /** Cheap identity of the non-traffic state; changes whenever a rebuild is warranted. */
     val snapshot: String
@@ -59,12 +61,18 @@ class ClashNotificationPresenter(private val service: Service) {
         val uuid = ServiceStore(service).activeProfile
         profileUuid = uuid
         if (uuid == null) {
+            primaryProxyGroup = null
             brandName = null
             accentColor = null
             setLargeIcon(null)
             daysLeft = null
             return
         }
+
+        // Policy, not branding: read straight from the manifest, regardless of X-Branding-Enabled.
+        primaryProxyGroup = runCatching { BrandStore(service).manifestFor(uuid).primaryProxyGroup }
+            .getOrNull()
+            ?.takeIf { it.isNotBlank() }
 
         val chrome = BrandNotificationChrome.forProfile(service, uuid)
         brandName = chrome.name
@@ -97,7 +105,11 @@ class ClashNotificationPresenter(private val service: Service) {
         val start = if (mode == TunnelState.Mode.Global) {
             "GLOBAL"
         } else {
-            names.firstOrNull() ?: return null
+            // Unfiltered list: the operator may point at a url-test/fallback group, which the
+            // selectable-only [names] drops.
+            primaryProxyGroup?.takeIf { it in names || it in Clash.queryGroupNames(false) }
+                ?: names.firstOrNull()
+                ?: return null
         }
         Log.d("Notification: resolve node mode=$mode start=$start groups=$names")
         val seen = HashSet<String>()
