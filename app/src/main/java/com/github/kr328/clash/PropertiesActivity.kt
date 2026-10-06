@@ -1,5 +1,7 @@
 package com.github.kr328.clash
 
+import android.os.Bundle
+import androidx.activity.addCallback
 import com.github.kr328.clash.common.util.ShareImportSupport
 import com.github.kr328.clash.common.util.SubscriptionOverrides
 import com.github.kr328.clash.common.util.intent
@@ -115,21 +117,27 @@ class PropertiesActivity : BaseActivity<PropertiesDesign>() {
         }
     }
 
-    override fun onBackPressed() {
-        design?.apply {
-            launch {
-                if (!progressing) {
-                    // A config.yaml edited through Browse files lives in the pending copy, which
-                    // release() deletes: it must get the same "exit without save?" prompt as
-                    // changed metadata.
-                    val configEdited = runCatching {
-                        withProfile { hasPendingConfigEdits(original.uuid) }
-                    }.getOrDefault(false)
-                    if ((original == profile && !configEdited) || requestExitWithoutSaving())
-                        finish()
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // A callback, not an onBackPressed() override: with targetSdk 36 (predictive back) the
+        // system no longer calls onBackPressed(), and the "exit without saving?" prompt would be
+        // skipped — unsaved edits silently lost.
+        onBackPressedDispatcher.addCallback(this) {
+            design?.apply {
+                launch {
+                    if (!progressing) {
+                        // A config.yaml edited through Browse files lives in the pending copy, which
+                        // release() deletes: it must get the same "exit without save?" prompt as
+                        // changed metadata.
+                        val configEdited = runCatching {
+                            withProfile { hasPendingConfigEdits(original.uuid) }
+                        }.getOrDefault(false)
+                        if ((original == profile && !configEdited) || requestExitWithoutSaving())
+                            finish()
+                    }
                 }
-            }
-        } ?: return super.onBackPressed()
+            } ?: finish()
+        }
     }
 
     private suspend fun PropertiesDesign.verifyAndCommit() {

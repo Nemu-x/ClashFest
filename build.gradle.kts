@@ -66,7 +66,9 @@ subprojects {
             }
 
             minSdk = 21
-            targetSdk = 35
+            // 36: Google Play's current requirement. Android 16 behaviour that comes with it:
+            // predictive back (no onBackPressed() overrides — use OnBackPressedDispatcher).
+            targetSdk = 36
 
             versionName = "1.2.1"
             // major * 10_000_000 + minor * 100_000 + patch * 1_000.
