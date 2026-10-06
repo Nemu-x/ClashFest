@@ -16,9 +16,9 @@ Binaries:
   https://github.com/Nemu-x/ClashFest/releases/download/v%v/clashfest-v%v-fdroid-%c.apk
 
 Builds:
-  - versionName: 1.2.1
-    versionCode: 10201001
-    commit: db67160fafa2b5763c601ff5a19337764b7d0e0c
+  - versionName: 1.2.2
+    versionCode: 10202001
+    commit: 9525c0a417b8c4b0be9550f9d9ab69682033ef85
     subdir: app
     submodules: true
     sudo:
@@ -49,9 +49,9 @@ Builds:
         assembleAlphaRelease
     ndk: 29.0.14206865
 
-  - versionName: 1.2.1
-    versionCode: 10201002
-    commit: db67160fafa2b5763c601ff5a19337764b7d0e0c
+  - versionName: 1.2.2
+    versionCode: 10202002
+    commit: 9525c0a417b8c4b0be9550f9d9ab69682033ef85
     subdir: app
     submodules: true
     sudo:
@@ -82,9 +82,9 @@ Builds:
         assembleAlphaRelease
     ndk: 29.0.14206865
 
-  - versionName: 1.2.1
-    versionCode: 10201003
-    commit: db67160fafa2b5763c601ff5a19337764b7d0e0c
+  - versionName: 1.2.2
+    versionCode: 10202003
+    commit: 9525c0a417b8c4b0be9550f9d9ab69682033ef85
     subdir: app
     submodules: true
     sudo:
@@ -115,9 +115,9 @@ Builds:
         assembleAlphaRelease
     ndk: 29.0.14206865
 
-  - versionName: 1.2.1
-    versionCode: 10201004
-    commit: db67160fafa2b5763c601ff5a19337764b7d0e0c
+  - versionName: 1.2.2
+    versionCode: 10202004
+    commit: 9525c0a417b8c4b0be9550f9d9ab69682033ef85
     subdir: app
     submodules: true
     sudo:
@@ -158,5 +158,5 @@ VercodeOperation:
   - '%c + 3'
   - '%c + 4'
 UpdateCheckData: build.gradle.kts|versionCode = (\d+)|.|versionName = "(.+)"
-CurrentVersion: 1.2.1
-CurrentVersionCode: 10201004
+CurrentVersion: 1.2.2
+CurrentVersionCode: 10202004
