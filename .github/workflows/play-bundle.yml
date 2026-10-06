@@ -16,12 +16,71 @@ on:
         description: "Android developer verification snippet (optional): also builds a signed APK carrying assets/adi-registration.properties for the package-ownership check"
         required: false
         default: ""
+      pepk_encryption_key:
+        description: "Play app signing (optional): the encryption public key PEM from Play Console. Exports the release key for Google with PEPK instead of building"
+        required: false
+        default: ""
 
 permissions:
   contents: read
 
 jobs:
+  # Play App Signing with our own key, so Play, GitHub and F-Droid builds share one signature:
+  # Play Console > App signing > "Export and upload a key from Java keystore" gives a per-app
+  # encryption public key; PEPK wraps the release key with it (only Google can unwrap it) and the
+  # resulting zip is uploaded back to the console. Runs here because the keystore password only
+  # lives in the repository secrets.
+  export-signing-key:
+    if: inputs.pepk_encryption_key != ''
+    runs-on: ubuntu-latest
+    environment: production-release
+
+    steps:
+      - name: Set up JDK 21
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Export the release key with PEPK
+        env:
+          ENCRYPTION_KEY: ${{ inputs.pepk_encryption_key }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          printf '%s\n' "$ENCRYPTION_KEY" > encryption_public_key.pem
+          if ! grep -q -- "-----BEGIN PUBLIC KEY-----" encryption_public_key.pem; then
+            echo "pepk_encryption_key is not a PEM public key"
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > release.keystore
+          curl -fsSL -o pepk.jar https://www.gstatic.com/play-apps-publisher-rapid/signing-tool/prod/pepk.jar
+          java -jar pepk.jar \
+            --keystore=release.keystore \
+            --alias="$ANDROID_KEY_ALIAS" \
+            --keystore-pass="$ANDROID_KEYSTORE_PASSWORD" \
+            --key-pass="$ANDROID_KEY_PASSWORD" \
+            --output=clashfest-play-signing-key.zip \
+            --include-cert \
+            --rsa-aes-encryption \
+            --encryption-key-path=encryption_public_key.pem
+
+      - name: Remove the keystore
+        if: always()
+        run: rm -f release.keystore
+
+      - name: Upload encrypted key
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: clashfest-play-signing-key
+          path: clashfest-play-signing-key.zip
+          if-no-files-found: error
+          retention-days: 1
+
   bundle:
+    if: inputs.pepk_encryption_key == ''
     runs-on: ubuntu-latest
     env:
       GOTOOLCHAIN: local
