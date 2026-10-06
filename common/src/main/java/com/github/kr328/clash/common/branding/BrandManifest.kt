@@ -91,6 +91,13 @@ data class BrandManifest(
     val lockConfigScript: Boolean? = null,
 
     /**
+     * Operator POLICY, read directly like [hideGlobalMode]: the proxy group whose current node is
+     * shown on the Home "Node" row and in the VPN notification. Ignored when the running config has
+     * no group by that name. See [BrandHeaders.PRIMARY_PROXY_GROUP].
+     */
+    val primaryProxyGroup: String? = null,
+
+    /**
      * Operator default for the node picker's group layout: [PROXY_GROUP_LAYOUT_TABS] or
      * [PROXY_GROUP_LAYOUT_DROPDOWN]. Read directly like [hideGlobalMode] (no branding gate), and only
      * seeds the choice — a layout the user picked themselves is never overridden.
@@ -128,6 +135,7 @@ data class BrandManifest(
             hideGlobalMode == null &&
             showOperatorTab == null &&
             lockConfigScript == null &&
+            primaryProxyGroup == null &&
             proxyGroupLayout == null &&
             enabled == null
 
@@ -154,13 +162,14 @@ data class BrandManifest(
 
     /**
      * True when the manifest carries an operator POLICY flag that applies WITHOUT branding being
-     * enabled ([hideGlobalMode], [lockConfigScript], [proxyGroupLayout]). Unlike [hasBrandIdentity], this ignores
+     * enabled ([hideGlobalMode], [lockConfigScript], [primaryProxyGroup], [proxyGroupLayout]). Unlike [hasBrandIdentity], this ignores
      * `X-Branding-Enabled` — policy is operator control, not cosmetic branding. The store and read
      * paths surface a manifest when this is true even if there's no visual brand, and it survives
      * the `X-Branding-Enabled: false` kill-switch.
      */
     fun hasPolicy(): Boolean =
-        hideGlobalMode == true || lockConfigScript == true || proxyGroupLayout != null
+        hideGlobalMode == true || lockConfigScript == true || !primaryProxyGroup.isNullOrBlank() ||
+            proxyGroupLayout != null
 
     /**
      * Pick the right logo URL for the user's current theme.

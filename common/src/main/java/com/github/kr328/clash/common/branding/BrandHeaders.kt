@@ -78,6 +78,14 @@ object BrandHeaders {
     const val LOCK_CONFIG_SCRIPT = "X-Brand-Lock-Config-Script"
 
     /**
+     * Operator policy: name of the proxy group whose current node feeds the Home "Node" row and the
+     * VPN notification. Display only — it never selects anything. Like [HIDE_GLOBAL_MODE] it applies
+     * without `X-Branding-Enabled: true`. [PRIMARY_PROXY_GROUP_ALIAS] is the unhyphenated spelling.
+     */
+    const val PRIMARY_PROXY_GROUP = "X-Brand-Primary-Proxy-Group"
+    const val PRIMARY_PROXY_GROUP_ALIAS = "X-Brand-PrimaryProxyGroup"
+
+    /**
      * Operator default for how the node picker lays out proxy groups: `tabs` (segment row) or
      * `dropdown` (collapsible group list). A default only — the user's own toggle wins once set.
      * Applies without `X-Branding-Enabled: true`. [PROXY_GROUP_LAYOUT_ALIAS] is the unhyphenated spelling.

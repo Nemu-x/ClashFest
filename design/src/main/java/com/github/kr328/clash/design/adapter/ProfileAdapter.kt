@@ -21,6 +21,7 @@ import com.github.kr328.clash.core.model.TunnelState
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.util.FlagDrawableLoader
 import com.github.kr328.clash.design.util.FlagParser
+import com.github.kr328.clash.design.util.elapsedIntervalString
 import com.github.kr328.clash.design.util.ParsedFlag
 import com.github.kr328.clash.design.util.toBytesString
 import com.github.kr328.clash.design.databinding.AdapterProfileBinding
@@ -42,6 +43,7 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.android.material.color.MaterialColors
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 class ProfileAdapter(
     private val onClicked: (Profile) -> Unit,
@@ -77,6 +79,7 @@ class ProfileAdapter(
     private var clashRunning: Boolean = false
     private var tunnelMode: TunnelState.Mode? = null
     private var lastGroupHint: String? = null
+    private var primaryProxyGroup: String? = null
     private var expandedUuids: Set<UUID> = emptySet()
     /** Offline proxy groups per profile (expanded cards that are not using live engine data). */
     private var offlinePreviewByProfile: Map<UUID, Map<String, ProxyGroupPreviewRow>> = emptyMap()
@@ -212,6 +215,18 @@ class ProfileAdapter(
         brandManifest = manifest
         this.onOpenBrandUrl = onOpenBrandUrl
         if (changed) notifyDataSetChanged()
+    }
+
+    /**
+     * Operator `X-Brand-Primary-Proxy-Group` for the active profile: pins which group's current node
+     * the summaries show. Ignored outside Rule/Direct mode (Global routes through GLOBAL) and when the
+     * config has no such group.
+     */
+    fun setPrimaryProxyGroup(name: String?) {
+        val cleaned = name?.takeIf { it.isNotBlank() }
+        if (cleaned == primaryProxyGroup) return
+        primaryProxyGroup = cleaned
+        notifyDataSetChanged()
     }
 
     fun setProxyGroupLayoutDefault(layout: String?) {
@@ -738,6 +753,7 @@ class ProfileAdapter(
         val groups = groupsForSelectionSummary(profile)
         if (groups.isEmpty()) return null
         val uuid = profile.uuid
+        primaryGroupIn(profile, groups)?.let { return it }
         val kept = selectedGroupIndex[uuid]?.takeIf { it in groups.indices }?.let { groups[it] }
         if (kept != null) {
             return kept
@@ -746,6 +762,13 @@ class ProfileAdapter(
         val index = groups.indexOf(picked).takeIf { it >= 0 } ?: 0
         selectedGroupIndex[uuid] = index.coerceIn(0, groups.lastIndex)
         return groups[selectedGroupIndex[uuid]!!]
+    }
+
+    /** The operator's primary group as named in [groups], when it applies to [profile]. */
+    private fun primaryGroupIn(profile: Profile, groups: List<String>): String? {
+        val primary = primaryProxyGroup ?: return null
+        if (profile.uuid != activeProfileUuid || tunnelMode == TunnelState.Mode.Global) return null
+        return groups.firstOrNull { groupsMatchKey(it, primary) }
     }
 
     private fun formatSelectionSummaryForHome(groupName: String): String = displayGroupName(groupName)
@@ -1048,7 +1071,10 @@ class ProfileAdapter(
             sheet.proxySheetEmpty.visibility = View.VISIBLE
         } else {
             val picked = resolvePreferredGroupFromList(profile, groupNames)
-            var idx = selectedGroupIndex[profile.uuid]
+            // Open on the operator's primary group: it's the one Home and the notification show,
+            // so "Change node" lands where the visible node lives.
+            var idx = primaryGroupIn(profile, groupNames)?.let(groupNames::indexOf)?.takeIf { it >= 0 }
+                ?: selectedGroupIndex[profile.uuid]
                 ?: groupNames.indexOf(picked).takeIf { i -> i >= 0 }
                 ?: 0
             if (idx >= groupNames.size) idx = 0
@@ -1686,6 +1712,24 @@ class ProfileAdapter(
         }
     }
 
+    /** "Updated 2 hours ago" for subscription (URL) profiles; hidden for files and unsaved drafts. */
+    private fun bindUpdatedSummary(holder: Holder, profile: Profile, context: Context) {
+        val view = holder.binding.updatedSummary
+        val show = profile.type == Profile.Type.Url && profile.imported && !profile.pending &&
+            profile.updatedAt > 0L
+        if (!show) {
+            view.visibility = View.GONE
+            return
+        }
+        val elapsed = (System.currentTimeMillis() - profile.updatedAt).coerceAtLeast(0L)
+        view.text = if (elapsed < TimeUnit.MINUTES.toMillis(1)) {
+            context.getString(R.string.profile_updated_just_now)
+        } else {
+            context.getString(R.string.profile_updated_fmt, elapsed.elapsedIntervalString(context))
+        }
+        view.visibility = View.VISIBLE
+    }
+
     private fun bindUsageAndProgress(holder: Holder, profile: Profile) {
         val binding = holder.binding
         val used = profile.upload + profile.download
@@ -1754,9 +1798,11 @@ class ProfileAdapter(
         applyActiveVisuals(holder, current)
         bindUsageAndProgress(holder, current)
         bindExpiryChip(holder, current, context)
+        bindUpdatedSummary(holder, current, context)
         if (compactHomeCard) {
             binding.usageSummary.visibility = View.GONE
             binding.usageProgress.visibility = View.GONE
+            binding.updatedSummary.visibility = View.GONE
         }
 
         val canExpandProxiesInline =

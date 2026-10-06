@@ -1271,6 +1271,8 @@ Password: %4$s</string>
     <string name="latency_target_invalid">Enter a site like example.com</string>
     <string name="latency_target_run">Test</string>
     <string name="latency_target_nothing_to_test">No nodes to test in this group</string>
+    <string name="profile_updated_fmt">Updated %s</string>
+    <string name="profile_updated_just_now">Updated just now</string>
     <string name="proxy_layout_show_dropdown">Show groups as dropdown lists</string>
     <string name="proxy_layout_show_tabs">Show groups as tabs</string>
 </resources>

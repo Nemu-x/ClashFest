@@ -47,6 +47,21 @@ func TestFilterPersistsOperatorPolicyHeaders(t *testing.T) {
 	}
 }
 
+func TestFilterPersistsPrimaryProxyGroupHeader(t *testing.T) {
+	got := Filter(map[string][]string{
+		"X-Brand-Primary-Proxy-Group": {"Proxy"},
+		"X-Brand-PrimaryProxyGroup":   {"Прокси"},
+	})
+
+	want := map[string]string{
+		"x-brand-primary-proxy-group": "Proxy",
+		"x-brand-primaryproxygroup":   "Прокси",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("primary proxy group header not persisted: %#v", got)
+	}
+}
+
 func TestFilterPersistsProxyGroupLayoutHeader(t *testing.T) {
 	got := Filter(map[string][]string{
 		"X-Brand-Proxy-Group-Layout": {"dropdown"},

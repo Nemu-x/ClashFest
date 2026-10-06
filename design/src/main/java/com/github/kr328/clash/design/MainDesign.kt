@@ -526,6 +526,8 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             profileAdapter.setBrandManifest(holder.manifest) { url ->
                 onOpenBrandUrl?.invoke(url)
             }
+            profileAdapter.setPrimaryProxyGroup(holder.manifest.primaryProxyGroup)
+            tabProfileAdapter.setPrimaryProxyGroup(holder.manifest.primaryProxyGroup)
             profileAdapter.setProxyGroupLayoutDefault(holder.manifest.proxyGroupLayout)
             tabProfileAdapter.setProxyGroupLayoutDefault(holder.manifest.proxyGroupLayout)
         }
@@ -1417,6 +1419,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         val fHelp = field(cur.helpUrl); val fStatus = field(cur.statusUrl)
         val fRenew = field(cur.renewUrl); val fCabinet = field(cur.cabinetUrl)
         val fUser = field(cur.userDisplayName); val fGreeting = field(cur.greeting)
+        val fPrimaryGroup = field(cur.primaryProxyGroup)
         val fGroupLayout = field(cur.proxyGroupLayout)
         val sEnabled = boolSpinner(cur.enabled ?: true)      // default Yes so Apply themes immediately
         val sHideRouting = boolSpinner(cur.hideRouting)
@@ -1445,6 +1448,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         row("Hide Routing tab", sHideRouting); row("Show Operator tab", sOperatorTab)
         row("Hide Global mode (policy — works even with Enabled=No)", sHideGlobal)
         row("User display name", fUser); row("Greeting", fGreeting)
+        row("Primary proxy group (policy)", fPrimaryGroup)
         row("Proxy group layout: tabs / dropdown (policy)", fGroupLayout)
         row("Website URL", fWebsite); row("Support URL", fSupport); row("Telegram URL", fTelegram)
         row("Bot URL", fBot); row("Privacy URL", fPrivacy); row("Terms URL", fTerms)
@@ -1490,6 +1494,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
                         hideRouting = sHideRouting.boolValue(), showOperatorTab = sOperatorTab.boolValue(),
                         hideGlobalMode = sHideGlobal.boolValue(),
                         lockConfigScript = cur.lockConfigScript,
+                        primaryProxyGroup = s(fPrimaryGroup),
                         proxyGroupLayout = com.github.kr328.clash.common.branding.BrandValidation
                             .parseProxyGroupLayout(s(fGroupLayout)),
                         enabled = sEnabled.boolValue(),
