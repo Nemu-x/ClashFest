@@ -305,6 +305,8 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         { profile, group -> profileVisibleGroupChanged.trySend(profile to group) },
         { profile, group, proxy -> proxyPingNodeRequests.trySend(Triple(profile, group, proxy)) },
         expandOnProfileClick = true,
+        readProxyGroupLayout = { uiStore.proxyGroupLayout },
+        writeProxyGroupLayout = { uiStore.proxyGroupLayout = it },
     )
 
     /**
@@ -332,6 +334,8 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         expandOnProfileClick = false,
         showServerChooserInCard = true,
         showActivateButton = false,
+        readProxyGroupLayout = { uiStore.proxyGroupLayout },
+        writeProxyGroupLayout = { uiStore.proxyGroupLayout = it },
     )
     private var tabProfilesAll: List<Profile> = emptyList()
     private val tabItemTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(
@@ -522,6 +526,8 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             profileAdapter.setBrandManifest(holder.manifest) { url ->
                 onOpenBrandUrl?.invoke(url)
             }
+            profileAdapter.setProxyGroupLayoutDefault(holder.manifest.proxyGroupLayout)
+            tabProfileAdapter.setProxyGroupLayoutDefault(holder.manifest.proxyGroupLayout)
         }
     }
 
@@ -1411,6 +1417,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         val fHelp = field(cur.helpUrl); val fStatus = field(cur.statusUrl)
         val fRenew = field(cur.renewUrl); val fCabinet = field(cur.cabinetUrl)
         val fUser = field(cur.userDisplayName); val fGreeting = field(cur.greeting)
+        val fGroupLayout = field(cur.proxyGroupLayout)
         val sEnabled = boolSpinner(cur.enabled ?: true)      // default Yes so Apply themes immediately
         val sHideRouting = boolSpinner(cur.hideRouting)
         val sHideGlobal = boolSpinner(cur.hideGlobalMode)
@@ -1438,6 +1445,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         row("Hide Routing tab", sHideRouting); row("Show Operator tab", sOperatorTab)
         row("Hide Global mode (policy — works even with Enabled=No)", sHideGlobal)
         row("User display name", fUser); row("Greeting", fGreeting)
+        row("Proxy group layout: tabs / dropdown (policy)", fGroupLayout)
         row("Website URL", fWebsite); row("Support URL", fSupport); row("Telegram URL", fTelegram)
         row("Bot URL", fBot); row("Privacy URL", fPrivacy); row("Terms URL", fTerms)
         row("Help URL", fHelp); row("Status URL", fStatus); row("Renew URL", fRenew); row("Cabinet URL", fCabinet)
@@ -1481,6 +1489,9 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
                         cabinetUrl = s(fCabinet), userDisplayName = s(fUser), greeting = s(fGreeting),
                         hideRouting = sHideRouting.boolValue(), showOperatorTab = sOperatorTab.boolValue(),
                         hideGlobalMode = sHideGlobal.boolValue(),
+                        lockConfigScript = cur.lockConfigScript,
+                        proxyGroupLayout = com.github.kr328.clash.common.branding.BrandValidation
+                            .parseProxyGroupLayout(s(fGroupLayout)),
                         enabled = sEnabled.boolValue(),
                     ),
                 )

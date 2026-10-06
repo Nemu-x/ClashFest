@@ -58,7 +58,7 @@ object BrandRefresh {
         val previous = store.manifestFor(sourceProfile)
 
         // Explicit kill-switch from the operator → wipe COSMETIC branding. Operator POLICY flags
-        // (hideGlobalMode, lockConfigScript) are not branding and survive the kill-switch — persist
+        // (hideGlobalMode, lockConfigScript, proxyGroupLayout) are not branding and survive the kill-switch — persist
         // a policy-only manifest instead of clearing outright when the fresh response still
         // carries policy.
         if (manifest.enabled == false) {
@@ -66,6 +66,7 @@ object BrandRefresh {
                 val policyOnly = BrandManifest(
                     hideGlobalMode = manifest.hideGlobalMode,
                     lockConfigScript = manifest.lockConfigScript,
+                    proxyGroupLayout = manifest.proxyGroupLayout,
                     enabled = false,
                 )
                 store.setManifest(sourceProfile, policyOnly)

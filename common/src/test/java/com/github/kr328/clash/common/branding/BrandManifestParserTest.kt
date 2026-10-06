@@ -259,4 +259,32 @@ class BrandManifestParserTest {
         assertEquals(true, m.lockConfigScript)
         assertEquals("Example VPN", m.name)
     }
+
+    @Test
+    fun proxyGroupLayout_isPolicy_appliesWithoutBrandingEnabled() {
+        val m = parse(mapOf(BrandHeaders.PROXY_GROUP_LAYOUT to "dropdown"))
+        assertEquals(BrandManifest.PROXY_GROUP_LAYOUT_DROPDOWN, m.proxyGroupLayout)
+        assertNull(m.enabled)
+        assertTrue(m.hasPolicy())
+        assertTrue(!m.hasBrandIdentity())
+    }
+
+    @Test
+    fun proxyGroupLayout_acceptsAliasAndSynonyms() {
+        assertEquals(
+            BrandManifest.PROXY_GROUP_LAYOUT_TABS,
+            parse(mapOf(BrandHeaders.PROXY_GROUP_LAYOUT_ALIAS to "Tab")).proxyGroupLayout,
+        )
+        assertEquals(
+            BrandManifest.PROXY_GROUP_LAYOUT_DROPDOWN,
+            parse(mapOf(BrandHeaders.PROXY_GROUP_LAYOUT to "\"list\"")).proxyGroupLayout,
+        )
+    }
+
+    @Test
+    fun proxyGroupLayout_unknownValue_isAbsent() {
+        val m = parse(mapOf(BrandHeaders.PROXY_GROUP_LAYOUT to "grid"))
+        assertNull(m.proxyGroupLayout)
+        assertTrue(!m.hasPolicy())
+    }
 }

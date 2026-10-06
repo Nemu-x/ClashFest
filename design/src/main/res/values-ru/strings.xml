@@ -1263,4 +1263,6 @@
     <string name="latency_target_invalid">Введите сайт, например example.com</string>
     <string name="latency_target_run">Проверить</string>
     <string name="latency_target_nothing_to_test">В этой группе нечего проверять</string>
+    <string name="proxy_layout_show_dropdown">Группы выпадающими списками</string>
+    <string name="proxy_layout_show_tabs">Группы вкладками</string>
 </resources>

@@ -116,6 +116,7 @@ All URL fields accept `https://`, `tg://`, `mailto:`, `t.me/`
 | `X-Brand-Hide-Routing` | boolean | Hides the Routing tab from the bottom nav (three tabs). Paired with `Show-Operator-Tab=true`, Operator takes Routing's slot instead. |
 | `X-Brand-Hide-Global-Mode` | boolean | **Policy, no `X-Branding-Enabled` needed:** hides the Home Global mode button and pins Rule mode. |
 | `X-Brand-Lock-Config-Script` | boolean | **Policy, no `X-Branding-Enabled` needed:** disables the per-profile config script editor for that subscription. |
+| `X-Brand-Proxy-Group-Layout` | `tabs` \| `dropdown` | **Policy, no `X-Branding-Enabled` needed:** default node-picker layout; the user's own toggle overrides it. Alias `X-Brand-ProxyGroupLayout`. |
 
 ---
 

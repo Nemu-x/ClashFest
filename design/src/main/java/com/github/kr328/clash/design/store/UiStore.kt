@@ -150,6 +150,15 @@ class UiStore(context: Context) {
         values = ProxySort.values()
     )
 
+    /**
+     * Node-picker group layout the user chose: "tabs" / "dropdown", or "" when they never toggled —
+     * then the operator's `X-Brand-Proxy-Group-Layout` (or tabs) applies.
+     */
+    var proxyGroupLayout: String by store.string(
+        key = "proxy_group_layout",
+        defaultValue = ""
+    )
+
     var proxyLastGroup: String by store.string(
         key = "proxy_last_group",
         defaultValue = ""

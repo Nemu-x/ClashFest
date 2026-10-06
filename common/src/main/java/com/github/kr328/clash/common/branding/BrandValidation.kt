@@ -84,6 +84,16 @@ object BrandValidation {
         return "#" + v.substring(1).uppercase()
     }
 
+    /** `tabs` / `dropdown` (plus the obvious singular / synonym spellings); anything else is absent. */
+    fun parseProxyGroupLayout(raw: String?): String? {
+        if (raw.isNullOrBlank()) return null
+        return when (raw.trim().lowercase()) {
+            "tabs", "tab" -> BrandManifest.PROXY_GROUP_LAYOUT_TABS
+            "dropdown", "dropdowns", "list", "accordion" -> BrandManifest.PROXY_GROUP_LAYOUT_DROPDOWN
+            else -> null
+        }
+    }
+
     fun parseBoolean(raw: String?): Boolean? {
         if (raw.isNullOrBlank()) return null
         return when (raw.trim().lowercase()) {

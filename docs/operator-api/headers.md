@@ -303,9 +303,25 @@ wipes cosmetic branding).
 |---|---|
 | Type | boolean |
 | Status | **v4** |
-| Needs `X-Branding-Enabled`? | **No** — this is the one header that works fully unbranded. |
+| Needs `X-Branding-Enabled`? | **No** — policy headers work fully unbranded. |
 | Applied to | Hides the Home **Global** mode button and pins the app to **Rule** (if the user was in Global, it flips back to Rule). The "Mode" row and the Rule button stay visible. |
-| Notes | Operator control, not branding: stops users from routing all traffic through the proxy and bypassing rules. Because it's policy, it takes effect whether `X-Branding-Enabled` is absent, `true`, or `false`. Every other `X-Brand-*` header still requires `X-Branding-Enabled: true`. |
+| Notes | Operator control, not branding: stops users from routing all traffic through the proxy and bypassing rules. Because it's policy, it takes effect whether `X-Branding-Enabled` is absent, `true`, or `false`. Every non-policy `X-Brand-*` header still requires `X-Branding-Enabled: true`. |
+
+### `X-Brand-Proxy-Group-Layout`
+
+| | |
+|---|---|
+| Type | `tabs` \| `dropdown` (also accepted: `tab`, `list`, `accordion`) |
+| Alias | `X-Brand-ProxyGroupLayout` |
+| Status | proposed |
+| Needs `X-Branding-Enabled`? | **No** |
+| Applied to | Default layout of the node picker opened from the Home **Node** row: `tabs` = one group at a time behind a row of group tabs; `dropdown` = every group as a collapsible row showing its current choice, nodes listed under the expanded ones. |
+| Fallback | Absent / unknown value → `tabs`. |
+| Notes | A **default only**: the picker has a layout toggle, and once the user has used it their choice wins over this header for good. |
+
+```
+X-Brand-Proxy-Group-Layout: dropdown
+```
 
 ---
 

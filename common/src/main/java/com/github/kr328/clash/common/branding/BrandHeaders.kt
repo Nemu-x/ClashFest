@@ -78,6 +78,14 @@ object BrandHeaders {
     const val LOCK_CONFIG_SCRIPT = "X-Brand-Lock-Config-Script"
 
     /**
+     * Operator default for how the node picker lays out proxy groups: `tabs` (segment row) or
+     * `dropdown` (collapsible group list). A default only — the user's own toggle wins once set.
+     * Applies without `X-Branding-Enabled: true`. [PROXY_GROUP_LAYOUT_ALIAS] is the unhyphenated spelling.
+     */
+    const val PROXY_GROUP_LAYOUT = "X-Brand-Proxy-Group-Layout"
+    const val PROXY_GROUP_LAYOUT_ALIAS = "X-Brand-ProxyGroupLayout"
+
+    /**
      * Explicit opt-in for the dedicated Operator tab. Brand identity / accent /
      * logo apply on their own; the Operator tab is an extra surface and the
      * operator chooses whether to enable it.

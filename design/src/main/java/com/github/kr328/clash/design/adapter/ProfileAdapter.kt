@@ -2,6 +2,8 @@ package com.github.kr328.clash.design.adapter
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Canvas
+import android.graphics.drawable.Drawable
 import android.os.Handler
 import android.os.Looper
 import android.view.View
@@ -10,7 +12,6 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -57,6 +58,9 @@ class ProfileAdapter(
     private val expandOnProfileClick: Boolean = false,
     private val showServerChooserInCard: Boolean = true,
     private val showActivateButton: Boolean = true,
+    /** The user's own picker layout choice ("tabs" / "dropdown"), "" when never toggled. */
+    private val readProxyGroupLayout: () -> String = { "" },
+    private val writeProxyGroupLayout: (String) -> Unit = {},
 ) : RecyclerView.Adapter<ProfileAdapter.Holder>() {
     class Holder(val binding: AdapterProfileBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -105,6 +109,12 @@ class ProfileAdapter(
      * ping-all tick (which only runs while a whole-group test is active).
      */
     private var sheetDelayPatcher: ((proxyName: String) -> Unit)? = null
+    /** Re-renders an open picker sheet when live group detail lands (header summaries / new rows). */
+    private var sheetDetailsRefresher: (() -> Unit)? = null
+    /** Operator default for the picker layout (`X-Brand-Proxy-Group-Layout`), used until the user toggles. */
+    private var proxyGroupLayoutDefault: String? = null
+    /** Expanded groups of the dropdown picker layout, per profile, kept across sheet opens. */
+    private val sheetExpandedGroups = HashMap<UUID, MutableSet<String>>()
 
     private fun markNodePingPending(proxyName: String): Boolean {
         if (!pendingNodePings.add(proxyName)) return false
@@ -166,6 +176,20 @@ class ProfileAdapter(
         data class Provider(val name: String) : ProxyPickerFilter()
     }
 
+    /** One row of the picker list: a collapsible group header (dropdown layout only) or a node. */
+    private sealed class PickerItem {
+        data class Header(
+            val groupIndex: Int,
+            val groupName: String,
+            val summary: String?,
+            val count: Int,
+            val expanded: Boolean,
+            val pinging: Boolean,
+        ) : PickerItem()
+
+        data class Node(val row: ProxyPickerRow) : PickerItem()
+    }
+
     private data class ProxyPickerRow(
         val groupName: String,
         val groupIndex: Int,
@@ -188,6 +212,15 @@ class ProfileAdapter(
         brandManifest = manifest
         this.onOpenBrandUrl = onOpenBrandUrl
         if (changed) notifyDataSetChanged()
+    }
+
+    fun setProxyGroupLayoutDefault(layout: String?) {
+        proxyGroupLayoutDefault = layout
+    }
+
+    private fun isDropdownLayout(): Boolean {
+        val layout = readProxyGroupLayout().ifBlank { proxyGroupLayoutDefault.orEmpty() }
+        return layout == BrandManifest.PROXY_GROUP_LAYOUT_DROPDOWN
     }
 
     fun setActiveAnnouncement(
@@ -456,6 +489,7 @@ class ProfileAdapter(
                 }
             }
         }
+        sheetDetailsRefresher?.invoke()
         active ?: return
         val i = profiles.indexOfFirst { it.uuid == active }
         if (i >= 0) {
@@ -1019,6 +1053,9 @@ class ProfileAdapter(
                 ?: 0
             if (idx >= groupNames.size) idx = 0
             selectedGroupIndex[profile.uuid] = idx
+            var dropdown = isDropdownLayout()
+            val expandedGroups = sheetExpandedGroups.getOrPut(profile.uuid) { linkedSetOf(groupNames[idx]) }
+            expandedGroups.retainAll(groupNames.toSet())
             var query = ""
             var sort = ProxyPickerSort.Config
             var filter: ProxyPickerFilter = ProxyPickerFilter.CurrentGroup
@@ -1110,32 +1147,78 @@ class ProfileAdapter(
             // so delay capsules update without a flicker.
             sheet.proxySheetNodesList.itemAnimator = null
             ContextCompat.getDrawable(context, R.drawable.divider_node_hairline)?.let { d ->
-                sheet.proxySheetNodesList.addItemDecoration(
-                    DividerItemDecoration(context, DividerItemDecoration.VERTICAL).apply { setDrawable(d) },
-                )
+                sheet.proxySheetNodesList.addItemDecoration(NodeDividerDecoration(d))
+            }
+
+            fun isGroupPinging(groupName: String): Boolean =
+                states.pingingUuid == profile.uuid && pingingGroupByUuid[profile.uuid] == groupName
+
+            /**
+             * Dropdown layout: every group is a collapsible header with its nodes underneath when
+             * expanded. Search / sort / filter apply inside each group; while they narrow the list,
+             * groups without a match are dropped and the rest open so the matches are visible.
+             */
+            fun dropdownItems(selectedIndex: Int): List<PickerItem> {
+                val allRows = rowsForCurrentGroup(selectedIndex)
+                val narrowing = query.isNotBlank() ||
+                    (filter != ProxyPickerFilter.All && filter != ProxyPickerFilter.CurrentGroup)
+                return buildList {
+                    groupNames.forEachIndexed { index, groupName ->
+                        val groupRows = allRows.filter { it.groupIndex == index }
+                        val shown = applyProxyPickerControls(
+                            rows = groupRows,
+                            query = query,
+                            sort = sort,
+                            filter = filter,
+                            currentGroupIndex = index,
+                        )
+                        if (narrowing && shown.isEmpty()) return@forEachIndexed
+                        val expanded = narrowing || groupName in expandedGroups
+                        add(
+                            PickerItem.Header(
+                                groupIndex = index,
+                                groupName = groupName,
+                                summary = groupSelectionSummary(profile, groupName),
+                                count = groupRows.size,
+                                expanded = expanded,
+                                pinging = isGroupPinging(groupName),
+                            ),
+                        )
+                        if (expanded) shown.forEach { add(PickerItem.Node(it)) }
+                    }
+                }
             }
 
             fun render(selectedIndex: Int) {
                 selectedGroupIndex[profile.uuid] = selectedIndex
-                renderGroupSegmentsInto(
-                    sheet.proxySheetGroupSegments,
-                    profile,
-                    groupNames,
-                    selectedIndex,
-                ) { index, group ->
-                    render(index)
-                    reportVisibleGroup(profile, group, force = true)
+                sheet.proxySheetGroupScroll.visibility = if (dropdown) View.GONE else View.VISIBLE
+                if (!dropdown) {
+                    renderGroupSegmentsInto(
+                        sheet.proxySheetGroupSegments,
+                        profile,
+                        groupNames,
+                        selectedIndex,
+                    ) { index, group ->
+                        render(index)
+                        reportVisibleGroup(profile, group, force = true)
+                    }
                 }
-                val rows = applyProxyPickerControls(
-                    rows = rowsForCurrentGroup(selectedIndex),
-                    query = query,
-                    sort = sort,
-                    filter = filter,
-                    currentGroupIndex = selectedIndex,
-                )
-                nodeAdapter.showGroupInSubtitle = rows.map { it.groupName }.distinct().size > 1
-                nodeAdapter.submitList(rows)
-                if (rows.isEmpty()) {
+                val items = if (dropdown) {
+                    nodeAdapter.showGroupInSubtitle = false
+                    dropdownItems(selectedIndex)
+                } else {
+                    val rows = applyProxyPickerControls(
+                        rows = rowsForCurrentGroup(selectedIndex),
+                        query = query,
+                        sort = sort,
+                        filter = filter,
+                        currentGroupIndex = selectedIndex,
+                    )
+                    nodeAdapter.showGroupInSubtitle = rows.map { it.groupName }.distinct().size > 1
+                    rows.map { PickerItem.Node(it) }
+                }
+                nodeAdapter.submitList(items)
+                if (items.isEmpty()) {
                     val groupHasNodes = rowsForCurrentGroup(selectedIndex).isNotEmpty()
                     sheet.proxySheetEmpty.text =
                         context.getString(proxyPickerEmptyHint(profile, groupNames.getOrNull(selectedIndex), groupHasNodes))
@@ -1146,7 +1229,7 @@ class ProfileAdapter(
                 bindTestedAgo(sheet, profile, context)
                 if (selectedScrolledGroupIndex != selectedIndex) {
                     selectedScrolledGroupIndex = selectedIndex
-                    scrollProxyPickerToSelected(sheet, rows)
+                    scrollProxyPickerToSelected(sheet, items, selectedIndex)
                 }
             }
             renderFn = ::render
@@ -1176,8 +1259,13 @@ class ProfileAdapter(
                             // re-filter, so the structure stays frozen and the user can keep
                             // scrolling and tapping). DiffUtil rebinds only the capsules whose
                             // delay actually changed — no full re-inflate.
-                            val patched = nodeAdapter.currentList.map {
-                                it.copy(delayMs = resolveProxyDelay(profile.uuid, it.proxy))
+                            val patched = nodeAdapter.currentList.map { item ->
+                                when (item) {
+                                    is PickerItem.Node -> PickerItem.Node(
+                                        item.row.copy(delayMs = resolveProxyDelay(profile.uuid, item.row.proxy)),
+                                    )
+                                    is PickerItem.Header -> item.copy(pinging = isGroupPinging(item.groupName))
+                                }
                             }
                             nodeAdapter.submitList(patched)
                         }
@@ -1235,6 +1323,7 @@ class ProfileAdapter(
 
             fun startPing(groupName: String, names: List<String>, testUrl: String) {
                 lastPingAllAt[profile.uuid] = System.currentTimeMillis()
+                pingingGroupByUuid[profile.uuid] = groupName
                 onPingAll(profile, groupName, names, testUrl)
                 sheet.root.post(refreshRunnable)
             }
@@ -1339,6 +1428,40 @@ class ProfileAdapter(
                 }.show()
             }
 
+            nodeAdapter.onHeaderToggle = { header ->
+                if (!expandedGroups.remove(header.groupName)) {
+                    expandedGroups.add(header.groupName)
+                    reportVisibleGroup(profile, header.groupName, force = true)
+                }
+                render(header.groupIndex)
+            }
+            nodeAdapter.onHeaderPing = { header ->
+                val names = rowsForCurrentGroup(header.groupIndex)
+                    .filter { it.groupIndex == header.groupIndex }
+                    .map { it.proxy.name }
+                if (names.isNotEmpty()) startPing(header.groupName, names, "")
+            }
+
+            fun bindLayoutButton() {
+                val button = sheet.proxySheetLayoutButton
+                button.setIconResource(if (dropdown) R.drawable.ic_view_tabs else R.drawable.ic_view_dropdown)
+                val label = context.getString(
+                    if (dropdown) R.string.proxy_layout_show_tabs else R.string.proxy_layout_show_dropdown,
+                )
+                button.contentDescription = label
+                TooltipCompat.setTooltipText(button, label)
+            }
+            sheet.proxySheetLayoutButton.setOnClickListener {
+                dropdown = !dropdown
+                writeProxyGroupLayout(
+                    if (dropdown) BrandManifest.PROXY_GROUP_LAYOUT_DROPDOWN else BrandManifest.PROXY_GROUP_LAYOUT_TABS,
+                )
+                bindLayoutButton()
+                selectedScrolledGroupIndex = null
+                render((selectedGroupIndex[profile.uuid] ?: 0).coerceIn(0, groupNames.lastIndex))
+            }
+
+            bindLayoutButton()
             updateControlLabels()
             render(idx)
             reportVisibleGroup(profile, groupNames[idx])
@@ -1347,15 +1470,17 @@ class ProfileAdapter(
             sheetDelayPatcher = { proxyName ->
                 if (dialog.isShowing) {
                     val list = nodeAdapter.currentList
-                    val idx = list.indexOfFirst { it.proxy.name == proxyName }
+                    val idx = list.indexOfFirst { it is PickerItem.Node && it.row.proxy.name == proxyName }
                     if (idx >= 0) {
                         // Resolve against the LIVE engine detail, not the row's own Proxy snapshot:
                         // rows are built once per render, so their embedded delay is stale by now.
-                        val row = list[idx]
+                        val row = (list[idx] as PickerItem.Node).row
                         val fresh = proxyDetails[row.groupName]?.proxies?.firstOrNull { it.name == proxyName }
                             ?: row.proxy
                         val patched = list.toMutableList().also { rows ->
-                            rows[idx] = row.copy(proxy = fresh, delayMs = resolveProxyDelay(profile.uuid, fresh))
+                            rows[idx] = PickerItem.Node(
+                                row.copy(proxy = fresh, delayMs = resolveProxyDelay(profile.uuid, fresh)),
+                            )
                         }
                         // notifyItemChanged after submitList: DiffUtil skips a row whose delay did
                         // not change, but its "…" text still has to be replaced by the value.
@@ -1363,7 +1488,17 @@ class ProfileAdapter(
                     }
                 }
             }
+            // Live detail for a just-opened group lands after the first render; repaint so headers
+            // pick up the group's choice and new rows appear. Frozen while a ping runs (the ping
+            // tick owns the list then and re-renders once when it ends).
+            sheetDetailsRefresher = {
+                if (dialog.isShowing && states.pingingUuid != profile.uuid) {
+                    invalidateRowCache()
+                    render((selectedGroupIndex[profile.uuid] ?: 0).coerceIn(0, groupNames.lastIndex))
+                }
+            }
             dialog.setOnDismissListener {
+                sheetDetailsRefresher = null
                 sheetDelayPatcher = null
                 sheet.root.removeCallbacks(refreshRunnable)
                 pendingSearch?.let(sheet.proxySheetSearch::removeCallbacks)
@@ -2097,20 +2232,99 @@ class ProfileAdapter(
             oldItem == newItem
     }
 
+    private val pickerItemDiff = object : DiffUtil.ItemCallback<PickerItem>() {
+        override fun areItemsTheSame(oldItem: PickerItem, newItem: PickerItem): Boolean = when {
+            oldItem is PickerItem.Header && newItem is PickerItem.Header ->
+                oldItem.groupName == newItem.groupName
+            oldItem is PickerItem.Node && newItem is PickerItem.Node ->
+                proxyNodeDiff.areItemsTheSame(oldItem.row, newItem.row)
+            else -> false
+        }
+
+        override fun areContentsTheSame(oldItem: PickerItem, newItem: PickerItem): Boolean =
+            oldItem == newItem
+    }
+
     private inner class ProxyNodeAdapter(
         private val profile: Profile,
         private val onSelectionChanged: () -> Unit,
-    ) : ListAdapter<ProxyPickerRow, ProxyNodeViewHolder>(proxyNodeDiff) {
+    ) : ListAdapter<PickerItem, ProxyNodeViewHolder>(pickerItemDiff) {
         /** Recomputed by the caller before each submit; true when the rows span more than one group. */
         var showGroupInSubtitle: Boolean = false
+        var onHeaderToggle: (PickerItem.Header) -> Unit = {}
+        var onHeaderPing: (PickerItem.Header) -> Unit = {}
+
+        override fun getItemViewType(position: Int): Int =
+            if (getItem(position) is PickerItem.Header) PICKER_VIEW_HEADER else PICKER_VIEW_NODE
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ProxyNodeViewHolder {
-            val v = parent.context.layoutInflater.inflate(R.layout.adapter_home_proxy_node, parent, false)
-            return ProxyNodeViewHolder(v)
+            val layout = if (viewType == PICKER_VIEW_HEADER) {
+                R.layout.item_proxy_group_header
+            } else {
+                R.layout.adapter_home_proxy_node
+            }
+            return ProxyNodeViewHolder(parent.context.layoutInflater.inflate(layout, parent, false))
         }
 
         override fun onBindViewHolder(holder: ProxyNodeViewHolder, position: Int) {
-            bindProxyNodeRow(holder.itemView, profile, getItem(position), showGroupInSubtitle, onSelectionChanged)
+            when (val item = getItem(position)) {
+                is PickerItem.Header -> bindPickerGroupHeader(holder.itemView, item, onHeaderToggle, onHeaderPing)
+                is PickerItem.Node ->
+                    bindProxyNodeRow(holder.itemView, profile, item.row, showGroupInSubtitle, onSelectionChanged)
+            }
+        }
+    }
+
+    private fun bindPickerGroupHeader(
+        view: View,
+        item: PickerItem.Header,
+        onToggle: (PickerItem.Header) -> Unit,
+        onPing: (PickerItem.Header) -> Unit,
+    ) {
+        view.findViewById<TextView>(R.id.group_block_name).text = displayGroupName(item.groupName)
+        view.findViewById<TextView>(R.id.group_block_summary).apply {
+            text = item.summary.orEmpty()
+            visibility = if (item.summary.isNullOrBlank()) View.GONE else View.VISIBLE
+        }
+        view.findViewById<TextView>(R.id.group_block_count).text = item.count.toString()
+        view.findViewById<View>(R.id.group_block_chevron).rotation = if (item.expanded) 0f else -90f
+        view.findViewById<View>(R.id.group_block_ping_progress).visibility =
+            if (item.pinging) View.VISIBLE else View.GONE
+        view.findViewById<View>(R.id.group_block_ping).apply {
+            visibility = if (item.pinging) View.INVISIBLE else View.VISIBLE
+            setOnClickListener { onPing(item) }
+        }
+        view.findViewById<View>(R.id.group_block_header).setOnClickListener { onToggle(item) }
+    }
+
+    /** Current choice of [groupName] as the accordion summary shows it (pending pick wins). */
+    private fun groupSelectionSummary(profile: Profile, groupName: String): String? {
+        val pg = proxyGroupForRow(profile, groupName)
+        val pendingChoice = pendingMapValueForGroup(profile.uuid, groupName)?.takeIf { it.isNotBlank() }
+        val selectedName = pendingChoice ?: pg?.now
+        return selectedName?.takeIf { it.isNotBlank() }?.let { name ->
+            pg?.proxies?.firstOrNull { it.name == name }?.let { it.title.ifBlank { it.name } } ?: name
+        }
+    }
+
+    /** Hairline between two adjacent node rows only — never around the dropdown layout's group headers. */
+    private class NodeDividerDecoration(private val divider: Drawable) : RecyclerView.ItemDecoration() {
+        override fun onDraw(c: Canvas, parent: RecyclerView, state: RecyclerView.State) {
+            val adapter = parent.adapter ?: return
+            for (i in 0 until parent.childCount - 1) {
+                val child = parent.getChildAt(i)
+                val position = parent.getChildAdapterPosition(child)
+                val nextPosition = parent.getChildAdapterPosition(parent.getChildAt(i + 1))
+                if (position == RecyclerView.NO_POSITION || nextPosition != position + 1) continue
+                if (adapter.getItemViewType(position) != PICKER_VIEW_NODE ||
+                    adapter.getItemViewType(nextPosition) != PICKER_VIEW_NODE
+                ) {
+                    continue
+                }
+                val top = child.bottom + child.translationY.toInt()
+                divider.setBounds(parent.paddingLeft, top, parent.width - parent.paddingRight, top + divider.intrinsicHeight)
+                divider.draw(c)
+            }
         }
     }
 
@@ -2251,9 +2465,13 @@ class ProfileAdapter(
 
     private fun scrollProxyPickerToSelected(
         sheet: BottomSheetProxyGroupsBinding,
-        rows: List<ProxyPickerRow>,
+        items: List<PickerItem>,
+        groupIndex: Int,
     ) {
-        val index = rows.indexOfFirst { it.selected }
+        val dropdown = items.any { it is PickerItem.Header }
+        val index = items.indexOfFirst {
+            it is PickerItem.Node && it.row.selected && (!dropdown || it.row.groupIndex == groupIndex)
+        }
         if (index < 0) return
         sheet.proxySheetNodesList.post {
             (sheet.proxySheetNodesList.layoutManager as? LinearLayoutManager)
@@ -2579,6 +2797,9 @@ class ProfileAdapter(
 
         /** Coalesce window for live URL-test delay pushes (one card rebind instead of N). */
         const val ACTIVE_CARD_NOTIFY_DEBOUNCE_MS = 250L
+
+        const val PICKER_VIEW_NODE = 0
+        const val PICKER_VIEW_HEADER = 1
     }
 }
 
