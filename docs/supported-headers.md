@@ -117,6 +117,7 @@ All URL fields accept `https://`, `tg://`, `mailto:`, `t.me/`
 | `X-Brand-Hide-Global-Mode` | boolean | **Policy, no `X-Branding-Enabled` needed:** hides the Home Global mode button and pins Rule mode. |
 | `X-Brand-Lock-Config-Script` | boolean | **Policy, no `X-Branding-Enabled` needed:** disables the per-profile config script editor for that subscription. |
 | `X-Brand-Primary-Proxy-Group` | string | **Policy, no `X-Branding-Enabled` needed:** the proxy group whose current node is shown on Home and in the VPN notification. Alias `X-Brand-PrimaryProxyGroup`. |
+| `X-Brand-Proxy-Group-Layout` | `tabs` \| `dropdown` | **Policy, no `X-Branding-Enabled` needed:** default node-picker layout; the user's own toggle overrides it. Alias `X-Brand-ProxyGroupLayout`. |
 
 ---
 

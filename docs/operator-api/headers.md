@@ -326,6 +326,24 @@ X-Brand-PrimaryProxyGroup: base64:0J/RgNC+0LrRgdC4
 
 ---
 
+### `X-Brand-Proxy-Group-Layout`
+
+| | |
+|---|---|
+| Type | `tabs` \| `dropdown` (also accepted: `tab`, `list`, `accordion`) |
+| Alias | `X-Brand-ProxyGroupLayout` |
+| Status | proposed |
+| Needs `X-Branding-Enabled`? | **No** |
+| Applied to | Default layout of the node picker opened from the Home **Node** row: `tabs` = one group at a time behind a row of group tabs; `dropdown` = every group as a collapsible row showing its current choice, nodes listed under the expanded ones. |
+| Fallback | Absent / unknown value → `tabs`. |
+| Notes | A **default only**: the picker has a layout toggle, and once the user has used it their choice wins over this header for good. |
+
+```
+X-Brand-Proxy-Group-Layout: dropdown
+```
+
+---
+
 ## 5. Subscription policy
 
 ### `Subscription-Userinfo` (existing)

@@ -1195,4 +1195,6 @@
     <string name="latency_target_nothing_to_test">该分组没有可测试的节点</string>
     <string name="profile_updated_fmt">%s更新</string>
     <string name="profile_updated_just_now">刚刚更新</string>
+    <string name="proxy_layout_show_dropdown">以下拉列表显示分组</string>
+    <string name="proxy_layout_show_tabs">以标签页显示分组</string>
 </resources>

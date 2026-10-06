@@ -61,3 +61,18 @@ func TestFilterPersistsPrimaryProxyGroupHeader(t *testing.T) {
 		t.Fatalf("primary proxy group header not persisted: %#v", got)
 	}
 }
+
+func TestFilterPersistsProxyGroupLayoutHeader(t *testing.T) {
+	got := Filter(map[string][]string{
+		"X-Brand-Proxy-Group-Layout": {"dropdown"},
+		"X-Brand-ProxyGroupLayout":   {"tabs"},
+	})
+
+	want := map[string]string{
+		"x-brand-proxy-group-layout": "dropdown",
+		"x-brand-proxygrouplayout":   "tabs",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("proxy group layout header not persisted: %#v", got)
+	}
+}

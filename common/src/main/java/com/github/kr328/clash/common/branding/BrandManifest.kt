@@ -98,6 +98,14 @@ data class BrandManifest(
     val primaryProxyGroup: String? = null,
 
     /**
+     * Operator default for the node picker's group layout: [PROXY_GROUP_LAYOUT_TABS] or
+     * [PROXY_GROUP_LAYOUT_DROPDOWN]. Read directly like [hideGlobalMode] (no branding gate), and only
+     * seeds the choice — a layout the user picked themselves is never overridden.
+     * See [BrandHeaders.PROXY_GROUP_LAYOUT].
+     */
+    val proxyGroupLayout: String? = null,
+
+    /**
      * Master switch — explicit opt-in. Branding only applies when the
      * operator sends `X-Branding-Enabled: true`. Absent header / `false` /
      * `null` all mean "do not brand this subscription", regardless of any
@@ -128,6 +136,7 @@ data class BrandManifest(
             showOperatorTab == null &&
             lockConfigScript == null &&
             primaryProxyGroup == null &&
+            proxyGroupLayout == null &&
             enabled == null
 
     /**
@@ -153,13 +162,14 @@ data class BrandManifest(
 
     /**
      * True when the manifest carries an operator POLICY flag that applies WITHOUT branding being
-     * enabled ([hideGlobalMode], [lockConfigScript], [primaryProxyGroup]). Unlike [hasBrandIdentity], this ignores
+     * enabled ([hideGlobalMode], [lockConfigScript], [primaryProxyGroup], [proxyGroupLayout]). Unlike [hasBrandIdentity], this ignores
      * `X-Branding-Enabled` — policy is operator control, not cosmetic branding. The store and read
      * paths surface a manifest when this is true even if there's no visual brand, and it survives
      * the `X-Branding-Enabled: false` kill-switch.
      */
     fun hasPolicy(): Boolean =
-        hideGlobalMode == true || lockConfigScript == true || !primaryProxyGroup.isNullOrBlank()
+        hideGlobalMode == true || lockConfigScript == true || !primaryProxyGroup.isNullOrBlank() ||
+            proxyGroupLayout != null
 
     /**
      * Pick the right logo URL for the user's current theme.
@@ -178,6 +188,9 @@ data class BrandManifest(
         }
 
         val EMPTY = BrandManifest()
+
+        const val PROXY_GROUP_LAYOUT_TABS = "tabs"
+        const val PROXY_GROUP_LAYOUT_DROPDOWN = "dropdown"
 
         fun fromJson(raw: String?): BrandManifest {
             if (raw.isNullOrBlank()) return EMPTY

@@ -190,6 +190,22 @@
                 app:iconSize="20dp"
                 app:iconTint="?attr/colorOnSurfaceVariant" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/proxy_sheet_layout_button"
+                style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="6dp"
+                android:contentDescription="@string/proxy_layout_show_dropdown"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                app:backgroundTint="?attr/colorSurfaceContainerHigh"
+                app:icon="@drawable/ic_view_dropdown"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="20dp"
+                app:iconTint="?attr/colorOnSurfaceVariant" />
+
             <FrameLayout
                 android:id="@+id/proxy_sheet_ping_slot"
                 android:layout_width="44dp"
