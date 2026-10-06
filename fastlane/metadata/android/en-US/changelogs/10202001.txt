@@ -1,0 +1,2 @@
+New: subscriptions can pin the proxy group shown on Home and in the VPN notification; the node picker can show groups as collapsible lists; subscription cards show when they were last updated. REALITY adapts to old and new Xray servers on its own (Settings > Network).
+Fixes: rule options such as no-resolve survive edits, JSON subscriptions are hardened, update-before-connect works again, less idle work on Home, ready for Android 16.
