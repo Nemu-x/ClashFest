@@ -194,12 +194,10 @@ task("downloadGeoFiles") {
 
 afterEvaluate {
     if (bundleGeoEnabled) {
-        val downloadGeoFilesTask = tasks["downloadGeoFiles"]
-        tasks.forEach {
-            if (it.name.startsWith("assemble")) {
-                it.dependsOn(downloadGeoFilesTask)
-            }
-        }
+        // preBuild runs first for every variant and for both outputs. Hooking only assemble* left
+        // `bundle*` (the Google Play .aab) without the databases on a clean CI checkout, and Play
+        // users got "geosite.dat: no such file" on connect.
+        tasks.named("preBuild") { dependsOn("downloadGeoFiles") }
     } else {
         // Nothing bundled: make sure a stale local download (including databases we used to
         // ship, e.g. Country.mmdb) does not sneak into the APK.
