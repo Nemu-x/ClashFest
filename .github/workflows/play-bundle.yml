@@ -12,6 +12,10 @@ on:
       ref:
         description: "Tag or branch to build (e.g. v1.2.2)"
         required: true
+      adi_snippet:
+        description: "Android developer verification snippet (optional): also builds a signed APK carrying assets/adi-registration.properties for the package-ownership check"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -90,8 +94,27 @@ jobs:
       - name: Populate embedded Root CA bundle
         run: bash .github/scripts/populate-ca-bundle.sh
 
+      # Package-name ownership check (Play Console > Android developer verification): an APK signed
+      # with the release key that carries the console's snippet. The snippet is an account
+      # identifier, not a secret; it is validated so the input cannot inject anything.
+      - name: Add package-verification snippet
+        if: inputs.adi_snippet != ''
+        env:
+          ADI_SNIPPET: ${{ inputs.adi_snippet }}
+        run: |
+          if ! [[ "$ADI_SNIPPET" =~ ^[A-Za-z0-9]+$ ]]; then
+            echo "adi_snippet must be alphanumeric"
+            exit 1
+          fi
+          mkdir -p app/src/main/assets
+          printf '%s' "$ADI_SNIPPET" > app/src/main/assets/adi-registration.properties
+
       - name: Build Alpha Release bundle (no self-update)
         run: ./gradlew bundleAlphaRelease -Pclashfest.selfUpdate=false
+
+      - name: Build verification APK
+        if: inputs.adi_snippet != ''
+        run: ./gradlew assembleAlphaRelease -Pclashfest.selfUpdate=false
 
       - name: Remove Android signing files
         if: always()
@@ -111,4 +134,12 @@ jobs:
         with:
           name: clashfest-play-aab
           path: app/build/outputs/bundle/alphaRelease/*.aab
+          if-no-files-found: error
+
+      - name: Upload verification APK
+        if: inputs.adi_snippet != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: clashfest-verification-apk
+          path: app/build/outputs/apk/alpha/release/*-universal-release.apk
           if-no-files-found: error
