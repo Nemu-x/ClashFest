@@ -169,7 +169,8 @@ jobs:
           printf '%s' "$ADI_SNIPPET" > app/src/main/assets/adi-registration.properties
 
       - name: Build Alpha Release bundle (no self-update)
-        run: ./gradlew bundleAlphaRelease -Pclashfest.selfUpdate=false
+        # minSdk 24: Play's automatic protection is enforced for this listing and refuses lower.
+        run: ./gradlew bundleAlphaRelease -Pclashfest.selfUpdate=false -Pclashfest.minSdk=24
 
       - name: Build verification APK
         if: inputs.adi_snippet != ''
