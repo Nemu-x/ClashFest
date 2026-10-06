@@ -189,6 +189,19 @@ jobs:
           fi
           echo "Install-permission guard passed: $aab"
 
+      # The bundle once shipped without them (geo download was wired to assemble* only), and every
+      # GEOIP/GEOSITE rule failed on connect for Play users.
+      - name: Guard - geo databases in the bundle
+        run: |
+          aab="$(ls app/build/outputs/bundle/alphaRelease/*.aab)"
+          for f in geoip.metadb geoip.dat geosite.dat ASN.mmdb; do
+            if ! unzip -l "$aab" "base/assets/$f" >/dev/null 2>&1; then
+              echo "base/assets/$f is missing from the bundle"
+              exit 1
+            fi
+          done
+          echo "Geo-database guard passed"
+
       - name: Upload bundle
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
