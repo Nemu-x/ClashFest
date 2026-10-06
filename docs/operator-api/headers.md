@@ -307,6 +307,21 @@ wipes cosmetic branding).
 | Applied to | Hides the Home **Global** mode button and pins the app to **Rule** (if the user was in Global, it flips back to Rule). The "Mode" row and the Rule button stay visible. |
 | Notes | Operator control, not branding: stops users from routing all traffic through the proxy and bypassing rules. Because it's policy, it takes effect whether `X-Branding-Enabled` is absent, `true`, or `false`. Every non-policy `X-Brand-*` header still requires `X-Branding-Enabled: true`. |
 
+### `X-Brand-Lock-Config-Script`
+
+| | |
+|---|---|
+| Type | boolean |
+| Status | **v5** |
+| Needs `X-Branding-Enabled`? | **No** — operator policy, same as `X-Brand-Hide-Global-Mode`. |
+| Applied to | Forbids user [config scripts](https://github.com/Nemu-x/ClashFest/wiki/Config-Scripts) on this subscription. The editor becomes read-only and any script already stored on the profile stops running. |
+| Notes | A config script rewrites the config wholesale — `proxies`, `dns`, `rules` — so on a managed subscription it is a way around whatever policy you set. Enforcement happens when the config is **built**, not only in the UI: a script a user saved before you set this flag stops running too, so turning the flag on is retroactive. Survives the `X-Branding-Enabled: false` kill-switch. |
+
+**Example:**
+```
+X-Brand-Lock-Config-Script: true
+```
+
 ### `X-Brand-Primary-Proxy-Group`
 
 | | |
@@ -371,9 +386,9 @@ X-Brand-Proxy-Group-Layout: dropdown
 | Applied to | Hides "Copy node link" / "Share" actions in the picker AND locks subscription URL editing for **that subscription only** |
 | Notes | Stored per-profile (`subscriptionShareLinksLockedFor(uuid)`). Different subscriptions can have different share policies — one operator's lock does not affect another's subscription on the same device. |
 
-### REALITY and ML-KEM (client setting, no header)
+### REALITY with old and new Xray (client setting, no header)
 
-Xray-core 26.9.8+ rejects a REALITY ClientHello without an X25519MLKEM768 key share, while older Xray servers silently drop a ClientHello that carries one. ClashFest therefore does **not** rewrite REALITY nodes by default. The user can turn on **Settings → Network → "REALITY: offer ML-KEM (Xray 26.9+)"** when the operator runs 26.9.8+ everywhere; operators on current Xray should instead ship `reality-opts.support-x25519mlkem768: true` and `client-fingerprint: chrome` in the subscription, which mihomo honours as-is.
+Xray-core 26.9.8+ rejects a REALITY ClientHello without an X25519MLKEM768 key share, while Xray 24.x servers silently drop one that carries it, and a server never says which kind it is. Since 1.2.2 ClashFest settles this per server: in **Auto** (the default, **Settings → Network → "REALITY: ML-KEM key share"**) it tries the classic handshake first, switches after a failure and remembers what worked for each server and public key. **Always** / **Never** force one side. **"REALITY: client version"** sets the version reported to servers configured with `minClientVer` / `maxClientVer` (default `26.9.9`). A node shipped with `reality-opts.support-x25519mlkem768: true` always offers the key share, so operators on current Xray can still pin it in the subscription. Tested against Xray 24.12.31, 25.7.25, 26.4.13 and 26.9.9.
 
 ### `X-Network-Stack`
 
@@ -436,6 +451,21 @@ X-Bypass-Preset: ru
 | Type | URL |
 | Status | **v1** (already parsed) |
 | Applied to | Tap target for the announcement bar |
+
+---
+
+## 7. What the client sends with every subscription request
+
+Panels can rely on these request headers (full detail in [supported-headers.md](../supported-headers.md)):
+
+| Header | Value |
+|---|---|
+| `User-Agent` | `mihomo/<core version> ClashFest/<app version>`, e.g. `mihomo/1.19.32 ClashFest/1.2.2`. The core token leads because Marzban / Remnawave pick the Clash Meta format from the first token. A per-profile "User-Agent override" replaces the whole string. |
+| `x-hwid` | SHA-256 of the package name and Android's per-app ID (hex), stable per install |
+| `x-device-os` | `Android` |
+| `x-ver-os` | Android release, e.g. `15` |
+| `x-device-model` | Manufacturer + model |
+| `x-app-version` | App version name |
 
 ---
 
