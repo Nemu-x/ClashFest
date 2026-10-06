@@ -1193,4 +1193,6 @@
     <string name="latency_target_invalid">请输入网站，例如 example.com</string>
     <string name="latency_target_run">测试</string>
     <string name="latency_target_nothing_to_test">该分组没有可测试的节点</string>
+    <string name="profile_updated_fmt">%s更新</string>
+    <string name="profile_updated_just_now">刚刚更新</string>
 </resources>

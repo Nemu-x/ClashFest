@@ -191,6 +191,19 @@
                                 tools:visibility="visible" />
                         </LinearLayout>
 
+                        <TextView
+                            android:id="@+id/updated_summary"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textAppearance="@style/TextAppearance.App.BodySmall"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:visibility="gone"
+                            tools:text="Updated 2 hours ago"
+                            tools:visibility="visible" />
+
                         <com.google.android.material.progressindicator.LinearProgressIndicator
                             android:id="@+id/usage_progress"
                             android:layout_width="match_parent"
