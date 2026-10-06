@@ -172,12 +172,10 @@ task("downloadGeoFiles") {
 }
 
 afterEvaluate {
-    val downloadGeoFilesTask = tasks["downloadGeoFiles"]
-    tasks.forEach {
-        if (it.name.startsWith("assemble")) {
-            it.dependsOn(downloadGeoFilesTask)
-        }
-    }
+    // preBuild runs first for every variant and for both outputs. Hooking only assemble* left
+    // `bundle*` (the Google Play .aab) without the databases on a clean CI checkout, so GEOIP /
+    // GEOSITE rules failed on connect ("geosite.dat: no such file") for Play installs.
+    tasks.named("preBuild") { dependsOn("downloadGeoFiles") }
 }
 
 tasks.getByName("clean", type = Delete::class) {
