@@ -7,6 +7,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
+import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import com.github.kr328.clash.common.util.grantPermissions
@@ -133,8 +135,14 @@ class FilesActivity : BaseActivity<FilesDesign>() {
         }
     }
 
-    override fun onBackPressed() {
-        design?.requests?.trySend(FilesDesign.Request.PopStack)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // A callback, not an onBackPressed() override: with targetSdk 36 (predictive back) the
+        // system no longer calls onBackPressed(), so Back would close the screen instead of
+        // going up one folder.
+        onBackPressedDispatcher.addCallback(this) {
+            design?.requests?.trySend(FilesDesign.Request.PopStack)
+        }
     }
 
     private suspend fun FilesDesign.fetch(client: FilesClient, stack: Stack<String>, root: String) {
