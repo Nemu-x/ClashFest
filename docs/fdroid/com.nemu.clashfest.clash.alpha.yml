@@ -23,7 +23,7 @@ Builds:
     submodules: true
     sudo:
       - apt-get update
-      - apt-get install -y -t trixie-backports golang-1.27-go
+      - apt-get install -y -t trixie-backports golang-go
     init: cp /etc/ssl/certs/ca-certificates.crt ../core/src/foss/golang/clash/component/ca/ca-certificates.crt
     output: build/outputs/apk/alpha/release/clashfest-v*-alpha-release-unsigned.apk
     srclibs:
@@ -43,7 +43,7 @@ Builds:
       - maven
     build:
       - pushd $$go$$/src
-      - GOROOT_BOOTSTRAP=/usr/lib/go-1.27 ./make.bash
+      - ./make.bash
       - popd
       - PATH=$$go$$/bin:$PATH gradle -Pclashfest.selfUpdate=false -Pclashfest.bundleGeo=false
         assembleAlphaRelease
@@ -56,7 +56,7 @@ Builds:
     submodules: true
     sudo:
       - apt-get update
-      - apt-get install -y -t trixie-backports golang-1.27-go
+      - apt-get install -y -t trixie-backports golang-go
     init: cp /etc/ssl/certs/ca-certificates.crt ../core/src/foss/golang/clash/component/ca/ca-certificates.crt
     output: build/outputs/apk/alpha/release/clashfest-v*-alpha-release-unsigned.apk
     srclibs:
@@ -76,7 +76,7 @@ Builds:
       - maven
     build:
       - pushd $$go$$/src
-      - GOROOT_BOOTSTRAP=/usr/lib/go-1.27 ./make.bash
+      - ./make.bash
       - popd
       - PATH=$$go$$/bin:$PATH gradle -Pclashfest.selfUpdate=false -Pclashfest.bundleGeo=false
         assembleAlphaRelease
@@ -89,7 +89,7 @@ Builds:
     submodules: true
     sudo:
       - apt-get update
-      - apt-get install -y -t trixie-backports golang-1.27-go
+      - apt-get install -y -t trixie-backports golang-go
     init: cp /etc/ssl/certs/ca-certificates.crt ../core/src/foss/golang/clash/component/ca/ca-certificates.crt
     output: build/outputs/apk/alpha/release/clashfest-v*-alpha-release-unsigned.apk
     srclibs:
@@ -109,7 +109,7 @@ Builds:
       - maven
     build:
       - pushd $$go$$/src
-      - GOROOT_BOOTSTRAP=/usr/lib/go-1.27 ./make.bash
+      - ./make.bash
       - popd
       - PATH=$$go$$/bin:$PATH gradle -Pclashfest.selfUpdate=false -Pclashfest.bundleGeo=false
         assembleAlphaRelease
@@ -122,7 +122,7 @@ Builds:
     submodules: true
     sudo:
       - apt-get update
-      - apt-get install -y -t trixie-backports golang-1.27-go
+      - apt-get install -y -t trixie-backports golang-go
     init: cp /etc/ssl/certs/ca-certificates.crt ../core/src/foss/golang/clash/component/ca/ca-certificates.crt
     output: build/outputs/apk/alpha/release/clashfest-v*-alpha-release-unsigned.apk
     srclibs:
@@ -142,7 +142,7 @@ Builds:
       - maven
     build:
       - pushd $$go$$/src
-      - GOROOT_BOOTSTRAP=/usr/lib/go-1.27 ./make.bash
+      - ./make.bash
       - popd
       - PATH=$$go$$/bin:$PATH gradle -Pclashfest.selfUpdate=false -Pclashfest.bundleGeo=false
         assembleAlphaRelease
@@ -157,6 +157,6 @@ VercodeOperation:
   - '%c + 2'
   - '%c + 3'
   - '%c + 4'
-UpdateCheckData: build.gradle.kts|versionCode = (\d+)|.|versionName = "(.+)"
+UpdateCheckName: Ignore
 CurrentVersion: 1.2.2
 CurrentVersionCode: 10202004
