@@ -21,6 +21,7 @@
   <img src="https://img.shields.io/badge/license-GPLv3-green.svg" alt="License: GPL v3" />
   <img src="https://img.shields.io/badge/platform-Android-3DDC84" alt="Platform: Android" />
   <img src="https://img.shields.io/github/v/release/Nemu-x/ClashFest?display_name=tag" alt="Latest Release" />
+  <a href="https://f-droid.org/packages/com.nemu.clashfest.clash.alpha/"><img src="https://img.shields.io/f-droid/v/com.nemu.clashfest.clash.alpha?logo=fdroid" alt="F-Droid" /></a>
   <img src="https://img.shields.io/badge/status-Active%20development-1f8bff" alt="Status: Active development" />
 </p>
 
@@ -35,6 +36,10 @@ defaults for everyday use.
 ---
 
 ## Downloads
+
+<a href="https://f-droid.org/packages/com.nemu.clashfest.clash.alpha/"><img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80" /></a>
+
+**F-Droid** builds ClashFest from source and, because the build is reproducible, ships the very same APK with the same signature as the downloads below. You can move between the F-Droid and GitHub versions without reinstalling or losing your subscriptions. The F-Droid version is updated by F-Droid and has no built-in update check.
 
 **Latest release — direct downloads** (always point to the newest version; also on the [download page](https://nemu-x.github.io/ClashFest/)):
 
