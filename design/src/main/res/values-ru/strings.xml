@@ -1403,11 +1403,15 @@
     <string name="chain_entry_description">Сервер, до которого может подключиться телефон.</string>
     <string name="chain_exit_title">2. Выход</string>
     <string name="chain_exit_description">Сайты будут видеть IP этого сервера.</string>
-    <string name="chain_server">Сервер · введите название для поиска</string>
+    <string name="chain_server">Сервер</string>
+    <string name="chain_pick_server">Выбрать сервер</string>
+    <string name="chain_search_servers">Поиск серверов</string>
+    <string name="chain_nothing_found">Подходящих серверов не найдено.</string>
+    <string name="chain_selected">Выбрано</string>
     <string name="chain_no_subscriptions">Сначала добавьте подписку. Включать VPN для настройки не нужно.</string>
     <string name="chain_no_nodes">Сохранённых серверов нет. Сначала обновите эту подписку.</string>
     <string name="chain_legacy_saved">В подписке есть ранее настроенная цепочка. Здесь её можно удалить или заменить выбранными ниже серверами.</string>
-    <string name="chain_compatibility">Вход должен быть доступен телефону, а выход — входному серверу. Для протоколов UDP нужна поддержка UDP на входе. Цепочка работает в режиме Global.</string>
+    <string name="chain_compatibility">Вход должен быть доступен телефону, а выход должен быть доступен входному серверу. Для протоколов UDP нужна поддержка UDP на входе. Цепочка работает в режиме Global.</string>
     <string name="chain_error">Не удалось применить цепочку. Проверьте, что оба сервера существуют, протоколы совместимы и серверы уже не участвуют в другой цепочке.</string>
     <string name="chain_pick_both">Выберите два разных сервера.</string>
     <string name="chain_saved_offline">Цепочка сохранена. VPN не запускался; следующее подключение использует выбранную выходную подписку и эту цепочку.</string>

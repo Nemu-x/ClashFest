@@ -1412,7 +1412,11 @@ Password: %4$s</string>
     <string name="chain_entry_description">A server your phone can reach.</string>
     <string name="chain_exit_title">2. Exit</string>
     <string name="chain_exit_description">Websites see the IP of this server.</string>
-    <string name="chain_server">Server · type to search</string>
+    <string name="chain_server">Server</string>
+    <string name="chain_pick_server">Choose a server</string>
+    <string name="chain_search_servers">Search servers</string>
+    <string name="chain_nothing_found">No servers match your search.</string>
+    <string name="chain_selected">Selected</string>
     <string name="chain_no_subscriptions">Add a subscription first. VPN does not need to be running.</string>
     <string name="chain_no_nodes">No saved servers available. Update this subscription first.</string>
     <string name="chain_legacy_saved">This subscription contains an older chain. Remove it here or replace it with the servers selected below.</string>
