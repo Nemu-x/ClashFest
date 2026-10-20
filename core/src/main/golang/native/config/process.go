@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"cfa/native/common"
+	"cfa/native/legacy"
 
 	"github.com/metacubex/mihomo/common/utils"
 	"github.com/metacubex/mihomo/config"
@@ -22,6 +23,7 @@ var processors = []processor{
 	patchTun,
 	patchListeners,
 	patchProviders,
+	dropRemovedProtocols,
 	validConfig,
 }
 
@@ -120,6 +122,13 @@ func patchProviders(cfg *config.RawConfig, profileDir string) error {
 		provider["path"] = profileDir + "/providers/" + path
 	})
 
+	return nil
+}
+
+// dropRemovedProtocols takes out the proxies Citrus no longer supports so the rest of the
+// subscription still loads, and leaves the count next to config.yaml for the app to report.
+func dropRemovedProtocols(cfg *config.RawConfig, profileDir string) error {
+	legacy.WriteMarker(profileDir, len(legacy.Drop(cfg)))
 	return nil
 }
 

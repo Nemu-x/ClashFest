@@ -49,6 +49,13 @@ object ProfileProcessor {
     private val profileLock = Mutex()
     private val processLock = Mutex()
 
+    /** Written by the core (native/legacy) with the count of skipped legacy-protocol nodes. */
+    private const val REMOVED_PROTOCOL_MARKER = "removed-protocol-skipped"
+
+    private fun skippedLegacyNodes(context: Context): Int =
+        File(context.processingDir, REMOVED_PROTOCOL_MARKER).takeIf { it.isFile }
+            ?.readText()?.trim()?.toIntOrNull() ?: 0
+
     suspend fun apply(context: Context, uuid: UUID, callback: IFetchObserver? = null) {
         withContext(Dispatchers.IO) {
             processLock.withLock {
@@ -143,6 +150,10 @@ object ProfileProcessor {
                         Log.i("Hand-edited config for ${snapshot.uuid}: in-app layer content folded into the base")
                     }
                 }
+
+                // The core leaves how many nodes it skipped (protocol removed from Citrus) next to
+                // config.yaml; the UI reports it once the subscription is saved.
+                ServiceStore(context).setRemovedProtocolSkipped(snapshot.uuid, skippedLegacyNodes(context))
 
                 withContext(NonCancellable) {
                     profileLock.withLock {
@@ -414,6 +425,10 @@ object ProfileProcessor {
                     context.processingDir,
                     serviceStore.proxyHardeningMode,
                 )
+
+                // The core leaves how many nodes it skipped (protocol removed from Citrus) next to
+                // config.yaml; the UI reports it after the update.
+                serviceStore.setRemovedProtocolSkipped(snapshot.uuid, skippedLegacyNodes(context))
 
                 withContext(NonCancellable) {
                     profileLock.withLock {

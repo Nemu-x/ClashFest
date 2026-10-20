@@ -3,6 +3,8 @@ package snapshot
 import (
 	"encoding/json"
 
+	"cfa/native/legacy"
+
 	"github.com/metacubex/mihomo/config"
 
 	// Same linkname reason as validate.go: config.ParseRawConfig needs
@@ -41,6 +43,8 @@ func ResolvedGroupsJSON(data []byte) string {
 	if err != nil {
 		return ""
 	}
+
+	legacy.Drop(rawCfg)
 
 	// Snapshot the declared order BEFORE parsing: ParseRawConfig topologically sorts
 	// rawCfg.ProxyGroup *in place* (a group referenced by another has to be built first), so

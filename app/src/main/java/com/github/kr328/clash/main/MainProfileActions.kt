@@ -321,6 +321,15 @@ internal class MainProfileActions(
             }
             // Proxy-group members that vanished from the new subscription were pruned so the
             // profile could load (emptied groups were blocked, not sent DIRECT). Tell the user.
+            // Nodes on a protocol Citrus removed (VMess, SSR, ...) were skipped so the rest of the
+            // subscription loads. Without this the servers would just be missing.
+            val skippedLegacy = ServiceStore(activity).consumeRemovedProtocolSkipped(uuid)
+            if (skippedLegacy > 0) {
+                design?.showToast(
+                    activity.getString(R.string.profiles_removed_protocol_skipped, skippedLegacy),
+                    ToastDuration.Long,
+                )
+            }
             val repairedGroups = ServiceStore(activity).consumeProxyGroupsRepaired(uuid)
             if (repairedGroups > 0) {
                 design?.showToast(

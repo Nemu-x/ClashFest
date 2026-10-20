@@ -3,6 +3,8 @@ package snapshot
 import (
 	"io"
 
+	"cfa/native/legacy"
+
 	"github.com/metacubex/mihomo/config"
 
 	// config.ParseRawConfig declares temporaryUpdateGeneral via go:linkname;
@@ -34,6 +36,9 @@ func ValidateBytes(data []byte) string {
 	if err != nil {
 		return err.Error()
 	}
+	// The same pruning the load path applies, so a preview does not fail on a node the
+	// engine will skip anyway.
+	legacy.Drop(rawCfg)
 	cfg, err := config.ParseRawConfig(rawCfg)
 	if err != nil {
 		return err.Error()

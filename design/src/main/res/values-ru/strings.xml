@@ -60,6 +60,7 @@
     <string name="profiles_update_engine_warning">Подписка обновлена, но твои локальные правки не подошли к новому конфигу и в этот раз не применились. Проверь их.</string>
     <string name="profiles_orphaned_rules_dropped">Отключено правил: %1$d - их прокси/группы больше нет в новой подписке.</string>
     <string name="profiles_proxy_groups_repaired">Исправлено ссылок в группах: %1$d - эти узлы пропали из новой подписки. Опустевшие группы заблокированы, а не пущены напрямую.</string>
+    <string name="profiles_removed_protocol_skipped">Пропущено серверов: %1$d. Их протокол больше не поддерживается (VMess, SSR, Hysteria v1, TUIC v4, старые шифры Shadowsocks). Попросите у провайдера ссылки VLESS, Trojan или Hysteria 2.</string>
 
     <!-- DNS & Hosts -->
     <string name="dns_hosts_title">DNS и Hosts</string>

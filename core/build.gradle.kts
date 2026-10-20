@@ -165,7 +165,7 @@ val goTestNativeSnapshot by tasks.registering(Exec::class) {
     // fails with "relocation target ... not defined" without them.
     commandLine(
         "go", "test", "-tags", "foss,with_gvisor,cmfa",
-        "./native/snapshot/...", "./native/useragent/...", "./native/reality/...",
+        "./native/snapshot/...", "./native/useragent/...", "./native/reality/...", "./native/legacy/...",
         // Tests shipped inside the patch series run against the patched tree, so a
         // patch that applied but no longer does what it claims fails here.
         "-run", "Test", "github.com/metacubex/mihomo/adapter/outbound",
@@ -174,6 +174,7 @@ val goTestNativeSnapshot by tasks.registering(Exec::class) {
     dependsOn(applyCorePatches)
 
     inputs.dir("src/main/golang/native/snapshot")
+    inputs.dir("src/main/golang/native/legacy")
     inputs.dir("src/main/golang/native/useragent")
     // Re-run against a bumped core too: the test exercises mihomo itself
     // (module `cfa`, `replace mihomo => ../../foss/golang/clash`).

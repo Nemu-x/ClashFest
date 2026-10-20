@@ -400,6 +400,26 @@ class ServiceStore(context: Context) {
     }
 
     /**
+     * How many nodes of the last update the core skipped because their protocol was removed from
+     * Citrus (VMess, SSR, ...). Set by ProfileProcessor from the core's marker file, consumed by the
+     * UI so the user learns why those servers are missing.
+     */
+    fun setRemovedProtocolSkipped(uuid: UUID, skipped: Int) {
+        if (skipped <= 0) {
+            rawPrefs.edit().remove("removed_protocol_skipped_$uuid").apply()
+        } else {
+            rawPrefs.edit().putInt("removed_protocol_skipped_$uuid", skipped).apply()
+        }
+    }
+
+    /** Reads and clears the skipped-nodes marker (one-shot). Returns 0 when nothing pending. */
+    fun consumeRemovedProtocolSkipped(uuid: UUID): Int {
+        val n = rawPrefs.getInt("removed_protocol_skipped_$uuid", 0)
+        if (n > 0) rawPrefs.edit().remove("removed_protocol_skipped_$uuid").apply()
+        return n
+    }
+
+    /**
      * How many dangling proxy-group member references were pruned during the last load recovery
      * (ConfigurationModule → ProxyGroupsYamlEdit.pruneDanglingProxyGroupReferences). Set on the
      * load path, consumed by the UI to warn the user that the profile loaded but was repaired.
