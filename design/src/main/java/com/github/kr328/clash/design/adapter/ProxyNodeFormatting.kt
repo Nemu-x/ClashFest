@@ -92,6 +92,7 @@ internal fun groupTypeLabel(type: Proxy.Type): String? = when (type) {
     Proxy.Type.LoadBalance -> "LOAD-BALANCE"
     Proxy.Type.Selector -> "SELECTOR"
     Proxy.Type.Relay -> "RELAY"
+    Proxy.Type.Chain -> "CHAIN"
     else -> null
 }
 
@@ -101,7 +102,7 @@ internal fun groupTypeColor(type: Proxy.Type): Int = when (type) {
     Proxy.Type.Fallback -> R.color.group_fallback
     Proxy.Type.LoadBalance -> R.color.group_loadbalance
     Proxy.Type.Selector -> R.color.group_selector
-    Proxy.Type.Relay -> R.color.group_relay
+    Proxy.Type.Relay, Proxy.Type.Chain -> R.color.group_relay
     else -> R.color.proto_default
 }
 

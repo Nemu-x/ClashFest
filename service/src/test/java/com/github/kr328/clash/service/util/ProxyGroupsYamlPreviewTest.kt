@@ -110,6 +110,7 @@ class ProxyGroupsYamlPreviewTest {
                 group("L", type = "load-balance", proxies = listOf("a")),
                 group("F", type = "fallback", proxies = listOf("a")),
                 group("R", type = "relay", proxies = listOf("a")),
+                group("C", type = "chain", proxies = listOf("a", "b")),
                 group("X", type = "unknown-future-type", proxies = listOf("a")),
             ),
         )
@@ -119,6 +120,7 @@ class ProxyGroupsYamlPreviewTest {
         assertEquals(Proxy.Type.LoadBalance, rows["L"]?.type)
         assertEquals(Proxy.Type.Fallback, rows["F"]?.type)
         assertEquals(Proxy.Type.Relay, rows["R"]?.type)
+        assertEquals(Proxy.Type.Chain, rows["C"]?.type)
         // Unknown types fall back to Selector so picker stays functional.
         assertEquals(Proxy.Type.Selector, rows["X"]?.type)
     }
