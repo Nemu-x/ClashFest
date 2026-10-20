@@ -174,9 +174,9 @@ object FetchErrorClassifier {
             return Rejection(message, supportUrl, null)
         }
 
-        // expire=0 means "never expires", and the parser already drops it — a subscription without
-        // an expiry must never be reported as expired.
-        val expireAt = SubscriptionUsage.parse(meta.subscriptionUserinfo)?.expireAt
+        // expire=0 means "never expires". The parser keeps the 0 (callers store it as "no expiry"),
+        // so it is skipped here: a subscription without an expiry must never be reported as expired.
+        val expireAt = SubscriptionUsage.parse(meta.subscriptionUserinfo)?.expireAt?.takeIf { it > 0 }
         if (expireAt != null && expireAt <= nowSeconds) {
             val message = buildString {
                 append("your subscription expired on ${formatDate(expireAt)} — renew it")
