@@ -203,6 +203,8 @@ github.com/metacubex/mipstack v0.0.0-20260910230046-ba762df4c91d h1:hc1OeKdo7YIc
 github.com/metacubex/mipstack v0.0.0-20260910230046-ba762df4c91d/go.mod h1:+bbwALZI0pbi2auSG5A3ptdpV2DZ2eLObziXo+P7oj0=
 github.com/metacubex/mipstack v0.0.0-20260930071539-961d4b1c1983 h1:BGb9PDJrrZSsDnJyeFWFY9v6uTr6/LxokQgwuHVAsDI=
 github.com/metacubex/mipstack v0.0.0-20260930071539-961d4b1c1983/go.mod h1:+bbwALZI0pbi2auSG5A3ptdpV2DZ2eLObziXo+P7oj0=
+github.com/metacubex/mldsa v0.1.1 h1:Tl9+FeM+AUqL5lG3C8JuoxVGsIINuY0b7XsQgz8jwyU=
+github.com/metacubex/mldsa v0.1.1/go.mod h1:RY6NOdBYmQ17ZRAn5TgXtJCTmuaI3oYdU+XicSGO8Lg=
 github.com/metacubex/mlkem v0.1.0 h1:wFClitonSFcmipzzQvax75beLQU+D7JuC+VK1RzSL8I=
 github.com/metacubex/mlkem v0.1.0/go.mod h1:amhaXZVeYNShuy9BILcR7P0gbeo/QLZsnqCdL8U2PDQ=
 github.com/metacubex/nftables v0.0.0-20260426003805-208c2c1ba2cb h1:wk6mHYPURSUvWcUv72gNP79oiylFsscBSDPJ6ieV6Iw=
