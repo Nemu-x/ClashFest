@@ -490,4 +490,44 @@ class YamlHardenerTest {
             assertEquals("$mode", once, YamlHardener.hardenYaml(once, mode))
         }
     }
+
+    @Test
+    fun strictAndCompat_matchXDriveKeysTheWayTheEngineDecodesThem() {
+        // mihomo's decoder matches keys case-insensitively with `_` read as `-`.
+        val input = """
+            listeners:
+              - name: drive-in
+                type: socks
+                listen: 0.0.0.0
+                XDrive_Config:
+                  service: local
+            proxies:
+              - name: snake-node
+                type: vless
+                network: xdrive
+                xdrive_opts:
+                  service: local
+                  remote-folder: /sdcard/Download
+              - Name: caps-node
+                type: vless
+                Network: xdrive
+                XDrive-Opts:
+                  Service: local
+                  remote_folder: /sdcard/Download
+        """.trimIndent()
+        for (mode in listOf(ProxyHardeningMode.Strict, ProxyHardeningMode.Compat)) {
+            val hardened = YamlHardener.hardenYaml(input, mode)!!
+            val root = parse(hardened)
+            assertNull("$mode", root["listeners"])
+            assertEquals(
+                "$mode",
+                listOf(
+                    mapOf("name" to "snake-node", "type" to "reject"),
+                    mapOf("name" to "caps-node", "type" to "reject"),
+                ),
+                root["proxies"],
+            )
+            assertFalse("$mode", hardened.contains("/sdcard/Download"))
+        }
+    }
 }

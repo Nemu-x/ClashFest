@@ -212,7 +212,7 @@ object YamlHardener {
     }
 
     private fun isXDriveListener(entry: Any?): Boolean =
-        (entry as? Map<*, *>)?.containsKey("xdrive-config") == true
+        (entry as? Map<*, *>)?.keys?.any { MihomoKeys.matches(it, "xdrive-config") } == true
 
     private fun neutralizeLocalXDriveProxies(root: MutableMap<String, Any?>): Boolean {
         val proxies = root["proxies"] as? List<*> ?: return false
@@ -251,7 +251,7 @@ object YamlHardener {
             val map = entry as? Map<*, *>
             if (map == null || !isLocalXDriveProxy(map)) return@map entry
             count++
-            linkedMapOf<String, Any?>("name" to map["name"], "type" to "reject")
+            linkedMapOf<String, Any?>("name" to MihomoKeys.get(map, "name"), "type" to "reject")
         }
         if (count == 0) return null
         Log.w("YamlHardener: $count xdrive proxies with service: local in $where turned into REJECT")
@@ -259,9 +259,13 @@ object YamlHardener {
     }
 
     private fun isLocalXDriveProxy(proxy: Map<*, *>): Boolean {
-        if (proxy["network"]?.toString()?.trim()?.lowercase() != "xdrive") return false
-        val opts = proxy["xdrive-opts"] as? Map<*, *> ?: return false
-        return opts["service"]?.toString()?.trim()?.lowercase() == "local"
+        // Over-match on purpose: any spelling the decoder could pick counts.
+        val network = MihomoKeys.valuesOf(proxy, "network")
+        if (network.none { it?.toString()?.trim()?.lowercase() == "xdrive" }) return false
+        return MihomoKeys.valuesOf(proxy, "xdrive-opts").any { opts ->
+            opts is Map<*, *> && MihomoKeys.valuesOf(opts, "service")
+                .any { it?.toString()?.trim()?.lowercase() == "local" }
+        }
     }
 
     /** Force a listener entry's `listen:` to a loopback bind. Other keys untouched. */

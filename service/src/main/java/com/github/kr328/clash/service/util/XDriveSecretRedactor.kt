@@ -14,32 +14,51 @@ object XDriveSecretRedactor {
 
     /** Returns [proxy] with its XDrive credentials replaced, or [proxy] itself if it has none. */
     fun redactProxy(proxy: Map<*, *>): Map<*, *> {
-        val opts = proxy[OPTS] as? Map<*, *> ?: return proxy
+        // Keys are matched as the engine decodes them (`XDrive_Opts`, `Secrets`, ...).
+        var out: LinkedHashMap<String, Any?>? = null
+        for ((key, value) in proxy) {
+            if (!MihomoKeys.matches(key, OPTS)) continue
+            val opts = value as? Map<*, *> ?: continue
+            val redacted = redactOpts(opts) ?: continue
+            out = (out ?: copy(proxy)).also { it[key.toString()] = redacted }
+        }
+        return out ?: proxy
+    }
+
+    private fun redactOpts(opts: Map<*, *>): Map<String, Any?>? {
         val redacted = copy(opts)
         var changed = false
-        (opts["secrets"] as? List<*>)?.let { secrets ->
-            redacted["secrets"] = secrets.map { REDACTED }
-            changed = true
-        }
-        (opts["template"] as? Map<*, *>)?.let { template ->
-            if (template.containsKey("auth")) {
-                val t = copy(template)
-                t["auth"] = redactLeaves(template["auth"])
-                redacted["template"] = t
-                changed = true
+        for ((key, value) in opts) {
+            when {
+                MihomoKeys.matches(key, "secrets") && value is List<*> -> {
+                    redacted[key.toString()] = value.map { REDACTED }
+                    changed = true
+                }
+                MihomoKeys.matches(key, "template") && value is Map<*, *> -> {
+                    val t = copy(value)
+                    var authFound = false
+                    for ((tk, tv) in value) {
+                        if (!MihomoKeys.matches(tk, "auth")) continue
+                        t[tk.toString()] = redactLeaves(tv)
+                        authFound = true
+                    }
+                    if (authFound) {
+                        redacted[key.toString()] = t
+                        changed = true
+                    }
+                }
             }
         }
-        if (!changed) return proxy
-        return copy(proxy).also { it[OPTS] = redacted }
+        return redacted.takeIf { changed }
     }
 
     /**
      * Redacts every XDrive proxy in a full config (`proxies:` and inline `proxy-providers`
-     * payloads). Text without `xdrive-opts` is returned untouched, byte for byte; otherwise
+     * payloads). Text that never mentions `xdrive` (any case) is returned untouched, byte for byte; otherwise
      * only the affected top-level blocks are re-rendered.
      */
     fun redactConfigYaml(text: String): String {
-        if (!text.contains(OPTS)) return text
+        if (!text.contains("xdrive", ignoreCase = true)) return text
         val document = MihomoConfigDocument.parse(text) ?: return text
         val root = document.root
         val replaced = mutableListOf<String>()
@@ -88,7 +107,7 @@ object XDriveSecretRedactor {
         null -> null
         // Keep the auth scheme readable (e.g. `type: static`), hide every credential.
         is Map<*, *> -> LinkedHashMap<String, Any?>(value.size).also { out ->
-            for ((k, v) in value) out[k.toString()] = if (k == "type" && v is String) v else redactLeaves(v)
+            for ((k, v) in value) out[k.toString()] = if (MihomoKeys.matches(k, "type") && v is String) v else redactLeaves(v)
         }
         is List<*> -> value.map { redactLeaves(it) }
         else -> REDACTED

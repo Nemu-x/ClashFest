@@ -32,6 +32,9 @@ func TestHardenedXDriveFixturesNeutraliseLocalStorage(t *testing.T) {
 
 			want := map[string]C.AdapterType{
 				"local-node": C.Reject,
+				// Engine-equivalent key spellings (`xdrive_opts`, `XDrive-Opts`/`Service`).
+				"snake-node": C.Reject,
+				"caps-node":  C.Reject,
 				"cloud-node": C.Vless,
 				"G":          C.Selector,
 			}

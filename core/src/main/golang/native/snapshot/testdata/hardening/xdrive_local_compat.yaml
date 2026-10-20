@@ -6,6 +6,10 @@ listeners:
 proxies:
   - name: local-node
     type: reject
+  - name: snake-node
+    type: reject
+  - name: caps-node
+    type: reject
   - name: cloud-node
     type: vless
     server: www.googleapis.com
@@ -31,6 +35,8 @@ proxy-groups:
     type: select
     proxies:
       - local-node
+      - snake-node
+      - caps-node
       - cloud-node
     use:
       - inline

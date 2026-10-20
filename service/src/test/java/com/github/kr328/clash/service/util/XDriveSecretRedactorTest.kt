@@ -102,4 +102,34 @@ class XDriveSecretRedactorTest {
         assertTrue(yaml, yaml.contains(XDriveSecretRedactor.REDACTED))
         assertTrue("server/port stay readable for the offline ping", yaml.contains("server: s"))
     }
+
+    @Test
+    fun redactsCredentialsUnderEngineEquivalentKeySpellings() {
+        val text = """
+            proxies:
+              - name: snake
+                type: vless
+                network: xdrive
+                xdrive_opts:
+                  service: google-drive
+                  Secrets: [snake-id, snake-secret, snake-refresh]
+              - name: caps
+                type: vless
+                Network: xdrive
+                XDrive-Opts:
+                  service: template
+                  Template:
+                    Auth:
+                      Type: static
+                      header:
+                        Authorization: Bearer caps-token
+        """.trimIndent()
+        val out = XDriveSecretRedactor.redactConfigYaml(text)
+        for (secret in listOf("snake-id", "snake-secret", "snake-refresh", "caps-token")) {
+            assertFalse("$secret leaked: $out", out.contains(secret))
+        }
+        val proxies = MihomoConfigDocument.parseOrThrow(out).root["proxies"] as List<*>
+        val auth = (((proxies[1] as Map<*, *>)["XDrive-Opts"] as Map<*, *>)["Template"] as Map<*, *>)["Auth"] as Map<*, *>
+        assertEquals("static", auth["Type"])
+    }
 }
