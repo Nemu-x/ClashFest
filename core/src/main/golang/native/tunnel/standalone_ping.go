@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/http"
 	"net/url"
 	"time"
 
+	"github.com/metacubex/http"
 	"github.com/metacubex/mihomo/adapter"
 	"github.com/metacubex/mihomo/common/yaml"
 	"github.com/metacubex/mihomo/component/ca"
