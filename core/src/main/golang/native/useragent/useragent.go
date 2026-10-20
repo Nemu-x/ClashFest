@@ -41,13 +41,18 @@ func CoreVersionFromTag(tag string) string {
 // Build composes the default subscription User-Agent, e.g.
 //
 //	mihomo/1.19.32 ClashFest/1.1.1
+//	mihomo/1.19.32 ClashFest/1.1.1 (xdrive)
 //
 // The ClashFest token carries the bare semver of versionName (flavour and
 // build-type suffixes stripped) so it can be matched like the mihomo one.
 // Without a known core version the first token is a bare `mihomo` (a product
 // token without a version is valid UA grammar) — still the right format for
 // every panel, never a made-up number.
-func Build(versionName, coreVersion string) string {
+//
+// features are the optional core capabilities (cfa/native/features), sent as a
+// trailing UA comment so panels can serve transports vanilla mihomo rejects.
+// They never move the mihomo token off the first position.
+func Build(versionName, coreVersion string, features ...string) string {
 	var b strings.Builder
 	b.WriteString(core)
 	if coreVersion != "" {
@@ -58,6 +63,11 @@ func Build(versionName, coreVersion string) string {
 	b.WriteString(product)
 	b.WriteByte('/')
 	b.WriteString(appVersion(versionName))
+	if comment := featureComment(features); comment != "" {
+		b.WriteString(" (")
+		b.WriteString(comment)
+		b.WriteByte(')')
+	}
 	return b.String()
 }
 
@@ -66,4 +76,14 @@ func appVersion(versionName string) string {
 		return m[1]
 	}
 	return versionName
+}
+
+func featureComment(features []string) string {
+	tokens := make([]string, 0, len(features))
+	for _, f := range features {
+		if f = strings.TrimSpace(f); f != "" {
+			tokens = append(tokens, f)
+		}
+	}
+	return strings.Join(tokens, "; ")
 }

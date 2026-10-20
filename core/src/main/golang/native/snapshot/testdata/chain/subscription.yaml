@@ -1,0 +1,14 @@
+proxies:
+  - {name: entry, type: socks5, server: 127.0.0.1, port: 1081}
+  - {name: mid, type: socks5, server: 127.0.0.1, port: 1082}
+  - {name: exit, type: ss, server: 127.0.0.1, port: 1083, cipher: aes-128-gcm, password: pass}
+  - {name: home, type: socks5, server: 127.0.0.1, port: 1085}
+proxy-groups:
+  - name: cascade
+    type: chain
+    proxies: [entry, mid, exit]
+  - name: G
+    type: select
+    proxies: [cascade, home]
+rules:
+  - MATCH,G

@@ -45,6 +45,31 @@ func TestBuildMatchesPanelFormatPickers(t *testing.T) {
 	}
 }
 
+func TestBuildWithFeatures(t *testing.T) {
+	cases := []struct {
+		features []string
+		want     string
+	}{
+		{nil, "mihomo/1.19.32 ClashFest/1.3.0"},
+		{[]string{}, "mihomo/1.19.32 ClashFest/1.3.0"},
+		{[]string{"", " "}, "mihomo/1.19.32 ClashFest/1.3.0"},
+		{[]string{"xdrive"}, "mihomo/1.19.32 ClashFest/1.3.0 (xdrive)"},
+		{[]string{"xdrive", " foo "}, "mihomo/1.19.32 ClashFest/1.3.0 (xdrive; foo)"},
+	}
+	for _, tc := range cases {
+		if got := Build("1.3.0.Alpha", "1.19.32", tc.features...); got != tc.want {
+			t.Errorf("Build(%v) = %q, want %q", tc.features, got, tc.want)
+		}
+	}
+	ua := Build("1.3.0", "1.19.32", "xdrive")
+	if !marzbanClashMeta.MatchString(ua) || marzbanLegacy.MatchString(ua) {
+		t.Errorf("%q must still select the clash-meta format", ua)
+	}
+	if m := mikanCore.FindStringSubmatch(ua); m == nil || m[2] != "1.19.32" {
+		t.Errorf("mikan must still read the core version from %q", ua)
+	}
+}
+
 func TestBuildNonSemverVersionNamePassesThrough(t *testing.T) {
 	got := Build("unknown", "1.19.32")
 	want := "mihomo/1.19.32 ClashFest/unknown"

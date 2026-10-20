@@ -168,6 +168,7 @@ internal class ProfileSnapshotCache {
         "urltest", "url-test" -> Proxy.Type.URLTest
         "loadbalance", "load-balance" -> Proxy.Type.LoadBalance
         "relay" -> Proxy.Type.Relay
+        "chain" -> Proxy.Type.Chain
         else -> Proxy.Type.Selector
     }
 

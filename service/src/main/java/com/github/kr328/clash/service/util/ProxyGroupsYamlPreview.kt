@@ -230,6 +230,7 @@ object ProxyGroupsYamlPreview {
             "url-test" -> Proxy.Type.URLTest
             "load-balance" -> Proxy.Type.LoadBalance
             "relay" -> Proxy.Type.Relay
+            "chain" -> Proxy.Type.Chain
             else -> Proxy.Type.Selector
         }
     }

@@ -346,6 +346,18 @@ object Clash {
         Bridge.nativeSetRealityPolicy(clientVersion?.trim()?.takeIf { it.isNotEmpty() }, mlkem.native)
     }
 
+    /**
+     * Optional core capabilities compiled into libclash.so (e.g. "xdrive" from core
+     * patch 0003, see docs/core-patches.md), for the subscription User-Agent. Each
+     * entry is tied to its patch at Go compile time.
+     */
+    fun coreFeatures(): List<String> =
+        Bridge.nativeCoreFeatures()
+            ?.split(',')
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+            ?: emptyList()
+
     fun genX25519KeyPair(): AgeKeyPair =
         Json.Default.decodeFromString(AgeKeyPair.serializer(), checkNotNull(Bridge.nativeGenX25519KeyPair()))
 

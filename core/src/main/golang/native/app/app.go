@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"cfa/native/features"
 	"cfa/native/useragent"
 )
 
@@ -53,7 +54,7 @@ func CoreVersion() string {
 // SubscriptionUserAgent is the default User-Agent for subscription fetches; a
 // per-profile override replaces it via MergeSubscriptionFetchHeaders.
 func SubscriptionUserAgent() string {
-	return useragent.Build(appVersionName, coreVersion)
+	return useragent.Build(appVersionName, coreVersion, features.List()...)
 }
 
 func PlatformVersion() int {

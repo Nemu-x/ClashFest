@@ -60,14 +60,39 @@ object SubscriptionRequestHeaders {
     @Volatile
     var coreTag: String? = null
 
+    /**
+     * Optional core capabilities (`Clash.coreFeatures()`, e.g. "xdrive"), installed by the
+     * Application as a provider because common cannot depend on :core. Resolved on the first
+     * UA build, not at startup, so no process loads the native library just for this; the list
+     * is static per build, so it is cached once resolved. A failing provider means none.
+     */
+    @Volatile
+    var coreFeaturesProvider: (() -> List<String>)? = null
+
+    @Volatile
+    private var resolvedCoreFeatures: List<String>? = null
+
+    private fun coreFeatures(): List<String> {
+        resolvedCoreFeatures?.let { return it }
+        val provider = coreFeaturesProvider ?: return emptyList()
+        val features = try {
+            provider()
+        } catch (_: Throwable) {
+            emptyList()
+        }
+        resolvedCoreFeatures = features
+        return features
+    }
+
     private val releaseTag = Regex("""^v?(\d+\.\d+\.\d+)$""")
     private val semverPrefix = Regex("""^v?(\d+\.\d+\.\d+)""")
 
     /**
      * Same string the native subscription fetch sends (`native/useragent` in Go):
-     * `mihomo/<coreVersion> ClashFest/<semver>`. The mihomo token leads because
-     * Marzban / Remnawave pick the clash-meta output format from the first token
-     * and would route a `ClashFest/…`-first UA into their legacy clash branch.
+     * `mihomo/<coreVersion> ClashFest/<semver>`, plus ` (<features>)` when the core
+     * carries optional capabilities. The mihomo token leads because Marzban / Remnawave
+     * pick the clash-meta output format from the first token and would route a
+     * `ClashFest/…`-first UA into their legacy clash branch.
      */
     fun defaultUserAgent(context: Context): String {
         val ver = try {
@@ -75,16 +100,22 @@ object SubscriptionRequestHeaders {
         } catch (_: Exception) {
             "0"
         }
-        return buildDefaultUserAgent(ver, coreTag)
+        return buildDefaultUserAgent(ver, coreTag, coreFeatures())
     }
 
-    fun buildDefaultUserAgent(versionName: String, coreTag: String?): String {
+    fun buildDefaultUserAgent(
+        versionName: String,
+        coreTag: String?,
+        features: List<String> = emptyList(),
+    ): String {
         val core = coreTag?.trim()?.let { releaseTag.find(it)?.groupValues?.get(1) }
         val app = semverPrefix.find(versionName)?.groupValues?.get(1) ?: versionName
         return buildString {
             append("mihomo")
             if (!core.isNullOrEmpty()) append('/').append(core)
             append(" ClashFest/").append(app)
+            val comment = features.map { it.trim() }.filter { it.isNotEmpty() }
+            if (comment.isNotEmpty()) append(" (").append(comment.joinToString("; ")).append(')')
         }
     }
 

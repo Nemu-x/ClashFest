@@ -1,0 +1,45 @@
+proxies:
+  - name: local-node
+    type: reject
+  - name: snake-node
+    type: reject
+  - name: caps-node
+    type: reject
+  - name: cloud-node
+    type: vless
+    server: www.googleapis.com
+    port: 443
+    uuid: 27848739-7e62-4138-9fd3-098a63964b6b
+    network: xdrive
+    encryption: mlkem768x25519plus.native.0rtt.XKbaq1BuzJKKKPxZbwgRpn-gYQbnhrYketgezASCL1I
+    xdrive-opts:
+        service: google-drive
+        remote-folder: dummy-folder-id
+        secrets:
+          - dummy-client-id
+          - dummy-client-secret
+          - dummy-refresh-token
+proxy-providers:
+    inline:
+        type: inline
+        payload:
+          - name: provider-local
+            type: reject
+    caps:
+        Type: inline
+        Payload:
+          - name: provider-caps
+            type: reject
+proxy-groups:
+  - name: G
+    type: select
+    proxies:
+      - local-node
+      - snake-node
+      - caps-node
+      - cloud-node
+    use:
+      - inline
+      - caps
+rules:
+  - MATCH,G

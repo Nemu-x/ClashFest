@@ -28,6 +28,7 @@ import com.github.kr328.clash.service.util.ProxyGroupsYamlPreview
 import com.github.kr328.clash.service.util.ProxyTransportYamlPreview
 import com.github.kr328.clash.service.util.ProxyYamlPreview
 import com.github.kr328.clash.service.util.RuleApplyService
+import com.github.kr328.clash.service.util.XDriveSecretRedactor
 import com.github.kr328.clash.service.util.pendingDir
 import com.github.kr328.clash.service.util.sendProfileChanged
 import kotlinx.coroutines.CoroutineScope
@@ -315,7 +316,8 @@ class ProfileManager(private val context: Context) : IProfileManager,
                 return@withContext null
             }
             try {
-                file.readText()
+                // Read-only view / copy / download: XDrive storage credentials are hidden.
+                XDriveSecretRedactor.redactConfigYaml(file.readText())
             } catch (_: Exception) {
                 null
             }

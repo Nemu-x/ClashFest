@@ -61,6 +61,7 @@ data class Proxy(
         Fallback(true),
         URLTest(true),
         LoadBalance(true),
+        Chain(true), // core patch 0005
 
         Unknown(false);
 

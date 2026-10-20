@@ -36,7 +36,7 @@ internal fun splitNameAndCity(text: String): Pair<String, String?> {
  * "TCP", which mislabelled QUIC protocols (Hysteria2, TUIC) and UDP tunnels (WireGuard).
  */
 internal fun transportLabel(info: ProxyTransportInfo?, typeName: String): String? {
-    if (info == null) return null
+    if (info == null || !hasTransport(typeName)) return null
     when (typeName.lowercase()) {
         in QUIC_PROTOCOLS -> return "QUIC"
         in UDP_TUNNEL_PROTOCOLS -> return "UDP"
@@ -51,8 +51,12 @@ internal fun transportLabel(info: ProxyTransportInfo?, typeName: String): String
 /** `tls: true`, or a protocol that is always TLS (Trojan, AnyTLS, the QUIC family). */
 internal fun usesTls(info: ProxyTransportInfo, typeName: String): Boolean {
     val type = typeName.lowercase()
+    if (type in BUILTIN_OUTBOUNDS) return false
     return info.tls || type in ALWAYS_TLS_PROTOCOLS || type in QUIC_PROTOCOLS
 }
+
+/** False for the built-in outbounds (DIRECT, REJECT, PASS, …): they carry no transport or TLS. */
+internal fun hasTransport(typeName: String): Boolean = typeName.lowercase() !in BUILTIN_OUTBOUNDS
 
 /**
  * Keyed on the **enum** name (the caller passes `p.type.name`), so `gostrelay`, not
@@ -92,6 +96,7 @@ internal fun groupTypeLabel(type: Proxy.Type): String? = when (type) {
     Proxy.Type.LoadBalance -> "LOAD-BALANCE"
     Proxy.Type.Selector -> "SELECTOR"
     Proxy.Type.Relay -> "RELAY"
+    Proxy.Type.Chain -> "CHAIN"
     else -> null
 }
 
@@ -101,7 +106,7 @@ internal fun groupTypeColor(type: Proxy.Type): Int = when (type) {
     Proxy.Type.Fallback -> R.color.group_fallback
     Proxy.Type.LoadBalance -> R.color.group_loadbalance
     Proxy.Type.Selector -> R.color.group_selector
-    Proxy.Type.Relay -> R.color.group_relay
+    Proxy.Type.Relay, Proxy.Type.Chain -> R.color.group_relay
     else -> R.color.proto_default
 }
 
@@ -179,3 +184,5 @@ internal fun isEmojiLike(codePoint: Int): Boolean =
 private val QUIC_PROTOCOLS = setOf("hysteria", "hysteria2", "tuic", "masque", "shadowquic")
 private val UDP_TUNNEL_PROTOCOLS = setOf("wireguard", "trusttunnel", "tailscale", "openvpn", "easytier")
 private val ALWAYS_TLS_PROTOCOLS = setOf("trojan", "anytls")
+/** Enum names, lowercased: outbounds that never open a proxy connection of their own. */
+private val BUILTIN_OUTBOUNDS = setOf("direct", "reject", "rejectdrop", "pass", "passrule", "compatible")
