@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.os.SystemClock
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
@@ -52,13 +53,14 @@ import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.supervisorScope
 
 class MainActivity : BaseActivity<MainDesign>() {
-    private val scanLauncher = registerForActivityResult(ScanQrCode()) { imports.onScanResult(it) }
+    private val scanLauncher: ActivityResultLauncher<Unit?> =
+        registerForActivityResult(ScanQrCode()) { imports.onScanResult(it) }
 
     private val tunnel = MainTunnelModeController(this)
     private val probe = MainProxyProbe(this)
     private val dashboard = MainDashboardFetcher(this, tunnel, probe)
     private val subscriptionMetadata = MainSubscriptionMetadata(this)
-    private val imports = MainImportFlows(this, tunnel, dashboard) { scanLauncher.launch(null) }
+    private val imports: MainImportFlows = MainImportFlows(this, tunnel, dashboard) { scanLauncher.launch(null) }
     private val bypass = MainBypassPrompter(this)
     private val connection = MainConnectionController(this, dashboard, probe, bypass, imports)
     private val profileActions = MainProfileActions(this, tunnel, dashboard, subscriptionMetadata)
