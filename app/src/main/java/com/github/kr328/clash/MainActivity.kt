@@ -271,6 +271,15 @@ class MainActivity : BaseActivity<MainDesign>() {
                             val serviceStateEvent = it == Event.ClashStop ||
                                 it == Event.ClashStart ||
                                 it == Event.ServiceRecreated
+                            if (it == Event.ProfileLoaded) {
+                                // The engine (re)loaded a config: a subscription update while
+                                // connected can change group membership. Live group details are
+                                // merged, never replaced, and a cached group is not re-queried, so
+                                // the picker kept the old members until a reconnect. Drop them and
+                                // let the refresh below re-prime from the new engine state.
+                                proxyRuntime.warmedGroups.clear()
+                                design.clearProxyDetails()
+                            }
                             scheduleDashboardRefresh(
                                 includeAnnouncement = it == Event.ActivityStart ||
                                     it == Event.ProfileChanged ||
