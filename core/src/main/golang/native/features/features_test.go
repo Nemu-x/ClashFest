@@ -20,10 +20,13 @@ func TestListIsWellFormed(t *testing.T) {
 	if !seen["xdrive"] {
 		t.Fatal("xdrive missing although core patch 0003 is compiled in")
 	}
+	if !seen["chain"] {
+		t.Fatal("chain missing although core patch 0005 is compiled in")
+	}
 }
 
 func TestString(t *testing.T) {
-	if got := String(); got != "xdrive" {
+	if got := String(); got != "xdrive,chain" {
 		t.Fatalf("String() = %q", got)
 	}
 }
