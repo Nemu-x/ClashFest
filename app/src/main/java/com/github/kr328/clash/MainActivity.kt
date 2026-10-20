@@ -1,80 +1,37 @@
 package com.github.kr328.clash
 
-import android.content.ClipboardManager
 import android.content.Intent
 import android.app.DownloadManager
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.graphics.Typeface
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
 import android.os.SystemClock
-import android.provider.Settings
 import android.os.PowerManager
-import android.view.View
-import android.widget.ScrollView
-import android.widget.TextView
-import android.widget.Toast
-import androidx.appcompat.widget.PopupMenu
-import com.github.kr328.clash.design.dialog.AppBottomSheetDialog
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
-import com.github.kr328.clash.common.util.ShareImportSupport
-import com.github.kr328.clash.util.SubscriptionMetaCache
-import com.github.kr328.clash.remote.FilesClient
-import com.github.kr328.clash.util.commitProfileWithProgress
-import com.github.kr328.clash.util.fileName
-import com.github.kr328.clash.util.createEmptyUrlProfileAndOpenEditor
 import com.github.kr328.clash.util.updateProfileWithProgress
-import com.github.kr328.clash.common.log.Log
 import com.github.kr328.clash.common.constants.Intents
-import com.github.kr328.clash.common.util.StandalonePing
-import com.github.kr328.clash.common.util.SubscriptionNameGuesser
-import com.github.kr328.clash.common.util.SubscriptionOverrides
 import com.github.kr328.clash.common.util.intent
 import com.github.kr328.clash.common.util.setUUID
 import com.github.kr328.clash.common.util.ticker
-import com.github.kr328.clash.core.Clash
-import com.github.kr328.clash.core.model.Proxy
-import com.github.kr328.clash.core.util.trafficDownload
-import com.github.kr328.clash.core.util.trafficUpload
-import com.github.kr328.clash.core.model.ProxyGroup
 import com.github.kr328.clash.core.model.TunnelState
 import com.github.kr328.clash.design.MainDesign
 import com.github.kr328.clash.design.R
-import com.github.kr328.clash.design.dialog.withModelProgressBar
 import com.github.kr328.clash.design.model.DarkMode
 import com.github.kr328.clash.design.ui.ToastDuration
-import com.github.kr328.clash.design.util.applyFetchStatus
-import com.github.kr328.clash.design.util.isTelevision
-import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.design.util.showExceptionToast
 import com.github.kr328.clash.remote.Remote
-import com.github.kr328.clash.remote.StatusClient
 import com.github.kr328.clash.service.model.Profile
-import com.github.kr328.clash.service.model.ProxyGroupPreviewRow
-import com.github.kr328.clash.service.remote.IProxyDelayObserver
 import com.github.kr328.clash.service.store.ServiceStore
-import com.github.kr328.clash.service.util.importedDir
-import com.github.kr328.clash.util.BypassPreset
-import com.github.kr328.clash.util.BypassPresets
-import com.github.kr328.clash.util.GitHubReleaseUpdate
-import com.github.kr328.clash.util.UpdateApkVerifier
 import com.github.kr328.clash.util.AppUpdateChecker
-import com.github.kr328.clash.util.AboutVersions
 import com.github.kr328.clash.util.showProfileQuickEditSheet
 import com.github.kr328.clash.util.closeConnectionsAfterUserProxySwitchIfEnabled
-import com.github.kr328.clash.util.startClashService
 import com.github.kr328.clash.util.stopClashService
 import com.github.kr328.clash.util.withClash
 import com.github.kr328.clash.util.withProfile
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.github.kr328.clash.qr.QrScanResult
 import com.github.kr328.clash.qr.ScanQrCode
 import kotlinx.coroutines.CancellationException
@@ -85,45 +42,31 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
 import java.util.*
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicInteger
 
 class MainActivity : BaseActivity<MainDesign>() {
-    private data class HomeRuntimeSnapshot(
-        val running: Boolean,
-        val activeProfileUuid: UUID?,
-        val proxyNames: List<String>,
-    )
+    internal val proxyRuntime = MainProxyRuntime(this)
+    internal val dashboard = MainDashboard(this)
+    internal val profileActions = MainProfileActions(this)
+    internal val updates = MainAppUpdates(this)
+    internal val subscriptionMeta = MainSubscriptionMeta(this)
+    private val bypassPrompt = MainBypassPrompt(this)
 
-    private val scanLauncher = registerForActivityResult(ScanQrCode(), ::onScanResult)
-    private var lastForwardedTrafficTotal: Long = Long.MIN_VALUE
-    private var isCheckingUpdates: Boolean = false
+    internal val mainDesign: MainDesign?
+        get() = design
+
+    internal val mainUiStore
+        get() = uiStore
+
+    internal val isClashRunning: Boolean
+        get() = clashRunning
+
+    internal val scanLauncher = registerForActivityResult(ScanQrCode(), ::onScanResult)
     private var isToggleStatusInFlight: Boolean = false
-    private val subscriptionMetadataSyncMutex = Mutex()
-
-    // When the user requests a stop, the service keeps reporting serviceRunning=true for a
-    // second or two while it tears down. A dashboard refresh landing in that window would
-    // read the stale "still running" snapshot and flip the power button back ON, so the
-    // button visibly bounces off -> on -> (secs later) off — the "disconnect lag". While
-    // this deadline is in the future we suppress reviving the button to ON; it clears as
-    // soon as the service actually reports stopped (or on a new start, or after the
-    // deadline as a safety net).
-    private var suppressRunningReviveUntil: Long = 0L
-    private var pendingTunnelMode: TunnelState.Mode? = null
-    private var pendingApkDownloadId: Long = -1L
-    private var downloadReceiverRegistered: Boolean = false
-    private val updatePrefs by lazy { getSharedPreferences("app_update", MODE_PRIVATE) }
-    /** Incremented on each [onProfileLoaded] — used to await post-load selector patches. */
-    private val profileLoadEpoch = AtomicInteger(0)
 
     /** How [runDashboard] resolved. Cancellation (activity destroy) exits by exception instead. */
     private enum class DashboardExit { SoftRecreate }
@@ -134,7 +77,7 @@ class MainActivity : BaseActivity<MainDesign>() {
      * re-inflation, and the accent staleness check is level-based (desired vs applied), so an
      * already-converged run never re-fires.
      */
-    private val softRecreateRequests =
+    internal val softRecreateRequests =
         kotlinx.coroutines.channels.Channel<Unit>(kotlinx.coroutines.channels.Channel.CONFLATED)
 
     /**
@@ -142,7 +85,7 @@ class MainActivity : BaseActivity<MainDesign>() {
      * the brand accent lives there, never on the Activity theme (see
      * [themeOverlaysOnActivityTheme]). Falls back to the activity before the first design lands.
      */
-    private val themedContext: Context
+    internal val themedContext: Context
         get() = design?.context ?: this
 
     /**
@@ -153,366 +96,6 @@ class MainActivity : BaseActivity<MainDesign>() {
      */
     override val themeOverlaysOnActivityTheme: Boolean = false
 
-    private fun clearPendingDownloadState() {
-        pendingApkDownloadId = -1L
-        updatePrefs.edit().remove("pending_download_id").apply()
-    }
-
-    private val apkDownloadReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action != DownloadManager.ACTION_DOWNLOAD_COMPLETE) return
-            val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L)
-            if (id <= 0L || id != pendingApkDownloadId) return
-            clearPendingDownloadState()
-
-            checkDownloadedApkAndInstall(id)
-        }
-    }
-
-    private fun normalizeTunnelMode(mode: TunnelState.Mode): TunnelState.Mode =
-        if (mode == TunnelState.Mode.Direct) TunnelState.Mode.Rule else mode
-
-    private fun parseTunnelMode(name: String): TunnelState.Mode? =
-        when (name) {
-            TunnelState.Mode.Rule.name -> TunnelState.Mode.Rule
-            TunnelState.Mode.Global.name -> TunnelState.Mode.Global
-            TunnelState.Mode.Direct.name -> TunnelState.Mode.Rule
-            else -> null
-        }
-
-    private suspend fun MainDesign.patchTunnelMode(mode: TunnelState.Mode, scheduleRefresh: () -> Unit) {
-        try {
-            val normalized = normalizeTunnelMode(mode)
-            uiStore.tunnelModePreference = normalized.name
-            pendingTunnelMode = normalized
-            setMode(normalized)
-
-            val running = clashRunning || withContext(Dispatchers.IO) { resolveStatusSnapshot().serviceRunning }
-            if (running) {
-                val error = runCatching {
-                    withClash {
-                        val o = queryOverride(Clash.OverrideSlot.Session)
-                        o.mode = normalized
-                        patchOverride(Clash.OverrideSlot.Session, o)
-                    }
-                    if (normalized == TunnelState.Mode.Global) {
-                        ensureGlobalSelectionSafe()
-                    }
-                    delay(120L)
-                    val applied = runCatching {
-                        withClash { queryTunnelState().mode }
-                    }.getOrNull()
-                    if (applied != null && normalizeTunnelMode(applied) != normalized) {
-                        withClash {
-                            val o = queryOverride(Clash.OverrideSlot.Session)
-                            o.mode = normalized
-                            patchOverride(Clash.OverrideSlot.Session, o)
-                        }
-                    } else if (applied != null) {
-                        pendingTunnelMode = null
-                    }
-                }.exceptionOrNull()
-
-                if (error != null && error !is CancellationException) {
-                    pendingTunnelMode = null
-                    showExceptionToast(error as? Exception ?: Exception(error))
-                }
-            }
-        } catch (e: Exception) {
-            pendingTunnelMode = null
-            if (e !is CancellationException) showExceptionToast(e)
-        } finally {
-            // Defer heavy dashboard work so mode UI updates immediately (Rule / Global switch).
-            launch {
-                delay(48)
-                scheduleRefresh()
-            }
-        }
-    }
-
-    private fun resolveStatusSnapshot(): StatusClient.StatusSnapshot =
-        runCatching { StatusClient(this).statusSnapshot() }
-            .getOrDefault(StatusClient.StatusSnapshot(clashRunning, null))
-
-    /** Wait until the core has proxy groups (profile loaded), up to ~7s. */
-    private suspend fun waitForProxyEngineReady() {
-        repeat(35) {
-            val ok = runCatching {
-                withClash { queryProxyGroupNames(false).isNotEmpty() }
-            }.getOrDefault(false)
-            if (ok) return
-            delay(200L)
-        }
-    }
-
-    /**
-     * [com.github.kr328.clash.service.clash.module.ConfigurationModule] runs
-     * [Clash.patchSelector] in applyPostLoad then sends PROFILE_LOADED, which increments
-     * [profileLoadEpoch]. The JNI snapshot can still show the YAML-default `now` right after
-     * [waitForProxyEngineReady]; we wait for that post-load hop before the first dashboard fetch.
-     */
-    private suspend fun waitForProfileLoadEpochAfter(snapshot: Int, timeoutMs: Long = 3000L) {
-        if (profileLoadEpoch.get() > snapshot) return
-        withTimeoutOrNull(timeoutMs) {
-            while (profileLoadEpoch.get() <= snapshot) {
-                delay(15L)
-            }
-        }
-    }
-
-    private fun isAutoProxyGroup(name: String, group: ProxyGroup): Boolean {
-        if (group.type == Proxy.Type.URLTest ||
-            group.type == Proxy.Type.Fallback ||
-            group.type == Proxy.Type.LoadBalance
-        ) {
-            return true
-        }
-
-        val normalized = name.lowercase(Locale.ROOT)
-        return normalized.contains("auto") ||
-            normalized.contains("url-test") ||
-            normalized.contains("best") ||
-            normalized.contains("fast") ||
-            normalized.contains("авто") ||
-            normalized.contains("лучш") ||
-            normalized.contains("быстр")
-    }
-
-    private fun isBlockedGlobalChoice(name: String): Boolean =
-        name.equals("DIRECT", ignoreCase = true) || name.equals("REJECT", ignoreCase = true)
-
-    private fun isBlockedGlobalChoice(proxy: Proxy): Boolean =
-        proxy.type == Proxy.Type.Direct ||
-            proxy.type == Proxy.Type.Reject ||
-            isBlockedGlobalChoice(proxy.name)
-
-    private suspend fun ensureGlobalSelectionSafe() {
-        runCatching {
-            val global = withClash {
-                queryProxyGroup("GLOBAL", com.github.kr328.clash.core.model.ProxySort.Default)
-            }
-            if (!isBlockedGlobalChoice(global.now)) return@runCatching
-            val firstUsable = global.proxies.firstOrNull { !isBlockedGlobalChoice(it) }?.name ?: return@runCatching
-            withClash { patchSelector("GLOBAL", firstUsable) }
-        }
-    }
-
-    private suspend fun ensureGlobalSelectionSafeWithRetry(
-        attempts: Int = 10,
-        delayMs: Long = 180L,
-    ) {
-        repeat(attempts) { index ->
-            val done = runCatching {
-                val running = resolveStatusSnapshot().serviceRunning
-                if (!running) return@runCatching true
-
-                val mode = withClash { queryTunnelState().mode }
-                if (normalizeTunnelMode(mode) != TunnelState.Mode.Global) return@runCatching true
-
-                val hasGlobal = withClash { queryProxyGroupNames(false).any { it.equals("GLOBAL", ignoreCase = true) } }
-                if (!hasGlobal) return@runCatching false
-
-                ensureGlobalSelectionSafe()
-                true
-            }.getOrDefault(false)
-
-            if (done) return
-            if (index < attempts - 1) delay(delayMs)
-        }
-    }
-
-    /**
-     * Run a per-proxy health check on [group] and stream each proxy's delay
-     * into the active card as soon as URLTest resolves. Suspends until every
-     * proxy has reported (or the call early-outed because the group is
-     * missing / wrong type).
-     *
-     * UI patches are dispatched on the activity's MainScope and target the
-     * design property — if the activity has already torn down the design by
-     * the time a result lands, the patch is silently dropped. Callers that
-     * need `now` / `alive` state should still issue a closing
-     * refreshRuntimeGroupDetails — per-proxy push only carries the delay
-     * measurement itself.
-     */
-    private suspend fun runPerProxyHealthCheck(group: String, testUrl: String = "") {
-        runCatching {
-            withClash {
-                healthCheckPerProxy(
-                    group,
-                    testUrl,
-                    object : IProxyDelayObserver {
-                        override fun onDelay(
-                            grp: String,
-                            proxy: String,
-                            delayMs: Int,
-                            errMsg: String,
-                        ) {
-                            // Failed URLTest carries errMsg + delayMs == 0. Showing 0 would
-                            // render as "0ms" — engine convention is Int.MAX_VALUE for
-                            // unreachable, so coerce before the patch.
-                            val effective = if (errMsg.isNotEmpty()) Int.MAX_VALUE else delayMs
-                            this@MainActivity.launch {
-                                this@MainActivity.design?.patchSingleProxyDelay(grp, proxy, effective)
-                            }
-                        }
-
-                        override fun onComplete(error: String?) {
-                            // No-op: the outer suspend returns via await() in
-                            // ClashManager.healthCheckPerProxy.
-                        }
-                    },
-                )
-            }
-        }
-    }
-
-    /**
-     * Single-node twin of [runPerProxyHealthCheck]: one URLTest for [proxy] inside [group], result
-     * pushed through the same per-proxy patch. A failed lookup (proxy not found) clears the
-     * capsule's pending state instead of leaving "…" behind.
-     */
-    private suspend fun runSingleProxyHealthCheck(group: String, proxy: String) {
-        val ok = runCatching {
-            withClash {
-                healthCheckProxy(
-                    group,
-                    proxy,
-                    "",
-                    object : IProxyDelayObserver {
-                        override fun onDelay(
-                            grp: String,
-                            proxyName: String,
-                            delayMs: Int,
-                            errMsg: String,
-                        ) {
-                            val effective = if (errMsg.isNotEmpty()) Int.MAX_VALUE else delayMs
-                            Log.d("single ping: $grp / $proxyName -> ${delayMs}ms err='$errMsg'")
-                            this@MainActivity.launch {
-                                this@MainActivity.design?.patchSingleProxyDelay(grp, proxyName, effective)
-                            }
-                        }
-
-                        override fun onComplete(error: String?) {
-                            // The outer suspend returns via await() in ClashManager.healthCheckProxy.
-                            if (error != null) Log.w("single ping: $group / $proxy failed: $error")
-                        }
-                    },
-                )
-            }
-        }.onFailure { e -> Log.w("single ping: $group / $proxy threw", e) }.isSuccess
-        if (!ok) design?.clearNodePingPending(proxy)
-    }
-
-    /** Groups already warmed up this session, so a group is url-tested at most once (O-07). */
-    private val warmedGroups = java.util.Collections.synchronizedSet(mutableSetOf<String>())
-
-    /**
-     * Warm up (url-test) a single group and its nested auto subtree — once per session. This is the
-     * lazy replacement for the old blanket connect-time warmup that url-tested EVERY auto group;
-     * on a heavy subscription (200-node url-test groups) that saturated the engine on connect, which
-     * showed up as an "infinite ping" and made proxy switching sluggish (O-07). We now test only the
-     * group the user actually looks at (see [MainActivity]'s visibleGroupChanged handler); the
-     * subtree walk still covers kaso.fyi-style layouts where the visible root is a plain select over
-     * a `hidden: true` url-test subtree.
-     */
-    private suspend fun warmUpGroupSubtree(rootGroup: String): Set<String> = coroutineScope {
-        if (rootGroup.isBlank() || !warmedGroups.add(rootGroup)) return@coroutineScope emptySet()
-        waitForProxyEngineReady()
-
-        val subtree = collectRuntimeGroupTree(rootGroup).ifEmpty { setOf(rootGroup) }
-        val autoGroups = linkedSetOf<String>()
-        for (groupName in subtree) {
-            val group = runCatching {
-                withClash { queryProxyGroup(groupName, com.github.kr328.clash.core.model.ProxySort.Default) }
-            }.getOrNull() ?: continue
-            if (isAutoProxyGroup(groupName, group)) {
-                autoGroups += groupName
-            }
-        }
-        if (autoGroups.isEmpty()) return@coroutineScope emptySet()
-
-        // Prime engine state so per-proxy push has rows to land on. Without this, the first warmup
-        // cycle would have nowhere to write — proxyDetails is empty until the user scrolls in.
-        val primed = refreshRuntimeGroupDetails(autoGroups)
-        if (primed.isNotEmpty()) {
-            design?.patchProxyDetails(primed)
-        }
-
-        autoGroups.map { group ->
-            launch { runPerProxyHealthCheck(group) }
-        }.joinAll()
-        autoGroups.toSet()
-    }
-
-    private fun showHomeImportSheet(design: MainDesign) {
-        // design.context, not the activity: the brand accent lives in the design's themed wrapper.
-        val dialog = AppBottomSheetDialog(design.context, fitContentHeight = false)
-        val view = design.context.layoutInflater.inflate(R.layout.bottom_sheet_home_import, null)
-        dialog.setContentView(view)
-        view.findViewById<View>(R.id.opt_clipboard).setOnClickListener {
-            dialog.dismiss()
-            launch { importFromClipboard(design) }
-        }
-        view.findViewById<View>(R.id.opt_url).setOnClickListener {
-            dialog.dismiss()
-            launch { createEmptyUrlProfileAndOpenEditor() }
-        }
-        view.findViewById<View>(R.id.opt_qr).setOnClickListener {
-            dialog.dismiss()
-            scanLauncher.launch(null)
-        }
-        view.findViewById<View>(R.id.opt_file).setOnClickListener {
-            dialog.dismiss()
-            launch { importFromFile(design) }
-        }
-        // Companion "control a TV" entry — phones only; on TV it lives on the home screen.
-        view.findViewById<View>(R.id.opt_companion).also { row ->
-            row.visibility = if (isTelevision()) View.GONE else View.VISIBLE
-            row.setOnClickListener {
-                dialog.dismiss()
-                startActivity(CompanionActivity::class.intent)
-            }
-        }
-        dialog.show()
-    }
-
-    /**
-     * Pick a local YAML, create a [Profile.Type.File] profile, write the picked
-     * content straight into its `config.yaml` and commit — then activate it,
-     * same as a URL/clipboard import. Falls back to Properties if the engine
-     * rejects the file (invalid YAML), so the user can fix it.
-     */
-    private suspend fun importFromFile(design: MainDesign) {
-        val uri: Uri = startActivityForResult(
-            ActivityResultContracts.GetContent(),
-            "*/*",
-        ) ?: return
-
-        val name = uri.fileName?.substringBeforeLast('.')?.trim()
-            ?.takeIf { it.isNotBlank() }
-            ?: getString(R.string.new_profile)
-
-        val uuid = withProfile { create(Profile.Type.File, name) }
-
-        try {
-            FilesClient(this).copyDocument("$uuid/config.yaml", uri)
-            themedContext.commitProfileWithProgress(uuid)
-        } catch (e: Exception) {
-            showImportCommitFailureDialog(uuid, e)
-            return
-        }
-
-        val profile = withProfile { queryByUUID(uuid) }
-        if (profile?.imported == true) {
-            withProfile { setActive(profile) }
-            ensureGlobalSelectionSafeWithRetry()
-            design.showToast(getString(R.string.import_done_named, name), ToastDuration.Long)
-        } else {
-            launchProperties(uuid)
-        }
-        design.fetch()
-    }
-
     private fun onScanResult(result: QrScanResult) {
         launch {
             val d = design ?: return@launch
@@ -520,7 +103,7 @@ class MainActivity : BaseActivity<MainDesign>() {
                 is QrScanResult.Success -> {
                     val url = result.content
                     if (url.isNotBlank()) {
-                        importSubscriptionFromUrl(d, url)
+                        profileActions.importSubscriptionFromUrl(d, url)
                     }
                 }
 
@@ -577,50 +160,14 @@ class MainActivity : BaseActivity<MainDesign>() {
     private suspend fun runDashboard(design: MainDesign): DashboardExit = coroutineScope {
         // A fresh design starts from its default traffic label; drop the memo so the first
         // fetchTraffic of this run always pushes the real total.
-        lastForwardedTrafficTotal = Long.MIN_VALUE
+        dashboard.lastForwardedTrafficTotal = Long.MIN_VALUE
         // These are normally reset by launched children (delayed unlock / finally), which die
         // with this scope on a soft recreate — clear them so a recreate mid-flight can't wedge
         // the power button or the About update check for the rest of the session.
         isToggleStatusInFlight = false
-        isCheckingUpdates = false
+        updates.isCheckingUpdates = false
 
-        design.onOpenAbout = {
-            launch {
-                // Store builds (F-Droid) ship without the GitHub updater: no status
-                // line and no "Check updates" button.
-                val onCheckUpdates: (((Boolean) -> Unit, (String?) -> Unit) -> Unit)? =
-                    if (!BuildConfig.SELF_UPDATE) {
-                        null
-                    } else {
-                        { setLoading, setStatus ->
-                            if (!isCheckingUpdates) {
-                                launch {
-                                    isCheckingUpdates = true
-                                    setStatus(null)
-                                    setLoading(true)
-                                    try {
-                                        checkForUpdates(design, setStatus)
-                                    } finally {
-                                        isCheckingUpdates = false
-                                        setLoading(false)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                design.showAbout(
-                    versionName = AboutVersions.app,
-                    coreVersion = AboutVersions.core,
-                    initialUpdateStatus = if (!BuildConfig.SELF_UPDATE) {
-                        null
-                    } else {
-                        AppUpdateChecker.peekCachedRelease(this@MainActivity)
-                            ?.let { getString(R.string.about_update_available, it.tagName) }
-                    },
-                    onCheckUpdates = onCheckUpdates,
-                )
-            }
-        }
+        with(updates) { this@coroutineScope.bindOpenAbout(design) }
 
         // Keep the companion agent alive whenever the app is open if the user enabled it — the
         // foreground service doesn't survive a process restart on its own, so a paired controller
@@ -630,10 +177,10 @@ class MainActivity : BaseActivity<MainDesign>() {
         ) {
             com.github.kr328.clash.companion.agent.CompanionGatewayService.start(this@MainActivity)
         }
-        design.onUpdateBadgeTap = { showUpdateAvailableDialog() }
-        refreshUpdateBadge(design)
+        design.onUpdateBadgeTap = { updates.showUpdateAvailableDialog() }
+        updates.refreshUpdateBadge(design)
 
-        design.onOpenBrandUrl = { url -> openExternalUrl(url) }
+        design.onOpenBrandUrl = { url -> subscriptionMeta.openExternalUrl(url) }
 
         val tickerInteractive = ticker(TimeUnit.SECONDS.toMillis(2))
         // Bumped from 8s -> 30s. While the screen is off (or activity is in background),
@@ -676,7 +223,7 @@ class MainActivity : BaseActivity<MainDesign>() {
                     announcementRefreshPending = false
 
                     try {
-                        val runtime = design.fetch()
+                        val runtime = with(dashboard) { design.fetch() }
                         if (!runtime.running ||
                             runtime.activeProfileUuid == null ||
                             runtime.proxyNames.isEmpty()
@@ -685,7 +232,7 @@ class MainActivity : BaseActivity<MainDesign>() {
                             proxyDetailJob = null
                         }
                         if (refreshAnnouncementNow) {
-                            refreshAnnouncement(design)
+                            subscriptionMeta.refreshAnnouncement(design)
                         }
                     } catch (e: CancellationException) {
                         throw e
@@ -741,11 +288,11 @@ class MainActivity : BaseActivity<MainDesign>() {
                             if (it == Event.ProfileLoaded || it == Event.ProfileChanged) {
                                 launch {
                                     delay(260L)
-                                    ensureGlobalSelectionSafeWithRetry()
+                                    proxyRuntime.ensureGlobalSelectionSafeWithRetry()
                                 }
                             }
                             if (it == Event.ActivityStart) {
-                                refreshUpdateBadge(design)
+                                updates.refreshUpdateBadge(design)
                             }
                         }
 
@@ -777,28 +324,28 @@ class MainActivity : BaseActivity<MainDesign>() {
                                     val optimisticStop = clashRunning
                                     if (optimisticStop) {
                                         // Latch BEFORE the flip so any refresh racing us can't revive ON.
-                                        suppressRunningReviveUntil = SystemClock.uptimeMillis() + 8000L
+                                        dashboard.suppressRunningReviveUntil = SystemClock.uptimeMillis() + 8000L
                                         design.setClashRunning(false)
                                         design.setTunnelStarting(false)
                                     }
                                     val runningNow = withContext(Dispatchers.IO) {
-                                        resolveStatusSnapshot().serviceRunning
+                                        proxyRuntime.resolveStatusSnapshot().serviceRunning
                                     }
                                     Remote.broadcasts.clashRunning = runningNow
                                     if (runningNow) {
-                                        suppressRunningReviveUntil = SystemClock.uptimeMillis() + 8000L
+                                        dashboard.suppressRunningReviveUntil = SystemClock.uptimeMillis() + 8000L
                                         stopClashService()
                                         design.setClashRunning(false)
                                         design.setTunnelStarting(false)
                                     } else {
                                         // User is (re)starting — drop any stale stop latch.
-                                        suppressRunningReviveUntil = 0L
-                                        if (!maybePromptRuBypass()) {
+                                        dashboard.suppressRunningReviveUntil = 0L
+                                        if (!bypassPrompt.maybePromptRuBypass()) {
                                             return@launch
                                         }
                                         design.setTunnelStarting(true)
                                         try {
-                                            design.startClash()
+                                            with(dashboard) { design.startClash() }
                                         } finally {
                                             scheduleDashboardRefresh()
                                         }
@@ -815,7 +362,7 @@ class MainActivity : BaseActivity<MainDesign>() {
                         }
 
                         MainDesign.Request.OpenNewProfile ->
-                            showHomeImportSheet(design)
+                            profileActions.showHomeImportSheet(design)
 
                         MainDesign.Request.OpenConnections ->
                             startActivity(ConnectionsActivity::class.intent)
@@ -824,11 +371,11 @@ class MainActivity : BaseActivity<MainDesign>() {
                             startActivity(LogsActivity::class.intent)
 
                         MainDesign.Request.OpenRouting -> launch {
-                            openRulesHub()
+                            profileActions.openRulesHub()
                         }
 
                         MainDesign.Request.OpenRules -> launch {
-                            openRulesHub()
+                            profileActions.openRulesHub()
                         }
 
                         MainDesign.Request.OpenProxyChain ->
@@ -855,19 +402,19 @@ class MainActivity : BaseActivity<MainDesign>() {
                         MainDesign.Request.OpenAbout -> design.onOpenAbout?.invoke()
 
                         MainDesign.Request.OpenImportClipboard ->
-                            importFromClipboard(design)
+                            profileActions.importFromClipboard(design)
 
                         MainDesign.Request.OpenImportQr ->
                             scanLauncher.launch(null)
 
                         MainDesign.Request.PatchModeDirect ->
-                            launch { design.patchTunnelMode(TunnelState.Mode.Rule) { scheduleDashboardRefresh() } }
+                            launch { with(dashboard) { design.patchTunnelMode(TunnelState.Mode.Rule) { scheduleDashboardRefresh() } } }
 
                         MainDesign.Request.PatchModeGlobal ->
-                            launch { design.patchTunnelMode(TunnelState.Mode.Global) { scheduleDashboardRefresh() } }
+                            launch { with(dashboard) { design.patchTunnelMode(TunnelState.Mode.Global) { scheduleDashboardRefresh() } } }
 
                         MainDesign.Request.PatchModeRule ->
-                            launch { design.patchTunnelMode(TunnelState.Mode.Rule) { scheduleDashboardRefresh() } }
+                            launch { with(dashboard) { design.patchTunnelMode(TunnelState.Mode.Rule) { scheduleDashboardRefresh() } } }
 
                         MainDesign.Request.CycleTheme -> {
                             uiStore.darkMode = when (uiStore.darkMode) {
@@ -892,11 +439,11 @@ class MainActivity : BaseActivity<MainDesign>() {
                     homeProxyPatchJob = launch {
                         try {
                             val runningNow = withContext(Dispatchers.IO) {
-                                resolveStatusSnapshot().serviceRunning
+                                proxyRuntime.resolveStatusSnapshot().serviceRunning
                             }
                             Remote.broadcasts.clashRunning = runningNow
                             if (!runningNow) {
-                                if (isProxyProviderKeyName(name)) {
+                                if (proxyRuntime.isProxyProviderKeyName(name)) {
                                     scheduleDashboardRefresh()
                                     return@launch
                                 }
@@ -932,99 +479,15 @@ class MainActivity : BaseActivity<MainDesign>() {
 
                 design.profilePingAllRequests.onReceive { (profile, group, nodeNames, testUrl) ->
                     launch {
-                        try {
-                            design.setPingingProfile(profile.uuid)
-                            design.clearStandalonePingForProfile(profile.uuid)
-                            val engineReady = runCatching {
-                                resolveStatusSnapshot().serviceRunning &&
-                                    withClash { queryProxyGroupNames(false).isNotEmpty() }
-                            }.getOrDefault(false)
-                            if (engineReady) {
-                                val activeUuid = withProfile { queryActive()?.uuid }
-                                if (activeUuid != profile.uuid && profile.imported) {
-                                    withProfile { setActive(profile) }
-                                }
-                                waitForProxyEngineReady()
-                                val groupsToRefresh = collectRuntimeGroupTree(group)
-                                    .ifEmpty { linkedSetOf(group).filter { it.isNotBlank() }.toSet() }
-                                // Prime live engine state so per-proxy push has rows to land on.
-                                // healthCheckPerProxy only updates delays for proxies already
-                                // present in proxyDetails — without an initial query the very
-                                // first ping cycle would be a silent no-op until the closing
-                                // refresh below.
-                                val primed = refreshRuntimeGroupDetails(groupsToRefresh)
-                                if (primed.isNotEmpty()) {
-                                    design.patchProxyDetails(primed)
-                                }
-                                val jobs = groupsToRefresh.map { groupName ->
-                                    launch { runPerProxyHealthCheck(groupName, testUrl) }
-                                }
-                                jobs.forEach { it.join() }
-                                // Closing refresh captures `now` / `alive` fields the per-proxy
-                                // push doesn't carry, plus any auto-group selection that the
-                                // engine's url-test logic flipped after the ping cycle.
-                                val refreshed = refreshRuntimeGroupDetails(groupsToRefresh)
-                                if (refreshed.isNotEmpty()) {
-                                    design.patchProxyDetails(refreshed)
-                                }
-                                scheduleDashboardRefresh()
-                            } else {
-                                val offlineGroups = withProfile { readProxyGroupsPreview(profile.uuid) }
-                                val pingTargets = collectOfflineLeafProxyNames(group, nodeNames, offlineGroups)
-                                val jobs = pingTargets.map { name -> launch(Dispatchers.IO) {
-                                    if (StandalonePing.isBuiltinProxyName(name)) return@launch
-                                    val yaml = withProfile { readProxyEntryYaml(profile.uuid, name) }
-                                        ?: return@launch
-                                    val hp = StandalonePing.parseServerPortFromProxyYaml(yaml) ?: return@launch
-                                    val ms = StandalonePing.tcpConnectMs(hp.first, hp.second)
-                                        .getOrNull()?.toInt() ?: return@launch
-                                    design.patchStandalonePingResults(profile.uuid, mapOf(name to ms))
-                                } }
-                                jobs.forEach { it.join() }
-                            }
-                        } catch (e: Exception) {
-                            design.showExceptionToast(e)
-                        } finally {
-                            design.setPingingProfile(null)
+                        with(proxyRuntime) {
+                            this@launch.pingProfileNodes(design, profile, group, nodeNames, testUrl) { scheduleDashboardRefresh() }
                         }
                     }
                 }
 
                 design.proxyPingNodeRequests.onReceive { (profile, group, proxy) ->
                     launch {
-                        try {
-                            val engineReady = runCatching {
-                                resolveStatusSnapshot().serviceRunning &&
-                                    withClash { queryProxyGroupNames(false).isNotEmpty() }
-                            }.getOrDefault(false)
-                            val activeUuid = withProfile { queryActive()?.uuid }
-                            Log.d("single ping: request $group / $proxy engineReady=$engineReady active=$activeUuid profile=${profile.uuid}")
-                            if (engineReady && activeUuid == profile.uuid) {
-                                runSingleProxyHealthCheck(group, proxy)
-                            } else {
-                                // Engine not running for this profile: same raw TCP-connect probe
-                                // the offline ping-all uses, narrowed to the tapped node.
-                                val ms = if (StandalonePing.isBuiltinProxyName(proxy)) {
-                                    null
-                                } else {
-                                    withProfile { readProxyEntryYaml(profile.uuid, proxy) }
-                                        ?.let { StandalonePing.parseServerPortFromProxyYaml(it) }
-                                        ?.let { hp ->
-                                            withContext(Dispatchers.IO) {
-                                                StandalonePing.tcpConnectMs(hp.first, hp.second).getOrNull()?.toInt()
-                                            }
-                                        }
-                                }
-                                if (ms != null) {
-                                    design.patchStandalonePingResults(profile.uuid, mapOf(proxy to ms))
-                                } else {
-                                    design.clearNodePingPending(proxy)
-                                }
-                            }
-                        } catch (e: Exception) {
-                            design.clearNodePingPending(proxy)
-                            design.showExceptionToast(e)
-                        }
+                        proxyRuntime.pingSingleNode(design, profile, group, proxy)
                     }
                 }
 
@@ -1042,8 +505,8 @@ class MainActivity : BaseActivity<MainDesign>() {
                         // and we don't need to block the user on a slow HTTP roundtrip.
                         launch(Dispatchers.IO) {
                             uiStore.subscriptionMetadataLastFetch = 0L
-                            runCatching { syncSubscriptionMetadata() }
-                            withContext(Dispatchers.Main) { refreshAnnouncement(design) }
+                            runCatching { subscriptionMeta.syncSubscriptionMetadata() }
+                            withContext(Dispatchers.Main) { subscriptionMeta.refreshAnnouncement(design) }
                         }
                         scheduleDashboardRefresh()
                     }
@@ -1052,7 +515,7 @@ class MainActivity : BaseActivity<MainDesign>() {
                 design.profileProxyYamlRequests.onReceive { (profile, _, proxyName) ->
                     launch {
                         val yaml = withProfile { readProxyEntryYaml(profile.uuid, proxyName) }
-                        showProxyYamlDialog(proxyName, yaml ?: getString(R.string.proxy_yaml_missing))
+                        profileActions.showProxyYamlDialog(proxyName, yaml ?: getString(R.string.proxy_yaml_missing))
                     }
                 }
 
@@ -1081,9 +544,9 @@ class MainActivity : BaseActivity<MainDesign>() {
                     // actually opens it — instead of every auto group up front on connect.
                     launch {
                         try {
-                            val warmed = warmUpGroupSubtree(group)
+                            val warmed = proxyRuntime.warmUpGroupSubtree(group)
                             if (warmed.isNotEmpty()) {
-                                val patches = refreshRuntimeGroupDetails(warmed)
+                                val patches = proxyRuntime.refreshRuntimeGroupDetails(warmed)
                                 if (patches.isNotEmpty()) design?.patchProxyDetails(patches)
                             }
                         } catch (e: CancellationException) {
@@ -1097,7 +560,7 @@ class MainActivity : BaseActivity<MainDesign>() {
                     proxyDetailJob?.cancel()
                     proxyDetailJob = launch {
                         try {
-                            design.fetchVisibleProxyGroup(profile, group)
+                            with(dashboard) { design.fetchVisibleProxyGroup(profile, group) }
                         } catch (e: CancellationException) {
                             throw e
                         } catch (_: Exception) {
@@ -1111,7 +574,7 @@ class MainActivity : BaseActivity<MainDesign>() {
                         withProfile {
                             if (profile.imported) {
                                 setActive(profile)
-                                ensureGlobalSelectionSafeWithRetry()
+                                proxyRuntime.ensureGlobalSelectionSafeWithRetry()
                             } else {
                                 design.requestSave(profile)
                             }
@@ -1122,34 +585,17 @@ class MainActivity : BaseActivity<MainDesign>() {
 
                 design.profileMenuRequests.onReceive { (profile, anchor) ->
                     launch(Dispatchers.Main) {
-                        showProfileOverflowMenu(design, profile, anchor)
+                        profileActions.showProfileOverflowMenu(design, profile, anchor)
                     }
                 }
 
                 design.profileEditRequests.onReceive { profile ->
-                    showProfileQuickEditSheet(design, profile) { design.fetch() }
+                    showProfileQuickEditSheet(design, profile) { with(dashboard) { design.fetch() } }
                 }
 
                 design.profileUpdateAllRequests.onReceive {
                     launch {
-                        // Per-profile guard: one subscription failing (network /
-                        // bad config / commit) must NOT take down the whole
-                        // "Update all" with an uncaught coroutine exception.
-                        var failed = 0
-                        withProfile {
-                            queryAll().forEach { p ->
-                                if (p.imported && p.type != Profile.Type.File) {
-                                    runCatching { update(p.uuid) }.onFailure { failed++ }
-                                }
-                            }
-                        }
-                        if (failed > 0) {
-                            design.showToast(
-                                getString(R.string.profiles_update_all_failed, failed),
-                                ToastDuration.Long,
-                            )
-                        }
-                        design.fetch()
+                        profileActions.updateAllProfiles(design)
                     }
                 }
 
@@ -1164,7 +610,7 @@ class MainActivity : BaseActivity<MainDesign>() {
                     // tickers competing.
                     val trafficTicker = if (interactive) tickerInteractive else tickerIdle
                     trafficTicker.onReceive {
-                        launch { design.fetchTraffic() }
+                        launch { with(dashboard) { design.fetchTraffic() } }
                     }
                 }
 
@@ -1180,593 +626,6 @@ class MainActivity : BaseActivity<MainDesign>() {
         // launches die here; the design-generation loop in main() takes over.
         coroutineContext.cancelChildren()
         checkNotNull(exit)
-    }
-
-    private fun showProfileOverflowMenu(design: MainDesign, profile: Profile, anchor: View) {
-        // anchor.context is the design's themed wrapper (the row was inflated from it).
-        val popup = PopupMenu(anchor.context, anchor)
-        popup.menuInflater.inflate(R.menu.menu_profile_home, popup.menu)
-        val m = popup.menu
-        m.findItem(R.id.profile_menu_set_active).isVisible =
-            profile.imported && !profile.active
-        m.findItem(R.id.profile_menu_subscription_sources).isVisible = profile.imported
-        m.findItem(R.id.profile_menu_rules).isVisible = profile.imported
-        m.findItem(R.id.profile_menu_duplicate).isVisible = profile.imported
-        popup.setOnMenuItemClickListener { item ->
-            when (item.itemId) {
-                R.id.profile_menu_set_active -> {
-                    launch {
-                        withProfile {
-                            if (profile.imported) {
-                                setActive(profile)
-                                ensureGlobalSelectionSafeWithRetry()
-                            } else {
-                                design.requestSave(profile)
-                            }
-                        }
-                        design.fetch()
-                    }
-                    true
-                }
-                R.id.profile_menu_edit -> {
-                    showProfileQuickEditSheet(design, profile) { design.fetch() }
-                    true
-                }
-                R.id.profile_menu_subscription_sources -> {
-                    if (profile.imported) {
-                        startActivity(ProxyProvidersEditorActivity::class.intent.setUUID(profile.uuid))
-                    }
-                    true
-                }
-                R.id.profile_menu_rules -> {
-                    if (profile.imported) {
-                        startActivity(RulesHubActivity::class.intent.setUUID(profile.uuid))
-                    }
-                    true
-                }
-                R.id.profile_menu_view_config -> {
-                    startActivity(ProfileConfigActivity::class.intent.setUUID(profile.uuid))
-                    true
-                }
-                R.id.profile_menu_config_script -> {
-                    if (profile.imported) {
-                        startActivity(ConfigScriptActivity::class.intent.setUUID(profile.uuid))
-                    }
-                    true
-                }
-                R.id.profile_menu_duplicate -> {
-                    launch {
-                        val uuid = withProfile { clone(profile.uuid) }
-                        startActivity(PropertiesActivity::class.intent.setUUID(uuid))
-                    }
-                    true
-                }
-                R.id.profile_menu_delete -> {
-                    MaterialAlertDialogBuilder(design.context)
-                        .setTitle(R.string.delete)
-                        .setMessage(R.string.profile_delete_confirm)
-                        .setPositiveButton(R.string.delete) { _, _ ->
-                            launch {
-                                withProfile { delete(profile.uuid) }
-                                design.fetch()
-                            }
-                        }
-                        .setNegativeButton(android.R.string.cancel, null)
-                        .show()
-                    true
-                }
-                else -> false
-            }
-        }
-        popup.show()
-    }
-
-    private suspend fun importFromClipboard(design: MainDesign) {
-        val text = withContext(Dispatchers.Main) {
-            getSystemService<ClipboardManager>()?.primaryClip
-                ?.getItemAt(0)?.text?.toString()?.trim().orEmpty()
-        }
-        if (text.isEmpty()) {
-            design.showToast(R.string.clipboard_empty, ToastDuration.Short)
-            return
-        }
-        if (!ShareImportSupport.isAllowedUrlProfileSource(text)) {
-            design.showToast(R.string.clipboard_no_url, ToastDuration.Long)
-            return
-        }
-        importSubscriptionFromUrl(design, text)
-    }
-
-    /**
-     * Resolves a friendly name from the subscription HTTP response, creates the profile,
-     * [commit]s the fetch, activates it — no Properties screen on success.
-     */
-    private suspend fun importSubscriptionFromUrl(design: MainDesign, url: String) {
-        // Optimistic import: don't block the UI on Profile-Title lookup.
-        // Create with a host-based preliminary name (instant), kick off the
-        // network guess in the background, and rename after commit() if a
-        // better name arrives. Previous flow froze the UI for up to 8s before
-        // the progress bar even appeared.
-        val pending = com.github.kr328.clash.util.AsyncNameResolver.start(this, this@MainActivity, url)
-        val uuid = withProfile {
-            create(Profile.Type.Url, pending.preliminaryName, url)
-        }
-        try {
-            themedContext.commitProfileWithProgress(uuid)
-        } catch (e: Exception) {
-            pending.betterName.cancel()
-            showImportCommitFailureDialog(uuid, e)
-            return
-        }
-        val displayName = upgradeProfileNameIfBetter(uuid, pending)
-        val profile = withProfile { queryByUUID(uuid) }
-        if (profile?.imported == true) {
-            withProfile { setActive(profile) }
-            ensureGlobalSelectionSafeWithRetry()
-            design.showToast(getString(R.string.import_done_named, displayName), ToastDuration.Long)
-        } else {
-            launchProperties(uuid)
-        }
-        design.fetch()
-    }
-
-    /**
-     * Awaits the background [com.github.kr328.clash.util.AsyncNameResolver]
-     * result and renames the imported profile if a better name arrived.
-     * Uses [com.github.kr328.clash.service.remote.IProfileManager.renameImported]
-     * (direct ImportedDao update) — NOT [patch], which would put the profile
-     * back into a pending/draft state and surface as "unsaved" to the user.
-     * Returns the effective display name (better one if applied, preliminary
-     * otherwise).
-     */
-    private suspend fun upgradeProfileNameIfBetter(
-        uuid: java.util.UUID,
-        pending: com.github.kr328.clash.util.AsyncNameResolver.Pending,
-    ): String {
-        val better = runCatching { pending.betterName.await() }.getOrNull()
-            ?: return pending.preliminaryName
-        runCatching { withProfile { renameImported(uuid, better) } }
-        return better
-    }
-
-    private suspend fun launchProperties(uuid: UUID) {
-        startActivityForResult(
-            ActivityResultContracts.StartActivityForResult(),
-            PropertiesActivity::class.intent.setUUID(uuid)
-        )
-    }
-
-    private suspend fun showImportCommitFailureDialog(uuid: UUID, e: Throwable) {
-        withContext(Dispatchers.Main) {
-            val raw = e.message?.trim().orEmpty().ifBlank { e.javaClass.simpleName }
-            val msg = if (raw.length > 6000) raw.take(6000) + "…" else raw
-            MaterialAlertDialogBuilder(themedContext)
-                .setTitle(getString(R.string.import_failed_title))
-                .setMessage(msg)
-                .setNegativeButton(android.R.string.cancel, null)
-                .setPositiveButton(getString(R.string.import_failed_open_editor)) { _, _ ->
-                    startActivity(PropertiesActivity::class.intent.setUUID(uuid))
-                }
-                .show()
-        }
-    }
-
-    private suspend fun showProxyYamlDialog(title: String, body: String) {
-        withContext(Dispatchers.Main) {
-            val themed = themedContext
-            val pad = (16 * resources.displayMetrics.density).toInt()
-            val scroll = ScrollView(themed)
-            val tv = TextView(themed).apply {
-                text = body
-                setTextIsSelectable(true)
-                setPadding(pad, pad, pad, pad)
-                textSize = 12f
-                typeface = Typeface.MONOSPACE
-            }
-            scroll.addView(tv)
-            MaterialAlertDialogBuilder(themed)
-                .setTitle(title)
-                .setView(scroll)
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
-        }
-    }
-
-    private suspend fun MainDesign.fetch(): HomeRuntimeSnapshot {
-        val status = withContext(Dispatchers.IO) { resolveStatusSnapshot() }
-        val running = status.serviceRunning
-        Remote.broadcasts.clashRunning = running
-        if (running && SystemClock.uptimeMillis() < suppressRunningReviveUntil) {
-            // User just asked to stop; the service still reports running mid-teardown.
-            // Keep the power button OFF instead of bouncing it back ON.
-            setClashRunning(false)
-        } else {
-            if (!running) suppressRunningReviveUntil = 0L
-            setClashRunning(running)
-        }
-
-        var state = if (running) {
-            runCatching {
-                withClash { queryTunnelState() }
-            }.getOrElse {
-                TunnelState(parseTunnelMode(uiStore.tunnelModePreference) ?: TunnelState.Mode.Rule)
-            }
-        } else {
-            TunnelState(parseTunnelMode(uiStore.tunnelModePreference) ?: TunnelState.Mode.Rule)
-        }
-        val rawMode = state.mode
-        state = TunnelState(normalizeTunnelMode(state.mode))
-        if (running && rawMode != state.mode) {
-            runCatching {
-                withClash {
-                    val o = queryOverride(Clash.OverrideSlot.Session)
-                    o.mode = state.mode
-                    patchOverride(Clash.OverrideSlot.Session, o)
-                }
-            }
-        }
-
-        if (running) {
-            val pref = uiStore.tunnelModePreference
-            if (pref.isNotEmpty()) {
-                val desired = parseTunnelMode(pref)
-                if (desired != null && state.mode != desired) {
-                    withClash {
-                        val o = queryOverride(Clash.OverrideSlot.Session)
-                        o.mode = desired
-                        patchOverride(Clash.OverrideSlot.Session, o)
-                    }
-                    state = withClash { queryTunnelState() }
-                    state = TunnelState(normalizeTunnelMode(state.mode))
-                }
-            } else {
-                uiStore.tunnelModePreference = normalizeTunnelMode(state.mode).name
-            }
-
-            val preferredMode = parseTunnelMode(uiStore.tunnelModePreference)
-            if (preferredMode == TunnelState.Mode.Global || state.mode == TunnelState.Mode.Global) {
-                ensureGlobalSelectionSafe()
-            }
-        }
-
-        val pendingMode = pendingTunnelMode
-        if (pendingMode != null) {
-            setMode(pendingMode)
-            if (state.mode == pendingMode) {
-                pendingTunnelMode = null
-            }
-        } else {
-            val preferredMode = if (running) parseTunnelMode(uiStore.tunnelModePreference) else null
-            setMode(preferredMode ?: state.mode)
-        }
-
-        val active = withProfile { queryActive() }
-        val profiles = withProfile { queryAll() }
-        setProfileName(active?.name ?: status.currentProfile)
-        patchProfiles(profiles)
-        applyActiveBrand()
-
-        val proxyNames = if (running) {
-            runCatching {
-                // Visible-only here. ProfileAdapter.effectiveGroupsForProfile
-                // applies a 1-hop heuristic on top to surface any hidden auto
-                // subgroups (URLTest/Fallback/LoadBalance) that are direct
-                // members of a visible root — covers the kaso.fyi pattern
-                // (one visible select root, hidden auto children) without
-                // flooding the pill bar with deeper internal infra.
-                withClash { queryProxyGroupNames(uiStore.proxyExcludeNotSelectable) }
-            }.getOrDefault(emptyList())
-        } else {
-            emptyList()
-        }
-        val activeUuid = active?.uuid
-        val expandedSet = getExpandedProfileUuids()
-        val summaryPreviewUuid = activeUuid ?: profiles.firstOrNull { it.imported }?.uuid
-        val previewUuids = (expandedSet + listOfNotNull(summaryPreviewUuid)).toSet()
-        val offlinePreviewByProfile = previewUuids.associateWith { uuid ->
-            withProfile { readProxyGroupsPreview(uuid) }
-        }
-        val offlineSelectionsByProfile = previewUuids.associateWith { uuid ->
-            withProfile { queryProxySelections(uuid) }
-        }
-        val transportInfoByProfile = previewUuids.associateWith { uuid ->
-            withProfile { readProxyTransports(uuid) }
-        }
-
-        patchProxyGroups(
-            proxyNames,
-            running,
-            state.mode,
-            uiStore.proxyLastGroup,
-            offlinePreviewByProfile,
-            activeUuid,
-            offlineSelectionsByProfile,
-            transportInfoByProfile,
-        )
-        if (!running || activeUuid == null || proxyNames.isEmpty()) {
-            clearProxyDetails()
-        } else {
-            // After connect the Home "Node" row needs the active profile's summary group's live
-            // `now`, but nothing queries it until the user opens the picker — so it stayed blank for
-            // seconds. Prime just that one group (O-07-safe: a single query, not a blanket warmup),
-            // and only when it isn't already cached, so this is effectively one-shot per connect
-            // rather than a per-refresh engine hit.
-            val summaryGroup = active?.let { summaryGroupFor(it) }
-            if (!summaryGroup.isNullOrBlank() && !hasLiveDetailForGroup(summaryGroup)) {
-                val primed = refreshRuntimeGroupDetails(setOf(summaryGroup))
-                if (primed.isNotEmpty()) {
-                    patchProxyDetails(primed)
-                    // The Home node row was already bound above with empty details; re-render it now
-                    // that the summary group's `now` is loaded so it fills without user interaction.
-                    patchProfiles(profiles)
-                }
-            }
-        }
-        syncThemeToggleIcon(uiStore.darkMode)
-
-        return HomeRuntimeSnapshot(
-            running = running,
-            activeProfileUuid = activeUuid,
-            proxyNames = proxyNames,
-        )
-    }
-
-    private suspend fun MainDesign.fetchVisibleProxyGroup(profile: Profile, group: String) {
-        val status = withContext(Dispatchers.IO) { resolveStatusSnapshot() }
-        Remote.broadcasts.clashRunning = status.serviceRunning
-        if (!status.serviceRunning || group.isBlank()) {
-            clearProxyDetails()
-            return
-        }
-
-        val activeUuid = withProfile { queryActive()?.uuid }
-        if (activeUuid != profile.uuid || !profile.imported) {
-            return
-        }
-
-        val groupsToFetch = collectRuntimeGroupTree(group)
-            .ifEmpty { linkedSetOf(group).filter { it.isNotBlank() }.toSet() }
-        repeat(12) { attempt ->
-            val details = refreshRuntimeGroupDetails(groupsToFetch)
-            val rootDetail = details[group]
-                ?: details.entries.firstOrNull { it.key.equals(group, ignoreCase = true) }?.value
-            val emptyDynamic = rootDetail != null &&
-                rootDetail.proxies.isEmpty() &&
-                rootDetail.type.group &&
-                rootDetail.type != Proxy.Type.Relay
-            val retry = (details.isEmpty() || emptyDynamic) && attempt < 11
-            if (!retry) {
-                if (details.isNotEmpty() && withProfile { queryActive()?.uuid } == profile.uuid) {
-                    patchProxyDetails(details)
-                }
-                return
-            }
-            delay(200L)
-        }
-    }
-
-    private suspend fun MainDesign.fetchTraffic() {
-        withClash {
-            val total = queryTrafficTotal()
-            if (total != lastForwardedTrafficTotal) {
-                lastForwardedTrafficTotal = total
-                setForwarded(total)
-            }
-            val now = queryTrafficNow()
-            setSpeed(now.trafficDownload(), now.trafficUpload())
-        }
-    }
-
-    private suspend fun MainDesign.startClash() {
-        val active = prepareActiveProfileForStart()
-
-        if (active == null) return
-
-        val loadEpochSnapshot = profileLoadEpoch.get()
-        try {
-            val vpnRequest = startClashService()
-            if (vpnRequest != null) {
-                val result = startActivityForResult(
-                    ActivityResultContracts.StartActivityForResult(),
-                    vpnRequest
-                )
-
-                if (result.resultCode == RESULT_OK) {
-                    startClashService()
-                } else {
-                    setTunnelStarting(false)
-                    showToast(R.string.vpn_permission_denied, ToastDuration.Long)
-                    return
-                }
-            }
-            launch {
-                val d = design
-                try {
-                    d?.setPingingProfile(active.uuid)
-                    waitForProxyEngineReady()
-                    waitForProfileLoadEpochAfter(loadEpochSnapshot)
-                    d?.fetch()
-                    // O-07: warm up ONLY the group the user last looked at (+ its nested auto
-                    // subtree), not every auto group. The old blanket warmup url-tested 200-node
-                    // groups on connect and saturated the engine ("infinite ping" + sluggish
-                    // switch). Other groups warm lazily when opened (see visibleGroupChanged).
-                    warmedGroups.clear()
-                    val warmed = warmUpGroupSubtree(uiStore.proxyLastGroup)
-                    d?.fetch()
-                    // Force-push fresh delays into the UI immediately instead
-                    // of waiting for the next dashboard ticker (interactive=2s,
-                    // idle=30s). Mihomo health-check writes delays into
-                    // proxy.LastDelayForTestUrl synchronously when warmup
-                    // finishes; without this re-query the carriage stays blank
-                    // until the timer rolls over. (A delay event channel would
-                    // side-step this whole class of staleness — see
-                    // docs/path-b-engine-parsing.md follow-ups.)
-                    if (warmed.isNotEmpty()) {
-                        val patches = refreshRuntimeGroupDetails(warmed)
-                        if (patches.isNotEmpty()) {
-                            d?.patchProxyDetails(patches)
-                        }
-                    }
-                } finally {
-                    d?.setPingingProfile(null)
-                }
-            }
-        } catch (e: Exception) {
-            setTunnelStarting(false)
-            showToast(R.string.vpn_start_failed_plain, ToastDuration.Indefinite) {
-                setAction(R.string.logs) {
-                    startActivity(LogsActivity::class.intent)
-                }
-            }
-        }
-    }
-
-    private suspend fun MainDesign.prepareActiveProfileForStart(): Profile? {
-        val service = ServiceStore(this@MainActivity)
-        service.seedDefaultGeoMirrors = true
-
-        var active = withProfile { queryActive() }
-        if (active == null) {
-            val importedProfiles = withProfile { queryAll() }
-                .filter { it.imported && !it.pending }
-            if (importedProfiles.size == 1) {
-                val only = importedProfiles.first()
-                withProfile { setActive(only) }
-                active = withProfile { queryActive() }
-            }
-        }
-
-        if (active == null) {
-            setTunnelStarting(false)
-            showToast(R.string.start_no_subscription_plain, ToastDuration.Long) {
-                setAction(R.string.main_add_subscription) {
-                    showHomeImportSheet(this@prepareActiveProfileForStart)
-                }
-            }
-            return null
-        }
-
-        if (!active.imported || active.pending) {
-            setTunnelStarting(false)
-            showToast(R.string.start_profile_not_ready_plain, ToastDuration.Long) {
-                setAction(R.string.profiles) {
-                    design?.openProfilesTab()
-                }
-            }
-            return null
-        }
-
-        if (shouldAutoRefreshBeforeStart(active)) {
-            showToast(R.string.profile_auto_refreshing, ToastDuration.Short)
-            val refreshed = runCatching {
-                withProfile { update(active.uuid) }
-            }.isSuccess
-            if (!refreshed) {
-                showToast(R.string.profile_auto_refresh_failed_starting_saved, ToastDuration.Long)
-            }
-        }
-
-        return withProfile { queryActive() } ?: active
-    }
-
-    private fun shouldAutoRefreshBeforeStart(profile: Profile): Boolean {
-        // Opt-out (#197): people on flaky or slow panels would rather connect now with the config
-        // they already have than wait on a refresh they did not ask for. Scheduled updates
-        // (ProfileReceiver alarms) are unaffected — this only governs the Connect tap.
-        if (!uiStore.updateProfileBeforeConnect) return false
-        if (profile.type != Profile.Type.Url || profile.source.isBlank()) return false
-        val now = System.currentTimeMillis()
-        val last = profile.updatedAt.takeIf { it > 0L } ?: return true
-        val userInterval = profile.interval.takeIf { it >= TimeUnit.MINUTES.toMillis(15) }
-        val interval = userInterval ?: TimeUnit.HOURS.toMillis(12)
-        return now - last >= interval
-    }
-
-    private suspend fun checkForUpdates(design: MainDesign, setStatus: (String?) -> Unit) {
-        val latest = GitHubReleaseUpdate.fetchLatest()
-        if (latest == null) {
-            setStatus(getString(R.string.about_update_check_failed))
-            return
-        }
-        val current = withContext(Dispatchers.IO) {
-            packageManager.getPackageInfo(packageName, 0).versionName ?: "0.0.0"
-        }
-        val hasUpdate = GitHubReleaseUpdate.compareVersions(latest.tagName, current) > 0
-        withContext(Dispatchers.Main) {
-            if (!hasUpdate) {
-                setStatus(getString(R.string.about_update_latest))
-                return@withContext
-            }
-            setStatus(getString(R.string.about_update_available, latest.tagName))
-            // Connected actions: cache the release so the Home-header badge lights up
-            // immediately and stays even if the user taps "Later", then show the same in-app
-            // update dialog the Home icon uses — no system notification on the manual path.
-            AppUpdateChecker.cacheRelease(this@MainActivity, latest)
-            refreshUpdateBadge(design)
-            showUpdateAvailableDialog()
-        }
-    }
-
-    private fun checkDownloadedApkAndInstall(downloadId: Long) {
-        val dm = getSystemService<DownloadManager>() ?: return
-        val query = DownloadManager.Query().setFilterById(downloadId)
-        dm.query(query)?.use { cursor ->
-            if (!cursor.moveToFirst()) return
-            val status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
-            when (status) {
-                DownloadManager.STATUS_SUCCESSFUL -> installDownloadedApk(dm, downloadId)
-                DownloadManager.STATUS_FAILED -> {
-                    clearPendingDownloadState()
-                    Toast.makeText(this, R.string.about_download_failed, Toast.LENGTH_SHORT).show()
-                }
-                else -> Unit
-            }
-        }
-    }
-
-    private fun installDownloadedApk(dm: DownloadManager, downloadId: Long) {
-        val uri = dm.getUriForDownloadedFile(downloadId)
-        if (uri == null) {
-            Toast.makeText(this, R.string.about_download_failed, Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val query = DownloadManager.Query().setFilterById(downloadId)
-        dm.query(query)?.use { cursor ->
-            if (!cursor.moveToFirst()) return
-            val localUri = cursor.getString(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI))
-            if (!UpdateApkVerifier.isTrustedDownloadedApk(this, localUri)) {
-                clearPendingDownloadState()
-                Toast.makeText(this, R.string.about_download_failed, Toast.LENGTH_SHORT).show()
-                return
-            }
-        } ?: return
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !packageManager.canRequestPackageInstalls()) {
-            startActivity(
-                Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
-                    data = Uri.parse("package:$packageName")
-                }
-            )
-            Toast.makeText(this, R.string.about_enable_unknown_apps, Toast.LENGTH_LONG).show()
-            updatePrefs.edit().putLong("pending_download_id", downloadId).apply()
-            return
-        }
-
-        // Clear pending marker before opening installer to avoid install loop
-        // if user cancels installation and returns to the app.
-        clearPendingDownloadState()
-        runCatching {
-            startActivity(
-                Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(uri, "application/vnd.android.package-archive")
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-            )
-        }.onFailure {
-            Toast.makeText(this, R.string.about_download_failed, Toast.LENGTH_SHORT).show()
-        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -1785,17 +644,17 @@ class MainActivity : BaseActivity<MainDesign>() {
             }
         }
 
-        if (!downloadReceiverRegistered) {
+        if (!updates.downloadReceiverRegistered) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 registerReceiver(
-                    apkDownloadReceiver,
+                    updates.apkDownloadReceiver,
                     IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
                     RECEIVER_EXPORTED
                 )
             } else {
-                registerReceiver(apkDownloadReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+                registerReceiver(updates.apkDownloadReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
             }
-            downloadReceiverRegistered = true
+            updates.downloadReceiverRegistered = true
         }
 
         // If the installed version is already at/ahead of whatever we last notified about,
@@ -1811,7 +670,7 @@ class MainActivity : BaseActivity<MainDesign>() {
         super.onNewIntent(intent)
         setIntent(intent)
         if (intent.action == UpdateDownloadActivity.ACTION_SYNC_PENDING_DOWNLOAD) {
-            syncPendingApkDownload()
+            updates.syncPendingApkDownload()
         }
         if (intent.action == Intents.ACTION_OPEN_NODE_PICKER) {
             openNodePickerFromIntent()
@@ -1832,338 +691,22 @@ class MainActivity : BaseActivity<MainDesign>() {
         }
     }
 
-    private fun syncPendingApkDownload() {
-        if (!BuildConfig.SELF_UPDATE) return
-        val pending = updatePrefs.getLong("pending_download_id", -1L)
-        if (pending > 0L) {
-            pendingApkDownloadId = pending
-            checkDownloadedApkAndInstall(pending)
-        }
-    }
-
     override fun onResume() {
         super.onResume()
         events.trySend(Event.ActivityStart)
-        syncPendingApkDownload()
-    }
-
-    /**
-     * Read the cached release snapshot and reflect it in the header badge. Also kicks off
-     * a throttled background fetch so a release published since the last AlarmManager tick
-     * surfaces while the activity is in the foreground.
-     */
-    private fun refreshUpdateBadge(design: MainDesign) {
-        if (!BuildConfig.SELF_UPDATE) {
-            design.setUpdateBadgeVisible(false)
-            return
-        }
-        design.setUpdateBadgeVisible(AppUpdateChecker.isUpdateAvailable(this))
-        launch {
-            runCatching { AppUpdateChecker.maybeOpportunisticCheck(this@MainActivity) }
-            design.setUpdateBadgeVisible(AppUpdateChecker.isUpdateAvailable(this@MainActivity))
-        }
-    }
-
-    /**
-     * In-app counterpart of the system update notification. Reads the cached release from
-     * SharedPreferences so it opens instantly; the Download & install button feeds into the
-     * same verified download helper the notification action uses.
-     */
-    private fun showUpdateAvailableDialog() {
-        val info = AppUpdateChecker.peekCachedRelease(this) ?: return
-        val body = info.body.takeIf { it.isNotBlank() }
-            ?: getString(R.string.update_dialog_message_fallback)
-        val dialog = MaterialAlertDialogBuilder(themedContext)
-            .setTitle(getString(R.string.update_dialog_title_fmt, info.tagName))
-            .setMessage(body)
-            .setNegativeButton(R.string.update_dialog_button_later, null)
-        if (!info.apkUrl.isNullOrBlank()) {
-            dialog.setPositiveButton(R.string.update_dialog_button_download) { _, _ ->
-                AppUpdateChecker.dismissUpdateNotification(this)
-                runCatching {
-                    val id = GitHubReleaseUpdate.enqueueApkDownload(
-                        context = this,
-                        tagName = info.tagName.ifBlank { "update" },
-                        apkUrl = info.apkUrl,
-                        apkName = info.apkName,
-                    )
-                    if (id > 0L) {
-                        pendingApkDownloadId = id
-                        updatePrefs.edit().putLong("pending_download_id", id).apply()
-                        Toast.makeText(this, R.string.about_download_started, Toast.LENGTH_SHORT).show()
-                    }
-                }.onFailure {
-                    Toast.makeText(this, R.string.about_download_failed, Toast.LENGTH_SHORT).show()
-                }
-            }
-        } else if (info.htmlUrl.isNotBlank()) {
-            // No prebuilt APK on this release — fall back to opening the release page.
-            dialog.setPositiveButton(R.string.about_open_release) { _, _ ->
-                runCatching {
-                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(info.htmlUrl)))
-                }
-            }
-        }
-        dialog.show()
+        updates.syncPendingApkDownload()
     }
 
     override fun onDestroy() {
-        if (downloadReceiverRegistered) {
-            runCatching { unregisterReceiver(apkDownloadReceiver) }
-            downloadReceiverRegistered = false
+        if (updates.downloadReceiverRegistered) {
+            runCatching { unregisterReceiver(updates.apkDownloadReceiver) }
+            updates.downloadReceiverRegistered = false
         }
         super.onDestroy()
     }
 
-    /** Proxy-provider YAML keys (sub1, sub2, …) are not leaf proxy names; never persist as selection. */
-    private fun isProxyProviderKeyName(name: String): Boolean =
-        name.matches(Regex("^sub\\d+$", RegexOption.IGNORE_CASE))
-
-    private suspend fun collectRuntimeGroupTree(rootGroup: String): Set<String> {
-        if (rootGroup.isBlank()) return emptySet()
-        // Include hidden groups too — manual ping for a subscription whose
-        // entire url-test/fallback subtree is hidden (visible root is select)
-        // would otherwise stop at the root and miss every auto child.
-        val knownGroups = runCatching { withClash { queryAllProxyGroupNamesIncludingHidden().toSet() } }
-            .getOrDefault(emptySet())
-        val seen = linkedSetOf<String>()
-
-        suspend fun visit(groupName: String) {
-            if (groupName.isBlank() || groupName in seen) return
-            val group = runCatching {
-                withClash { queryProxyGroup(groupName, uiStore.proxySort) }
-            }.getOrNull() ?: return
-            seen += groupName
-            for (proxy in group.proxies) {
-                if (proxy.type.group || proxy.name in knownGroups) {
-                    visit(proxy.name)
-                }
-            }
-        }
-
-        visit(rootGroup)
-        return seen
-    }
-
-    private suspend fun refreshRuntimeGroupDetails(groups: Set<String>): Map<String, ProxyGroup> {
-        if (groups.isEmpty()) return emptyMap()
-        val refreshed = LinkedHashMap<String, ProxyGroup>()
-        for (group in groups) {
-            val detail = runCatching {
-                withClash { queryProxyGroup(group, uiStore.proxySort) }
-            }.getOrNull() ?: continue
-            refreshed[group] = detail
-        }
-        return refreshed
-    }
-
-    private fun collectOfflineLeafProxyNames(
-        rootGroup: String,
-        directNames: List<String>,
-        groups: Map<String, ProxyGroupPreviewRow>,
-    ): List<String> {
-        val leaves = linkedSetOf<String>()
-        val seenGroups = linkedSetOf<String>()
-
-        fun visitName(name: String) {
-            if (name.isBlank()) return
-            val nested = groups[name]?.members
-            if (nested == null) {
-                leaves += name
-                return
-            }
-            if (!seenGroups.add(name)) return
-            nested.forEach(::visitName)
-        }
-
-        if (rootGroup.isNotBlank() && rootGroup in groups) {
-            visitName(rootGroup)
-        } else {
-            directNames.forEach(::visitName)
-        }
-        return leaves.toList()
-    }
-
-    /**
-     * Reads announcement settings from [uiStore] and forwards them to the design.
-     * Resets the dismissed-flag automatically when the announcement text changes.
-     */
-    private suspend fun refreshAnnouncement(design: com.github.kr328.clash.design.MainDesign) {
-        // Render current cache first for snappy UI.
-        renderAnnouncementFromStore(design)
-
-        // Then refresh metadata and re-render so support/announce updates appear immediately.
-        launch(Dispatchers.IO) {
-            val updated = runCatching { syncSubscriptionMetadata() }.isSuccess
-            if (updated) {
-                withContext(Dispatchers.Main) {
-                    renderAnnouncementFromStore(design)
-                }
-            }
-        }
-    }
-
-    private suspend fun renderAnnouncementFromStore(design: com.github.kr328.clash.design.MainDesign) {
-        val active = runCatching { withProfile { queryActive() } }.getOrNull()
-        com.github.kr328.clash.util.SubscriptionMetaCache.hydrateUiStoreForProfile(uiStore, active)
-
-        val text = uiStore.announcement
-        val url = uiStore.announcementUrl
-        val supportUrl = uiStore.supportUrl
-
-        design.setAnnouncement(
-            text = text.takeIf { it.isNotBlank() },
-            url = url.takeIf { it.isNotBlank() },
-            supportUrl = supportUrl.takeIf { it.isNotBlank() },
-            sourceUuid = active?.uuid,
-            sourceName = active?.name,
-            onOpenUrl = { openExternalUrl(it) },
-            onSupport = {
-                supportUrl.takeIf { it.isNotBlank() }?.let { openExternalUrl(it) }
-            },
-        )
-    }
-
-    /**
-     * Pre-start bypass offer, two sources in priority order:
-     *
-     * 1. Operator recommendation (`X-Bypass-Preset` header, stored per profile) — offered
-     *    once per (profile, preset id) even if the generic prompt was already answered;
-     *    a changed header value re-offers once. Never auto-applied.
-     * 2. Generic one-time seed: when the per-app exclusion list is empty, the preset with
-     *    the most installed matches (threshold ≥3). If nothing clears the threshold we do
-     *    not ask and keep the prompt un-handled, so a user who installs regional apps
-     *    later still gets a single offer.
-     *
-     * Skip still starts VPN; cancel does not.
-     */
-    private suspend fun maybePromptRuBypass(): Boolean {
-        val service = ServiceStore(this)
-
-        val operator = withContext(Dispatchers.IO) { operatorRecommendedPreset(service) }
-        if (operator != null) {
-            val (preset, installedApps) = operator
-            return promptBypassPreset(service, preset, installedApps, fromOperator = true)
-        }
-
-        if (uiStore.ruBypassPromptHandled) return true
-        val best = withContext(Dispatchers.IO) {
-            if (service.accessControlPackages.isNotEmpty()) null
-            else BypassPresets.bestInstalled(this@MainActivity, packageManager)
-        } ?: return true
-        val (preset, installedApps) = best
-        return promptBypassPreset(service, preset, installedApps, fromOperator = false)
-    }
-
-    /**
-     * Unanswered operator recommendation for the active profile, resolved to a bundled
-     * preset with its installed matches.
-     *
-     * The "offered" marker encodes WHEN we last asked, so a growing list can re-offer:
-     * - `Apply` stores `<id>:<preset.version>` — bumping the bundled preset's `version`
-     *   (i.e. we shipped more apps in that list) makes the marker stale and re-offers once.
-     * - `Skip` stores `<id>:skip` — version-independent, so a user who declined is never
-     *   nagged again for that region no matter how the list grows.
-     * A different preset id from the operator (`ru`→`cn`) never matches either marker, so
-     * it always offers. Unknown ids and zero-match presets are consumed as skip.
-     */
-    private suspend fun operatorRecommendedPreset(
-        service: ServiceStore,
-    ): Pair<BypassPreset, Set<String>>? {
-        val active = runCatching { withProfile { queryActive() } }.getOrNull() ?: return null
-        val recommended = service.subscriptionBypassPresetFor(active.uuid) ?: return null
-
-        val preset = BypassPresets.load(this).firstOrNull { it.id == recommended }
-        val installed = preset?.installed(packageManager).orEmpty()
-        if (preset == null || installed.isEmpty()) {
-            service.setSubscriptionBypassPresetOfferedFor(active.uuid, bypassSkipMarker(recommended))
-            return null
-        }
-
-        val offered = service.subscriptionBypassPresetOfferedFor(active.uuid)
-        if (offered == bypassAppliedMarker(preset) || offered == bypassSkipMarker(recommended)) {
-            return null
-        }
-        return preset to installed
-    }
-
-    private fun bypassAppliedMarker(preset: BypassPreset): String = "${preset.id}:${preset.version}"
-    private fun bypassSkipMarker(presetId: String): String = "$presetId:skip"
-
-    private suspend fun promptBypassPreset(
-        service: ServiceStore,
-        preset: BypassPreset,
-        installedApps: Set<String>,
-        fromOperator: Boolean,
-    ): Boolean {
-        val title = BypassPresets.displayTitle(this, preset)
-
-        suspend fun markAnswered(applied: Boolean) {
-            if (fromOperator) {
-                val marker = if (applied) bypassAppliedMarker(preset) else bypassSkipMarker(preset.id)
-                withContext(Dispatchers.IO) {
-                    runCatching { withProfile { queryActive() } }.getOrNull()?.let {
-                        service.setSubscriptionBypassPresetOfferedFor(it.uuid, marker)
-                    }
-                }
-            } else {
-                uiStore.ruBypassPromptHandled = true
-            }
-        }
-
-        return suspendCancellableCoroutine { cont ->
-            val body = if (fromOperator) {
-                getString(R.string.bypass_operator_prompt_message, installedApps.size, title)
-            } else {
-                getString(R.string.bypass_prompt_message, installedApps.size, title)
-            }
-            val message = buildString {
-                append(body)
-                append("\n\n")
-                append(getString(R.string.bypass_prompt_tile_note))
-            }
-            val dialogTitle = if (fromOperator) {
-                getString(R.string.bypass_operator_prompt_title)
-            } else {
-                getString(R.string.bypass_prompt_title, title)
-            }
-            val dialog = MaterialAlertDialogBuilder(themedContext)
-                .setTitle(dialogTitle)
-                .setMessage(message)
-                .setPositiveButton(R.string.bypass_prompt_apply) { d, _ ->
-                    d.dismiss()
-                    launch {
-                        val count = withContext(Dispatchers.IO) {
-                            BypassPresets.applyToStore(service, packageManager, preset)
-                        }
-                        markAnswered(applied = true)
-                        if (count > 0) {
-                            Toast.makeText(
-                                this@MainActivity,
-                                getString(R.string.bypass_preset_seeded, count),
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                        if (cont.isActive) cont.resumeWith(Result.success(true))
-                    }
-                }
-                .setNegativeButton(R.string.bypass_prompt_skip) { d, _ ->
-                    d.dismiss()
-                    launch {
-                        markAnswered(applied = false)
-                        if (cont.isActive) cont.resumeWith(Result.success(true))
-                    }
-                }
-                .setOnCancelListener {
-                    if (cont.isActive) cont.resumeWith(Result.success(false))
-                }
-                .show()
-            cont.invokeOnCancellation { runCatching { dialog.dismiss() } }
-        }
-    }
-
     override fun onProfileLoaded() {
-        profileLoadEpoch.incrementAndGet()
+        proxyRuntime.profileLoadEpoch.incrementAndGet()
         super.onProfileLoaded()
     }
 
@@ -2240,203 +783,6 @@ class MainActivity : BaseActivity<MainDesign>() {
                 }
             }
         }
-    }
-
-    /**
-     * Periodically pulls panel-style headers (support-url, announce, profile-title,
-     * profile-update-interval, subscription-userinfo, …) from the *active* URL profile.
-     * Throttled to once per ~6 hours; user-edited fields stay user-edited.
-     */
-    private suspend fun syncSubscriptionMetadata() = subscriptionMetadataSyncMutex.withLock {
-        val active = runCatching { withProfile { queryActive() } }.getOrNull() ?: return@withLock
-        if (active.type != Profile.Type.Url) return@withLock
-        val url = active.source.takeIf { it.isNotBlank() } ?: return@withLock
-
-        val now = System.currentTimeMillis() / 1000L
-        val cooldown = SubscriptionMetaCache.REFRESH_INTERVAL_SECONDS
-        val activeId = active.uuid.toString()
-        if (!SubscriptionMetaCache.isRefreshDue(
-                activeId,
-                uiStore.subscriptionMetadataLastFetchProfileId,
-                uiStore.subscriptionMetadataLastFetch,
-                now,
-            )
-        ) {
-            return@withLock
-        }
-
-        // Prefer the per-profile header snapshot the Go fetch persisted
-        // (fetch-headers.json): when the subscription itself was fetched within
-        // the sync cooldown, this sync costs ZERO network requests. Snapshot
-        // values are already correct UTF-8, so the decoded parser entry points
-        // are used (no ISO-8859-1 transport recovery — it would mangle
-        // Cyrillic). Stale/absent snapshot → ONE combined GET (this used to be
-        // two identical back-to-back requests: metadata + brand; panels count
-        // every fetch against quota).
-        val profileDir = importedDir.resolve(active.uuid.toString())
-        val headersFile = com.github.kr328.clash.service.util.FetchHeadersFile.readFrom(profileDir)
-        val headersFresh = java.io.File(profileDir, com.github.kr328.clash.service.util.FetchHeadersFile.FILE_NAME)
-            .takeIf { it.isFile }
-            ?.let { System.currentTimeMillis() - it.lastModified() < cooldown * 1000L } == true
-        val allowCachedHeaders =
-            !url.substringBefore('#').startsWith("http://", ignoreCase = true) ||
-                uiStore.subscriptionMetadataAllowInsecureHttp
-
-        val (meta, brandManifest) = if (headersFile != null && headersFresh && allowCachedHeaders) {
-            com.github.kr328.clash.common.util.SubscriptionMetadataFetcher
-                .parseHeaders { key -> headersFile.get(key) } to
-                com.github.kr328.clash.common.branding.BrandManifestParser
-                    .parse { key -> headersFile.get(key) }
-        } else {
-            com.github.kr328.clash.common.util.SubscriptionMetadataFetcher.fetchWithBrand(
-                this,
-                url,
-                SubscriptionOverrides.getUserAgent(this, active.uuid),
-                uiStore.subscriptionMetadataAllowInsecureHttp,
-            )
-        }
-        com.github.kr328.clash.service.branding.BrandRefresh.apply(this, active.uuid, brandManifest)
-        meta.shareLinksDisable?.let {
-            ServiceStore(this).setSubscriptionShareLinksLockedFor(active.uuid, it)
-        }
-        // Operator TUN-stack policy (X-Network-Stack). Store as-is; `auto` is the operator's explicit
-        // "unlock". Applied at TUN open by TunStackResolver, independent of branding.
-        meta.networkStack?.let {
-            ServiceStore(this).setSubscriptionNetworkStackFor(active.uuid, it)
-        }
-        // Operator bypass-preset recommendation (X-Bypass-Preset). Stored only — the offer
-        // dialog rides the pre-start bypass prompt; `none` withdraws the recommendation.
-        meta.bypassPreset?.let {
-            ServiceStore(this).setSubscriptionBypassPresetFor(
-                active.uuid,
-                it.takeUnless { v -> v == "none" },
-            )
-        }
-        uiStore.subscriptionHwidActive = meta.hwidActive?.toString().orEmpty()
-        uiStore.subscriptionHwidNotSupported = meta.hwidNotSupported?.toString().orEmpty()
-        uiStore.subscriptionHwidMaxDevicesReached = meta.hwidMaxDevicesReached?.toString().orEmpty()
-        uiStore.subscriptionHwidLimit = meta.hwidLimit?.toString().orEmpty()
-        if (meta.isEmpty()) {
-            // still mark the attempt to avoid hammering the server every screen-on
-            uiStore.subscriptionMetadataLastFetch = now
-            uiStore.subscriptionMetadataLastFetchProfileId = activeId
-            return@withLock
-        }
-        uiStore.subscriptionMetadataLastFetch = now
-        uiStore.subscriptionMetadataLastFetchProfileId = activeId
-
-        // Always-mirrored fields (cache only):
-        meta.subscriptionUserinfo?.let { uiStore.subscriptionUserinfo = it }
-        meta.profileWebPageUrl?.let { uiStore.profileWebPageUrl = it }
-        meta.profileUpdateIntervalHours?.let { hours ->
-            val previousHeaderMs =
-                java.util.concurrent.TimeUnit.HOURS.toMillis(uiStore.profileUpdateIntervalHours.toLong())
-            uiStore.profileUpdateIntervalHours = hours
-            if (!uiStore.subscriptionMetadataLockUser) {
-                // The header only *seeds* the interval — it must not override a value
-                // the user set by hand (upstream 71cb215d class of bug: the panel
-                // silently reverted a custom interval every metadata sync). Apply it
-                // only when auto-update is unconfigured, or the current interval is
-                // the one WE derived from the previous header value (i.e. untouched).
-                val userCustomized = active.interval != 0L && active.interval != previousHeaderMs
-                if (!userCustomized) {
-                    val ms = java.util.concurrent.TimeUnit.HOURS.toMillis(hours.toLong())
-                    runCatching {
-                        withProfile { applySubscriptionUpdateInterval(active.uuid, ms) }
-                    }
-                }
-            }
-        }
-
-        // User-overridable fields — skip if user opted out of operator overrides.
-        if (!uiStore.subscriptionMetadataLockUser) {
-            meta.supportUrl?.let { uiStore.supportUrl = it }
-            meta.announcement?.let { uiStore.announcement = it }
-            meta.announcementUrl?.let { uiStore.announcementUrl = it }
-        }
-        SubscriptionMetaCache.put(
-            uiStore,
-            active.uuid,
-            SubscriptionMetaCache.Entry(
-                announcement = meta.announcement.orEmpty(),
-                announcementUrl = meta.announcementUrl.orEmpty(),
-                supportUrl = meta.supportUrl.orEmpty(),
-                userinfo = meta.subscriptionUserinfo.orEmpty(),
-            ),
-        )
-    }
-
-    /**
-     * Reads the persisted brand state and pushes a [BrandHolder] snapshot into
-     * MainDesign. Picks the theme-appropriate cached logo. Called on every
-     * UI refresh tick so the header reflects the latest operator brand without
-     * the design layer having to know about persistence.
-     */
-    private suspend fun applyActiveBrand() {
-        val design = design as? com.github.kr328.clash.design.MainDesign ?: return
-        // try/finally guarantees the recreate-check runs on EVERY exit path —
-        // including the "no active profile" / "no brand for active profile"
-        // branches. Otherwise a brand → no-brand switch sheds the UI layer but
-        // leaves the theme overlay branded until the app is force-stopped.
-        try {
-            val activeUuid = runCatching { withProfile { queryActive() } }.getOrNull()?.uuid
-            if (activeUuid == null) {
-                design.applyBrand(com.github.kr328.clash.design.branding.BrandHolder.EMPTY)
-                return
-            }
-            val json = runCatching { withProfile { readBrandJsonFor(activeUuid) } }.getOrNull()
-            if (json.isNullOrBlank()) {
-                design.applyBrand(com.github.kr328.clash.design.branding.BrandHolder.EMPTY)
-                return
-            }
-            val manifest = com.github.kr328.clash.common.branding.BrandManifest.fromJson(json)
-            val nightMode = (resources.configuration.uiMode and
-                android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
-                android.content.res.Configuration.UI_MODE_NIGHT_YES
-            val logoPath = runCatching {
-                withProfile { brandLogoPathFor(activeUuid, nightMode) }
-            }.getOrNull()
-            com.github.kr328.clash.common.log.Log.d(
-                "applyActiveBrand: uuid=$activeUuid, nightMode=$nightMode, " +
-                    "manifest.logoUrl=${manifest.logoUrl}, manifest.logoLightUrl=${manifest.logoLightUrl}, " +
-                    "resolvedPath=$logoPath",
-            )
-            design.applyBrand(
-                com.github.kr328.clash.design.branding.BrandHolder(
-                    manifest = manifest,
-                    logoPath = logoPath,
-                ),
-            )
-        } finally {
-            // Theme overlay is captured at design-inflation time. If the active profile's accent
-            // diverges from what the current design's wrapper carries, resolve the dashboard loop
-            // with a soft recreate so the new (or absent) harmonised palette flows into every
-            // widget that reads ?attr/colorPrimary etc. — without ever destroying the Activity
-            // (Android 16 ContentCapture SIGABRT). Runs on EVERY fetch, so switches, updates and
-            // brand clears all converge through the same level-based check.
-            if (com.github.kr328.clash.design.branding.BrandThemeApplier.accentStale(this)) {
-                softRecreateRequests.trySend(Unit)
-            }
-        }
-    }
-
-    private fun openExternalUrl(url: String) {
-        val target = url.trim().let {
-            if (it.startsWith("t.me/", ignoreCase = true)) "https://$it" else it
-        }
-        runCatching {
-            startActivity(
-                Intent(Intent.ACTION_VIEW, Uri.parse(target))
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            )
-        }
-    }
-
-    private suspend fun openRulesHub() {
-        val uuid = withProfile { queryActive()?.takeIf { it.imported }?.uuid }
-        val hubIntent = uuid?.let { RulesHubActivity::class.intent.setUUID(it) }
-            ?: RulesHubActivity::class.intent
-        startActivity(hubIntent)
     }
 
 }
