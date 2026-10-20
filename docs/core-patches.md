@@ -115,16 +115,21 @@ inbound/listener side. Adapted to vanilla: TLS comes from `transport/vmess` (Cit
 `transport/v2ray`), and the go1.21 built-in `min` is replaced because mihomo's `go.mod` is still
 `go 1.20`. No new module requirements.
 
-`service: local` (a folder on the device, meant for tests) is refused by the Android build when
-the proxy is constructed: `xdrive.AllowLocalService` is `runtime.GOOS != "android"`, so the
-check covers every source of proxies, including remote and file proxy-providers
-(`type: http` / `file`) that the engine fetches at runtime and that never pass through the app's
-hardener. Host builds (the Go tests) keep it on; the oracle tests switch it off to exercise the
-Android behaviour (`core_patch_xdrive_local_oracle_test.go`). On top of that, ClashFest's
-`YamlHardener` turns such nodes (in `proxies:` and inline `proxy-providers` payloads, under any
-key spelling the decoder accepts) into REJECT and drops `xdrive-config` listeners in Strict and
-Compat, so a subscription that contains one still loads with the node disabled instead of
-failing validation.
+`service: local` (a folder on the device, meant for tests) is defused by the Android build:
+`xdrive.AllowLocalService` is `runtime.GOOS != "android"`, and while it is off such a node still
+passes config validation (one bad node must not fail a whole subscription, and the engine
+validates a fetched subscription before the app's hardener runs), but its storage refuses every
+operation. Building the proxy creates no folder or file, and every TCP or UDP dial through it fails
+with `xdrive service local (a folder on the device) is disabled in this build`. Because the check
+sits in the storage the proxy is built with, it covers every source of proxies, including remote
+and file proxy-providers (`type: http` / `file`) that the engine fetches at runtime and that never
+pass through the app's hardener. Host builds (the Go tests) keep local storage on; the oracle tests
+switch it off and check that the config is accepted, that dials fail with that error, and that the
+`remote-folder` is never created (`core_patch_xdrive_local_oracle_test.go`). On top of that,
+ClashFest's `YamlHardener` turns such nodes (in `proxies:` and inline `proxy-providers` payloads,
+under any key spelling the decoder accepts) into REJECT and drops `xdrive-config` listeners in
+Strict and Compat, so a node from the subscription itself shows up as disabled rather than as a
+proxy that fails on every dial.
 
 Delete when mihomo ships XDrive itself, or when ClashFest stops advertising `xdrive` in
 `coreFeatures` (the bridge's `cfa/native/features` imports this package, so dropping the patch

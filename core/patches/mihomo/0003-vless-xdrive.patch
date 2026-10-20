@@ -1468,14 +1468,15 @@ index 00000000..efa892e5
 +}
 diff --git a/transport/xdrive/config.go b/transport/xdrive/config.go
 new file mode 100644
-index 00000000..01c80e39
+index 00000000..ba53fca2
 --- /dev/null
 +++ b/transport/xdrive/config.go
-@@ -0,0 +1,83 @@
+@@ -0,0 +1,87 @@
 +// Package xdrive implements Xray-compatible remote-storage stream transport.
 +package xdrive
 +
 +import (
++	"errors"
 +	"fmt"
 +	"net"
 +	"runtime"
@@ -1500,10 +1501,16 @@ index 00000000..01c80e39
 +}
 +
 +// AllowLocalService gates `service: local`, a folder on the device meant for
-+// tests. ClashFest core patch 0003: Android builds refuse it when the proxy is
-+// built, which covers http and file proxy-providers too (the app's YAML
-+// hardening only sees config.yaml and inline payloads).
++// tests. ClashFest core patch 0003: Android builds accept such a node in a
++// config, so one bad node does not fail a whole subscription, but give it a
++// storage that refuses every operation: it never touches the filesystem and
++// every dial through it fails. This covers http and file proxy-providers too
++// (the app's YAML hardening only sees config.yaml and inline payloads).
 +var AllowLocalService = runtime.GOOS != "android"
++
++// ErrLocalServiceDisabled is returned by every operation of a `service: local`
++// storage while AllowLocalService is off.
++var ErrLocalServiceDisabled = errors.New("xdrive service local (a folder on the device) is disabled in this build")
 +
 +func (c Config) Validate() error {
 +	if c.Fronting != "" {
@@ -1518,9 +1525,6 @@ index 00000000..01c80e39
 +	}
 +	switch c.Service {
 +	case "local":
-+		if !AllowLocalService {
-+			return fmt.Errorf("xdrive service local (a folder on the device) is disabled in this build")
-+		}
 +	case "google-drive", "Google Drive":
 +		if len(c.Secrets) != 3 {
 +			return fmt.Errorf("xdrive google-drive needs client ID, client secret and refresh token")
@@ -1557,35 +1561,59 @@ index 00000000..01c80e39
 +func (e *storageError) Unwrap() error { return e.cause }
 diff --git a/transport/xdrive/config_local_test.go b/transport/xdrive/config_local_test.go
 new file mode 100644
-index 00000000..da5a7ded
+index 00000000..287375f1
 --- /dev/null
 +++ b/transport/xdrive/config_local_test.go
-@@ -0,0 +1,30 @@
+@@ -0,0 +1,54 @@
 +package xdrive
 +
 +import (
-+	"strings"
++	"context"
++	"errors"
++	"os"
++	"path/filepath"
 +	"testing"
 +)
 +
 +func TestLocalServiceGate(t *testing.T) {
-+	cfg := Config{Service: "local", RemoteFolder: t.TempDir()}
 +	saved := AllowLocalService
 +	t.Cleanup(func() { AllowLocalService = saved })
 +
 +	AllowLocalService = true
-+	if err := cfg.Validate(); err != nil {
++	allowed := Config{Service: "local", RemoteFolder: filepath.Join(t.TempDir(), "allowed")}
++	if err := allowed.Validate(); err != nil {
 +		t.Fatalf("local allowed: %v", err)
++	}
++	if _, err := newStorage(allowed, nil); err != nil {
++		t.Fatalf("local storage allowed: %v", err)
++	}
++	if _, err := os.Stat(allowed.RemoteFolder); err != nil {
++		t.Fatalf("allowed local storage must create its folder: %v", err)
 +	}
 +
 +	AllowLocalService = false
-+	err := cfg.Validate()
-+	if err == nil || !strings.Contains(err.Error(), "service local") {
-+		t.Fatalf("local refused: got %v", err)
++	folder := filepath.Join(t.TempDir(), "refused")
++	cfg := Config{Service: "local", RemoteFolder: folder}
++	if err := cfg.Validate(); err != nil {
++		t.Fatalf("a refused local node must still validate: %v", err)
 +	}
-+	if _, err := newStorage(cfg, nil); err == nil {
-+		t.Fatal("storage built for a refused local service")
++	client, err := NewClient(cfg, nil)
++	if err != nil {
++		t.Fatalf("client for a refused local node: %v", err)
 +	}
++	if _, err := client.Dial(context.Background()); !errors.Is(err, ErrLocalServiceDisabled) {
++		t.Fatalf("dial through a refused local node: got %v", err)
++	}
++	if err := client.Close(); err != nil {
++		t.Fatalf("close: %v", err)
++	}
++	if _, err := Listen(cfg, nil); !errors.Is(err, ErrLocalServiceDisabled) {
++		t.Fatalf("listen on a refused local node: got %v", err)
++	}
++	if _, err := os.Stat(folder); !os.IsNotExist(err) {
++		t.Fatalf("a refused local node touched the filesystem: %v", err)
++	}
++
 +	cloud := Config{Service: "google-drive", RemoteFolder: "id", Secrets: []string{"a", "b", "c"}}
 +	if err := cloud.Validate(); err != nil {
 +		t.Fatalf("google-drive must not be affected: %v", err)
@@ -3313,10 +3341,10 @@ index 00000000..d0caf19a
 +}
 diff --git a/transport/xdrive/session.go b/transport/xdrive/session.go
 new file mode 100644
-index 00000000..38653285
+index 00000000..51c592dc
 --- /dev/null
 +++ b/transport/xdrive/session.go
-@@ -0,0 +1,281 @@
+@@ -0,0 +1,284 @@
 +// XDRIVE object names and session discovery follow XTLS/Xray-core at
 +// 92ccc939aaf4. SPDX-License-Identifier: MPL-2.0
 +package xdrive
@@ -3451,6 +3479,9 @@ index 00000000..38653285
 +	storage, err := newStorage(c, h)
 +	if err != nil {
 +		return nil, err
++	}
++	if _, disabled := storage.(disabledLocalStorage); disabled {
++		return nil, ErrLocalServiceDisabled
 +	}
 +	ctx, cancel := context.WithCancel(context.Background())
 +	l := &Listener{ctx: ctx, cancel: cancel, storage: storage, http: h, params: paramsFromConfig(&c), accepted: make(chan net.Conn, 32), active: make(map[string]*Conn), handled: make(map[string]time.Time), idleSince: make(map[string]time.Time)}
@@ -3600,10 +3631,10 @@ index 00000000..38653285
 +}
 diff --git a/transport/xdrive/storage.go b/transport/xdrive/storage.go
 new file mode 100644
-index 00000000..b2f4bed5
+index 00000000..c08e2c96
 --- /dev/null
 +++ b/transport/xdrive/storage.go
-@@ -0,0 +1,51 @@
+@@ -0,0 +1,73 @@
 +package xdrive
 +
 +import (
@@ -3648,6 +3679,9 @@ index 00000000..b2f4bed5
 +	}
 +	switch c.Service {
 +	case "local":
++		if !AllowLocalService {
++			return disabledLocalStorage{}, nil
++		}
 +		return newLocalStorage(c.RemoteFolder)
 +	case "google-drive", "Google Drive":
 +		return newDriveStorage(client, &c)
@@ -3655,6 +3689,25 @@ index 00000000..b2f4bed5
 +		return newTemplateStorage(client, &c)
 +	}
 +}
++
++// disabledLocalStorage stands in for `service: local` while AllowLocalService
++// is off (ClashFest core patch 0003). It creates nothing and refuses every
++// operation, so the proxy loads but cannot be used.
++type disabledLocalStorage struct{}
++
++func (disabledLocalStorage) Put(context.Context, string, []byte) error {
++	return ErrLocalServiceDisabled
++}
++func (disabledLocalStorage) Get(context.Context, string) ([]byte, error) {
++	return nil, ErrLocalServiceDisabled
++}
++func (disabledLocalStorage) Delete(context.Context, string) error {
++	return ErrLocalServiceDisabled
++}
++func (disabledLocalStorage) List(context.Context, string) ([]Entry, error) {
++	return nil, ErrLocalServiceDisabled
++}
++func (disabledLocalStorage) Close() error { return nil }
 diff --git a/transport/xdrive/template.go b/transport/xdrive/template.go
 new file mode 100644
 index 00000000..eb26239e
