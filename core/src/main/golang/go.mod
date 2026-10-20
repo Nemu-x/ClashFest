@@ -156,3 +156,13 @@ require (
 )
 
 replace google.golang.org/protobuf => github.com/metacubex/protobuf-go v0.0.0-20260306035419-7ceee0674686
+
+// Citrus' own replace directives: Go applies replace only in the main module, so every
+// module that builds the core has to repeat them (keep in sync with clash/go.mod).
+replace github.com/metacubex/utls => github.com/getmikan/utls v1.8.9-0.20261017232116-b76689d5c62f
+
+replace github.com/metacubex/http => github.com/getmikan/http v0.1.8-citrus.2
+
+replace github.com/metacubex/tls => github.com/getmikan/tls v0.1.9-0.20261018054601-0a54a49f00e8
+
+replace github.com/metacubex/smux => github.com/getmikan/smux v0.0.0-20261017193300-1d830d820876
