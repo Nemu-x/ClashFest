@@ -44,7 +44,13 @@ class MainApplication : Application() {
         if (processName == packageName) {
             applyAppLanguage()
             applyNightMode()
-            ServiceStore.runMigrations(this)
+            // Migrations read the settings through the :background provider. When the OS kills or
+            // freezes that process mid-start (HyperOS does), ContentResolver.call throws
+            // IllegalArgumentException("Unknown URI"). The migrations are idempotent and run again on
+            // the next start, so a miss here must not take the app down.
+            runCatching { ServiceStore.runMigrations(this) }.onFailure {
+                Log.w("runMigrations: settings provider unavailable, retry on next start", it)
+            }
             Remote.launch()
             setupShortcuts()
             AppUpdateChecker.schedulePeriodic(this)
