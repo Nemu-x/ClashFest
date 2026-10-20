@@ -1,0 +1,93 @@
+diff --git a/adapter/provider/healthcheck.go b/adapter/provider/healthcheck.go
+index 822a00d5..161392ac 100644
+--- a/adapter/provider/healthcheck.go
++++ b/adapter/provider/healthcheck.go
+@@ -4,6 +4,7 @@ import (
+ 	"context"
+ 	"strings"
+ 	"sync"
++	stdatomic "sync/atomic"
+ 	"time"
+ 
+ 	"github.com/metacubex/mihomo/common/atomic"
+@@ -41,18 +42,36 @@ type HealthCheck struct {
+ 	timeout        time.Duration
+ }
+ 
++// healthChecksSuspended pauses the timed checks while the device screen is off.
++// Every provider and url-test group runs its own ticker, so on a config with many
++// subscriptions the timers alone kept waking the radio with the phone in a pocket.
++// On-demand checks (a tap, a network switch) still run; the timers resume on the
++// next tick after the screen comes back.
++var healthChecksSuspended stdatomic.Bool
++
++// SetHealthChecksSuspended is called by the Android bridge on screen off / on.
++func SetHealthChecksSuspended(suspended bool) {
++	healthChecksSuspended.Store(suspended)
++}
++
++// shouldRunTimedCheck reports whether a ticker fire should run the check.
++func (hc *HealthCheck) shouldRunTimedCheck() bool {
++	if healthChecksSuspended.Load() {
++		return false
++	}
++	return !hc.lazy || time.Since(hc.lastTouch.Load()) < hc.interval
++}
++
+ func (hc *HealthCheck) process() {
+ 	ticker := time.NewTicker(hc.interval)
+ 	go hc.check()
+ 	for {
+ 		select {
+ 		case <-ticker.C:
+-			lastTouch := hc.lastTouch.Load()
+-			since := time.Since(lastTouch)
+-			if !hc.lazy || since < hc.interval {
++			if hc.shouldRunTimedCheck() {
+ 				hc.check()
+ 			} else {
+-				log.Debugln("Skip once health check because we are lazy")
++				log.Debugln("Skip once health check: lazy or suspended")
+ 			}
+ 		case <-hc.ctx.Done():
+ 			ticker.Stop()
+diff --git a/adapter/provider/healthcheck_suspend_test.go b/adapter/provider/healthcheck_suspend_test.go
+new file mode 100644
+index 00000000..4de64f4f
+--- /dev/null
++++ b/adapter/provider/healthcheck_suspend_test.go
+@@ -0,0 +1,34 @@
++package provider
++
++import (
++	"testing"
++	"time"
++)
++
++func TestTimedCheckSkippedWhileSuspended(t *testing.T) {
++	hc := &HealthCheck{interval: time.Minute, lazy: false}
++	t.Cleanup(func() { SetHealthChecksSuspended(false) })
++
++	if !hc.shouldRunTimedCheck() {
++		t.Fatal("a non-lazy check must run when not suspended")
++	}
++	SetHealthChecksSuspended(true)
++	if hc.shouldRunTimedCheck() {
++		t.Fatal("a timed check ran while suspended")
++	}
++	SetHealthChecksSuspended(false)
++	if !hc.shouldRunTimedCheck() {
++		t.Fatal("timed checks did not resume")
++	}
++}
++
++func TestLazyCheckStillNeedsRecentTraffic(t *testing.T) {
++	hc := &HealthCheck{interval: time.Minute, lazy: true}
++	if hc.shouldRunTimedCheck() {
++		t.Fatal("a lazy check without traffic must be skipped")
++	}
++	hc.touch()
++	if !hc.shouldRunTimedCheck() {
++		t.Fatal("a lazy check after traffic must run")
++	}
++}

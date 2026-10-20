@@ -103,9 +103,12 @@ class ProfileReceiver : BroadcastReceiver() {
 
             val interval = (imported.interval - (current - last)).coerceAtLeast(0)
 
+            // Not a wakeup alarm: a subscription refresh can wait until the device is awake
+            // anyway. With a WAKEUP alarm per subscription, many subscriptions meant the phone
+            // was woken (and a foreground service started) once per subscription per interval.
             context.getSystemService<AlarmManager>()
                 ?.set(
-                    AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                    AlarmManager.ELAPSED_REALTIME,
                     SystemClock.elapsedRealtime() + interval,
                     intent
                 )

@@ -167,6 +167,7 @@ val goTestNativeSnapshot by tasks.registering(Exec::class) {
         // Tests shipped inside the patch series run against the patched tree, so a
         // patch that applied but no longer does what it claims fails here.
         "-run", "Test", "github.com/metacubex/mihomo/component/tls",
+        "github.com/metacubex/mihomo/adapter/provider",
     )
     dependsOn(applyCorePatches)
 

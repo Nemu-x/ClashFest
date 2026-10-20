@@ -84,3 +84,16 @@ firefox fingerprints, older Xray) passes 32/32 on both the stock and the patched
 
 Upstream: mihomo PR #2983 proposed always sending the hybrid share and was closed. Delete when
 mihomo negotiates this itself.
+
+### 0005 Health checks pause while the screen is off
+
+Every proxy provider and url-test group runs its own health-check ticker. With several
+subscriptions merged into one config the tickers kept dialing every node every few minutes with
+the screen off, and the drain grew with the number of subscriptions. The bridge's `suspend`
+(driven by `ACTION_SCREEN_OFF` / `ACTION_SCREEN_ON` in `SuspendModule`) was a no-op. The patch
+adds `provider.SetHealthChecksSuspended`: while set, a ticker fire skips the check. On-demand
+checks (a tap on a latency capsule, the network-switch probe) still run, and the timers resume on
+the next tick after the screen comes back. The tunnel itself keeps accepting connections.
+
+Test: `adapter/provider/healthcheck_suspend_test.go`. Not an upstream concern (mihomo has no
+screen state); keep it as long as the app suspends on screen off.
