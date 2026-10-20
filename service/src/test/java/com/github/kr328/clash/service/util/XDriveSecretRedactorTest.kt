@@ -221,13 +221,76 @@ class XDriveSecretRedactorTest {
     }
 
     @Test
+    fun redactsTemplateOpBodiesThatNameCredentials() {
+        val text = """
+            proxies:
+              - name: t
+                type: vless
+                network: xdrive
+                xdrive-opts:
+                  service: template
+                  remote-folder: f
+                  template:
+                    put:
+                      method: POST
+                      url: https://s.example.com/upload
+                      body: 'client_id=abc&client_secret=put-form-secret&grant_type=refresh_token&refresh_token=put-form-refresh'
+                    get:
+                      method: POST
+                      url: https://s.example.com/download
+                      body: '{"path": "{name}", "access_token": "get-json-token"}'
+                    List:
+                      method: POST
+                      url: https://s.example.com/list
+                      Body: '{"folder":"{folder}","auth":{"api_key":"list-json-key"}}'
+                    delete:
+                      method: POST
+                      url: https://s.example.com/delete
+                      body: '{"path":"{name}","recursive":false}'
+        """.trimIndent()
+        val out = XDriveSecretRedactor.redactConfigYaml(text)
+        for (secret in listOf("put-form-secret", "put-form-refresh", "get-json-token", "list-json-key")) {
+            assertFalse("$secret leaked: $out", out.contains(secret))
+        }
+        val proxy = (MihomoConfigDocument.parseOrThrow(out).root["proxies"] as List<*>)[0] as Map<*, *>
+        val template = (proxy["xdrive-opts"] as Map<*, *>)["template"] as Map<*, *>
+        assertEquals(XDriveSecretRedactor.REDACTED, (template["put"] as Map<*, *>)["body"])
+        assertEquals(XDriveSecretRedactor.REDACTED, (template["get"] as Map<*, *>)["body"])
+        assertEquals(XDriveSecretRedactor.REDACTED, (template["List"] as Map<*, *>)["Body"])
+        assertEquals("""{"path":"{name}","recursive":false}""", (template["delete"] as Map<*, *>)["body"])
+        assertEquals("POST", (template["put"] as Map<*, *>)["method"])
+    }
+
+    @Test
+    fun bodyCredentialDetection() {
+        for (body in listOf(
+            "client_secret=x",
+            "a=1&refresh%5Ftoken=x",
+            """{"token":"x"}""",
+            """{ "Password" : "x" }""",
+            """{"nested":{"secret":"x"}}""",
+            "api_key: x",
+            "key=x",
+        )) {
+            assertTrue(body, XDriveSecretRedactor.bodyHasCredential(body))
+        }
+        for (body in listOf("", "{name}", """{"path":"{name}","mode":"overwrite"}""", "name={name}&parent={folder}")) {
+            assertFalse(body, XDriveSecretRedactor.bodyHasCredential(body))
+        }
+    }
+
+    @Test
     fun templateOpsWithoutCredentialsAreReturnedAsIs() {
         val proxy = mapOf(
             "name" to "x",
             "xdrive-opts" to mapOf(
                 "service" to "template",
                 "template" to mapOf(
-                    "get" to mapOf("url" to "https://s.example.com/{name}?mode=raw", "headers" to mapOf("Depth" to "1")),
+                    "get" to mapOf(
+                        "url" to "https://s.example.com/{name}?mode=raw",
+                        "headers" to mapOf("Depth" to "1"),
+                        "body" to """{"path":"{name}"}""",
+                    ),
                 ),
             ),
         )

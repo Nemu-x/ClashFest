@@ -4,7 +4,8 @@ package com.github.kr328.clash.service.util
  * Hides XDrive (core patch 0003) storage credentials from read-only views and exports:
  * the OAuth client ID / secret / refresh token in `xdrive-opts.secrets`, static tokens in
  * `xdrive-opts.template.auth`, and in the template operations (`put` / `get` / `list` /
- * `delete`) the values of credential-looking headers and URL query parameters. They grant access to the operator's storage account rather
+ * `delete`) the values of credential-looking headers and URL query parameters, and any request
+ * body that names a credential-looking field. They grant access to the operator's storage account rather
  * than to a single node, and no read-only consumer needs them (the offline ping reads only
  * server/port). Editors read the config through their own paths and keep the real values.
  */
@@ -121,7 +122,7 @@ object XDriveSecretRedactor {
         return out.takeIf { changed }
     }
 
-    /** A template operation with credential headers and query values hidden, or null if it has none. */
+    /** A template operation with credential headers, query values and bodies hidden, or null if it has none. */
     private fun redactOp(op: Map<*, *>): Map<String, Any?>? {
         val out = copy(op)
         var changed = false
@@ -148,10 +149,26 @@ object XDriveSecretRedactor {
                         changed = true
                     }
                 }
+                MihomoKeys.matches(key, "body") && value is String && bodyHasCredential(value) -> {
+                    out[key.toString()] = REDACTED
+                    changed = true
+                }
             }
         }
         return out.takeIf { changed }
     }
+
+    /**
+     * True if a request body names a credential-looking field: a form-encoded `name=value` pair,
+     * a JSON `"name":` member, or any other `name:` / `name=`. The body is then hidden whole:
+     * its format is free-form, so picking values out of it could miss one.
+     */
+    internal fun bodyHasCredential(body: String): Boolean =
+        BODY_FIELD.findAll(body).any { match ->
+            val raw = match.groupValues[1]
+            val name = runCatching { java.net.URLDecoder.decode(raw, "UTF-8") }.getOrDefault(raw)
+            isCredentialName(name)
+        }
 
     /** Replaces the values of credential-looking query parameters; everything else is kept as written. */
     internal fun redactQuery(url: String): String {
@@ -176,6 +193,7 @@ object XDriveSecretRedactor {
     }
 
     private val TEMPLATE_OPS = listOf("put", "get", "list", "delete")
+    private val BODY_FIELD = Regex("""([A-Za-z0-9_.%-]+)"?\s*[:=]""")
     private val CREDENTIAL_NAMES = setOf("authorization", "proxy-authorization", "auth", "sig", "signature")
     private val CREDENTIAL_PARTS = listOf("token", "secret", "key", "cookie", "password", "passwd")
 
