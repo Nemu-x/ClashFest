@@ -96,11 +96,11 @@
 
     <ImageButton
         android:id="@+id/btn_edit"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/edit"
-        android:padding="8dp"
+        android:padding="12dp"
         android:src="@drawable/ic_baseline_edit"
         app:tint="?attr/colorOnSurfaceVariant" />
 </LinearLayout>

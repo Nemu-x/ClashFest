@@ -82,23 +82,23 @@
 
             <ImageView
                 android:id="@+id/conn_expand"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginStart="2dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/connections_details"
-                android:padding="8dp"
+                android:padding="12dp"
                 android:src="@drawable/ic_baseline_expand_more"
                 app:tint="?attr/colorOnSurfaceVariant" />
 
             <ImageButton
                 android:id="@+id/conn_close"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_marginStart="2dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/connections_close"
-                android:padding="11dp"
+                android:padding="12dp"
                 android:src="@drawable/ic_baseline_close"
                 app:tint="?attr/colorOnSurfaceVariant" />
         </LinearLayout>

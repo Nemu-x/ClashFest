@@ -73,6 +73,7 @@ class SubscriptionIdentityDesign(context: Context) : Design<SubscriptionIdentity
         val icon = ImageView(context).apply {
             layoutParams = LinearLayout.LayoutParams(px(22), px(22)).apply { marginEnd = px(14) }
             setImageResource(link.iconRes)
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             imageTintList = ColorStateList.valueOf(
                 context.resolveThemedColor(MaterialR.attr.colorPrimary)
             )
@@ -91,6 +92,7 @@ class SubscriptionIdentityDesign(context: Context) : Design<SubscriptionIdentity
             layoutParams = LinearLayout.LayoutParams(px(16), px(16))
             setImageResource(R.drawable.ic_baseline_expand_more)
             rotation = -90f
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             imageTintList = ColorStateList.valueOf(
                 context.resolveThemedColor(MaterialR.attr.colorOnSurfaceVariant)
             )
