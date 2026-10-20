@@ -255,3 +255,21 @@ func suspend(suspended C.int) {
 	defer guard("suspend")()
 	tunnel.Suspend(suspended != 0)
 }
+
+// urlTestProxyYaml pings one proxy built from its YAML block with a GET through it, without a
+// loaded profile or a running VPN. Blocking: the Kotlin side calls it from an IO thread.
+//
+//export urlTestProxyYaml
+func urlTestProxyYaml(proxyYaml C.c_string, testUrl C.c_string) *C.char {
+	defer guard("urlTestProxyYaml")()
+	delay, err := tunnel.URLTestProxyYAML(C.GoString(proxyYaml), C.GoString(testUrl))
+	response := &struct {
+		Delay int    `json:"delay"`
+		Error string `json:"error,omitempty"`
+	}{Delay: delay}
+	if err != nil {
+		response.Delay = -1
+		response.Error = err.Error()
+	}
+	return marshalJson(response)
+}

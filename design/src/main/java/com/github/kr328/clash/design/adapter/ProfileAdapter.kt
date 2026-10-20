@@ -1411,11 +1411,6 @@ class ProfileAdapter(
             }
 
             fun startPing(groupName: String, names: List<String>, testUrl: String) {
-                if (serverPingMode == ServerPingMode.ThroughServer &&
-                    (!clashRunning || activeProfileUuid != profile.uuid)) {
-                    Toast.makeText(context, R.string.server_ping_requires_active, Toast.LENGTH_LONG).show()
-                    return
-                }
                 lastPingAllAt[profile.uuid] = System.currentTimeMillis()
                 pingingGroupByUuid[profile.uuid] = groupName
                 onPingAll(profile, groupName, names, testUrl)

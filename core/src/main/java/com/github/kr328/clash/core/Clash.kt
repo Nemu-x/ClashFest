@@ -13,6 +13,8 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
 import java.net.InetSocketAddress
@@ -462,6 +464,21 @@ object Clash {
                 raw,
             )
         }.getOrNull()
+    }
+
+    /**
+     * GET through one proxy built from its own YAML block, with no profile loaded and no VPN.
+     * Blocking (up to ~10 s); call from an IO thread.
+     *
+     * @return the delay in ms
+     * @throws ClashException with the engine error when the proxy cannot reach [testUrl]
+     */
+    fun urlTestProxyYaml(proxyYaml: String, testUrl: String): Int {
+        val raw = Bridge.nativeUrlTestProxyYaml(proxyYaml, testUrl)
+        val obj = ProfileSnapshotJson.parseToJsonElement(raw).jsonObject
+        val error = obj["error"]?.jsonPrimitive?.content
+        if (!error.isNullOrBlank()) throw ClashException(error)
+        return obj["delay"]?.jsonPrimitive?.int ?: throw ClashException("no delay in response")
     }
 
     private fun decodeSnapshotEnvelope(rawJson: String): ProfileSnapshot {

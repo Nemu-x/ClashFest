@@ -1394,8 +1394,7 @@ Password: %4$s</string>
     <string name="server_ping_method">Test method</string>
     <string name="server_ping_direct">To server (TCP)</string>
     <string name="server_ping_through">Through server (HTTP)</string>
-    <string name="server_ping_explanation">To server measures a direct TCP connection over Wi-Fi or mobile data, outside the VPN. It does not test proxy authentication or website access; UDP-only protocols show N/A. Through server tests a website through each proxy and includes the full route. Connect this subscription first. This choice affects manual tests; automatic server selection still uses the subscription health check.</string>
-    <string name="server_ping_requires_active">To test through a server, connect the VPN using this subscription first.</string>
+    <string name="server_ping_explanation">To server measures a direct TCP connection over Wi-Fi or mobile data, outside the VPN. It does not test proxy authentication or website access; UDP-only protocols show N/A. Through server tests a website through each proxy and includes the full route. Works with the VPN off too. This choice affects manual tests; automatic server selection still uses the subscription health check.</string>
     <string name="server_ping_url_requires_proxy">A custom test website is available in Through server mode.</string>
     <string name="server_ping_unsupported">N/A</string>
     <string name="chain_description">Phone → entry server → exit server → websites. Choose servers from any saved subscription, even with VPN off.</string>

@@ -11,10 +11,18 @@ class ServerPingModeTest {
     }
 
     @Test
-    fun throughProxyModeNeverDisplaysDirectProbe() {
-        assertEquals(-1, ServerPingMode.ThroughServer.resolveDelay(12, -1, -1))
+    fun throughProxyModePrefersTheRunningEngine() {
         assertEquals(40, ServerPingMode.ThroughServer.resolveDelay(12, 40, 50))
-        assertEquals(50, ServerPingMode.ThroughServer.resolveDelay(12, -1, 50))
+        assertEquals(50, ServerPingMode.ThroughServer.resolveDelay(null, -1, 50))
+        assertEquals(-1, ServerPingMode.ThroughServer.resolveDelay(null, -1, -1))
+    }
+
+    @Test
+    fun throughProxyModeShowsTheStandaloneMeasurementWithoutTheEngine() {
+        // VPN off: the GET through the node ran in the core standalone and is the only value.
+        assertEquals(12, ServerPingMode.ThroughServer.resolveDelay(12, -1, -1))
+        assertEquals(12, ServerPingMode.ThroughServer.resolveDelay(12, -1, 50))
+        assertEquals(Int.MAX_VALUE, ServerPingMode.ThroughServer.resolveDelay(Int.MAX_VALUE, -1, -1))
     }
 
     @Test

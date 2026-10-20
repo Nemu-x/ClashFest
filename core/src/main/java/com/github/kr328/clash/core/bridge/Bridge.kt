@@ -63,6 +63,7 @@ object Bridge {
     external fun nativeParseProfileSnapshotFromBytes(yaml: String): String
     external fun nativeResolveProxyGroupsFromBytes(yaml: String): String
     external fun nativeValidateProfileBytes(yaml: String): String?
+    external fun nativeUrlTestProxyYaml(proxyYaml: String, testUrl: String): String
 
     external fun nativeApplyConfigScript(yaml: String, script: String, profileName: String): String
     external fun nativeQueryProviders(): String

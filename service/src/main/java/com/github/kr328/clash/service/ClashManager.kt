@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import com.github.kr328.clash.common.constants.Intents
 import com.github.kr328.clash.common.log.Log
+import com.github.kr328.clash.common.log.LogRedaction
 import com.github.kr328.clash.core.Clash
 import com.github.kr328.clash.core.model.*
 import com.github.kr328.clash.service.data.Selection
@@ -157,6 +158,13 @@ class ClashManager(private val context: Context) : IClashManager,
     override suspend fun healthCheck(group: String) {
         return Clash.healthCheck(group).await()
     }
+
+    override suspend fun urlTestProxyYaml(proxyYaml: String, testUrl: String): Int =
+        withContext(Dispatchers.IO) {
+            runCatching { Clash.urlTestProxyYaml(proxyYaml, testUrl) }
+                .onFailure { Log.w("Standalone ping failed: ${LogRedaction.throwableMessage(it)}") }
+                .getOrDefault(Int.MAX_VALUE)
+        }
 
     override suspend fun healthCheckPerProxy(group: String, testUrl: String, observer: IProxyDelayObserver) {
         // JNI fires onProxyDelay from arbitrary worker threads. AIDL stubs are

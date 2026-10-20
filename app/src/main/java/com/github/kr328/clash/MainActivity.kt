@@ -413,11 +413,18 @@ class MainActivity : BaseActivity<MainDesign>() {
     private val warmedGroups = java.util.Collections.synchronizedSet(mutableSetOf<String>())
     private val directPingSlots = kotlinx.coroutines.sync.Semaphore(4)
 
-    private suspend fun measureDirectServer(profile: Profile, name: String): Int =
+    /**
+     * Ping one node without the running engine. ThroughServer: a GET through the node from the core
+     * (the node is built from its YAML alone, nothing is loaded). ToServer: a TCP connect to it.
+     */
+    private suspend fun measureOffline(mode: ServerPingMode, profile: Profile, name: String, testUrl: String): Int =
         directPingSlots.withPermit {
             if (StandalonePing.isBuiltinProxyName(name)) return@withPermit -1
             val yaml = withProfile { readProxyEntryYaml(profile.uuid, name) } ?: return@withPermit -1
-            withContext(Dispatchers.IO) { DirectServerPing.measure(this@MainActivity, yaml) }
+            when (mode) {
+                ServerPingMode.ThroughServer -> withClash { urlTestProxyYaml(yaml, testUrl) }
+                ServerPingMode.ToServer -> withContext(Dispatchers.IO) { DirectServerPing.measure(this@MainActivity, yaml) }
+            }
         }
 
     /**
@@ -970,11 +977,9 @@ class MainActivity : BaseActivity<MainDesign>() {
                                     withClash { queryProxyGroupNames(false).isNotEmpty() }
                             }.getOrDefault(false)
                             val activeUuid = if (pingMode == ServerPingMode.ThroughServer) withProfile { queryActive()?.uuid } else null
-                            if (pingMode == ServerPingMode.ThroughServer) {
-                                if (!ProfileRuntimeTarget.canUseEngine(engineReady, activeUuid, profile.uuid)) {
-                                    design.showToast(R.string.server_ping_requires_active, ToastDuration.Long)
-                                    return@launch
-                                }
+                            if (pingMode == ServerPingMode.ThroughServer &&
+                                ProfileRuntimeTarget.canUseEngine(engineReady, activeUuid, profile.uuid)
+                            ) {
                                 waitForProxyEngineReady()
                                 val groupsToRefresh = collectRuntimeGroupTree(group)
                                     .ifEmpty { linkedSetOf(group).filter { it.isNotBlank() }.toSet() }
@@ -1000,10 +1005,12 @@ class MainActivity : BaseActivity<MainDesign>() {
                                 }
                                 scheduleDashboardRefresh()
                             } else {
+                                // VPN off or another subscription connected: ThroughServer pings each
+                                // node with a GET through it from the core, ToServer is a TCP connect.
                                 val offlineGroups = withProfile { readProxyGroupsPreview(profile.uuid) }
                                 val pingTargets = collectOfflineLeafProxyNames(group, nodeNames, offlineGroups)
                                 val jobs = pingTargets.map { name -> launch(Dispatchers.IO) {
-                                    val ms = measureDirectServer(profile, name)
+                                    val ms = measureOffline(pingMode, profile, name, testUrl)
                                     design.patchStandalonePingResults(profile.uuid, mapOf(name to ms))
                                 } }
                                 jobs.forEach { it.join() }
@@ -1028,15 +1035,12 @@ class MainActivity : BaseActivity<MainDesign>() {
                             }.getOrDefault(false)
                             val activeUuid = if (pingMode == ServerPingMode.ThroughServer) withProfile { queryActive()?.uuid } else null
                             Log.d("single ping: request $group / $proxy engineReady=$engineReady active=$activeUuid profile=${profile.uuid}")
-                            if (pingMode == ServerPingMode.ThroughServer) {
-                                if (!ProfileRuntimeTarget.canUseEngine(engineReady, activeUuid, profile.uuid)) {
-                                    design.clearNodePingPending(proxy)
-                                    design.showToast(R.string.server_ping_requires_active, ToastDuration.Long)
-                                    return@launch
-                                }
+                            if (pingMode == ServerPingMode.ThroughServer &&
+                                ProfileRuntimeTarget.canUseEngine(engineReady, activeUuid, profile.uuid)
+                            ) {
                                 runSingleProxyHealthCheck(group, proxy)
                             } else {
-                                val ms = measureDirectServer(profile, proxy)
+                                val ms = measureOffline(pingMode, profile, proxy, "")
                                 design.patchStandalonePingResults(profile.uuid, mapOf(proxy to ms))
                             }
                         } catch (e: CancellationException) {

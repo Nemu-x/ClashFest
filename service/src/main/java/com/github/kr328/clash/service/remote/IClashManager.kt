@@ -35,6 +35,12 @@ interface IClashManager {
     suspend fun healthCheckPerProxy(group: String, testUrl: String, observer: IProxyDelayObserver)
 
     fun healthCheckAll()
+
+    /**
+     * GET through one proxy built from [proxyYaml] (its own YAML block), without a loaded profile
+     * or a running VPN. Returns the delay in ms, or Int.MAX_VALUE when the proxy failed.
+     */
+    suspend fun urlTestProxyYaml(proxyYaml: String, testUrl: String): Int
     suspend fun updateProvider(type: Provider.Type, name: String)
 
     /** Download fresh GeoIP/GeoSite databases. Returns null on success, or the engine error. */

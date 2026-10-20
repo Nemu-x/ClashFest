@@ -348,6 +348,19 @@ Java_com_github_kr328_clash_core_bridge_Bridge_nativeApplyConfigScript(JNIEnv *e
 }
 
 JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeUrlTestProxyYaml(JNIEnv *env, jobject thiz,
+                                                                      jstring proxy_yaml, jstring test_url) {
+    TRACE_METHOD();
+
+    scoped_string _proxy_yaml = get_string(proxy_yaml);
+    scoped_string _test_url = get_string(test_url);
+
+    scoped_string response = urlTestProxyYaml(_proxy_yaml, _test_url);
+
+    return new_string(response);
+}
+
+JNIEXPORT jstring JNICALL
 Java_com_github_kr328_clash_core_bridge_Bridge_nativeValidateProfileBytes(JNIEnv *env, jobject thiz,
                                                                           jstring yaml) {
     TRACE_METHOD();
