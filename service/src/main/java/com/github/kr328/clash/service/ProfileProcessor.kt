@@ -19,6 +19,7 @@ import com.github.kr328.clash.service.util.RuleApplyService
 import com.github.kr328.clash.service.util.RuleMapper
 import com.github.kr328.clash.service.util.FetchErrorClassifier
 import com.github.kr328.clash.service.util.MergeEngineVerdict
+import com.github.kr328.clash.service.util.OperatorPolicyHeaders
 import com.github.kr328.clash.service.util.ConfigComposer
 import com.github.kr328.clash.service.util.ConfigScriptException
 import com.github.kr328.clash.service.util.ConfigScriptPolicy
@@ -168,6 +169,10 @@ object ProfileProcessor {
                                 download = usage?.download ?: 0L
                                 total = usage?.total ?: 0L
                                 expire = usage?.expireAt?.times(1000L) ?: 0L
+                                // Same https-only rule as the update path (ProfileManager.updateFlow).
+                                if (snapshot.source.startsWith("https://", true)) {
+                                    OperatorPolicyHeaders.applyFromSnapshot(context, snapshot.uuid, headers)
+                                }
                             }
                             val new = Imported(
                                 snapshot.uuid,
