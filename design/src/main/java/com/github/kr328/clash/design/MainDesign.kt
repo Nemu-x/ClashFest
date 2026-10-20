@@ -39,6 +39,7 @@ import com.github.kr328.clash.service.store.ServiceStore
 import java.io.File
 import java.io.FileOutputStream
 import androidx.core.view.doOnLayout
+import androidx.core.view.updateLayoutParams
 import com.google.android.material.R as MaterialR
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.DefaultItemAnimator
@@ -451,6 +452,10 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             binding.mainHeaderSummary.isClickable = false
 
             binding.mainAnnouncementCard.visibility = if (hasAnnouncement) View.VISIBLE else View.GONE
+            // The announcement fills the gap under the connect button, so the routing card moves up.
+            binding.mainRoutingCard.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                topMargin = (context.resources.displayMetrics.density * if (hasAnnouncement) 16 else 32).toInt()
+            }
             if (hasAnnouncement) {
                 binding.mainAnnouncementPreview.text = message.replace('\n', ' ')
 

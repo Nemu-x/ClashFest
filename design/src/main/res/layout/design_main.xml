@@ -419,7 +419,79 @@
                     tools:visibility="visible" />
             </LinearLayout>
 
+            <!-- Announcement sits between the connect button and the routing card. -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/main_announcement_card"
+                style="@style/AppCard.Filled"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="20dp"
+                android:layout_marginTop="24dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:visibility="gone"
+                app:cardBackgroundColor="?attr/colorSurfaceContainer"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/lumen_hairline"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:minHeight="52dp"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="12dp">
+
+                    <FrameLayout
+                        android:layout_width="34dp"
+                        android:layout_height="34dp"
+                        android:layout_marginEnd="12dp"
+                        android:background="@drawable/bg_flag_circle">
+
+                        <ImageView
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@string/announcement_text"
+                            android:src="@drawable/ic_baseline_campaign"
+                            app:tint="?attr/colorPrimary" />
+
+                        <View
+                            android:id="@+id/main_announcement_new_dot"
+                            android:layout_width="8dp"
+                            android:layout_height="8dp"
+                            android:layout_gravity="top|end"
+                            android:background="@drawable/bg_announcement_new_dot"
+                            android:visibility="gone" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:id="@+id/main_announcement_preview"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textAppearance="@style/TextAppearance.App.BodyMedium"
+                        android:textColor="?attr/colorOnSurface"
+                        tools:text="Plan maintenance scheduled on Sunday" />
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_marginStart="12dp"
+                        android:contentDescription="@null"
+                        android:rotation="-90"
+                        android:src="@drawable/ic_baseline_expand_more"
+                        app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/main_routing_card"
                 style="@style/AppCard.Filled"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -816,76 +888,6 @@
                                 android:textAppearance="@style/TextAppearance.App.LabelLarge" />
                         </com.google.android.material.button.MaterialButtonToggleGroup>
                     </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/main_announcement_card"
-                style="@style/AppCard.Filled"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="20dp"
-                android:layout_marginTop="16dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:visibility="gone"
-                app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/lumen_hairline"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:minHeight="52dp"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="12dp">
-
-                    <FrameLayout
-                        android:layout_width="34dp"
-                        android:layout_height="34dp"
-                        android:layout_marginEnd="12dp"
-                        android:background="@drawable/bg_flag_circle">
-
-                        <ImageView
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
-                            android:layout_gravity="center"
-                            android:contentDescription="@string/announcement_text"
-                            android:src="@drawable/ic_baseline_campaign"
-                            app:tint="?attr/colorPrimary" />
-
-                        <View
-                            android:id="@+id/main_announcement_new_dot"
-                            android:layout_width="8dp"
-                            android:layout_height="8dp"
-                            android:layout_gravity="top|end"
-                            android:background="@drawable/bg_announcement_new_dot"
-                            android:visibility="gone" />
-                    </FrameLayout>
-
-                    <TextView
-                        android:id="@+id/main_announcement_preview"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:ellipsize="end"
-                        android:maxLines="1"
-                        android:textAppearance="@style/TextAppearance.App.BodyMedium"
-                        android:textColor="?attr/colorOnSurface"
-                        tools:text="Plan maintenance scheduled on Sunday" />
-
-                    <ImageView
-                        android:layout_width="16dp"
-                        android:layout_height="16dp"
-                        android:layout_marginStart="12dp"
-                        android:contentDescription="@null"
-                        android:rotation="-90"
-                        android:src="@drawable/ic_baseline_expand_more"
-                        app:tint="?attr/colorOnSurfaceVariant" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
