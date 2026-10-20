@@ -38,6 +38,7 @@ class MainApplication : Application() {
         // Kotlin subscription probes (metadata, brand, name guesser) run in both processes
         // and must send the same User-Agent as the native fetch, core version included.
         SubscriptionRequestHeaders.coreTag = com.github.kr328.clash.core.BuildConfig.CORE_TAG
+        SubscriptionRequestHeaders.coreFeaturesProvider = { com.github.kr328.clash.core.Clash.coreFeatures() }
 
         Log.d("Process $processName started")
 

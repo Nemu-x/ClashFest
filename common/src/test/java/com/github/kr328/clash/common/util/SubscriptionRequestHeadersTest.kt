@@ -37,6 +37,18 @@ class SubscriptionRequestHeadersTest {
     }
 
     @Test
+    fun featuresAppendAsTrailingComment() {
+        assertEquals("mihomo/1.19.32 ClashFest/1.3.0", SubscriptionRequestHeaders.buildDefaultUserAgent("1.3.0", "v1.19.32", emptyList()))
+        assertEquals("mihomo/1.19.32 ClashFest/1.3.0", SubscriptionRequestHeaders.buildDefaultUserAgent("1.3.0", "v1.19.32", listOf("", " ")))
+        assertEquals("mihomo/1.19.32 ClashFest/1.3.0 (xdrive)", SubscriptionRequestHeaders.buildDefaultUserAgent("1.3.0.Alpha", "v1.19.32", listOf("xdrive")))
+        assertEquals("mihomo ClashFest/1.3.0 (xdrive; foo)", SubscriptionRequestHeaders.buildDefaultUserAgent("1.3.0", null, listOf("xdrive", " foo ")))
+        val ua = SubscriptionRequestHeaders.buildDefaultUserAgent("1.3.0", "v1.19.32", listOf("xdrive"))
+        assertTrue(marzbanClashMeta.containsMatchIn(ua), ua)
+        assertFalse(marzbanLegacy.containsMatchIn(ua), ua)
+        assertEquals("1.19.32", mikanCore.find(ua)?.groupValues?.get(2))
+    }
+
+    @Test
     fun nonSemverVersionNamePassesThrough() {
         assertEquals("mihomo/1.19.32 ClashFest/unknown", SubscriptionRequestHeaders.buildDefaultUserAgent("unknown", "1.19.32"))
     }
