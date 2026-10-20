@@ -37,6 +37,22 @@ fun gitDescribe(vararg extra: String): String {
     }
     return if (result.result.get().exitValue == 0) result.standardOutput.asText.get().trim() else ""
 }
+// The About screen names the core after the submodule: Citrus marks itself with
+// MihomoName = "citrus" in constant/version.go, upstream mihomo has "mihomo".
+// Citrus is shown with its own release tag (v1.0.0-beta.2), the tags that are not
+// upstream mihomo's (nor Citrus' v0.0.0 pre-release tag); mihomoTag above stays
+// what the User-Agent advertises.
+val coreIsCitrus: Boolean = file("src/foss/golang/clash/constant/version.go").let {
+    it.isFile && Regex("""MihomoName\s*=\s*"citrus"""").containsMatchIn(it.readText())
+}
+val citrusTag: String = if (!coreIsCitrus) "" else providers.exec {
+    commandLine(
+        "git", "-C", file("src/foss/golang/clash").absolutePath,
+        "describe", "--tags", "--abbrev=0", "--match", "v*", "--exclude", "v1.[1-9][0-9].*", "--exclude", "v0.*",
+    )
+    isIgnoreExitValue = true
+}.let { if (it.result.get().exitValue == 0) it.standardOutput.asText.get().trim() else "" }
+
 val mihomoTag: String = gitDescribe("--exact-match").ifEmpty { gitDescribe("--abbrev=0") }.ifEmpty {
     val goMod = file("src/main/golang/go.mod")
     if (goMod.isFile) {
@@ -214,6 +230,8 @@ golang {
 android {
     defaultConfig {
         buildConfigField("String", "CORE_TAG", "\"$mihomoTag\"")
+        buildConfigField("String", "CORE_NAME", if (coreIsCitrus) "\"Citrus\"" else "\"Mihomo\"")
+        buildConfigField("String", "CITRUS_TAG", "\"$citrusTag\"")
     }
 
     productFlavors {

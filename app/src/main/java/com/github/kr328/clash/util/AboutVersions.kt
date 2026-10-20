@@ -13,9 +13,20 @@ internal object AboutVersions {
         "$version.$channel"
     }
 
-    val core: String by lazy {
-        val raw = CoreBuildConfig.CORE_TAG.replace("_", "-")
+    // Citrus keeps its pre-release suffix (1.0.0-beta.2), mihomo shows x.y.z.
+    private val citrusVersion = Regex("""v?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?)""")
+
+    val core: String by lazy { coreLabel(CoreBuildConfig.CORE_NAME, CoreBuildConfig.CORE_TAG, CoreBuildConfig.CITRUS_TAG) }
+
+    /** "Citrus 1.0.0-beta.2" for a Citrus core, "Mihomo 1.19.32" for upstream mihomo. */
+    fun coreLabel(name: String, mihomoTag: String, citrusTag: String): String {
+        if (name == "Citrus") {
+            val raw = citrusTag.replace("_", "-")
+            val version = citrusVersion.find(raw)?.groupValues?.get(1) ?: raw.ifBlank { "—" }
+            return "Citrus $version"
+        }
+        val raw = mihomoTag.replace("_", "-")
         val version = semver.find(raw)?.groupValues?.get(1) ?: raw.ifBlank { "—" }
-        "Mihomo $version"
+        return "Mihomo $version"
     }
 }
