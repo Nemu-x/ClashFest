@@ -35,4 +35,14 @@ class WidgetStateTest {
     fun runningVpnWithALoadedProfileShowsConnected() {
         assertEquals(State.On, State.fromStatus(serviceRunning = true, profileLoaded = true))
     }
+
+    @Test
+    fun everyStateSetsItsOwnIconAndBackground() {
+        // The widget is one frame now: each render must set both, or a stale icon stays.
+        State.entries.forEach {
+            assertTrue(it.icon != 0, "$it has no icon")
+            assertTrue(it.background != 0, "$it has no background")
+        }
+        assertEquals(com.github.kr328.clash.service.R.drawable.widget_mikan, State.On.icon)
+    }
 }

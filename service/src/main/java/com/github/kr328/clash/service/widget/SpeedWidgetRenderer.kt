@@ -15,12 +15,17 @@ object SpeedWidgetRenderer {
     private const val PROVIDER = "com.github.kr328.clash.SpeedWidget"
     private const val TOGGLE_ACTIVITY = "com.github.kr328.clash.WidgetToggleActivity"
 
-    enum class State(val child: Int, val description: Int, val busy: Boolean = false) {
-        Off(0, R.string.widget_state_off),
-        PermissionRequired(0, R.string.widget_permission_required),
-        Starting(1, R.string.widget_state_starting, true),
-        On(2, R.string.widget_state_on),
-        Stopping(3, R.string.widget_state_stopping, true);
+    enum class State(
+        val background: Int,
+        val icon: Int,
+        val description: Int,
+        val busy: Boolean = false,
+    ) {
+        Off(R.drawable.widget_bg, R.drawable.widget_mikan_off, R.string.widget_state_off),
+        PermissionRequired(R.drawable.widget_bg, R.drawable.widget_mikan_off, R.string.widget_permission_required),
+        Starting(R.drawable.widget_bg_busy, R.drawable.widget_mikan_off, R.string.widget_state_starting, true),
+        On(R.drawable.widget_bg_on, R.drawable.widget_mikan, R.string.widget_state_on),
+        Stopping(R.drawable.widget_bg_busy, R.drawable.widget_mikan_off, R.string.widget_state_stopping, true);
 
         val requiresActivity: Boolean get() = this == PermissionRequired
 
@@ -44,7 +49,8 @@ object SpeedWidgetRenderer {
 
     fun renderId(context: Context, manager: AppWidgetManager, id: Int, state: State) {
         val views = RemoteViews(context.packageName, R.layout.widget_speed_compact).apply {
-            setDisplayedChild(R.id.widget_root, state.child)
+            setInt(R.id.widget_frame, "setBackgroundResource", state.background)
+            setImageViewResource(R.id.widget_icon, state.icon)
             setContentDescription(R.id.widget_root, context.getString(state.description))
             setBoolean(R.id.widget_root, "setEnabled", !state.busy)
             setOnClickPendingIntent(R.id.widget_root, if (state.busy) null else togglePendingIntent(context, state))

@@ -1,46 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ViewFlipper xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- One frame whose background and icon the renderer sets per state. A ViewFlipper with
+     fade-in animations left the icon at alpha 0 on some launchers (HyperOS) when two state
+     updates arrived back to back, so the widget showed an empty tile. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent" android:layout_height="match_parent"
     android:padding="4dp" android:clickable="true" android:focusable="true"
     android:contentDescription="@string/widget_state_off"
-    android:importantForAccessibility="yes" android:accessibilityLiveRegion="polite"
-    android:inAnimation="@anim/widget_enter" android:outAnimation="@anim/widget_exit"
-    android:animateFirstView="false" android:autoStart="false">
+    android:importantForAccessibility="yes" android:accessibilityLiveRegion="polite">
     <FrameLayout
+        android:id="@+id/widget_frame"
         android:layout_width="match_parent" android:layout_height="match_parent"
         android:background="@drawable/widget_bg">
         <ImageView
+            android:id="@+id/widget_icon"
             android:layout_width="40dp" android:layout_height="40dp"
             android:layout_gravity="center"
             android:importantForAccessibility="no"
             android:src="@drawable/widget_mikan_off" />
     </FrameLayout>
-    <FrameLayout
-        android:layout_width="match_parent" android:layout_height="match_parent"
-        android:background="@drawable/widget_bg_busy">
-        <ImageView
-            android:layout_width="40dp" android:layout_height="40dp"
-            android:layout_gravity="center"
-            android:importantForAccessibility="no"
-            android:src="@drawable/widget_mikan_off" />
-    </FrameLayout>
-    <FrameLayout
-        android:layout_width="match_parent" android:layout_height="match_parent"
-        android:background="@drawable/widget_bg_on">
-        <ImageView
-            android:layout_width="40dp" android:layout_height="40dp"
-            android:layout_gravity="center"
-            android:importantForAccessibility="no"
-            android:src="@drawable/widget_mikan" />
-    </FrameLayout>
-    <FrameLayout
-        android:layout_width="match_parent" android:layout_height="match_parent"
-        android:background="@drawable/widget_bg_busy">
-        <ImageView
-            android:layout_width="40dp" android:layout_height="40dp"
-            android:layout_gravity="center"
-            android:importantForAccessibility="no"
-            android:src="@drawable/widget_mikan_off" />
-    </FrameLayout>
-</ViewFlipper>
+</FrameLayout>
