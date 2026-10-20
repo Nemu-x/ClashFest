@@ -2,21 +2,9 @@ package com.github.kr328.clash.service
 
 import android.content.Context
 import com.github.kr328.clash.common.log.Log
-import com.github.kr328.clash.common.util.AgeKeyUrl
-import com.github.kr328.clash.common.util.SubscriptionNameGuesser
-import com.github.kr328.clash.common.util.SubscriptionUsage
-import com.github.kr328.clash.core.Clash
-import com.github.kr328.clash.core.model.ConfigScriptError
-import com.github.kr328.clash.core.model.ConfigScriptResult
-import com.github.kr328.clash.core.model.ProfileSnapshot
-import com.github.kr328.clash.core.model.Proxy
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.contentOrNull
 import com.github.kr328.clash.service.data.Database
 import com.github.kr328.clash.service.data.Imported
 import com.github.kr328.clash.service.data.ImportedDao
-import com.github.kr328.clash.service.data.Pending
 import com.github.kr328.clash.service.data.PendingDao
 import com.github.kr328.clash.service.data.Selection
 import com.github.kr328.clash.service.data.SelectionDao
@@ -25,25 +13,11 @@ import com.github.kr328.clash.service.branding.BrandRefresh
 import com.github.kr328.clash.service.branding.BrandStore
 import com.github.kr328.clash.service.model.ProxyGroupPreviewRow
 import com.github.kr328.clash.service.model.ProxyTransportInfo
-import com.github.kr328.clash.service.model.RuleState
-import com.github.kr328.clash.service.model.YamlPreview
 import com.github.kr328.clash.service.remote.IFetchObserver
 import com.github.kr328.clash.service.remote.IProfileManager
 import com.github.kr328.clash.service.store.ServiceStore
 import com.github.kr328.clash.service.model.ConfigScriptFailure
 import com.github.kr328.clash.service.model.ConfigScriptState
-import com.github.kr328.clash.service.util.ConfigScriptPolicy
-import com.github.kr328.clash.service.util.UserScript
-import com.github.kr328.clash.service.util.DnsHostsConfig
-import com.github.kr328.clash.service.util.DnsHostsYamlEdit
-import com.github.kr328.clash.service.util.TunnelsConfig
-import com.github.kr328.clash.service.util.TunnelsYamlEdit
-import com.github.kr328.clash.service.util.FetchHeadersFile
-import com.github.kr328.clash.service.util.directoryLastModified
-import com.github.kr328.clash.service.util.generateProfileUUID
-import com.github.kr328.clash.service.util.ProfileComposer
-import com.github.kr328.clash.service.util.ProfileMigration
-import com.github.kr328.clash.service.util.ProfileOverlay
 import com.github.kr328.clash.service.util.PreviewResourceLimits
 import com.github.kr328.clash.service.util.UserLayerStore
 import com.github.kr328.clash.service.util.RawConfigEdit
@@ -54,23 +28,14 @@ import com.github.kr328.clash.service.util.ProxyGroupsYamlPreview
 import com.github.kr328.clash.service.util.ProxyTransportYamlPreview
 import com.github.kr328.clash.service.util.ProxyYamlPreview
 import com.github.kr328.clash.service.util.RuleApplyService
-import com.github.kr328.clash.service.util.ProxyDialerYamlEdit
-import com.github.kr328.clash.service.util.ProxyGroupsYamlEdit
-import com.github.kr328.clash.service.util.ProxyProvidersYamlEdit
-import com.github.kr328.clash.service.util.RuleProvidersYamlEdit
-import com.github.kr328.clash.service.util.YamlPreviewSupport
 import com.github.kr328.clash.service.util.pendingDir
 import com.github.kr328.clash.service.util.sendProfileChanged
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
-import java.io.FileNotFoundException
 import java.util.*
 
 class ProfileManager(private val context: Context) : IProfileManager,
@@ -78,80 +43,20 @@ class ProfileManager(private val context: Context) : IProfileManager,
     private val store = ServiceStore(context)
     private val ruleApplyService = RuleApplyService(context)
     private val previewJson = Json { ignoreUnknownKeys = true }
-    private val previewCache = LinkedHashMap<String, CachedPreview>()
 
     /** User edit layer (config-overlay-architecture): edits live here as intent, not in config.yaml. */
     private val userLayerStore = UserLayerStore(context.importedDir)
 
-    /** Geo-data URLs resolved from current settings (rule rendering / composition need them). */
-    /**
-     * Ensure the `subscription.yaml` base exists and run the one-time legacy migration (baked edits
-     * in `config.yaml` → `user_layer.json`) on first contact. E-01/E-05: the editors now write their
-     * intent to the user layer directly, so we no longer re-extract the whole layer from config.yaml
-     * on every edit — the layer, not config.yaml, is the source of truth. (Name kept for its call
-     * sites; effectively "ensure base + migrate once".)
-     */
-    private fun syncLayerFromConfig(uuid: UUID) {
-        val dir = File(context.importedDir, uuid.toString())
-        if (!File(dir, "config.yaml").isFile) return
-        val parse: (File) -> com.github.kr328.clash.core.model.ProfileSnapshot? =
-            { d -> runCatching { Clash.parseProfileSnapshot(d) }.getOrNull() }
-        ProfileMigration.migrateIfNeeded(
-            profileDir = dir,
-            uuid = uuid,
-            store = userLayerStore,
-            rulesStateJson = runCatching { ruleApplyService.readStateJson(uuid) }.getOrNull(),
-            dnsHostsManaged = store.isDnsHostsManaged(uuid),
-            tunnelsManaged = store.isTunnelsManaged(uuid),
-            parseSnapshot = parse,
-        )
-    }
-
-    /**
-     * In-memory cache of parsed [ProfileSnapshot] keyed by profile UUID.
-     * The dashboard ticker re-queries readProxyGroupsPreview /
-     * readProxyTransports / readProxyEntryYaml on every tick — without
-     * caching, each tick re-runs mihomo's full ParseRawConfig pipeline
-     * over a multi-MB config.yaml, which is the dominant cost on the
-     * service IPC path for users with heavy subscriptions.
-     *
-     * Invalidation is automatic via the config.yaml lastModified
-     * timestamp — subscription updates / re-imports rewrite the file,
-     * the next reader sees a fresh mtime and re-parses. The entry
-     * itself only needs explicit removal on profile delete (memory
-     * hygiene; nothing else reads it after deletion).
-     *
-     * Access guarded by [snapshotCacheLock]. Parse runs *outside* the
-     * lock so concurrent readers of different profiles never block on
-     * each other — a race between two readers of the same profile
-     * just causes a redundant parse (parse is idempotent, last writer
-     * to the map wins).
-     */
-    private data class CachedSnapshot(val lastModified: Long, val snapshot: ProfileSnapshot)
-    private val snapshotCache = LinkedHashMap<UUID, CachedSnapshot>()
-    private val snapshotCacheLock = Any()
-
-    /**
-     * In-memory cache of the engine-resolved proxy-group preview keyed by
-     * profile UUID, mirroring [snapshotCache]. [engineProxyGroupsPreview] runs
-     * mihomo's full ParseRawConfig over config.yaml through JNI — far heavier
-     * than the snapshot parse — and the dashboard ticker calls it every ~2s per
-     * previewed profile, so without this the resolve dominated CPU/battery on
-     * heavy subscriptions while the app was open. Invalidated by config.yaml
-     * lastModified like the snapshot; the `null` result (engine could not
-     * parse → Kotlin fallback) is cached too, so an unparsable config is not
-     * re-resolved every tick.
-     */
-    private data class CachedEnginePreview(
-        val lastModified: Long,
-        val preview: Map<String, ProxyGroupPreviewRow>?,
+    private val layerSync = ProfileLayerSync(context, store, ruleApplyService, userLayerStore)
+    private val snapshots = ProfileSnapshotCache()
+    private val previews = ProfileYamlPreviews(context, previewJson, ruleApplyService, userLayerStore, layerSync)
+    private val routingEditor = ProfileRoutingEditor(
+        context, store, previewJson, ruleApplyService, userLayerStore, layerSync, previews,
     )
-    private val enginePreviewCache = LinkedHashMap<UUID, CachedEnginePreview>()
-    private val enginePreviewCacheLock = Any()
-    // Serializes nextProfileOrder() + Pending insert pairs. Without it, two concurrent
-    // imports (e.g. auto-update + manual click) can both read the same MAX(profileOrder)
-    // and produce duplicate ordering values that compare non-deterministically.
-    private val profileOrderLock = Mutex()
+    private val proxyEditor = ProfileProxyEditor(context, userLayerStore, layerSync, previews)
+    private val configScripts = ProfileConfigScripts(context, store, userLayerStore)
+    private val records = ProfileRecords(context, store)
+    private val subscriptionHeaders = SubscriptionHeaderSync(context)
 
     /**
      * UUIDs that currently have a manual [update] in flight. The second click
@@ -163,25 +68,6 @@ class ProfileManager(private val context: Context) : IProfileManager,
      */
     private val updatingUuids = java.util.Collections.synchronizedSet(mutableSetOf<UUID>())
 
-    private data class CachedFile(
-        val relativePath: String,
-        val sourceHash: String,
-        val proposedYaml: String,
-        val providerFile: Boolean = false,
-    )
-
-    private data class CachedPreview(
-        val uuid: UUID,
-        val files: List<CachedFile>,
-        val ruleStateJson: String? = null,
-        /**
-         * Overlay: a layer mutation to apply when this preview is committed — for edits whose user
-         * delta cannot be re-extracted from config.yaml (raw proxy-/rule-provider YAML). In-memory
-         * only (CachedPreview is never serialized), so a closure is fine. config-overlay-architecture.
-         */
-        val layerMutation: ((com.github.kr328.clash.service.util.UserLayer) -> com.github.kr328.clash.service.util.UserLayer)? = null,
-    )
-
     init {
         launch {
             Database.database //.init
@@ -190,189 +76,18 @@ class ProfileManager(private val context: Context) : IProfileManager,
         }
     }
 
-    /**
-     * Return a parsed ProfileSnapshot for [configFile], reusing the cached
-     * one when the file's lastModified hasn't advanced. Callers can hand
-     * this to YAML preview helpers (ProxyGroupsYamlPreview /
-     * ProxyTransportYamlPreview / ProxyYamlPreview) without re-running
-     * mihomo's parser on every dashboard tick.
-     */
-    private fun getOrParseSnapshot(uuid: UUID, configFile: File): ProfileSnapshot {
-        val lastMod = configFile.lastModified()
-        synchronized(snapshotCacheLock) {
-            val cached = snapshotCache[uuid]
-            if (cached != null && cached.lastModified == lastMod) {
-                // LRU touch — promote to most-recently-used.
-                snapshotCache.remove(uuid)
-                snapshotCache[uuid] = cached
-                return cached.snapshot
-            }
-        }
-        val parsed = Clash.parseProfileSnapshot(configFile.parentFile!!)
-        synchronized(snapshotCacheLock) {
-            snapshotCache[uuid] = CachedSnapshot(lastMod, parsed)
-            while (snapshotCache.size > SNAPSHOT_CACHE_MAX) {
-                snapshotCache.remove(snapshotCache.keys.first())
-            }
-        }
-        return parsed
-    }
+    override suspend fun create(type: Profile.Type, name: String, source: String): UUID =
+        records.create(type, name, source)
 
-    private fun invalidateSnapshotCache(uuid: UUID) {
-        synchronized(snapshotCacheLock) {
-            snapshotCache.remove(uuid)
-        }
-        synchronized(enginePreviewCacheLock) {
-            enginePreviewCache.remove(uuid)
-        }
-    }
-
-    companion object {
-        // Power users may juggle a handful of subscriptions; keep enough
-        // headroom that switching between them stays hot, but bound the
-        // total memory cost — parsed snapshots can reach a few hundred KB
-        // on heavy configs.
-        private const val SNAPSHOT_CACHE_MAX = 4
-    }
-
-    override suspend fun create(type: Profile.Type, name: String, source: String): UUID {
-        val uuid = generateProfileUUID()
-        // Operator links may carry the age decryption key in the URL fragment
-        // (`…#AGE-SECRET-KEY-…`) — split it into the profile field so the user
-        // never types a key by hand. Every import surface (URL form, clipboard,
-        // QR, deep-link) funnels through here.
-        val split = AgeKeyUrl.split(source)
-        profileOrderLock.withLock {
-            val profileOrder = nextProfileOrder()
-            val pending = Pending(
-                uuid = uuid,
-                name = name,
-                type = type,
-                source = split.source,
-                interval = 0,
-                upload = 0,
-                total = 0,
-                download = 0,
-                expire = 0,
-                profileOrder = profileOrder,
-                ageSecretKey = split.ageSecretKey,
-            )
-
-            PendingDao().insert(pending)
-        }
-
-        context.pendingDir.resolve(uuid.toString()).apply {
-            deleteRecursively()
-            mkdirs()
-
-            @Suppress("BlockingMethodInNonBlockingContext")
-            resolve("config.yaml").createNewFile()
-            resolve("providers").mkdir()
-        }
-
-        return uuid
-    }
-
-    override suspend fun clone(uuid: UUID): UUID {
-        val newUUID = generateProfileUUID()
-
-        val imported = ImportedDao().queryByUUID(uuid)
-            ?: throw FileNotFoundException("profile $uuid not found")
-
-        cloneImportedFiles(uuid, newUUID)
-
-        profileOrderLock.withLock {
-            val profileOrder = nextProfileOrder()
-            val pending = Pending(
-                uuid = newUUID,
-                name = imported.name,
-                type = Profile.Type.File,
-                source = imported.source,
-                interval = imported.interval,
-                upload = imported.upload,
-                total = imported.total,
-                download = imported.download,
-                expire = imported.expire,
-                profileOrder = profileOrder,
-                ageSecretKey = imported.ageSecretKey,
-            )
-
-            PendingDao().insert(pending)
-        }
-
-        return newUUID
-    }
+    override suspend fun clone(uuid: UUID): UUID =
+        records.clone(uuid)
 
     override suspend fun patch(uuid: UUID, name: String, source: String, interval: Long, ageSecretKey: String?) {
-        // A key pasted as part of the URL (fragment) wins over the separate
-        // field — it is the more deliberate input, and leaving it inside
-        // `source` would leak it into every place that renders the URL.
-        val fragmentSplit = AgeKeyUrl.split(source)
-        @Suppress("NAME_SHADOWING") val source = fragmentSplit.source
-        @Suppress("NAME_SHADOWING") val ageSecretKey = fragmentSplit.ageSecretKey ?: ageSecretKey
-        val locked = store.subscriptionShareLinksLockedFor(uuid)
-        val resolvedSource =
-            if (!locked) {
-                source
-            } else {
-                PendingDao().queryByUUID(uuid)?.source
-                    ?: ImportedDao().queryByUUID(uuid)?.source
-                    ?: source
-            }
-        val pending = PendingDao().queryByUUID(uuid)
-
-        if (pending == null) {
-            val imported = ImportedDao().queryByUUID(uuid)
-                ?: throw FileNotFoundException("profile $uuid not found")
-
-            cloneImportedFiles(uuid)
-
-            PendingDao().insert(
-                Pending(
-                    uuid = imported.uuid,
-                    name = name,
-                    type = imported.type,
-                    source = resolvedSource,
-                    interval = interval,
-                    upload = 0,
-                    total = 0,
-                    download = 0,
-                    expire = 0,
-                    profileOrder = imported.profileOrder,
-                    ageSecretKey = ageSecretKey?.takeIf { it.isNotBlank() },
-                )
-            )
-        } else {
-            val newPending = pending.copy(
-                name = name,
-                source = resolvedSource,
-                interval = interval,
-                upload = 0,
-                total = 0,
-                download = 0,
-                expire = 0,
-                ageSecretKey = ageSecretKey?.takeIf { it.isNotBlank() },
-            )
-
-            PendingDao().update(newPending)
-        }
+        records.patch(uuid, name, source, interval, ageSecretKey)
     }
 
     override suspend fun renameImported(uuid: UUID, name: String) {
-        withContext(Dispatchers.IO) {
-            val trimmed = name.trim()
-            if (trimmed.isBlank()) return@withContext
-            val imported = ImportedDao().queryByUUID(uuid) ?: return@withContext
-            if (imported.name == trimmed) return@withContext
-            ImportedDao().update(imported.copy(name = trimmed))
-            // Mirror to a pending draft if one happens to exist (full edit
-            // flow in progress) — otherwise we'd silently overwrite the
-            // user's in-progress edit on the next commit. No-op when no draft.
-            PendingDao().queryByUUID(uuid)?.let { pending ->
-                PendingDao().update(pending.copy(name = trimmed))
-            }
-            context.sendProfileChanged(uuid)
-        }
+        records.renameImported(uuid, name)
     }
 
     override suspend fun applySubscriptionUpdateInterval(uuid: UUID, intervalMillis: Long) {
@@ -451,101 +166,13 @@ class ProfileManager(private val context: Context) : IProfileManager,
     }
 
     suspend fun updateFlow(old: Imported) {
-        try {
-            // ProfileProcessor.update just re-downloaded the subscription; the Go
-            // fetch persisted the response headers next to config.yaml
-            // (fetch-headers.json). Re-requesting the panel here — the old OkHttp
-            // GET — doubled traffic (panels count fetches against quota), could
-            // race the primary download, and kept a second header-decoding path
-            // alive. Absent snapshot = no HTTP response observed (content:// or a
-            // failed fetch) — same early-return the old `!response.isSuccessful`
-            // gave us.
-            val headers = FetchHeadersFile.readFrom(context.importedDir.resolve(old.uuid.toString()))
-                ?: return
-
-            // Operator brand parses independently of subscription-userinfo —
-            // panels that don't carry quota (free tiers, custom auth flows)
-            // still need to brand the app. We do this BEFORE the
-            // subscription-userinfo early-return so brand survives even
-            // when the panel stops sending quota headers.
-            //
-            // parse(), NOT parseHttpHeaders(): the snapshot values are already
-            // correct UTF-8 (Go passes header bytes through and JSON preserves
-            // them). parseHttpHeaders' ISO-8859-1→UTF-8 recovery is only for
-            // live transports and would mangle non-ASCII (Cyrillic brand /
-            // display names) coming from the file.
-            val brand = com.github.kr328.clash.common.branding.BrandManifestParser.parse { key ->
-                headers.get(key)
-            }
-            // confirmedResponse=true: the header snapshot only exists for a fetch
-            // that completed AND passed engine validation (update() succeeded), so
-            // an empty brand here is a real "served the sub with no X-Brand-*
-            // headers" signal (not a transient failure) and feeds the debounced
-            // auto-clear.
-            BrandRefresh.apply(context, old.uuid, brand, confirmedResponse = true)
-
-            // Re-derive the display name on EVERY update — not only when the panel sends
-            // subscription-userinfo. Tying the rename to the quota header meant subscriptions
-            // that don't send it never had their name corrected on update (the "белиберда /
-            // URL-tail" name bug). Usage/expiry still come from subscription-userinfo when
-            // present, but its absence must not skip the rename. (E-16)
-            val usage = SubscriptionUsage.parse(headers.get("subscription-userinfo"))
-            val renamed = deriveTitleFromHeaders(headers)
-            val effectiveName = if (looksLikeGeneratedTokenName(old.name) && !renamed.isNullOrBlank()) {
-                renamed
-            } else {
-                old.name
-            }
-
-            // Keep the previous quota/expiry when the panel didn't send subscription-userinfo
-            // this time, instead of zeroing them.
-            val new = Imported(
-                old.uuid,
-                effectiveName,
-                old.type,
-                old.source,
-                old.interval,
-                usage?.upload ?: old.upload,
-                usage?.download ?: old.download,
-                usage?.total ?: old.total,
-                usage?.expireAt?.times(1000L) ?: old.expire,
-                old.createdAt,
-                old.profileOrder,
-                ageSecretKey = old.ageSecretKey,
-            )
-
-            if (new != old) {
-                ImportedDao().update(new)
-                PendingDao().remove(new.uuid)
-                context.sendProfileChanged(new.uuid)
-            }
-        } catch (e: Exception) {
-            Log.w("updateFlow failed", e)
-        }
-    }
-
-    // Delegate to the shared resolver so import and update decode headers identically (E-19):
-    // title headers → Content-Disposition filename* (RFC-5987) → Subscription-Userinfo. Keep the
-    // 64-char safety cap.
-    private fun deriveTitleFromHeaders(headers: FetchHeadersFile): String? =
-        SubscriptionNameGuesser.titleFromHeaders { key -> headers.get(key) }
-            ?.let { if (it.length > 64) it.take(64) else it }
-
-    private fun looksLikeGeneratedTokenName(name: String): Boolean {
-        val n = name.trim()
-        // Guard rails: only ever reconsider a medium-length single-word label — never rename a
-        // human name with spaces/dots or a very short/long one.
-        if (n.length !in 12..48) return false
-        if (n.contains(' ') || n.contains('.') || n.contains('/')) return false
-        // Shared predicate so import and update agree on what a token is (E-17): a name import
-        // deliberately kept (e.g. all-lowercase "premiumplan1") is no longer replaced on update.
-        return SubscriptionNameGuesser.looksLikeOpaqueToken(n)
+        subscriptionHeaders.updateFlow(old)
     }
 
     override suspend fun commit(uuid: UUID, callback: IFetchObserver?) {
         ProfileProcessor.apply(context, uuid, callback)
 
-        scheduleUpdate(uuid, false)
+        records.scheduleUpdate(uuid, false)
     }
 
     override suspend fun release(uuid: UUID) {
@@ -560,11 +187,11 @@ class ProfileManager(private val context: Context) : IProfileManager,
         ProfileProcessor.delete(context, uuid)
         BrandRefresh.onProfileDeleted(context, uuid)
         store.clearSubscriptionPoliciesFor(uuid)
-        invalidateSnapshotCache(uuid)
+        snapshots.invalidateSnapshotCache(uuid)
     }
 
     override suspend fun queryByUUID(uuid: UUID): Profile? {
-        return resolveProfile(uuid)
+        return records.resolveProfile(uuid)
     }
 
     override suspend fun hasPendingConfigEdits(uuid: UUID): Boolean = withContext(Dispatchers.IO) {
@@ -580,7 +207,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
             val ordered = ImportedDao().queryAllOrderedUUIDs().map { it.uuid }.distinct()
             val importedByUuid = ImportedDao().queryAll().associateBy { it.uuid }
             val pendingByUuid = PendingDao().queryAll().associateBy { it.uuid }
-            ordered.mapNotNull { uuid -> buildProfile(uuid, importedByUuid[uuid], pendingByUuid[uuid]) }
+            ordered.mapNotNull { uuid -> records.buildProfile(uuid, importedByUuid[uuid], pendingByUuid[uuid]) }
         }
     }
 
@@ -600,7 +227,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
         val active = store.activeProfile ?: return null
 
         return if (ImportedDao().exists(active)) {
-            resolveProfile(active)
+            records.resolveProfile(active)
         } else {
             null
         }
@@ -614,20 +241,13 @@ class ProfileManager(private val context: Context) : IProfileManager,
         uuid: UUID,
         ruleProvidersYaml: String,
         prependRuleLine: String,
-    ): Boolean {
-        return withContext(Dispatchers.IO) {
-            if (ImportedDao().queryByUUID(uuid) == null) return@withContext false
-            val ok = ruleApplyService.mergeProviderShortcut(uuid, ruleProvidersYaml, prependRuleLine)
-            Log.d("mergeRuleProviderYaml ok=$ok")
-            ok
-        }
-    }
+    ): Boolean = routingEditor.mergeRuleProviderYaml(uuid, ruleProvidersYaml, prependRuleLine)
 
     override suspend fun previewMergeRuleProviderYaml(
         uuid: UUID,
         ruleProvidersYaml: String,
         prependRuleLine: String,
-    ): String? = previewRuleDryRun(uuid, "Rules", ruleApplyService.dryRunMergeProviderShortcut(uuid, ruleProvidersYaml, prependRuleLine))
+    ): String? = routingEditor.previewMergeRuleProviderYaml(uuid, ruleProvidersYaml, prependRuleLine)
 
     override suspend fun readProxyGroupsPreview(uuid: UUID): Map<String, ProxyGroupPreviewRow> {
         return withContext(Dispatchers.IO) {
@@ -639,7 +259,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
                 return@withContext emptyMap()
             }
             try {
-                val snapshot = getOrParseSnapshot(uuid, file)
+                val snapshot = snapshots.getOrParseSnapshot(uuid, file)
                 // Ask the engine first. It resolves include-all* / use: / filter / exclude-filter /
                 // exclude-type exactly as the running tunnel does, so the disconnected UI reports the
                 // same membership as the connected one. The Kotlin preview below re-implements those
@@ -652,7 +272,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
                 // Clash.queryAllProxyGroupNamesIncludingHidden, so the offline preview must match that
                 // universe — otherwise hidden auto subgroups have no rows during the warmup race and
                 // the expanded carriage flashes empty until proxyDetails arrives.
-                engineProxyGroupsPreview(uuid, file, snapshot)
+                snapshots.engineProxyGroupsPreview(uuid, file, snapshot)
                     ?: ProxyGroupsYamlPreview.parseProxyGroupsPreview(
                         snapshot,
                         file.parentFile,
@@ -662,82 +282,6 @@ class ProfileManager(private val context: Context) : IProfileManager,
                 emptyMap()
             }
         }
-    }
-
-    /**
-     * Engine-resolved membership for the offline preview, or null when mihomo cannot parse the
-     * config (caller falls back to the Kotlin preview).
-     *
-     * `staticProxies` still comes from the snapshot: it must stay the *declared* `proxies:` list,
-     * never the expanded one, because the picker's 1-hop heuristic uses it to tell a pure dispatch
-     * shell from a group whose members are flat only because of `include-all`.
-     */
-    /**
-     * Cache wrapper over [engineProxyGroupsPreviewUncached]: reuses the resolved preview while
-     * config.yaml's lastModified is unchanged, so the dashboard ticker's ~2s cadence no longer
-     * re-runs mihomo's full parse on every tick (the 0.10.1 battery regression). Both a resolved
-     * map AND a `null` (engine could not parse) are cached — an unparsable config falls back to
-     * the Kotlin preview once, not every tick.
-     */
-    private fun engineProxyGroupsPreview(
-        uuid: UUID,
-        file: File,
-        snapshot: ProfileSnapshot,
-    ): Map<String, ProxyGroupPreviewRow>? {
-        val lastMod = file.lastModified()
-        synchronized(enginePreviewCacheLock) {
-            val cached = enginePreviewCache[uuid]
-            if (cached != null && cached.lastModified == lastMod) {
-                // LRU touch — promote to most-recently-used.
-                enginePreviewCache.remove(uuid)
-                enginePreviewCache[uuid] = cached
-                return cached.preview
-            }
-        }
-        val computed = engineProxyGroupsPreviewUncached(file, snapshot)
-        synchronized(enginePreviewCacheLock) {
-            enginePreviewCache[uuid] = CachedEnginePreview(lastMod, computed)
-            while (enginePreviewCache.size > SNAPSHOT_CACHE_MAX) {
-                enginePreviewCache.remove(enginePreviewCache.keys.first())
-            }
-        }
-        return computed
-    }
-
-    private fun engineProxyGroupsPreviewUncached(
-        file: File,
-        snapshot: ProfileSnapshot,
-    ): Map<String, ProxyGroupPreviewRow>? {
-        val resolved = runCatching { Clash.resolveProxyGroups(file.readText()) }.getOrNull()
-            ?: return null
-
-        val declaredByName = HashMap<String, List<String>>(snapshot.proxyGroups.size)
-        for (group in snapshot.proxyGroups) {
-            val name = (group["name"] as? JsonPrimitive)?.contentOrNull?.trim().orEmpty()
-            if (name.isEmpty()) continue
-            declaredByName[name] = (group["proxies"] as? JsonArray)
-                .orEmpty()
-                .mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.trim()?.takeIf(String::isNotEmpty) }
-        }
-
-        return resolved.associate { group ->
-            group.name to ProxyGroupPreviewRow(
-                type = engineGroupType(group.type),
-                members = group.all,
-                hidden = group.hidden,
-                staticProxies = declaredByName[group.name].orEmpty(),
-            )
-        }
-    }
-
-    /** mihomo marshals adapter types as `Selector` / `URLTest` / …; YAML spells them `url-test`. */
-    private fun engineGroupType(raw: String): Proxy.Type = when (raw.trim().lowercase()) {
-        "selector", "select" -> Proxy.Type.Selector
-        "fallback" -> Proxy.Type.Fallback
-        "urltest", "url-test" -> Proxy.Type.URLTest
-        "loadbalance", "load-balance" -> Proxy.Type.LoadBalance
-        "relay" -> Proxy.Type.Relay
-        else -> Proxy.Type.Selector
     }
 
     override suspend fun readProxyTransports(uuid: UUID): Map<String, ProxyTransportInfo> {
@@ -750,7 +294,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
                 return@withContext emptyMap()
             }
             try {
-                val snapshot = getOrParseSnapshot(uuid, file)
+                val snapshot = snapshots.getOrParseSnapshot(uuid, file)
                 ProxyTransportYamlPreview.parse(snapshot, file.parentFile)
             } catch (_: Exception) {
                 emptyMap()
@@ -758,22 +302,8 @@ class ProfileManager(private val context: Context) : IProfileManager,
         }
     }
 
-    override suspend fun readRuleProvidersYaml(uuid: UUID): String? {
-        return withContext(Dispatchers.IO) {
-            if (ImportedDao().queryByUUID(uuid) == null) {
-                return@withContext null
-            }
-            val file = File(context.importedDir, "$uuid/config.yaml")
-            if (!file.isFile) {
-                return@withContext null
-            }
-            try {
-                RuleProvidersYamlEdit.extractBlock(file.readText())
-            } catch (_: Exception) {
-                null
-            }
-        }
-    }
+    override suspend fun readRuleProvidersYaml(uuid: UUID): String? =
+        routingEditor.readRuleProvidersYaml(uuid)
 
     override suspend fun readConfigYaml(uuid: UUID): String? {
         return withContext(Dispatchers.IO) {
@@ -792,577 +322,118 @@ class ProfileManager(private val context: Context) : IProfileManager,
         }
     }
 
-    override suspend fun readConfigScript(uuid: UUID): ConfigScriptState {
-        return withContext(Dispatchers.IO) {
-            val layer = userLayerStore.load(uuid)
-            ConfigScriptState(
-                source = layer.script?.source.orEmpty(),
-                enabled = layer.script?.enabled ?: true,
-                locked = ConfigScriptPolicy.isLocked(context, uuid),
-            )
-        }
-    }
+    override suspend fun readConfigScript(uuid: UUID): ConfigScriptState =
+        configScripts.readConfigScript(uuid)
 
-    override suspend fun checkConfigScript(uuid: UUID, source: String): ConfigScriptFailure? {
-        return withContext(Dispatchers.IO) {
-            if (source.isBlank()) return@withContext null
-            // Dry-run against the config the engine is actually holding for this profile, so the
-            // check exercises the user's real data — a script can be valid JS and still blow up on
-            // a key this particular subscription does not have.
-            val current = File(context.importedDir, "$uuid/config.yaml")
-                .takeIf { it.isFile }
-                ?.let { runCatching { it.readText() }.getOrNull() }
-                .orEmpty()
-            val name = ImportedDao().queryByUUID(uuid)?.name.orEmpty()
-            when (val r = Clash.applyConfigScript(current, source, name)) {
-                is ConfigScriptResult.Success -> null
-                is ConfigScriptResult.Failure -> ConfigScriptFailure(r.error, r.message)
-            }
-        }
-    }
+    override suspend fun checkConfigScript(uuid: UUID, source: String): ConfigScriptFailure? =
+        configScripts.checkConfigScript(uuid, source)
 
     override suspend fun writeConfigScript(
         uuid: UUID,
         source: String,
         enabled: Boolean,
-    ): ConfigScriptFailure? {
-        return withContext(Dispatchers.IO) {
-            if (ImportedDao().queryByUUID(uuid) == null) return@withContext null
-            if (ConfigScriptPolicy.isLocked(context, uuid)) {
-                // Belt and braces: the editor is read-only under an operator lock, but a save must
-                // not get through even if that check is ever bypassed.
-                return@withContext ConfigScriptFailure(
-                    ConfigScriptError.Runtime,
-                    "config scripts are disabled by the subscription operator",
-                )
-            }
-            // Refuse to store a script that cannot run — otherwise the profile silently carries a
-            // broken script that gets dropped on every compose, and the user is never told again.
-            if (enabled && source.isNotBlank()) {
-                checkConfigScript(uuid, source)?.let { return@withContext it }
-            }
+    ): ConfigScriptFailure? = configScripts.writeConfigScript(uuid, source, enabled)
 
-            userLayerStore.update(uuid) { layer ->
-                if (source.isBlank()) {
-                    layer.copy(script = null)
-                } else {
-                    layer.copy(script = UserScript(source = source, enabled = enabled))
-                }
-            }
-            // Re-compose so the change is live now rather than at the next update or VPN start.
-            runCatching {
-                ProfileOverlay.refreshFromStore(
-                    profileDir = File(context.importedDir, uuid.toString()),
-                    uuid = uuid,
-                    importedDir = context.importedDir,
-                    store = store,
-                    scriptRunner = ConfigScriptPolicy.runnerFor(
-                        context, uuid, ImportedDao().queryByUUID(uuid)?.name.orEmpty(),
-                    ),
-                )
-            }.onFailure { Log.w("ConfigScript: overlay refresh failed for $uuid", it) }
-            context.sendProfileChanged(uuid)
-            null
-        }
-    }
+    override suspend fun replaceRuleProvidersYaml(uuid: UUID, yaml: String): Boolean =
+        routingEditor.replaceRuleProvidersYaml(uuid, yaml)
 
-    override suspend fun replaceRuleProvidersYaml(uuid: UUID, yaml: String): Boolean {
-        return withContext(Dispatchers.IO) {
-            if (ImportedDao().queryByUUID(uuid) == null) {
-                return@withContext false
-            }
-            val file = File(context.importedDir, "$uuid/config.yaml")
-            if (!file.isFile) {
-                return@withContext false
-            }
-            try {
-                val merged = RuleProvidersYamlEdit.mergeIntoConfig(file.readText(), yaml)
-                file.writeText(merged)
-                // Keep structured repository synchronized with manual YAML edits.
-                ruleApplyService.readStateJson(uuid)
-                // Overlay: capture the user's rule-providers delta into the layer (survives updates).
-                runCatching {
-                    syncLayerFromConfig(uuid)
-                    userLayerStore.update(uuid) { it.copy(ruleProviders = yaml) }
-                }
-                context.sendProfileChanged(uuid)
-                true
-            } catch (_: Exception) {
-                false
-            }
-        }
-    }
+    override suspend fun previewReplaceRuleProvidersYaml(uuid: UUID, yaml: String): String? =
+        routingEditor.previewReplaceRuleProvidersYaml(uuid, yaml)
 
-    override suspend fun previewReplaceRuleProvidersYaml(uuid: UUID, yaml: String): String? {
-        return previewConfigMutation(
-            uuid,
-            "Rule providers",
-            layerMutation = { it.copy(ruleProviders = yaml) },
-        ) { current ->
-            RuleProvidersYamlEdit.mergeIntoConfig(current, yaml)
-        }
-    }
+    override suspend fun readProxyProvidersYaml(uuid: UUID): String? =
+        proxyEditor.readProxyProvidersYaml(uuid)
 
-    override suspend fun readProxyProvidersYaml(uuid: UUID): String? {
-        return withContext(Dispatchers.IO) {
-            if (ImportedDao().queryByUUID(uuid) == null) {
-                return@withContext null
-            }
-            val file = File(context.importedDir, "$uuid/config.yaml")
-            if (!file.isFile) {
-                return@withContext null
-            }
-            try {
-                ProxyProvidersYamlEdit.extractBlock(file.readText())
-            } catch (_: Exception) {
-                null
-            }
-        }
-    }
+    override suspend fun replaceProxyProvidersYaml(uuid: UUID, yaml: String): Boolean =
+        proxyEditor.replaceProxyProvidersYaml(uuid, yaml)
 
-    override suspend fun replaceProxyProvidersYaml(uuid: UUID, yaml: String): Boolean {
-        return withContext(Dispatchers.IO) {
-            if (ImportedDao().queryByUUID(uuid) == null) {
-                return@withContext false
-            }
-            val file = File(context.importedDir, "$uuid/config.yaml")
-            if (!file.isFile) {
-                return@withContext false
-            }
-            try {
-                val merged = ProxyProvidersYamlEdit.mergeIntoConfig(file.readText(), yaml)
-                file.writeText(merged)
-                // Overlay: capture the user's proxy-providers delta into the layer (survives updates).
-                runCatching {
-                    syncLayerFromConfig(uuid)
-                    userLayerStore.update(uuid) { it.copy(proxyProviders = yaml) }
-                }
-                context.sendProfileChanged(uuid)
-                true
-            } catch (_: Exception) {
-                false
-            }
-        }
-    }
-
-    override suspend fun previewReplaceProxyProvidersYaml(uuid: UUID, yaml: String): String? {
-        return previewConfigMutation(
-            uuid,
-            "Proxy providers",
-            layerMutation = { it.copy(proxyProviders = yaml) },
-        ) { current ->
-            ProxyProvidersYamlEdit.mergeIntoConfig(current, yaml)
-        }
-    }
+    override suspend fun previewReplaceProxyProvidersYaml(uuid: UUID, yaml: String): String? =
+        proxyEditor.previewReplaceProxyProvidersYaml(uuid, yaml)
 
     override suspend fun appendRelayProxyGroup(
         uuid: UUID,
         groupName: String,
         providerKeys: List<String>,
-    ): Boolean {
-        return withContext(Dispatchers.IO) {
-            if (ImportedDao().queryByUUID(uuid) == null) {
-                return@withContext false
-            }
-            val file = File(context.importedDir, "$uuid/config.yaml")
-            if (!file.isFile) {
-                return@withContext false
-            }
-            try {
-                val text = file.readText()
-                val merged = ProxyGroupsYamlEdit.appendSelectGroupUsingProviders(text, groupName, providerKeys)
-                    ?: return@withContext false
-                file.writeText(merged)
-                // Overlay: capture the relay group so it survives subscription updates.
-                runCatching {
-                    syncLayerFromConfig(uuid)
-                    userLayerStore.update(uuid) { l ->
-                        l.copy(
-                            relayGroups = l.relayGroups.filterNot { it.name == groupName } +
-                                com.github.kr328.clash.service.util.RelayGroup(groupName, providerKeys),
-                        )
-                    }
-                }
-                context.sendProfileChanged(uuid)
-                true
-            } catch (_: Exception) {
-                false
-            }
-        }
-    }
+    ): Boolean = proxyEditor.appendRelayProxyGroup(uuid, groupName, providerKeys)
 
     override suspend fun previewAppendRelayProxyGroup(
         uuid: UUID,
         groupName: String,
         providerKeys: List<String>,
-    ): String? {
-        return previewConfigMutation(
-            uuid,
-            "Proxy group",
-            layerMutation = { l ->
-                l.copy(
-                    relayGroups = l.relayGroups.filterNot { it.name == groupName } +
-                        com.github.kr328.clash.service.util.RelayGroup(groupName, providerKeys),
-                )
-            },
-        ) { current ->
-            ProxyGroupsYamlEdit.appendSelectGroupUsingProviders(current, groupName, providerKeys)
-                ?: throw IllegalArgumentException("Proxy group already exists")
-        }
-    }
+    ): String? = proxyEditor.previewAppendRelayProxyGroup(uuid, groupName, providerKeys)
 
-    override suspend fun removeProxyGroup(uuid: UUID, groupName: String): Boolean {
-        return withContext(Dispatchers.IO) {
-            if (ImportedDao().queryByUUID(uuid) == null) {
-                return@withContext false
-            }
-            val file = File(context.importedDir, "$uuid/config.yaml")
-            if (!file.isFile) {
-                return@withContext false
-            }
-            try {
-                val merged = ProxyGroupsYamlEdit.removeGroupByName(file.readText(), groupName)
-                    ?: return@withContext false
-                file.writeText(merged)
-                runCatching {
-                    syncLayerFromConfig(uuid)
-                    userLayerStore.update(uuid) { l -> l.copy(relayGroups = l.relayGroups.filterNot { it.name == groupName }) }
-                }
-                context.sendProfileChanged(uuid)
-                true
-            } catch (_: Exception) {
-                false
-            }
-        }
-    }
+    override suspend fun removeProxyGroup(uuid: UUID, groupName: String): Boolean =
+        proxyEditor.removeProxyGroup(uuid, groupName)
 
-    override suspend fun previewRemoveProxyGroup(uuid: UUID, groupName: String): String? {
-        return previewConfigMutation(
-            uuid,
-            "Proxy group",
-            layerMutation = { l -> l.copy(relayGroups = l.relayGroups.filterNot { it.name == groupName }) },
-        ) { current ->
-            ProxyGroupsYamlEdit.removeGroupByName(current, groupName)
-                ?: throw IllegalArgumentException("Proxy group was not found")
-        }
-    }
+    override suspend fun previewRemoveProxyGroup(uuid: UUID, groupName: String): String? =
+        proxyEditor.previewRemoveProxyGroup(uuid, groupName)
 
     override suspend fun setProxyDialerProxy(
         uuid: UUID,
         targetProxyName: String,
         dialerProxyName: String?,
-    ): Boolean {
-        return withContext(Dispatchers.IO) {
-            if (ImportedDao().queryByUUID(uuid) == null) {
-                return@withContext false
-            }
-            val dir = File(context.importedDir, uuid.toString())
-            try {
-                val ok = ProxyDialerYamlEdit.applyDialerProxy(dir, targetProxyName, dialerProxyName)
-                if (ok) {
-                    runCatching { syncLayerFromConfig(uuid) }
-                    // E-01/E-05: record the proxy-chain intent directly in the user layer.
-                    runCatching {
-                        val dp = dialerProxyName?.takeIf { it.isNotBlank() }
-                        userLayerStore.update(uuid) { l ->
-                            l.copy(
-                                proxyChain = if (dp != null) l.proxyChain + (targetProxyName to dp)
-                                else l.proxyChain - targetProxyName,
-                            )
-                        }
-                    }
-                    context.sendProfileChanged(uuid)
-                }
-                ok
-            } catch (_: Exception) {
-                false
-            }
-        }
-    }
+    ): Boolean = proxyEditor.setProxyDialerProxy(uuid, targetProxyName, dialerProxyName)
 
     override suspend fun previewSetProxyDialerProxy(
         uuid: UUID,
         targetProxyName: String,
         dialerProxyName: String?,
-    ): String? {
-        return withContext(Dispatchers.IO) {
-            if (ImportedDao().queryByUUID(uuid) == null) return@withContext null
-            val dir = File(context.importedDir, uuid.toString())
-            try {
-                val patch = ProxyDialerYamlEdit.previewDialerProxy(dir, targetProxyName, dialerProxyName)
-                    ?: throw IllegalArgumentException("Proxy was not found")
-                createPreview(
-                    uuid = uuid,
-                    title = "Proxy chain",
-                    files = listOf(
-                        filePreview(
-                            dir,
-                            patch.relativePath,
-                            patch.currentYaml,
-                            patch.proposedYaml,
-                            patch.providerFile,
-                        ),
-                    ),
-                    // E-01/E-05: the proxy-chain UI applies via preview->commit, so the chain intent
-                    // must be recorded on the layer here (same {target: dialer} map compose expects),
-                    // otherwise it's lost on recompose now that config.yaml extraction is gone.
-                    layerMutation = { l ->
-                        val dp = dialerProxyName?.takeIf { it.isNotBlank() }
-                        l.copy(
-                            proxyChain = if (dp != null) l.proxyChain + (targetProxyName to dp)
-                            else l.proxyChain - targetProxyName,
-                        )
-                    },
-                )
-            } catch (e: Exception) {
-                createInvalidPreview("Proxy chain", "", "", e)
-            }
-        }
-    }
+    ): String? = proxyEditor.previewSetProxyDialerProxy(uuid, targetProxyName, dialerProxyName)
 
-    override suspend fun listProxyDialerChains(uuid: UUID): List<String> {
-        return withContext(Dispatchers.IO) {
-            if (ImportedDao().queryByUUID(uuid) == null) {
-                return@withContext emptyList()
-            }
-            val dir = File(context.importedDir, uuid.toString())
-            try {
-                ProxyDialerYamlEdit.listDialerChains(dir).map { row ->
-                    listOf(row.targetName, row.dialerName, row.relativePath).joinToString("\u001F")
-                }
-            } catch (_: Exception) {
-                emptyList()
-            }
-        }
-    }
+    override suspend fun listProxyDialerChains(uuid: UUID): List<String> =
+        proxyEditor.listProxyDialerChains(uuid)
 
-    override suspend fun clearAllProxyDialerChains(uuid: UUID): Boolean {
-        return withContext(Dispatchers.IO) {
-            if (ImportedDao().queryByUUID(uuid) == null) {
-                return@withContext false
-            }
-            val dir = File(context.importedDir, uuid.toString())
-            try {
-                val ok = ProxyDialerYamlEdit.clearAllDialerProxies(dir)
-                if (ok) {
-                    // E-01/E-05: clear the proxy-chain intent in the user layer too.
-                    runCatching { userLayerStore.update(uuid) { it.copy(proxyChain = emptyMap()) } }
-                    context.sendProfileChanged(uuid)
-                }
-                ok
-            } catch (_: Exception) {
-                false
-            }
-        }
-    }
+    override suspend fun clearAllProxyDialerChains(uuid: UUID): Boolean =
+        proxyEditor.clearAllProxyDialerChains(uuid)
 
-    override suspend fun previewClearAllProxyDialerChains(uuid: UUID): String? {
-        return withContext(Dispatchers.IO) {
-            if (ImportedDao().queryByUUID(uuid) == null) return@withContext null
-            val dir = File(context.importedDir, uuid.toString())
-            try {
-                val patches = ProxyDialerYamlEdit.previewClearAllDialerProxies(dir)
-                if (patches.isEmpty()) throw IllegalArgumentException("No saved proxy chains")
-                createPreview(
-                    uuid = uuid,
-                    title = "Proxy chains",
-                    files = patches.map {
-                        filePreview(dir, it.relativePath, it.currentYaml, it.proposedYaml, it.providerFile)
-                    },
-                    // E-01/E-05: clearing all chains must clear the layer intent too, else compose
-                    // re-applies them from the store on recompose.
-                    layerMutation = { it.copy(proxyChain = emptyMap()) },
-                )
-            } catch (e: Exception) {
-                createInvalidPreview("Proxy chains", "", "", e)
-            }
-        }
-    }
+    override suspend fun previewClearAllProxyDialerChains(uuid: UUID): String? =
+        proxyEditor.previewClearAllProxyDialerChains(uuid)
 
-    override suspend fun readProxyProviderLabelsJson(uuid: UUID): String? {
-        return withContext(Dispatchers.IO) {
-            if (ImportedDao().queryByUUID(uuid) == null) return@withContext null
-            val f = File(context.importedDir, "$uuid/proxy_providers_labels.json")
-            if (!f.isFile) return@withContext null
-            try {
-                f.readText()
-            } catch (_: Exception) {
-                null
-            }
-        }
-    }
+    override suspend fun readProxyProviderLabelsJson(uuid: UUID): String? =
+        proxyEditor.readProxyProviderLabelsJson(uuid)
 
-    override suspend fun writeProxyProviderLabelsJson(uuid: UUID, json: String): Boolean {
-        return withContext(Dispatchers.IO) {
-            if (ImportedDao().queryByUUID(uuid) == null) return@withContext false
-            try {
-                File(context.importedDir, "$uuid/proxy_providers_labels.json").writeText(json)
-                true
-            } catch (_: Exception) {
-                false
-            }
-        }
-    }
+    override suspend fun writeProxyProviderLabelsJson(uuid: UUID, json: String): Boolean =
+        proxyEditor.writeProxyProviderLabelsJson(uuid, json)
 
-    override suspend fun readRuleState(uuid: UUID): String? {
-        return withContext(Dispatchers.IO) {
-            if (ImportedDao().queryByUUID(uuid) == null) return@withContext null
-            ruleApplyService.readStateJson(uuid)
-        }
-    }
+    override suspend fun readRuleState(uuid: UUID): String? =
+        routingEditor.readRuleState(uuid)
 
-    override suspend fun applyRuleState(uuid: UUID, stateJson: String): Boolean {
-        return withContext(Dispatchers.IO) {
-            if (ImportedDao().queryByUUID(uuid) == null) return@withContext false
-            val ok = ruleApplyService.applyStateJson(uuid, stateJson)
-            if (ok) runCatching {
-                syncLayerFromConfig(uuid)
-                // E-01/E-05: mirror the saved (normalized) rule state into the user layer directly,
-                // so the layer holds explicit rule intent instead of it being re-derived on sync.
-                ruleApplyService.readStateJson(uuid)?.let { saved ->
-                    userLayerStore.update(uuid) { it.copy(rules = ruleApplyService.parseState(saved)) }
-                }
-            }
-            Log.d("applyRuleState ok=$ok")
-            ok
-        }
-    }
+    override suspend fun applyRuleState(uuid: UUID, stateJson: String): Boolean =
+        routingEditor.applyRuleState(uuid, stateJson)
 
+    override suspend fun queryDnsHostsConfigJson(uuid: UUID): String? =
+        routingEditor.queryDnsHostsConfigJson(uuid)
 
-    override suspend fun queryDnsHostsConfigJson(uuid: UUID): String? {
-        return withContext(Dispatchers.IO) {
-            if (ImportedDao().queryByUUID(uuid) == null) return@withContext null
-            val dir = File(context.importedDir, uuid.toString())
-            if (!File(dir, "config.yaml").isFile) return@withContext null
-            val snapshot = runCatching { Clash.parseProfileSnapshot(dir) }.getOrNull()
-                ?: return@withContext null
-            // An exception here crosses the binder and kills the settings activity.
-            val config = runCatching { DnsHostsConfig.fromSnapshot(snapshot) }
-                .onFailure { Log.w("DNS & Hosts: snapshot not representable, editor starts empty", it) }
-                .getOrNull() ?: return@withContext null
-            previewJson.encodeToString(DnsHostsConfig.serializer(), config)
-        }
-    }
+    override suspend fun previewSetDnsHosts(uuid: UUID, configJson: String): String? =
+        routingEditor.previewSetDnsHosts(uuid, configJson)
 
-    override suspend fun previewSetDnsHosts(uuid: UUID, configJson: String): String? {
-        val config = previewJson.decodeFromString(DnsHostsConfig.serializer(), configJson)
-        // E-01/E-05: write the DNS/hosts intent to the user layer directly (explicit intent), the
-        // same way rule-/proxy-providers already do, instead of relying on config.yaml extraction.
-        return previewConfigMutation(
-            uuid,
-            "DNS & Hosts",
-            layerMutation = { it.copy(dnsHosts = config) },
-        ) { current ->
-            DnsHostsYamlEdit.render(current, config)
-        }
-    }
-
-    override suspend fun isDnsHostsManaged(uuid: UUID): Boolean {
-        return withContext(Dispatchers.IO) { store.isDnsHostsManaged(uuid) }
-    }
+    override suspend fun isDnsHostsManaged(uuid: UUID): Boolean =
+        routingEditor.isDnsHostsManaged(uuid)
 
     override suspend fun setDnsHostsManaged(uuid: UUID, managed: Boolean) {
-        withContext(Dispatchers.IO) { store.setDnsHostsManaged(uuid, managed) }
+        routingEditor.setDnsHostsManaged(uuid, managed)
     }
 
-    override suspend fun queryTunnelsConfigJson(uuid: UUID): String? {
-        return withContext(Dispatchers.IO) {
-            if (ImportedDao().queryByUUID(uuid) == null) return@withContext null
-            val dir = File(context.importedDir, uuid.toString())
-            if (!File(dir, "config.yaml").isFile) return@withContext null
-            val snapshot = runCatching { Clash.parseProfileSnapshot(dir) }.getOrNull()
-                ?: return@withContext null
-            val config = TunnelsConfig.fromSnapshot(snapshot)
-            previewJson.encodeToString(TunnelsConfig.serializer(), config)
-        }
-    }
+    override suspend fun queryTunnelsConfigJson(uuid: UUID): String? =
+        routingEditor.queryTunnelsConfigJson(uuid)
 
-    override suspend fun previewSetTunnels(uuid: UUID, configJson: String): String? {
-        val config = previewJson.decodeFromString(TunnelsConfig.serializer(), configJson)
-        // E-01/E-05: write the tunnels intent to the user layer directly (explicit intent).
-        return previewConfigMutation(
-            uuid,
-            "Tunnels",
-            layerMutation = { it.copy(tunnels = config) },
-        ) { current ->
-            TunnelsYamlEdit.render(current, config)
-        }
-    }
+    override suspend fun previewSetTunnels(uuid: UUID, configJson: String): String? =
+        routingEditor.previewSetTunnels(uuid, configJson)
 
-    override suspend fun isTunnelsManaged(uuid: UUID): Boolean {
-        return withContext(Dispatchers.IO) { store.isTunnelsManaged(uuid) }
-    }
+    override suspend fun isTunnelsManaged(uuid: UUID): Boolean =
+        routingEditor.isTunnelsManaged(uuid)
 
     override suspend fun setTunnelsManaged(uuid: UUID, managed: Boolean) {
-        withContext(Dispatchers.IO) { store.setTunnelsManaged(uuid, managed) }
+        routingEditor.setTunnelsManaged(uuid, managed)
     }
 
     override suspend fun previewRuleStateYaml(uuid: UUID, stateJson: String): String? =
-        withContext(Dispatchers.IO) {
-            RuleApplyService(context).dryRunStateJson(uuid, stateJson)?.proposedYaml
-        }
+        routingEditor.previewRuleStateYaml(uuid, stateJson)
 
     override suspend fun readRuleEditorBundle(uuid: UUID): String? =
-        withContext(Dispatchers.IO) { RuleApplyService(context).readEditorBundle(uuid) }
+        routingEditor.readRuleEditorBundle(uuid)
 
-    override suspend fun applyYamlPreview(previewId: String): Boolean {
-        return withContext(Dispatchers.IO) {
-            val cached = synchronized(previewCache) { previewCache.remove(previewId) } ?: return@withContext false
-            if (ImportedDao().queryByUUID(cached.uuid) == null) return@withContext false
-            val dir = File(context.importedDir, cached.uuid.toString())
-
-            // Read + verify hashes for every file before touching anything on disk, and
-            // keep the originals in memory so we can roll a partially-written batch back
-            // if a later write fails. The actual write uses tmp + rename per file so a
-            // single-file write is atomic on the local FS even if the process is killed
-            // mid-flight.
-            val originals = LinkedHashMap<File, String>()
-            val targets = LinkedHashMap<CachedFile, File>()
-            for (file in cached.files) {
-                val target = resolveCachedFile(dir, file) ?: return@withContext false
-                if (!target.isFile) return@withContext false
-                val current = target.readText()
-                if (YamlPreviewSupport.sha256(current) != file.sourceHash) return@withContext false
-                originals[target] = current
-                targets[file] = target
-            }
-
-            val written = ArrayList<File>(cached.files.size)
-            try {
-                for (file in cached.files) {
-                    val target = targets.getValue(file)
-                    atomicWriteText(target, file.proposedYaml)
-                    written += target
-                }
-                cached.ruleStateJson?.let {
-                    ruleApplyService.saveStateJson(cached.uuid, it)
-                }
-                // Overlay: keep the user layer in sync with the just-committed config.yaml so the
-                // edit survives the next subscription update (config-overlay-architecture). The
-                // clean sections are re-derived from config.yaml; raw provider edits carry an
-                // explicit layer mutation (their user delta can't be re-extracted from config.yaml).
-                runCatching { syncLayerFromConfig(cached.uuid) }
-                cached.layerMutation?.let { mut -> runCatching { userLayerStore.update(cached.uuid, mut) } }
-                context.sendProfileChanged(cached.uuid)
-                true
-            } catch (e: Exception) {
-                Log.w("applyYamlPreview write failed, rolling back ${written.size} file(s)", e)
-                written.forEach { target ->
-                    runCatching { originals[target]?.let { atomicWriteText(target, it) } }
-                }
-                false
-            }
-        }
-    }
-
-    private fun atomicWriteText(target: File, content: String) {
-        val tmp = File(target.parentFile, "${target.name}.applying")
-        tmp.writeText(content)
-        if (!tmp.renameTo(target)) {
-            tmp.delete()
-            throw java.io.IOException("Failed to rename ${tmp.name} to ${target.name}")
-        }
-    }
+    override suspend fun applyYamlPreview(previewId: String): Boolean =
+        previews.applyYamlPreview(previewId)
 
     override suspend fun readProxyEntryYaml(uuid: UUID, proxyName: String): String? {
         return withContext(Dispatchers.IO) {
@@ -1374,7 +445,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
                 return@withContext null
             }
             try {
-                val snapshot = getOrParseSnapshot(uuid, file)
+                val snapshot = snapshots.getOrParseSnapshot(uuid, file)
                 ProxyYamlPreview.extractProxyEntry(snapshot, proxyName)
             } catch (_: Exception) {
                 null
@@ -1425,228 +496,5 @@ class ProfileManager(private val context: Context) : IProfileManager,
         val store = BrandStore(context)
         if (!store.isActiveFor(uuid)) return@withContext null
         store.logoPathFor(uuid, darkTheme)?.takeIf { File(it).isFile }
-    }
-
-    private suspend fun previewRuleDryRun(
-        uuid: UUID,
-        title: String,
-        dryRun: RuleApplyService.RuleDryRun?,
-    ): String? {
-        return withContext(Dispatchers.IO) {
-            if (ImportedDao().queryByUUID(uuid) == null || dryRun == null) return@withContext null
-            try {
-                createPreview(
-                    uuid = uuid,
-                    title = title,
-                    files = listOf(
-                        CachedFile(
-                            relativePath = "config.yaml",
-                            sourceHash = YamlPreviewSupport.sha256(dryRun.currentYaml),
-                            proposedYaml = dryRun.proposedYaml,
-                        )
-                    ),
-                    currentYaml = dryRun.currentYaml,
-                    proposedYaml = dryRun.proposedYaml,
-                    ruleStateJson = previewJson.encodeToString(RuleState.serializer(), dryRun.normalizedState),
-                )
-            } catch (e: Exception) {
-                createInvalidPreview(title, "", "", e)
-            }
-        }
-    }
-
-    private suspend fun previewConfigMutation(
-        uuid: UUID,
-        title: String,
-        layerMutation: ((com.github.kr328.clash.service.util.UserLayer) -> com.github.kr328.clash.service.util.UserLayer)? = null,
-        mutate: (String) -> String,
-    ): String? {
-        return withContext(Dispatchers.IO) {
-            if (ImportedDao().queryByUUID(uuid) == null) return@withContext null
-            val dir = File(context.importedDir, uuid.toString())
-            val file = File(dir, "config.yaml")
-            if (!file.isFile) return@withContext null
-            val current = file.readText()
-            try {
-                val proposed = mutate(current)
-                YamlPreviewSupport.validateConfigYaml(proposed)
-                createPreview(
-                    uuid = uuid,
-                    title = title,
-                    files = listOf(filePreview(dir, "config.yaml", current, proposed)),
-                    currentYaml = current,
-                    proposedYaml = proposed,
-                    layerMutation = layerMutation,
-                )
-            } catch (e: Exception) {
-                createInvalidPreview(title, current, current, e)
-            }
-        }
-    }
-
-    private fun filePreview(
-        dir: File,
-        relativePath: String,
-        current: String,
-        proposed: String,
-        providerFile: Boolean = false,
-    ): CachedFile {
-        YamlPreviewSupport.validateConfigYaml(proposed)
-        val cached = CachedFile(
-            relativePath = relativePath,
-            sourceHash = YamlPreviewSupport.sha256(current),
-            proposedYaml = proposed,
-            providerFile = providerFile,
-        )
-        require(resolveCachedFile(dir, cached) != null) { "Unsafe preview file path" }
-        return cached
-    }
-
-    private fun resolveCachedFile(dir: File, file: CachedFile): File? {
-        if (file.providerFile) return ProxyDialerYamlEdit.resolveProviderPath(dir, file.relativePath)
-        if (file.relativePath != "config.yaml") return null
-        return runCatching {
-            val profileRoot = dir.canonicalFile
-            File(profileRoot, "config.yaml").canonicalFile.takeIf { it.parentFile == profileRoot }
-        }.getOrNull()
-    }
-
-    private fun createPreview(
-        uuid: UUID,
-        title: String,
-        files: List<CachedFile>,
-        currentYaml: String = joinPreviewFiles(
-            files,
-            File(context.importedDir, uuid.toString()),
-            useProposed = false,
-        ),
-        proposedYaml: String = joinPreviewFiles(
-            files,
-            File(context.importedDir, uuid.toString()),
-            useProposed = true,
-        ),
-        ruleStateJson: String? = null,
-        layerMutation: ((com.github.kr328.clash.service.util.UserLayer) -> com.github.kr328.clash.service.util.UserLayer)? = null,
-    ): String {
-        val id = UUID.randomUUID().toString()
-        synchronized(previewCache) {
-            previewCache[id] = CachedPreview(uuid, files, ruleStateJson, layerMutation)
-            while (previewCache.size > 16) {
-                previewCache.remove(previewCache.keys.first())
-            }
-        }
-        return previewJson.encodeToString(
-            YamlPreview(
-                id = id,
-                title = title,
-                currentYaml = YamlPreviewSupport.boundedPreviewText(currentYaml),
-                proposedYaml = YamlPreviewSupport.boundedPreviewText(proposedYaml),
-                diff = YamlPreviewSupport.unifiedDiff(currentYaml, proposedYaml),
-                valid = true,
-            )
-        )
-    }
-
-    private fun createInvalidPreview(title: String, current: String, proposed: String, error: Throwable): String {
-        return previewJson.encodeToString(
-            YamlPreview(
-                id = "",
-                title = title,
-                currentYaml = YamlPreviewSupport.boundedPreviewText(current),
-                proposedYaml = YamlPreviewSupport.boundedPreviewText(proposed),
-                diff = YamlPreviewSupport.unifiedDiff(current, proposed),
-                valid = false,
-                error = error.message ?: error.toString(),
-            )
-        )
-    }
-
-    private fun joinPreviewFiles(files: List<CachedFile>, dir: File, useProposed: Boolean): String {
-        return files.joinToString("\n\n") { file ->
-            val body = if (useProposed) {
-                file.proposedYaml
-            } else {
-                requireNotNull(resolveCachedFile(dir, file)) { "Unsafe preview file path" }.readText()
-            }
-            "# ${file.relativePath}\n$body"
-        }
-    }
-
-    private suspend fun resolveProfile(uuid: UUID): Profile? {
-        val imported = ImportedDao().queryByUUID(uuid)
-        val pending = PendingDao().queryByUUID(uuid)
-        return buildProfile(uuid, imported, pending)
-    }
-
-    /**
-     * Merge the imported + pending rows for [uuid] into a [Profile]. Pure (no DB) so callers that
-     * already loaded the rows in bulk (see [queryAll]) avoid an N+1 of per-uuid queries.
-     */
-    private fun buildProfile(uuid: UUID, imported: Imported?, pending: Pending?): Profile? {
-        val active = store.activeProfile
-        val name = pending?.name ?: imported?.name ?: return null
-        val type = pending?.type ?: imported?.type ?: return null
-        val source = pending?.source ?: imported?.source ?: return null
-        val interval = pending?.interval ?: imported?.interval ?: return null
-        val upload = pending?.upload ?: imported?.upload ?: return null
-        val download = pending?.download ?: imported?.download ?: return null
-        val total = pending?.total ?: imported?.total ?: return null
-        val expire = pending?.expire ?: imported?.expire ?: return null
-
-        return Profile(
-            uuid,
-            name,
-            type,
-            source,
-            active != null && imported?.uuid == active,
-            interval,
-            upload,
-            download,
-            total,
-            expire,
-            resolveUpdatedAt(uuid),
-            imported != null,
-            pending != null,
-            ageSecretKey = pending?.ageSecretKey ?: imported?.ageSecretKey,
-        )
-    }
-
-    private fun resolveUpdatedAt(uuid: UUID): Long {
-        context.pendingDir.resolve(uuid.toString()).directoryLastModified?.let { return it }
-        val importedDir = context.importedDir.resolve(uuid.toString())
-        // subscription.yaml is written only when the subscription is fetched / committed; the
-        // directory-wide max also caught config.yaml, which is re-composed on every VPN start and
-        // mode switch, so "last updated" drifted to "last connected".
-        File(importedDir, ProfileComposer.SUBSCRIPTION_FILE).takeIf { it.isFile }
-            ?.let { return it.lastModified() }
-        return importedDir.directoryLastModified ?: -1
-    }
-
-    private suspend fun nextProfileOrder(): Long {
-        val importedMax = ImportedDao().queryMaxProfileOrder() ?: -1L
-        val pendingMax = PendingDao().queryMaxProfileOrder() ?: -1L
-        return maxOf(importedMax, pendingMax) + 1L
-    }
-
-    private fun cloneImportedFiles(source: UUID, target: UUID = source) {
-        val s = context.importedDir.resolve(source.toString())
-        val t = context.pendingDir.resolve(target.toString())
-
-        if (!s.exists())
-            throw FileNotFoundException("profile $source not found")
-
-        t.deleteRecursively()
-
-        s.copyRecursively(t)
-    }
-
-    private suspend fun scheduleUpdate(uuid: UUID, startImmediately: Boolean) {
-        val imported = ImportedDao().queryByUUID(uuid) ?: return
-
-        if (startImmediately) {
-            ProfileReceiver.schedule(context, imported)
-        } else {
-            ProfileReceiver.scheduleNext(context, imported)
-        }
     }
 }
