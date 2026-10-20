@@ -163,4 +163,87 @@ class XDriveSecretRedactorTest {
         val auth = (((proxies[1] as Map<*, *>)["XDrive-Opts"] as Map<*, *>)["Template"] as Map<*, *>)["Auth"] as Map<*, *>
         assertEquals("static", auth["Type"])
     }
+
+    @Test
+    fun redactsCredentialHeadersAndQueryValuesInTemplateOps() {
+        val text = """
+            proxies:
+              - name: t
+                type: vless
+                network: xdrive
+                xdrive-opts:
+                  service: template
+                  remote-folder: f
+                  template:
+                    put:
+                      method: PUT
+                      url: https://s.example.com/up/{name}?access_token=put-token-1&mode=raw
+                      headers:
+                        Authorization: Bearer put-bearer
+                        Content-Type: application/octet-stream
+                    get:
+                      method: GET
+                      url: https://s.example.com/{name}?sig=get-sig-2&API_KEY=get-key-3#frag
+                      headers:
+                        Cookie: session=get-cookie
+                        X-Api-Key: get-api-key
+                    list:
+                      method: PROPFIND
+                      url: https://s.example.com/folder/
+                      headers:
+                        Depth: "1"
+                        x-auth-token: list-token
+                        Proxy-Authorization: Basic list-basic
+                    Delete:
+                      method: DELETE
+                      url: https://s.example.com/{name}?client_secret=del-secret
+                      headers:
+                        X-Upload-Secret: del-header
+        """.trimIndent()
+        val out = XDriveSecretRedactor.redactConfigYaml(text)
+        for (secret in listOf(
+            "put-token-1", "put-bearer", "get-sig-2", "get-key-3", "get-cookie", "get-api-key",
+            "list-token", "list-basic", "del-secret", "del-header",
+        )) {
+            assertFalse("$secret leaked: $out", out.contains(secret))
+        }
+        val proxy = (MihomoConfigDocument.parseOrThrow(out).root["proxies"] as List<*>)[0] as Map<*, *>
+        val template = (proxy["xdrive-opts"] as Map<*, *>)["template"] as Map<*, *>
+        val put = template["put"] as Map<*, *>
+        assertEquals("https://s.example.com/up/{name}?access_token=[redacted]&mode=raw", put["url"])
+        assertEquals("application/octet-stream", (put["headers"] as Map<*, *>)["Content-Type"])
+        assertEquals("PUT", put["method"])
+        val get = template["get"] as Map<*, *>
+        assertEquals("https://s.example.com/{name}?sig=[redacted]&API_KEY=[redacted]#frag", get["url"])
+        val list = template["list"] as Map<*, *>
+        assertEquals("https://s.example.com/folder/", list["url"])
+        assertEquals("1", (list["headers"] as Map<*, *>)["Depth"])
+    }
+
+    @Test
+    fun templateOpsWithoutCredentialsAreReturnedAsIs() {
+        val proxy = mapOf(
+            "name" to "x",
+            "xdrive-opts" to mapOf(
+                "service" to "template",
+                "template" to mapOf(
+                    "get" to mapOf("url" to "https://s.example.com/{name}?mode=raw", "headers" to mapOf("Depth" to "1")),
+                ),
+            ),
+        )
+        assertSame(proxy, XDriveSecretRedactor.redactProxy(proxy))
+    }
+
+    @Test
+    fun credentialNamesAndQueries() {
+        for (name in listOf("Authorization", "proxy-authorization", "COOKIE", "X-Api-Key", "x-auth-token", "client_secret", "apikey")) {
+            assertTrue(name, XDriveSecretRedactor.isCredentialName(name))
+        }
+        for (name in listOf("Content-Type", "Depth", "Accept", "mode", "name")) {
+            assertFalse(name, XDriveSecretRedactor.isCredentialName(name))
+        }
+        assertEquals("https://a/b", XDriveSecretRedactor.redactQuery("https://a/b"))
+        assertEquals("https://a/?t&token=[redacted]", XDriveSecretRedactor.redactQuery("https://a/?t&token=x"))
+        assertEquals("https://a/?access%5Ftoken=[redacted]", XDriveSecretRedactor.redactQuery("https://a/?access%5Ftoken=x"))
+    }
 }

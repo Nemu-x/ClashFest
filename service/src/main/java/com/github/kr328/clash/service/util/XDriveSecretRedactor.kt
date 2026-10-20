@@ -2,8 +2,9 @@ package com.github.kr328.clash.service.util
 
 /**
  * Hides XDrive (core patch 0003) storage credentials from read-only views and exports:
- * the OAuth client ID / secret / refresh token in `xdrive-opts.secrets` and static tokens in
- * `xdrive-opts.template.auth`. They grant access to the operator's storage account rather
+ * the OAuth client ID / secret / refresh token in `xdrive-opts.secrets`, static tokens in
+ * `xdrive-opts.template.auth`, and in the template operations (`put` / `get` / `list` /
+ * `delete`) the values of credential-looking headers and URL query parameters. They grant access to the operator's storage account rather
  * than to a single node, and no read-only consumer needs them (the offline ping reads only
  * server/port). Editors read the config through their own paths and keep the real values.
  */
@@ -36,13 +37,19 @@ object XDriveSecretRedactor {
                 }
                 MihomoKeys.matches(key, "template") && value is Map<*, *> -> {
                     val t = copy(value)
-                    var authFound = false
+                    var templateChanged = false
                     for ((tk, tv) in value) {
-                        if (!MihomoKeys.matches(tk, "auth")) continue
-                        t[tk.toString()] = redactLeaves(tv)
-                        authFound = true
+                        if (MihomoKeys.matches(tk, "auth")) {
+                            t[tk.toString()] = redactLeaves(tv)
+                            templateChanged = true
+                        } else if (TEMPLATE_OPS.any { MihomoKeys.matches(tk, it) } && tv is Map<*, *>) {
+                            redactOp(tv)?.let {
+                                t[tk.toString()] = it
+                                templateChanged = true
+                            }
+                        }
                     }
-                    if (authFound) {
+                    if (templateChanged) {
                         redacted[key.toString()] = t
                         changed = true
                     }
@@ -113,6 +120,64 @@ object XDriveSecretRedactor {
         }
         return out.takeIf { changed }
     }
+
+    /** A template operation with credential headers and query values hidden, or null if it has none. */
+    private fun redactOp(op: Map<*, *>): Map<String, Any?>? {
+        val out = copy(op)
+        var changed = false
+        for ((key, value) in op) {
+            when {
+                MihomoKeys.matches(key, "headers") && value is Map<*, *> -> {
+                    val headers = copy(value)
+                    var headersChanged = false
+                    for ((name, headerValue) in value) {
+                        if (headerValue != null && isCredentialName(name.toString())) {
+                            headers[name.toString()] = REDACTED
+                            headersChanged = true
+                        }
+                    }
+                    if (headersChanged) {
+                        out[key.toString()] = headers
+                        changed = true
+                    }
+                }
+                MihomoKeys.matches(key, "url") && value is String -> {
+                    val url = redactQuery(value)
+                    if (url != value) {
+                        out[key.toString()] = url
+                        changed = true
+                    }
+                }
+            }
+        }
+        return out.takeIf { changed }
+    }
+
+    /** Replaces the values of credential-looking query parameters; everything else is kept as written. */
+    internal fun redactQuery(url: String): String {
+        val start = url.indexOf('?')
+        if (start < 0) return url
+        val fragment = url.indexOf('#', start).let { if (it < 0) url.length else it }
+        val query = url.substring(start + 1, fragment)
+        val redacted = query.split('&').joinToString("&") { param ->
+            val eq = param.indexOf('=')
+            if (eq <= 0) return@joinToString param
+            val name = runCatching { java.net.URLDecoder.decode(param.substring(0, eq), "UTF-8") }
+                .getOrDefault(param.substring(0, eq))
+            if (isCredentialName(name)) param.substring(0, eq + 1) + REDACTED else param
+        }
+        return url.substring(0, start + 1) + redacted + url.substring(fragment)
+    }
+
+    /** Header or query names that carry credentials: auth headers, cookies, and `*token*` / `*secret*` / `*key*`. */
+    internal fun isCredentialName(name: String): Boolean {
+        val n = name.trim().lowercase()
+        return n in CREDENTIAL_NAMES || CREDENTIAL_PARTS.any { it in n }
+    }
+
+    private val TEMPLATE_OPS = listOf("put", "get", "list", "delete")
+    private val CREDENTIAL_NAMES = setOf("authorization", "proxy-authorization", "auth", "sig", "signature")
+    private val CREDENTIAL_PARTS = listOf("token", "secret", "key", "cookie", "password", "passwd")
 
     private fun redactLeaves(value: Any?): Any? = when (value) {
         null -> null
