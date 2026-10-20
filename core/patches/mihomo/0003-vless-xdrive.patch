@@ -1,5 +1,5 @@
 diff --git a/adapter/outbound/vless.go b/adapter/outbound/vless.go
-index 1e5b168f..65cca007 100644
+index 1e5b168f..3753bb2b 100644
 --- a/adapter/outbound/vless.go
 +++ b/adapter/outbound/vless.go
 @@ -24,7 +24,9 @@ import (
@@ -12,7 +12,7 @@ index 1e5b168f..65cca007 100644
  	"github.com/metacubex/mihomo/transport/xhttp"
  
  	"github.com/metacubex/http"
-@@ -47,8 +49,11 @@ type Vless struct {
+@@ -47,6 +49,9 @@ type Vless struct {
  	gunClient *gun.Client
  	// for xhttp
  	xhttpClient *xhttp.Client
@@ -20,11 +20,8 @@ index 1e5b168f..65cca007 100644
 +	xdriveClient *xdrive.Client
 +	xdriveMux    *muxcool.Client
  
--	echConfig       *ech.Config
-+	echConfig      *ech.Config
+ 	echConfig       *ech.Config
  	shadowTLSConfig *shadowtls.Config
- 	restlsConfig    *restls.Config
- 	jlsConfig       *jls.Config
 @@ -56,6 +61,7 @@ type Vless struct {
  }
  
@@ -120,10 +117,10 @@ index 1e5b168f..65cca007 100644
  			option.HTTP2Opts.Host = append(option.HTTP2Opts.Host, "www.example.com")
 diff --git a/adapter/outbound/vless_xdrive.go b/adapter/outbound/vless_xdrive.go
 new file mode 100644
-index 00000000..4d527600
+index 00000000..44e3a9f3
 --- /dev/null
 +++ b/adapter/outbound/vless_xdrive.go
-@@ -0,0 +1,103 @@
+@@ -0,0 +1,104 @@
 +package outbound
 +
 +import (
@@ -131,12 +128,13 @@ index 00000000..4d527600
 +	"net"
 +	"time"
 +
-+	"github.com/metacubex/http"
 +	N "github.com/metacubex/mihomo/common/net"
 +	tlsC "github.com/metacubex/mihomo/component/tls"
-+	"github.com/metacubex/mihomo/transport/vmess"
 +	"github.com/metacubex/mihomo/transport/vless"
++	"github.com/metacubex/mihomo/transport/vmess"
 +	"github.com/metacubex/mihomo/transport/xdrive"
++
++	"github.com/metacubex/http"
 +	"github.com/metacubex/tls"
 +)
 +
@@ -1470,16 +1468,17 @@ index 00000000..efa892e5
 +}
 diff --git a/transport/xdrive/config.go b/transport/xdrive/config.go
 new file mode 100644
-index 00000000..41f9e06e
+index 00000000..01c80e39
 --- /dev/null
 +++ b/transport/xdrive/config.go
-@@ -0,0 +1,73 @@
+@@ -0,0 +1,83 @@
 +// Package xdrive implements Xray-compatible remote-storage stream transport.
 +package xdrive
 +
 +import (
 +	"fmt"
 +	"net"
++	"runtime"
 +	"strconv"
 +	"strings"
 +)
@@ -1500,6 +1499,12 @@ index 00000000..41f9e06e
 +	Template          map[string]any `proxy:"template,omitempty" inbound:"template,omitempty" yaml:"template,omitempty" json:"template,omitempty"`
 +}
 +
++// AllowLocalService gates `service: local`, a folder on the device meant for
++// tests. ClashFest core patch 0003: Android builds refuse it when the proxy is
++// built, which covers http and file proxy-providers too (the app's YAML
++// hardening only sees config.yaml and inline payloads).
++var AllowLocalService = runtime.GOOS != "android"
++
 +func (c Config) Validate() error {
 +	if c.Fronting != "" {
 +		host, port, err := net.SplitHostPort(c.Fronting)
@@ -1513,6 +1518,9 @@ index 00000000..41f9e06e
 +	}
 +	switch c.Service {
 +	case "local":
++		if !AllowLocalService {
++			return fmt.Errorf("xdrive service local (a folder on the device) is disabled in this build")
++		}
 +	case "google-drive", "Google Drive":
 +		if len(c.Secrets) != 3 {
 +			return fmt.Errorf("xdrive google-drive needs client ID, client secret and refresh token")
@@ -1547,6 +1555,42 @@ index 00000000..41f9e06e
 +	return e.message
 +}
 +func (e *storageError) Unwrap() error { return e.cause }
+diff --git a/transport/xdrive/config_local_test.go b/transport/xdrive/config_local_test.go
+new file mode 100644
+index 00000000..da5a7ded
+--- /dev/null
++++ b/transport/xdrive/config_local_test.go
+@@ -0,0 +1,30 @@
++package xdrive
++
++import (
++	"strings"
++	"testing"
++)
++
++func TestLocalServiceGate(t *testing.T) {
++	cfg := Config{Service: "local", RemoteFolder: t.TempDir()}
++	saved := AllowLocalService
++	t.Cleanup(func() { AllowLocalService = saved })
++
++	AllowLocalService = true
++	if err := cfg.Validate(); err != nil {
++		t.Fatalf("local allowed: %v", err)
++	}
++
++	AllowLocalService = false
++	err := cfg.Validate()
++	if err == nil || !strings.Contains(err.Error(), "service local") {
++		t.Fatalf("local refused: got %v", err)
++	}
++	if _, err := newStorage(cfg, nil); err == nil {
++		t.Fatal("storage built for a refused local service")
++	}
++	cloud := Config{Service: "google-drive", RemoteFolder: "id", Secrets: []string{"a", "b", "c"}}
++	if err := cloud.Validate(); err != nil {
++		t.Fatalf("google-drive must not be affected: %v", err)
++	}
++}
 diff --git a/transport/xdrive/conn.go b/transport/xdrive/conn.go
 new file mode 100644
 index 00000000..6755d321
