@@ -26,8 +26,18 @@ import java.io.File
  *
  * [ProxyHardeningMode.Compat] keeps `listeners:` but force-binds each
  * entry to `127.0.0.1` so it never advertises to the network even if the
- * subscription set `listen: 0.0.0.0`. allow-lan and external-controller
- * follow the same loopback rules as Strict.
+ * subscription set `listen: 0.0.0.0`. Entries carrying `xdrive-config` are
+ * removed instead: an XDrive inbound binds no socket but polls cloud
+ * storage, a reverse tunnel into the device that a loopback bind does not
+ * contain. allow-lan and external-controller follow the same loopback rules
+ * as Strict.
+ *
+ * Both Strict and Compat neutralise `network: xdrive` proxies with
+ * `xdrive-opts.service: local` (top-level `proxies:` and inline
+ * `proxy-providers` payloads): that backend reads and writes a filesystem
+ * path taken from the subscription. The node keeps its name, so groups and
+ * rules that reference it stay valid, but becomes `type: reject` — fail
+ * closed, never a silent DIRECT.
  *
  * [ProxyHardeningMode.Off] is a true no-op — used only by users who
  * explicitly opt out via the UI.
@@ -132,6 +142,9 @@ object YamlHardener {
                 }
             }
         }
+        val proxiesChanged = neutralizeLocalXDriveProxies(root)
+        val providersChanged = neutralizeLocalXDriveProviderPayloads(root)
+        changed = proxiesChanged || providersChanged || changed
         changed = forceFalse(root, "allow-lan") || changed
         changed = forceLoopbackHost(root, "bind-address") || changed
         changed = forceLoopbackHostPort(root, "external-controller") || changed
@@ -139,13 +152,17 @@ object YamlHardener {
 
         if (!changed) return text
 
-        var rendered = document.renderReplacing(
+        val replaced = mutableListOf(
             "listeners",
             "allow-lan",
             "bind-address",
             "external-controller",
             "dns",
         )
+        // Re-dump the (large, comment-carrying) proxy blocks only when they changed.
+        if (proxiesChanged) replaced += "proxies"
+        if (providersChanged) replaced += "proxy-providers"
+        var rendered = document.renderReplacing(*replaced.toTypedArray())
         if (removeFromSource.isNotEmpty()) {
             // Re-render through the cleaner so this pass produces a document
             // with the removed blocks/keys actually stripped from the source.
@@ -176,13 +193,75 @@ object YamlHardener {
                 ListenersChange.Dropped
             }
             ProxyHardeningMode.Compat -> {
-                val rewritten = listeners.map { sanitizeListenerEntry(it) }
+                val kept = listeners.filterNot { isXDriveListener(it) }
+                val removed = listeners.size - kept.size
+                if (removed > 0) {
+                    Log.i("YamlHardener: removed $removed xdrive listener entries (Compat)")
+                }
+                if (kept.isEmpty()) {
+                    root.remove("listeners")
+                    return ListenersChange.Dropped
+                }
+                val rewritten = kept.map { sanitizeListenerEntry(it) }
                 if (rewritten == listeners) return ListenersChange.None
                 root["listeners"] = rewritten
-                Log.i("YamlHardener: rebound ${listeners.size} listener entries to loopback (Compat)")
+                Log.i("YamlHardener: rebound ${kept.size} listener entries to loopback (Compat)")
                 ListenersChange.Rewritten
             }
         }
+    }
+
+    private fun isXDriveListener(entry: Any?): Boolean =
+        (entry as? Map<*, *>)?.containsKey("xdrive-config") == true
+
+    private fun neutralizeLocalXDriveProxies(root: MutableMap<String, Any?>): Boolean {
+        val proxies = root["proxies"] as? List<*> ?: return false
+        val rewritten = neutralizeLocalXDrive(proxies, "proxies") ?: return false
+        root["proxies"] = rewritten
+        return true
+    }
+
+    private fun neutralizeLocalXDriveProviderPayloads(root: MutableMap<String, Any?>): Boolean {
+        val providers = root["proxy-providers"] as? Map<*, *> ?: return false
+        var changed = false
+        val rewritten = LinkedHashMap<String, Any?>(providers.size)
+        for ((name, provider) in providers) {
+            val map = provider as? Map<*, *>
+            val payload = map?.get("payload") as? List<*>
+            val neutralized = payload?.let { neutralizeLocalXDrive(it, "proxy-providers.$name") }
+            if (neutralized == null) {
+                rewritten[name.toString()] = provider
+                continue
+            }
+            val mutable = LinkedHashMap<String, Any?>(map.size)
+            for ((k, v) in map) mutable[k.toString()] = v
+            mutable["payload"] = neutralized
+            rewritten[name.toString()] = mutable
+            changed = true
+        }
+        if (!changed) return false
+        root["proxy-providers"] = rewritten
+        return true
+    }
+
+    /** Returns [proxies] with local-storage XDrive nodes replaced by REJECT, or null if none. */
+    private fun neutralizeLocalXDrive(proxies: List<*>, where: String): List<Any?>? {
+        var count = 0
+        val rewritten = proxies.map { entry ->
+            val map = entry as? Map<*, *>
+            if (map == null || !isLocalXDriveProxy(map)) return@map entry
+            count++
+            linkedMapOf<String, Any?>("name" to map["name"], "type" to "reject")
+        }
+        if (count == 0) return null
+        Log.w("YamlHardener: $count xdrive proxies with service: local in $where turned into REJECT")
+        return rewritten
+    }
+
+    private fun isLocalXDriveProxy(proxy: Map<*, *>): Boolean {
+        if (proxy["network"]?.toString()?.trim()?.lowercase() != "xdrive") return false
+        val opts = proxy["xdrive-opts"] as? Map<*, *> ?: return false
+        return opts["service"]?.toString()?.trim()?.lowercase() == "local"
     }
 
     /** Force a listener entry's `listen:` to a loopback bind. Other keys untouched. */

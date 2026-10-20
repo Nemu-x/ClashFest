@@ -352,4 +352,142 @@ class YamlHardenerTest {
         )
         assertEquals(original, File(profile, "config.yaml").readText())
     }
+    // -- XDrive -----------------------------------------------------------
+
+    private val xdriveProfile = """
+        listeners:
+          - name: drive-in
+            type: vless
+            port: 0
+            xdrive-config:
+              service: google-drive
+              remote-folder: folder
+          - name: lan-socks
+            type: socks
+            listen: 0.0.0.0
+            port: 1080
+        proxies:
+          - name: local-node
+            type: vless
+            server: 127.0.0.1
+            port: 443
+            uuid: 27848739-7e62-4138-9fd3-098a63964b6b
+            network: xdrive
+            encryption: mlkem768x25519plus.native.0rtt.key
+            xdrive-opts:
+              service: local
+              remote-folder: /sdcard/Download
+          - name: cloud-node
+            type: vless
+            server: www.googleapis.com
+            port: 443
+            uuid: 27848739-7e62-4138-9fd3-098a63964b6b
+            network: xdrive
+            encryption: mlkem768x25519plus.native.0rtt.key
+            xdrive-opts:
+              service: google-drive
+              remote-folder: folder
+              secrets: [a, b, c]
+        proxy-providers:
+          inline:
+            type: inline
+            payload:
+              - name: provider-local
+                type: vless
+                server: 127.0.0.1
+                port: 443
+                uuid: 27848739-7e62-4138-9fd3-098a63964b6b
+                network: xdrive
+                xdrive-opts:
+                  service: local
+                  remote-folder: /data/local/tmp
+        proxy-groups:
+          - name: G
+            type: select
+            proxies: [local-node, cloud-node]
+    """.trimIndent()
+
+    @Test
+    fun strict_dropsXDriveListenersWithTheWholeBlock() {
+        val root = parse(YamlHardener.hardenYaml(xdriveProfile, ProxyHardeningMode.Strict)!!)
+        assertNull(root["listeners"])
+    }
+
+    @Test
+    fun compat_removesXDriveListenersAndRebindsTheRest() {
+        val hardened = YamlHardener.hardenYaml(xdriveProfile, ProxyHardeningMode.Compat)!!
+        val listeners = parse(hardened)["listeners"] as List<*>
+        assertEquals(1, listeners.size)
+        val kept = listeners[0] as Map<*, *>
+        assertEquals("lan-socks", kept["name"])
+        assertEquals("127.0.0.1", kept["listen"])
+        assertFalse(hardened.contains("xdrive-config"))
+    }
+
+    @Test
+    fun compat_dropsListenersBlockWhenOnlyXDriveListenersWereThere() {
+        val input = """
+            listeners:
+              - name: drive-in
+                type: vless
+                listen: 127.0.0.1
+                xdrive-config:
+                  service: local
+                  remote-folder: /tmp/x
+            proxies: []
+        """.trimIndent()
+        val hardened = YamlHardener.hardenYaml(input, ProxyHardeningMode.Compat)!!
+        val root = parse(hardened)
+        assertNull(root["listeners"])
+        assertFalse(hardened.contains("xdrive-config"))
+        assertTrue(root.containsKey("proxies"))
+    }
+
+    @Test
+    fun strictAndCompat_turnLocalXDriveProxiesIntoReject() {
+        for (mode in listOf(ProxyHardeningMode.Strict, ProxyHardeningMode.Compat)) {
+            val hardened = YamlHardener.hardenYaml(xdriveProfile, mode)!!
+            val root = parse(hardened)
+            val proxies = root["proxies"] as List<*>
+            assertEquals("$mode", mapOf("name" to "local-node", "type" to "reject"), proxies[0])
+            val cloud = proxies[1] as Map<*, *>
+            assertEquals("$mode keeps cloud xdrive nodes", "xdrive", cloud["network"])
+            val payload = ((root["proxy-providers"] as Map<*, *>)["inline"] as Map<*, *>)["payload"] as List<*>
+            assertEquals("$mode", mapOf("name" to "provider-local", "type" to "reject"), payload[0])
+            assertEquals("inline", ((root["proxy-providers"] as Map<*, *>)["inline"] as Map<*, *>)["type"])
+            assertFalse("$mode", hardened.contains("/sdcard/Download"))
+            assertFalse("$mode", hardened.contains("/data/local/tmp"))
+            // The group keeps resolving: the node name survives.
+            val group = (root["proxy-groups"] as List<*>)[0] as Map<*, *>
+            assertEquals(listOf("local-node", "cloud-node"), group["proxies"])
+        }
+    }
+
+    @Test
+    fun off_keepsXDriveUntouched() {
+        assertEquals(xdriveProfile, YamlHardener.hardenYaml(xdriveProfile, ProxyHardeningMode.Off))
+    }
+
+    @Test
+    fun cloudXDriveOnlyProfileIsNotRewritten() {
+        val input = """
+            proxies:
+              - name: cloud-node
+                type: vless
+                network: xdrive
+                xdrive-opts:
+                  service: google-drive
+                  remote-folder: folder
+        """.trimIndent()
+        assertEquals(input, YamlHardener.hardenYaml(input, ProxyHardeningMode.Strict))
+        assertEquals(input, YamlHardener.hardenYaml(input, ProxyHardeningMode.Compat))
+    }
+
+    @Test
+    fun xdriveHardeningIsIdempotent() {
+        for (mode in listOf(ProxyHardeningMode.Strict, ProxyHardeningMode.Compat)) {
+            val once = YamlHardener.hardenYaml(xdriveProfile, mode)!!
+            assertEquals("$mode", once, YamlHardener.hardenYaml(once, mode))
+        }
+    }
 }
