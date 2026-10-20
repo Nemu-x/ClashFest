@@ -58,7 +58,6 @@
                 android:padding="8dp"
                 android:src="@drawable/ic_baseline_route"
                 app:tint="?attr/colorPrimary"
-                android:importantForAccessibility="no"
                 tools:ignore="ContentDescription" />
 
             <LinearLayout
@@ -127,7 +126,6 @@
                 android:padding="8dp"
                 android:src="@drawable/ic_baseline_language"
                 app:tint="?attr/colorPrimary"
-                android:importantForAccessibility="no"
                 tools:ignore="ContentDescription" />
 
             <LinearLayout
