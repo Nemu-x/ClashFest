@@ -201,6 +201,11 @@ val goTestNativeSnapshot by tasks.registering(Exec::class) {
         // only: anything after a flag that follows the package list goes to the test
         // binary instead, which is how these packages used to be skipped silently.)
         "github.com/metacubex/mihomo/component/tls",
+        "github.com/metacubex/mihomo/component/ca",
+        "github.com/metacubex/mihomo/component/sniffer",
+        "github.com/metacubex/mihomo/dns",
+        "github.com/metacubex/mihomo/tunnel",
+        "github.com/metacubex/mihomo/transport/openvpn",
         "github.com/metacubex/mihomo/transport/xdrive",
         "github.com/metacubex/mihomo/transport/vless/muxcool",
         "github.com/metacubex/mihomo/adapter",
