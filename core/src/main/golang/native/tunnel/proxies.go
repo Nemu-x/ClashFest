@@ -105,6 +105,22 @@ func queryProxyGroupNames(excludeNotSelectable bool, includeHidden bool) []strin
 	return result
 }
 
+// QueryProxyGroupSelections returns the current choice (`now`) of every proxy group, hidden ones
+// included, in one pass and without building member lists: the node picker shows it under
+// collapsed group headers, where a full QueryProxyGroup per group would be wasted work.
+func QueryProxyGroupSelections() map[string]string {
+	result := map[string]string{}
+	if tunnel.Mode() == tunnel.Direct {
+		return result
+	}
+	for name, p := range tunnel.Proxies() {
+		if g, ok := p.Adapter().(outboundgroup.ProxyGroup); ok {
+			result[name] = g.Now()
+		}
+	}
+	return result
+}
+
 func QueryProxyGroup(name string, sortMode SortMode, uiSubtitlePattern *regexp.Regexp) *ProxyGroup {
 	p := tunnel.Proxies()[name]
 

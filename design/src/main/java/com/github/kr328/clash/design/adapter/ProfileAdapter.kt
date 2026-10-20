@@ -63,6 +63,8 @@ class ProfileAdapter(
     /** The user's own picker layout choice ("tabs" / "dropdown"), "" when never toggled. */
     private val readProxyGroupLayout: () -> String = { "" },
     private val writeProxyGroupLayout: (String) -> Unit = {},
+    /** The node picker opened for this profile: the host fetches every group's choice (one call). */
+    private val onPickerOpened: (Profile) -> Unit = {},
 ) : RecyclerView.Adapter<ProfileAdapter.Holder>() {
     class Holder(val binding: AdapterProfileBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -116,6 +118,8 @@ class ProfileAdapter(
     private var sheetDetailsRefresher: (() -> Unit)? = null
     /** Operator default for the picker layout (`X-Brand-Proxy-Group-Layout`), used until the user toggles. */
     private var proxyGroupLayoutDefault: String? = null
+    /** Engine `now` of every group (one query per picker open); fills collapsed headers' summaries. */
+    private var groupSelections: Map<String, String> = emptyMap()
     /** Expanded groups of the dropdown picker layout, per profile, kept across sheet opens. */
     private val sheetExpandedGroups = HashMap<UUID, MutableSet<String>>()
 
@@ -227,6 +231,12 @@ class ProfileAdapter(
         if (cleaned == primaryProxyGroup) return
         primaryProxyGroup = cleaned
         notifyDataSetChanged()
+    }
+
+    fun setGroupSelections(selections: Map<String, String>) {
+        if (selections == groupSelections) return
+        groupSelections = selections
+        sheetDetailsRefresher?.invoke()
     }
 
     fun setProxyGroupLayoutDefault(layout: String?) {
@@ -1080,8 +1090,11 @@ class ProfileAdapter(
             if (idx >= groupNames.size) idx = 0
             selectedGroupIndex[profile.uuid] = idx
             var dropdown = isDropdownLayout()
-            val expandedGroups = sheetExpandedGroups.getOrPut(profile.uuid) { linkedSetOf(groupNames[idx]) }
+            val expandedGroups = sheetExpandedGroups.getOrPut(profile.uuid) { linkedSetOf() }
             expandedGroups.retainAll(groupNames.toSet())
+            // Opening the sheet (from Home's Node row or the notification) always shows the group the
+            // visible node lives in; render() then puts its header at the top.
+            expandedGroups.add(groupNames[idx])
             var query = ""
             var sort = ProxyPickerSort.Config
             var filter: ProxyPickerFilter = ProxyPickerFilter.CurrentGroup
@@ -1168,6 +1181,12 @@ class ProfileAdapter(
                 renderFn(selectedGroupIndex[profile.uuid] ?: 0)
             }
             sheet.proxySheetNodesList.layoutManager = LinearLayoutManager(context)
+            StickyGroupHeaderDecoration(nodeAdapter).also {
+                sheet.proxySheetNodesList.addItemDecoration(it)
+                sheet.proxySheetNodesList.addOnItemTouchListener(it)
+            }
+            // Rows (and the selected row's outline) must not paint over the well's rounded corners.
+            (sheet.proxySheetNodesList.parent as? View)?.clipToOutline = true
             sheet.proxySheetNodesList.adapter = nodeAdapter
             // Rebinds during live ping / selection are content-only; suppress the change animation
             // so delay capsules update without a flicker.
@@ -1459,6 +1478,10 @@ class ProfileAdapter(
                     expandedGroups.add(header.groupName)
                     reportVisibleGroup(profile, header.groupName, force = true)
                 }
+                // A tap expands in place: the tapped header stays where it is. Marking the group as
+                // already scrolled keeps render() from jumping to its selected node (the old
+                // first-tap jump).
+                selectedScrolledGroupIndex = header.groupIndex
                 render(header.groupIndex)
             }
             nodeAdapter.onHeaderPing = { header ->
@@ -1489,6 +1512,7 @@ class ProfileAdapter(
 
             bindLayoutButton()
             updateControlLabels()
+            onPickerOpened(profile)
             render(idx)
             reportVisibleGroup(profile, groupNames[idx])
 
@@ -1543,6 +1567,16 @@ class ProfileAdapter(
         // stops and only a deliberate drag-down from the top dismisses.
         dialog.behavior.skipCollapsed = true
         dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+        // Material's own drag hid the sheet on the slightest pull of a list at its top (skipCollapsed
+        // makes shouldHide() always true); our gesture scrolls the list first and needs a real pull.
+        com.github.kr328.clash.design.dialog.SheetDragToDismiss.attach(dialog, sheet.proxySheetNodesList)
+        // Fixed height: a content-sized sheet grew every time a group expanded, so the tapped header
+        // flew up with the sheet's top edge. The list (weight 1) absorbs the difference instead.
+        dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)?.let { bottomSheet ->
+            bottomSheet.layoutParams = bottomSheet.layoutParams.apply {
+                height = (context.resources.displayMetrics.heightPixels * PICKER_SHEET_HEIGHT_FRACTION).toInt()
+            }
+        }
     }
 
     private fun bindSubscriptionStatus(
@@ -2195,16 +2229,19 @@ class ProfileAdapter(
             }
 
             val transportInfo = if (showBadge) transportInfoByProfile[profile.uuid]?.get(p.name) else null
-            val transportLabel = transportLabel(transportInfo)
+            val transportLabel = transportLabel(transportInfo, typeName)
             if (transportLabel != null) {
                 applyProtoChip(transportBadge, transportLabel, ContextCompat.getColor(context, R.color.proto_transport))
             } else {
                 transportBadge.visibility = View.GONE
             }
-            if (transportInfo?.reality == true) {
-                applyProtoChip(realityBadge, "REALITY", ContextCompat.getColor(context, R.color.proto_reality))
-            } else {
-                realityBadge.visibility = View.GONE
+            // One security chip: REALITY when set, otherwise TLS when the node encrypts with it.
+            when {
+                transportInfo?.reality == true ->
+                    applyProtoChip(realityBadge, "REALITY", ContextCompat.getColor(context, R.color.proto_reality))
+                transportInfo != null && usesTls(transportInfo, typeName) ->
+                    applyProtoChip(realityBadge, "TLS", ContextCompat.getColor(context, R.color.proto_tls))
+                else -> realityBadge.visibility = View.GONE
             }
         }
 
@@ -2347,7 +2384,11 @@ class ProfileAdapter(
     private fun groupSelectionSummary(profile: Profile, groupName: String): String? {
         val pg = proxyGroupForRow(profile, groupName)
         val pendingChoice = pendingMapValueForGroup(profile.uuid, groupName)?.takeIf { it.isNotBlank() }
-        val selectedName = pendingChoice ?: pg?.now
+        // A group whose members were never loaded only has the on-disk pick (or nothing, for
+        // url-test groups); the engine's batch answer is authoritative until its detail arrives.
+        val engineChoice = groupSelections[groupName]
+            ?.takeIf { it.isNotBlank() && useEngineFor(profile) && !hasLiveProxyDetail(profile, groupName) }
+        val selectedName = pendingChoice ?: engineChoice ?: pg?.now
         return selectedName?.takeIf { it.isNotBlank() }?.let { name ->
             pg?.proxies?.firstOrNull { it.name == name }?.let { it.title.ifBlank { it.name } } ?: name
         }
@@ -2372,6 +2413,94 @@ class ProfileAdapter(
                 divider.draw(c)
             }
         }
+    }
+
+    /**
+     * Dropdown layout: while the user scrolls through an expanded group, its header stays pinned at
+     * the top of the list (the next group's header pushes it up). A tap on the pinned header
+     * collapses the group, the same as a tap on the header row itself.
+     */
+    private inner class StickyGroupHeaderDecoration(
+        private val adapter: ProxyNodeAdapter,
+    ) : RecyclerView.ItemDecoration(), RecyclerView.OnItemTouchListener {
+        private var headerView: View? = null
+        private var pinned: PickerItem.Header? = null
+        private var pinnedBottom = 0
+        private var downX = 0f
+        private var downY = 0f
+        private var downOnPinned = false
+
+        private fun headerAbove(position: Int): PickerItem.Header? {
+            val list = adapter.currentList
+            for (i in position downTo 0) {
+                val item = list.getOrNull(i)
+                if (item is PickerItem.Header) return item
+            }
+            return null
+        }
+
+        override fun onDrawOver(c: Canvas, parent: RecyclerView, state: RecyclerView.State) {
+            pinned = null
+            val first = parent.getChildAt(0) ?: return
+            val position = parent.getChildAdapterPosition(first)
+            if (position == RecyclerView.NO_POSITION) return
+            val header = headerAbove(position) ?: return
+            if (!header.expanded) return
+            val list = adapter.currentList
+            if (list[position] is PickerItem.Header && first.top >= 0) return
+
+            val view = headerView ?: parent.context.layoutInflater
+                .inflate(R.layout.item_proxy_group_header, parent, false)
+                .also { headerView = it }
+            bindPickerGroupHeader(view, header, {}, {})
+            val width = parent.width - parent.paddingLeft - parent.paddingRight
+            view.measure(
+                View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            )
+            view.layout(0, 0, view.measuredWidth, view.measuredHeight)
+
+            var top = 0
+            for (i in 1 until parent.childCount) {
+                val child = parent.getChildAt(i)
+                val p = parent.getChildAdapterPosition(child)
+                if (p != RecyclerView.NO_POSITION && list.getOrNull(p) is PickerItem.Header) {
+                    top = minOf(0, child.top - view.measuredHeight)
+                    break
+                }
+            }
+            c.save()
+            c.translate(parent.paddingLeft.toFloat(), top.toFloat())
+            view.draw(c)
+            c.restore()
+            pinned = header
+            pinnedBottom = top + view.measuredHeight
+        }
+
+        override fun onInterceptTouchEvent(rv: RecyclerView, e: android.view.MotionEvent): Boolean {
+            when (e.actionMasked) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    downX = e.x
+                    downY = e.y
+                    downOnPinned = pinned != null && e.y < pinnedBottom
+                }
+                android.view.MotionEvent.ACTION_UP -> {
+                    val slop = android.view.ViewConfiguration.get(rv.context).scaledTouchSlop
+                    val tap = kotlin.math.abs(e.x - downX) < slop && kotlin.math.abs(e.y - downY) < slop
+                    val header = pinned
+                    if (downOnPinned && tap && header != null && e.y < pinnedBottom) {
+                        downOnPinned = false
+                        adapter.onHeaderToggle(header)
+                        return true
+                    }
+                }
+            }
+            return false
+        }
+
+        override fun onTouchEvent(rv: RecyclerView, e: android.view.MotionEvent) = Unit
+
+        override fun onRequestDisallowInterceptTouchEvent(disallowIntercept: Boolean) = Unit
     }
 
     private class ProxyNodeViewHolder(view: View) : RecyclerView.ViewHolder(view)
@@ -2515,8 +2644,12 @@ class ProfileAdapter(
         groupIndex: Int,
     ) {
         val dropdown = items.any { it is PickerItem.Header }
-        val index = items.indexOfFirst {
-            it is PickerItem.Node && it.row.selected && (!dropdown || it.row.groupIndex == groupIndex)
+        // Dropdown: the group's header goes to the top and its selected node shows (highlighted)
+        // below it, so the user sees which group the server is in. Tabs: the selected node.
+        val index = if (dropdown) {
+            items.indexOfFirst { it is PickerItem.Header && it.groupIndex == groupIndex }
+        } else {
+            items.indexOfFirst { it is PickerItem.Node && it.row.selected }
         }
         if (index < 0) return
         sheet.proxySheetNodesList.post {
@@ -2588,14 +2721,28 @@ class ProfileAdapter(
         return if (tailIsCityLike && headHasIdShape) head to tail else trimmed to null
     }
 
-    /** "TCP" / "WS" / "GRPC" / "XHTTP" / "H2" / "HTTP"; null when YAML had no transport info. */
-    private fun transportLabel(info: ProxyTransportInfo?): String? {
+    /**
+     * "TCP" / "WS" / "GRPC" / "XHTTP" / "H2" / "QUIC" / "UDP"; null when YAML had no transport info.
+     * Only V2Ray-style outbounds carry a `network:` key; for everything else a missing key meant
+     * "TCP", which mislabelled QUIC protocols (Hysteria2, TUIC) and UDP tunnels (WireGuard).
+     */
+    private fun transportLabel(info: ProxyTransportInfo?, typeName: String): String? {
         if (info == null) return null
+        when (typeName.lowercase()) {
+            in QUIC_PROTOCOLS -> return "QUIC"
+            in UDP_TUNNEL_PROTOCOLS -> return "UDP"
+        }
         return when (val net = info.network.lowercase()) {
             "" -> "TCP"
             "h2", "http2" -> "H2"
             else -> net.uppercase()
         }
+    }
+
+    /** `tls: true`, or a protocol that is always TLS (Trojan, AnyTLS, the QUIC family). */
+    private fun usesTls(info: ProxyTransportInfo, typeName: String): Boolean {
+        val type = typeName.lowercase()
+        return info.tls || type in ALWAYS_TLS_PROTOCOLS || type in QUIC_PROTOCOLS
     }
 
     /**
@@ -2620,6 +2767,8 @@ class ProfileAdapter(
 
     /** Lumen protocol chip: coloured label on a soft (~14% alpha) tint of the same colour. */
     private fun applyProtoChip(badge: TextView, label: String, color: Int) {
+        // The segments sit in proxy_proto_capsule, which clips them to one rounded shape.
+        (badge.parent as? View)?.takeIf { it.id == R.id.proxy_proto_capsule }?.clipToOutline = true
         badge.visibility = View.VISIBLE
         badge.text = label
         badge.setTextColor(color)
@@ -2654,7 +2803,7 @@ class ProfileAdapter(
         delayMs: Int,
         context: Context,
     ) {
-        // Lumen: delay reads as a coloured dot + value (Space Grotesk), no filled capsule.
+        // Delay reads as a pill: the value (Space Grotesk) on a soft fill of its own colour.
         val colorRes = when {
             delayMs in 0..200 -> R.color.delay_good
             delayMs in 201..500 -> R.color.delay_medium
@@ -2663,8 +2812,9 @@ class ProfileAdapter(
         }
         val color = ContextCompat.getColor(context, colorRes)
         capsule.setBackgroundResource(0)
-        dot.backgroundTintList = ColorStateList.valueOf(color)
+        dot.visibility = View.GONE
         text.setTextColor(color)
+        text.backgroundTintList = ColorStateList.valueOf((color and 0x00FFFFFF) or (0x26 shl 24)) // ~15%
     }
 
     private fun formatUsageLine(p: Profile): String {
@@ -2843,6 +2993,14 @@ class ProfileAdapter(
 
         /** Coalesce window for live URL-test delay pushes (one card rebind instead of N). */
         const val ACTIVE_CARD_NOTIFY_DEBOUNCE_MS = 250L
+
+        /** Enum names, lowercased: QUIC-based outbounds, labelled "QUIC" instead of the default "TCP". */
+        val QUIC_PROTOCOLS = setOf("hysteria", "hysteria2", "tuic", "masque", "shadowquic")
+        val UDP_TUNNEL_PROTOCOLS = setOf("wireguard", "trusttunnel", "tailscale", "openvpn", "easytier")
+        val ALWAYS_TLS_PROTOCOLS = setOf("trojan", "anytls")
+
+        /** Node picker sheet height as a share of the screen; fixed so expanding a group never resizes it. */
+        const val PICKER_SHEET_HEIGHT_FRACTION = 0.88f
 
         const val PICKER_VIEW_NODE = 0
         const val PICKER_VIEW_HEADER = 1

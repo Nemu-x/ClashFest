@@ -79,6 +79,7 @@
     <color name="proto_http">#FFB37A</color>
     <color name="proto_xhttp">#FFB37A</color>
     <color name="proto_transport">#4DB6AC</color>
+    <color name="proto_tls">#9FA8DA</color>
     <color name="proto_reality">#F48FB1</color>
     <color name="proto_hysteria">#F2C76F</color>
     <color name="proto_tuic">#F2C76F</color>

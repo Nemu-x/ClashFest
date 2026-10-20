@@ -158,6 +158,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     /** Fires when user expands/collapses any profile panel so the host can reload proxy previews. */
     val profileExpandChanged = Channel<Unit>(Channel.CONFLATED)
     val profileVisibleGroupChanged = Channel<Pair<Profile, String>>(Channel.CONFLATED)
+    val profilePickerOpened = Channel<Profile>(Channel.CONFLATED)
     /** Profiles-tab manager: drag-reorder committed + update-all tapped. */
     val profileReorderRequests = Channel<List<Profile>>(Channel.UNLIMITED)
     val profileUpdateAllRequests = Channel<Unit>(Channel.UNLIMITED)
@@ -307,6 +308,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         expandOnProfileClick = true,
         readProxyGroupLayout = { uiStore.proxyGroupLayout },
         writeProxyGroupLayout = { uiStore.proxyGroupLayout = it },
+        onPickerOpened = { profilePickerOpened.trySend(it) },
     )
 
     /**
@@ -1247,6 +1249,12 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
                 uiStore.proxyExcludeNotSelectable,
             )
             tabProfileAdapter.setExpandedUuids(tabExpandedProfileUuids.toSet())
+        }
+    }
+
+    suspend fun patchGroupSelections(selections: Map<String, String>) {
+        withContext(Dispatchers.Main) {
+            profileAdapter.setGroupSelections(selections)
         }
     }
 

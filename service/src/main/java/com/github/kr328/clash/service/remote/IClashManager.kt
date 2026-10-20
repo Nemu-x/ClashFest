@@ -52,4 +52,7 @@ interface IClashManager {
      * numbers binder transactions by declaration order, so appending keeps existing codes stable.
      */
     suspend fun healthCheckProxy(group: String, proxy: String, testUrl: String, observer: IProxyDelayObserver)
+
+    /** `now` of every proxy group as a JSON object (group -> choice). Appended last: see above. */
+    fun queryProxyGroupSelections(): String
 }

@@ -78,6 +78,7 @@
     <color name="proto_http">#C75100</color>
     <color name="proto_xhttp">#C75100</color>
     <color name="proto_transport">#00796B</color>
+    <color name="proto_tls">#3949AB</color>
     <color name="proto_reality">#C2185B</color>
     <color name="proto_hysteria">#A8780B</color>
     <color name="proto_tuic">#A8780B</color>

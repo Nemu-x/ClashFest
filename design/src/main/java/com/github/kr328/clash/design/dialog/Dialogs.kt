@@ -42,6 +42,29 @@ object BottomSheetContentInsets {
     }
 }
 
+/**
+ * Drag handle drawn as an overlay. bg_bottom_sheet carries one too, but BottomSheetBehavior replaces
+ * the sheet's background with its own MaterialShapeDrawable (the M3 modal style has a
+ * shapeAppearance), so that layer never rendered and no sheet showed a handle.
+ */
+private fun addDragHandle(sheet: View) {
+    val density = sheet.resources.displayMetrics.density
+    val width = (36 * density).toInt()
+    val height = sheet.context.getPixels(R.dimen.bottom_sheet_header_height)
+    val top = sheet.context.getPixels(R.dimen.bottom_sheet_background_padding_top)
+    val handle = GradientDrawable().apply {
+        cornerRadius = height / 2f
+        setColor(MaterialColors.getColor(sheet, com.google.android.material.R.attr.colorOutline))
+    }
+    fun place() {
+        val left = (sheet.width - width) / 2
+        handle.setBounds(left, top, left + width, top + height)
+    }
+    sheet.overlay.add(handle)
+    place()
+    sheet.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> place() }
+}
+
 class AppBottomSheetDialog(
     context: Context,
     private val fitContentHeight: Boolean = false,
@@ -150,6 +173,7 @@ class AppBottomSheetDialog(
             // tint at the very top fading to transparent (with the rounded-top corners) gives a
             // soft "lit edge" like the reference, with no visible side/bottom line.
             findViewById<FrameLayout>(com.google.android.material.R.id.design_bottom_sheet)?.let { sheet ->
+                addDragHandle(sheet)
                 if (isTrueBlack) {
                     // The sheet dialog theme's colorSurface (tech_surface, obsidian-grey) is NOT
                     // reachable by the activity's TrueBlack overlay, so force the sheet background
