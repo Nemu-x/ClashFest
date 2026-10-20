@@ -161,7 +161,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     private var activeAnnouncementOnOpenUrl: ((String) -> Unit)? = null
     private var activeAnnouncementOnSupport: (() -> Unit)? = null
 
-    private val profileAdapter = ProfileAdapter(
+    private val profileAdapter: ProfileAdapter = ProfileAdapter(
         { profile -> profileActivateRequests.trySend(profile) },
         { profile, anchor -> profileMenuRequests.trySend(profile to anchor) },
         { profile -> toggleProfileExpand(profile) },
@@ -181,7 +181,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     )
 
     /** Subscription cards open details; activation is an explicit action inside the sheet. */
-    private val tabProfileAdapter = ProfileAdapter(
+    private val tabProfileAdapter: ProfileAdapter = ProfileAdapter(
         { profile -> showSubscriptionDetails(profile) },
         { profile, anchor -> profileMenuRequests.trySend(profile to anchor) },
         { profile -> openSubscriptionPicker(profile) },
@@ -203,7 +203,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         writeProxyGroupLayout = { uiStore.proxyGroupLayout = it },
     )
     private var tabProfilesAll: List<Profile> = emptyList()
-    private val subscriptionDetails = SubscriptionDetailsSheet(
+    private val subscriptionDetails: SubscriptionDetailsSheet = SubscriptionDetailsSheet(
         context = context,
         adapter = tabProfileAdapter,
         clickGuard = subscriptionClickGuard,

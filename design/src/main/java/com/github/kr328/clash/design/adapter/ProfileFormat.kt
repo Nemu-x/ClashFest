@@ -10,6 +10,7 @@ import com.github.kr328.clash.core.model.Proxy
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.util.toBytesString
 import com.github.kr328.clash.service.model.Profile
+import java.util.UUID
 
 private val profileEmojiPool = listOf(
     "🐱", "🐶", "🦊", "🐼", "🐻", "🐨", "🐯", "🦁",
