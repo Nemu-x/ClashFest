@@ -11,7 +11,8 @@ object ProxyYamlPreview {
             entry.proxyName() == proxyName
         } ?: return null
         val yaml = YamlFormatting.blockYaml()
-        return yaml.dump(JsonElementToYaml.convertObject(match)).trimEnd()
+        // XDrive storage credentials never leave the service process in clear.
+        return yaml.dump(XDriveSecretRedactor.redactProxy(JsonElementToYaml.convertObject(match))).trimEnd()
     }
 
     private fun JsonObject.proxyName(): String? = runCatching {
