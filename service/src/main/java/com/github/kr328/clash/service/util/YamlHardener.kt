@@ -227,15 +227,25 @@ object YamlHardener {
         val rewritten = LinkedHashMap<String, Any?>(providers.size)
         for ((name, provider) in providers) {
             val map = provider as? Map<*, *>
-            val payload = map?.get("payload") as? List<*>
-            val neutralized = payload?.let { neutralizeLocalXDrive(it, "proxy-providers.$name") }
-            if (neutralized == null) {
+            if (map == null) {
                 rewritten[name.toString()] = provider
                 continue
             }
+            // The provider decoder matches keys case-insensitively (`Payload:` loads too):
+            // rewrite every key it could read as `payload`.
+            var providerChanged = false
             val mutable = LinkedHashMap<String, Any?>(map.size)
-            for ((k, v) in map) mutable[k.toString()] = v
-            mutable["payload"] = neutralized
+            for ((k, v) in map) {
+                val neutralized = if (MihomoKeys.matches(k, "payload") && v is List<*>) {
+                    neutralizeLocalXDrive(v, "proxy-providers.$name")
+                } else null
+                if (neutralized != null) providerChanged = true
+                mutable[k.toString()] = neutralized ?: v
+            }
+            if (!providerChanged) {
+                rewritten[name.toString()] = provider
+                continue
+            }
             rewritten[name.toString()] = mutable
             changed = true
         }

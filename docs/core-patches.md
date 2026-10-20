@@ -112,8 +112,13 @@ inbound/listener side. Adapted to vanilla: TLS comes from `transport/vmess` (Cit
 `transport/v2ray`), and the go1.21 built-in `min` is replaced because mihomo's `go.mod` is still
 `go 1.20`. No new module requirements.
 
-Note: `service: local` (a folder on the device, meant for tests) is accepted from a profile like
+Note: the engine accepts `service: local` (a folder on the device, meant for tests) like
 upstream does; it can only create and delete XDrive session files under the given folder.
+ClashFest's `YamlHardener` turns such nodes (in `proxies:` and inline `proxy-providers`
+payloads, under any key spelling the decoder accepts) into REJECT and drops `xdrive-config`
+listeners in Strict and Compat; Off leaves them alone. Remote and file proxy-providers
+(`type: http` / `file`) are fetched or read by the engine at runtime and never pass through the
+hardener, so a `service: local` node served that way is not neutralised.
 
 Delete when mihomo ships XDrive itself, or when ClashFest stops advertising `xdrive` in
 `coreFeatures` (the bridge's `cfa/native/features` imports this package, so dropping the patch

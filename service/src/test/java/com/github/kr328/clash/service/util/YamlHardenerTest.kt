@@ -464,6 +464,33 @@ class YamlHardenerTest {
     }
 
     @Test
+    fun strictAndCompat_neutralizeLocalXDriveUnderCapitalizedProviderPayloadKey() {
+        // The provider decoder matches keys case-insensitively, so `Payload:` loads too.
+        val input = """
+            proxy-providers:
+              caps:
+                Type: inline
+                Payload:
+                  - name: provider-caps
+                    type: vless
+                    server: 127.0.0.1
+                    port: 443
+                    uuid: 27848739-7e62-4138-9fd3-098a63964b6b
+                    network: xdrive
+                    xdrive-opts:
+                      service: local
+                      remote-folder: /data/local/tmp
+        """.trimIndent()
+        for (mode in listOf(ProxyHardeningMode.Strict, ProxyHardeningMode.Compat)) {
+            val hardened = YamlHardener.hardenYaml(input, mode)!!
+            val provider = (parse(hardened)["proxy-providers"] as Map<*, *>)["caps"] as Map<*, *>
+            assertEquals("$mode", listOf(mapOf("name" to "provider-caps", "type" to "reject")), provider["Payload"])
+            assertEquals("inline", provider["Type"])
+            assertFalse("$mode", hardened.contains("/data/local/tmp"))
+        }
+    }
+
+    @Test
     fun off_keepsXDriveUntouched() {
         assertEquals(xdriveProfile, YamlHardener.hardenYaml(xdriveProfile, ProxyHardeningMode.Off))
     }

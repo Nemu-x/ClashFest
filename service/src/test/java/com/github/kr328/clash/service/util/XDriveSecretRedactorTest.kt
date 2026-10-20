@@ -104,6 +104,37 @@ class XDriveSecretRedactorTest {
     }
 
     @Test
+    fun redactsInlineProviderPayloadUnderCapitalizedKey() {
+        val text = """
+            proxy-providers:
+              caps:
+                Type: inline
+                Payload:
+                  - name: p
+                    type: vless
+                    network: xdrive
+                    xdrive-opts:
+                      service: google-drive
+                      secrets: [payload-id, payload-secret, payload-refresh]
+                  - name: t
+                    type: vless
+                    network: xdrive
+                    xdrive-opts:
+                      service: template
+                      template:
+                        auth:
+                          type: static
+                          header:
+                            Authorization: Bearer payload-token
+        """.trimIndent()
+        val out = XDriveSecretRedactor.redactConfigYaml(text)
+        for (secret in listOf("payload-id", "payload-secret", "payload-refresh", "payload-token")) {
+            assertFalse("$secret leaked: $out", out.contains(secret))
+        }
+        assertTrue(out, out.contains(XDriveSecretRedactor.REDACTED))
+    }
+
+    @Test
     fun redactsCredentialsUnderEngineEquivalentKeySpellings() {
         val text = """
             proxies:

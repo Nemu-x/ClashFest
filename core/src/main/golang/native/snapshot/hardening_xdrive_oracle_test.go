@@ -47,13 +47,16 @@ func TestHardenedXDriveFixturesNeutraliseLocalStorage(t *testing.T) {
 					t.Errorf("%s: type %s, want %s", proxy, p.Type(), typ)
 				}
 			}
-			provider, ok := cfg.Providers["inline"]
-			if !ok {
-				t.Fatal("inline provider missing after hardening")
-			}
-			proxies := provider.Proxies()
-			if len(proxies) != 1 || proxies[0].Name() != "provider-local" || proxies[0].Type() != C.Reject {
-				t.Errorf("inline payload not neutralised: %v", proxies)
+			// `caps` spells its keys `Type:`/`Payload:`; the provider decoder still loads it.
+			for providerName, node := range map[string]string{"inline": "provider-local", "caps": "provider-caps"} {
+				provider, ok := cfg.Providers[providerName]
+				if !ok {
+					t.Fatalf("%s provider missing after hardening", providerName)
+				}
+				proxies := provider.Proxies()
+				if len(proxies) != 1 || proxies[0].Name() != node || proxies[0].Type() != C.Reject {
+					t.Errorf("%s payload not neutralised: %v", providerName, proxies)
+				}
 			}
 			if len(cfg.Listeners) > 1 {
 				t.Errorf("xdrive listener survived hardening: %d listeners", len(cfg.Listeners))

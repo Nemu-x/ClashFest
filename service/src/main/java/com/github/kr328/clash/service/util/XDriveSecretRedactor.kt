@@ -75,12 +75,23 @@ object XDriveSecretRedactor {
             val out = LinkedHashMap<String, Any?>(providers.size)
             for ((name, provider) in providers) {
                 val map = provider as? Map<*, *>
-                val payload = (map?.get("payload") as? List<*>)?.let { redactList(it) }
-                if (map == null || payload == null) {
+                if (map == null) {
                     out[name.toString()] = provider
-                } else {
-                    out[name.toString()] = copy(map).also { it["payload"] = payload }
+                    continue
+                }
+                // Every key the case-insensitive provider decoder could read as `payload`.
+                var providerChanged = false
+                val rebuilt = LinkedHashMap<String, Any?>(map.size)
+                for ((k, v) in map) {
+                    val redacted = if (MihomoKeys.matches(k, "payload") && v is List<*>) redactList(v) else null
+                    if (redacted != null) providerChanged = true
+                    rebuilt[k.toString()] = redacted ?: v
+                }
+                if (providerChanged) {
+                    out[name.toString()] = rebuilt
                     changed = true
+                } else {
+                    out[name.toString()] = provider
                 }
             }
             if (changed) {

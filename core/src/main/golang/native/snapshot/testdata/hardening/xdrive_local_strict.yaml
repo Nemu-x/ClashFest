@@ -25,6 +25,11 @@ proxy-providers:
         payload:
           - name: provider-local
             type: reject
+    caps:
+        Type: inline
+        Payload:
+          - name: provider-caps
+            type: reject
 proxy-groups:
   - name: G
     type: select
@@ -35,5 +40,6 @@ proxy-groups:
       - cloud-node
     use:
       - inline
+      - caps
 rules:
   - MATCH,G

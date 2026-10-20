@@ -262,6 +262,19 @@ class WritePipelineOracleFixtureTest {
                     xdrive-opts:
                       service: local
                       remote-folder: /data/local/tmp/xdrive
+              caps:
+                Type: inline
+                Payload:
+                  - name: provider-caps
+                    type: vless
+                    server: 127.0.0.1
+                    port: 443
+                    uuid: 27848739-7e62-4138-9fd3-098a63964b6b
+                    network: xdrive
+                    encryption: $encryption
+                    xdrive-opts:
+                      service: local
+                      remote-folder: /data/local/tmp/xdrive
             proxy-groups:
               - name: G
                 type: select
@@ -272,6 +285,7 @@ class WritePipelineOracleFixtureTest {
                   - cloud-node
                 use:
                   - inline
+                  - caps
             rules:
               - MATCH,G
         """.trimIndent() + "\n"
@@ -283,6 +297,7 @@ class WritePipelineOracleFixtureTest {
             val hardened = assertNotNull(YamlHardener.hardenYaml(unsafe, mode))
             assertTrue(!hardened.contains("service: local", ignoreCase = true), "$mode")
             assertTrue(!hardened.contains("/sdcard/Download"), "$mode")
+            assertTrue(!hardened.contains("/data/local/tmp/xdrive"), "$mode")
             assertTrue(!hardened.contains("xdrive-config"), "$mode")
             File(dir, name).writeText(hardened)
         }
