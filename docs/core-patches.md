@@ -13,9 +13,13 @@ test task. It treats the submodule tree as a state machine:
 
 | Tree state | Action |
 |---|---|
-| every patch reverse-applies cleanly | series already applied, nothing to do |
-| tree clean, every patch applies | apply the series in name order |
+| the series reverse-applies, last patch first | series already applied, nothing to do |
+| tree clean, the series applies in name order | apply the series in name order |
 | anything else | fail and name the offending patch |
+
+The series is a stack: a patch may build on lines an earlier one changed (0004 on 0001), so the
+checks replay it in order on a scratch index (`GIT_INDEX_FILE`) rather than checking each patch
+alone against the tree.
 
 So a core bump that moves the patched lines stops the build at this task instead of shipping an
 unpatched `libclash.so`. Local edits in the files a patch touches also stop it; stash them or
@@ -25,8 +29,14 @@ modified freely: CI and the F-Droid recipe overwrite the embedded Root CA bundle
 `:core:revertCorePatches` undoes the series and runs on `clean`. The submodule therefore shows as
 modified while a build tree is set up; never commit the applied patches into the submodule.
 
-Tests that ship inside a patch run with the Go test task (`go test github.com/metacubex/mihomo/component/tls`
-from the `cfa` module), against the patched tree.
+Tests that ship inside a patch run with the Go test task (`:core:goTestNativeSnapshot`, which runs
+`go test` on `component/tls`, `transport/xdrive`, `transport/vless/muxcool`, `adapter`
+and `adapter/outbound` from the `cfa` module), against the patched tree. Engine-oracle tests for
+the config surface a patch adds live in `cfa/native/snapshot` (`core_patch_oracle_test.go`).
+
+Optional capabilities a patch adds are advertised to Kotlin through `Clash.coreFeatures()`
+(`cfa/native/features`). Each entry there imports the package that implements it, so building
+without the patch fails instead of advertising a feature that is not compiled in.
 
 ## Rules for a patch
 
@@ -84,3 +94,38 @@ firefox fingerprints, older Xray) passes 32/32 on both the stock and the patched
 
 Upstream: mihomo PR #2983 proposed always sending the hybrid share and was closed. Delete when
 mihomo negotiates this itself.
+
+### 0003 VLESS over XDrive (client)
+
+Client side of the XDrive transport from Citrus (getmikan/Citrus PR #139, commit 8874a50c): VLESS
+streams are carried through files in a remote storage folder (Google Drive or a generic HTTP
+storage described by a `template`), multiplexed with Mux.Cool. Config surface: `network: xdrive`
+plus `xdrive-opts` (`service`, `remote-folder`, `secrets`, `template`, `fronting`, timing knobs).
+XDrive requires VLESS `encryption` (not `none`), rejects `flow`, outer TLS security modes
+(REALITY / ShadowTLS / ...), `smux`, and any UDP packet encoding other than `xudp`; all of it fails
+at config validation, not at dial time.
+
+Brought: `transport/xdrive` (MPL-2.0 code adapted from Xray-core, SPDX headers and `LICENSE`
+kept verbatim), `transport/vless/muxcool`, `adapter/outbound/vless_xdrive.go` and the hooks in
+`adapter/outbound/vless.go` / `adapter/parser.go`, with their unit tests. Left out: the
+inbound/listener side. Adapted to vanilla: TLS comes from `transport/vmess` (Citrus moved it to
+`transport/v2ray`), and the go1.21 built-in `min` is replaced because mihomo's `go.mod` is still
+`go 1.20`. No new module requirements.
+
+Note: `service: local` (a folder on the device, meant for tests) is accepted from a profile like
+upstream does; it can only create and delete XDrive session files under the given folder.
+
+Delete when mihomo ships XDrive itself, or when ClashFest stops advertising `xdrive` in
+`coreFeatures` (the bridge's `cfa/native/features` imports this package, so dropping the patch
+breaks the build until the feature is removed there too).
+
+### 0004 REALITY: per-proxy client version
+
+`reality-opts.client-version: "26.9.9"` overrides the global client version from 0001 for that
+proxy only; empty keeps the global one, which is still read at handshake time so the app's
+`setRealityPolicy` reaches every proxy without an override. A malformed value (anything but
+`x.y.z` with parts 0..255) fails config validation. The idea is from Citrus commit 9c9b0856, the
+implementation is ours on top of 0001/0002: no ML-KEM-by-default, no `mldsa65-verify`, and the
+adaptive ML-KEM policy from 0002 is untouched.
+
+Upstream: same status as 0001. Delete together with 0001.

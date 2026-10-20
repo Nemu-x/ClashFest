@@ -82,6 +82,7 @@ object Bridge {
     external fun nativeQueryConfiguration(): String
     external fun nativeSubscribeLogcat(callback: LogcatInterface)
     external fun nativeCoreVersion(): String
+    external fun nativeCoreFeatures(): String?
 
     private external fun nativeInit(home: String, versionName: String, sdkVersion: Int, debug: Boolean)
 
