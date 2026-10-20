@@ -7,9 +7,9 @@
     android:clickable="true"
     android:focusable="true"
     android:gravity="center"
-    android:minHeight="34dp"
+    android:minHeight="40dp"
     android:orientation="horizontal"
-    android:paddingHorizontal="11dp">
+    android:paddingHorizontal="12dp">
 
     <TextView
         android:id="@+id/segment_name"
@@ -32,9 +32,9 @@
         android:background="@drawable/bg_segment_count"
         android:duplicateParentState="true"
         android:gravity="center"
-        android:minWidth="18dp"
-        android:paddingHorizontal="5dp"
-        android:paddingVertical="1dp"
+        android:minWidth="20dp"
+        android:paddingHorizontal="4dp"
+        android:paddingVertical="2dp"
         android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="10sp"
         android:textStyle="bold"

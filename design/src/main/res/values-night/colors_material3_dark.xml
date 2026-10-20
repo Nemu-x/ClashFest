@@ -56,13 +56,13 @@
     <color name="md3_dark_inversePrimary">#A64F00</color>
 
     <!-- Proxy Delay Colors (dark variants) -->
-    <color name="delay_good">#66BB6A</color>
+    <color name="delay_good">#7DDF93</color>
     <color name="delay_good_bg">#1B2E7D32</color>
-    <color name="delay_medium">#FFA726</color>
+    <color name="delay_medium">#FFB74D</color>
     <color name="delay_medium_bg">#1BE65100</color>
-    <color name="delay_bad">#EF5350</color>
+    <color name="delay_bad">#FF8A80</color>
     <color name="delay_bad_bg">#1BC62828</color>
-    <color name="delay_timeout">#757575</color>
+    <color name="delay_timeout">#A8AFB5</color>
     <color name="delay_timeout_bg">#1B757575</color>
 
     <!-- Proxy Type Badge Colors (dark) -->

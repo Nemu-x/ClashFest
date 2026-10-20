@@ -163,7 +163,9 @@ internal fun applyDelayStyle(
     delayMs: Int,
     context: Context,
 ) {
-    // Lumen: delay reads as a coloured dot + value (Space Grotesk), no filled capsule.
+    // Five levels: fast (<=200ms), medium (<=500ms), slow, timeout/untested, N/A (probe not
+    // supported for the node). The level colour drives the dot and the text; a soft tint of the
+    // same colour fills the inner pill. The outer touch wrapper keeps its own ripple.
     val colorRes = when {
         delayMs in 0..200 -> R.color.delay_good
         delayMs in 201..500 -> R.color.delay_medium
@@ -171,7 +173,9 @@ internal fun applyDelayStyle(
         else -> R.color.delay_timeout
     }
     val color = ContextCompat.getColor(context, colorRes)
-    capsule.setBackgroundResource(0)
+    val fillAlpha = if (delayMs == StandalonePing.TCP_UNSUPPORTED) 0x14 else 0x26
+    val pill = capsule.findViewById<View>(R.id.latency_pill) ?: capsule
+    pill.backgroundTintList = ColorStateList.valueOf((color and 0x00FFFFFF) or (fillAlpha shl 24))
     dot.backgroundTintList = ColorStateList.valueOf(color)
     text.setTextColor(color)
 }

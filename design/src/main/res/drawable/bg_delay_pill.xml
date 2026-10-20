@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Latency capsule: white solid so backgroundTintList (set in applyDelayStyle to the level colour
+     at low alpha) controls the fill, same trick as bg_proto_chip. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@android:color/white" />
+    <corners android:radius="12dp" />
+</shape>

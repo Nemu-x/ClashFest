@@ -37,7 +37,7 @@
         android:clickable="true"
         android:focusable="true"
         app:cardBackgroundColor="?attr/colorSurfaceContainer"
-        app:cardCornerRadius="18dp"
+        app:cardCornerRadius="16dp"
         app:cardElevation="0dp"
         app:rippleColor="?attr/colorControlHighlight"
         app:strokeColor="?attr/colorOutlineVariant"
@@ -51,10 +51,11 @@
             android:padding="16dp">
 
             <ImageView
+                android:importantForAccessibility="no"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/bg_m3_status_chip_neutral"
-                android:padding="9dp"
+                android:padding="8dp"
                 android:src="@drawable/ic_baseline_route"
                 app:tint="?attr/colorPrimary"
                 tools:ignore="ContentDescription" />
@@ -104,7 +105,7 @@
         android:clickable="true"
         android:focusable="true"
         app:cardBackgroundColor="?attr/colorSurfaceContainer"
-        app:cardCornerRadius="18dp"
+        app:cardCornerRadius="16dp"
         app:cardElevation="0dp"
         app:rippleColor="?attr/colorControlHighlight"
         app:strokeColor="?attr/colorOutlineVariant"
@@ -118,10 +119,11 @@
             android:padding="16dp">
 
             <ImageView
+                android:importantForAccessibility="no"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/bg_m3_status_chip_neutral"
-                android:padding="9dp"
+                android:padding="8dp"
                 android:src="@drawable/ic_baseline_language"
                 app:tint="?attr/colorPrimary"
                 tools:ignore="ContentDescription" />

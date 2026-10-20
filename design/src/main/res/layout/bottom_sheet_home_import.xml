@@ -35,7 +35,7 @@
         android:clickable="true"
         android:focusable="true"
         app:cardBackgroundColor="?attr/colorSurfaceContainer"
-        app:cardCornerRadius="18dp"
+        app:cardCornerRadius="16dp"
         app:cardElevation="0dp"
         app:rippleColor="?attr/colorControlHighlight"
         app:strokeColor="?attr/colorOutlineVariant"
@@ -53,7 +53,7 @@
                 android:layout_height="40dp"
                 android:background="@drawable/bg_m3_status_chip_neutral"
                 android:contentDescription="@string/home_import_clipboard_row"
-                android:padding="9dp"
+                android:padding="8dp"
                 android:src="@drawable/ic_baseline_attach_file"
                 app:tint="?attr/colorPrimary" />
 
@@ -102,7 +102,7 @@
         android:clickable="true"
         android:focusable="true"
         app:cardBackgroundColor="?attr/colorSurfaceContainer"
-        app:cardCornerRadius="18dp"
+        app:cardCornerRadius="16dp"
         app:cardElevation="0dp"
         app:rippleColor="?attr/colorControlHighlight"
         app:strokeColor="?attr/colorOutlineVariant"
@@ -120,7 +120,7 @@
                 android:layout_height="40dp"
                 android:background="@drawable/bg_m3_status_chip_neutral"
                 android:contentDescription="@string/home_import_url_row"
-                android:padding="9dp"
+                android:padding="8dp"
                 android:src="@drawable/ic_baseline_domain"
                 app:tint="?attr/colorPrimary" />
 
@@ -169,7 +169,7 @@
         android:clickable="true"
         android:focusable="true"
         app:cardBackgroundColor="?attr/colorSurfaceContainer"
-        app:cardCornerRadius="18dp"
+        app:cardCornerRadius="16dp"
         app:cardElevation="0dp"
         app:rippleColor="?attr/colorControlHighlight"
         app:strokeColor="?attr/colorOutlineVariant"
@@ -187,7 +187,7 @@
                 android:layout_height="40dp"
                 android:background="@drawable/bg_m3_status_chip_neutral"
                 android:contentDescription="@string/home_import_qr_row"
-                android:padding="9dp"
+                android:padding="8dp"
                 android:src="@drawable/ic_baseline_qr_code"
                 app:tint="?attr/colorPrimary" />
 
@@ -236,7 +236,7 @@
         android:clickable="true"
         android:focusable="true"
         app:cardBackgroundColor="?attr/colorSurfaceContainer"
-        app:cardCornerRadius="18dp"
+        app:cardCornerRadius="16dp"
         app:cardElevation="0dp"
         app:rippleColor="?attr/colorControlHighlight"
         app:strokeColor="?attr/colorOutlineVariant"
@@ -254,7 +254,7 @@
                 android:layout_height="40dp"
                 android:background="@drawable/bg_m3_status_chip_neutral"
                 android:contentDescription="@string/home_import_file_row"
-                android:padding="9dp"
+                android:padding="8dp"
                 android:src="@drawable/ic_baseline_attach_file"
                 app:tint="?attr/colorPrimary" />
 
@@ -303,7 +303,7 @@
         android:clickable="true"
         android:focusable="true"
         app:cardBackgroundColor="?attr/colorSurfaceContainer"
-        app:cardCornerRadius="18dp"
+        app:cardCornerRadius="16dp"
         app:cardElevation="0dp"
         app:rippleColor="?attr/colorControlHighlight"
         app:strokeColor="?attr/colorOutlineVariant"
@@ -321,7 +321,7 @@
                 android:layout_height="40dp"
                 android:background="@drawable/bg_m3_status_chip_neutral"
                 android:contentDescription="@string/companion_import_row"
-                android:padding="9dp"
+                android:padding="8dp"
                 android:src="@drawable/ic_baseline_stack"
                 app:tint="?attr/colorPrimary" />
 

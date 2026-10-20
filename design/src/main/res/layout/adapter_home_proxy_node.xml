@@ -14,14 +14,14 @@
     android:orientation="horizontal"
     android:paddingStart="16dp"
     android:paddingEnd="16dp"
-    android:paddingVertical="12dp">
+    android:paddingVertical="4dp">
 
     <!-- Selection is now shown by the accent outline (bg_proxy_node_row) + check, so the left
          rail is retired. Kept as a 0-width view because selection tracking reads its visibility. -->
     <View
         android:id="@+id/selected_bar"
         android:layout_width="0dp"
-        android:layout_height="34dp"
+        android:layout_height="32dp"
         android:background="@drawable/bg_proxy_node_rail"
         android:visibility="invisible" />
 
@@ -33,6 +33,7 @@
         android:visibility="gone">
 
         <com.google.android.material.imageview.ShapeableImageView
+            android:importantForAccessibility="no"
             android:id="@+id/proxy_flag_image"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -57,7 +58,8 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:paddingVertical="8dp">
 
         <TextView
             android:id="@+id/proxy_title"
@@ -70,117 +72,69 @@
             android:textStyle="bold"
             tools:text="AuraVPN | Нидерланды | VLESS XHTTP" />
 
-        <LinearLayout
+        <com.google.android.material.chip.ChipGroup
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:layout_marginTop="4dp"
+            android:importantForAccessibility="no"
+            app:chipSpacingHorizontal="4dp"
+            app:chipSpacingVertical="4dp"
+            app:singleLine="false">
 
-            <com.google.android.material.chip.ChipGroup
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:importantForAccessibility="no"
-                app:chipSpacingHorizontal="8dp"
-                app:chipSpacingVertical="4dp"
-                app:singleLine="false">
-
-                <TextView
-                    android:id="@+id/proxy_type_badge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/bg_proto_chip"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="2dp"
-                    android:fontFamily="monospace"
-                    android:letterSpacing="0.08"
-                    android:maxLines="1"
-                    android:textAllCaps="true"
-                    android:textSize="10sp"
-                    android:textStyle="bold"
-                    android:visibility="gone"
-                    tools:text="VLESS"
-                    tools:textColor="@color/proto_xhttp"
-                    tools:visibility="visible" />
-
-                <TextView
-                    android:id="@+id/proxy_transport_badge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/bg_proto_chip"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="2dp"
-                    android:fontFamily="monospace"
-                    android:letterSpacing="0.08"
-                    android:maxLines="1"
-                    android:textAllCaps="true"
-                    android:textSize="10sp"
-                    android:textStyle="bold"
-                    android:visibility="gone"
-                    tools:text="XHTTP"
-                    tools:textColor="@color/proto_xhttp"
-                    tools:visibility="visible" />
-
-                <TextView
-                    android:id="@+id/proxy_reality_badge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/bg_proto_chip"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="2dp"
-                    android:fontFamily="monospace"
-                    android:letterSpacing="0.08"
-                    android:maxLines="1"
-                    android:textAllCaps="true"
-                    android:textSize="10sp"
-                    android:textStyle="bold"
-                    android:visibility="gone"
-                    tools:text="REALITY"
-                    tools:textColor="@color/proto_reality"
-                    tools:visibility="visible" />
-
-            </com.google.android.material.chip.ChipGroup>
-
-            <!-- Tap target: measures just this node (ProfileAdapter.onPingNode). Borderless ripple keeps the
-                 capsule visually unchanged at rest; focusable so a TV d-pad can reach it too. -->
-            <LinearLayout
-                android:id="@+id/latency_capsule"
+            <TextView
+                android:id="@+id/proxy_type_badge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:clickable="true"
-                android:contentDescription="@string/proxy_ping_node"
-                android:focusable="true"
-                android:gravity="center_vertical|end"
-                android:minHeight="36dp"
-                android:minWidth="58dp"
-                android:orientation="horizontal"
-                android:paddingHorizontal="8dp">
+                android:background="@drawable/bg_proto_chip"
+                android:fontFamily="monospace"
+                android:letterSpacing="0.08"
+                android:maxLines="1"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="2dp"
+                android:textAllCaps="true"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:text="VLESS"
+                tools:textColor="@color/proto_xhttp"
+                tools:visibility="visible" />
 
-                <View
-                    android:id="@+id/latency_dot"
-                    android:layout_width="6dp"
-                    android:layout_height="6dp"
-                    android:layout_marginEnd="7dp"
-                    android:background="@drawable/dot_circle" />
+            <TextView
+                android:id="@+id/proxy_transport_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_proto_chip"
+                android:fontFamily="monospace"
+                android:letterSpacing="0.08"
+                android:maxLines="1"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="2dp"
+                android:textAllCaps="true"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:text="XHTTP"
+                tools:textColor="@color/proto_xhttp"
+                tools:visibility="visible" />
 
-                <TextView
-                    android:id="@+id/proxy_delay"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:maxWidth="64dp"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:fontFamily="sans-serif-medium"
-                    app:fontFamily="sans-serif-medium"
-                    android:gravity="center"
-                    android:textAppearance="@style/TextAppearance.App.LabelMedium"
-                    android:textStyle="bold"
-                    tools:text="47ms" />
-            </LinearLayout>
-        </LinearLayout>
+            <TextView
+                android:id="@+id/proxy_reality_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_proto_chip"
+                android:fontFamily="monospace"
+                android:letterSpacing="0.08"
+                android:maxLines="1"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="2dp"
+                android:textAllCaps="true"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:text="REALITY"
+                tools:textColor="@color/proto_reality"
+                tools:visibility="visible" />
+        </com.google.android.material.chip.ChipGroup>
 
         <TextView
             android:id="@+id/proxy_subtitle"
@@ -196,11 +150,61 @@
             tools:visibility="visible" />
     </LinearLayout>
 
+    <!-- Tap target (48dp): measures just this node (ProfileAdapter.onPingNode). The borderless
+         ripple lives on this wrapper; the tinted pill inside carries the level colour
+         (applyDelayStyle). Focusable so a TV d-pad can reach it too. -->
+    <FrameLayout
+        android:id="@+id/latency_capsule"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:contentDescription="@string/proxy_ping_node"
+        android:focusable="true"
+        android:minWidth="56dp"
+        android:minHeight="48dp">
+
+        <LinearLayout
+            android:id="@+id/latency_pill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_delay_pill"
+            android:gravity="center_vertical"
+            android:minHeight="28dp"
+            android:orientation="horizontal"
+            android:paddingHorizontal="8dp">
+
+            <View
+                android:id="@+id/latency_dot"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/dot_circle"
+                android:importantForAccessibility="no" />
+
+            <TextView
+                android:id="@+id/proxy_delay"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:maxWidth="64dp"
+                android:maxLines="1"
+                android:textAppearance="@style/TextAppearance.App.LabelMedium"
+                android:textStyle="bold"
+                app:fontFamily="sans-serif-medium"
+                tools:text="47ms" />
+        </LinearLayout>
+    </FrameLayout>
+
     <ImageView
         android:id="@+id/selected_check"
         android:layout_width="20dp"
         android:layout_height="20dp"
-        android:layout_marginStart="12dp"
+        android:layout_marginStart="8dp"
         android:importantForAccessibility="no"
         android:src="@drawable/ic_baseline_check"
         android:visibility="invisible"

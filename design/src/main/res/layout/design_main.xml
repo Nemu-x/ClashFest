@@ -25,6 +25,9 @@
         <variable
             name="hasProfiles"
             type="boolean" />
+        <variable
+            name="profilesLoaded"
+            type="boolean" />
 
         <import type="android.view.View" />
         <import type="com.github.kr328.clash.design.MainDesign.Request" />
@@ -116,12 +119,12 @@
 
                         <ImageButton
                             android:id="@+id/main_header_update_badge"
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
                             android:layout_marginStart="8dp"
                             android:background="?attr/selectableItemBackgroundBorderless"
                             android:contentDescription="@string/update_badge_description"
-                            android:padding="8dp"
+                            android:padding="12dp"
                             android:src="@drawable/ic_outline_system_update"
                             android:visibility="gone"
                             app:tint="?attr/colorPrimary"
@@ -132,7 +135,7 @@
                         android:id="@+id/main_header_tagline"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="1dp"
+                        android:layout_marginTop="2dp"
                         android:ellipsize="end"
                         android:maxLines="1"
                         android:textAppearance="@style/TextAppearance.App.LabelSmall"
@@ -155,13 +158,13 @@
 
                 <ImageButton
                     android:id="@+id/top_add_button"
-                    android:layout_width="42dp"
-                    android:layout_height="42dp"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/add"
                     android:foreground="@drawable/focus_ring"
                     android:onClick="@{() -> self.request(Request.OpenNewProfile)}"
-                    android:padding="9dp"
+                    android:padding="12dp"
                     android:src="@drawable/ic_baseline_add"
                     app:tint="?attr/colorOnSurfaceVariant" />
 
@@ -190,6 +193,30 @@
                     android:visibility="@{hasProfiles ? View.VISIBLE : View.GONE}"
                     tools:listitem="@layout/adapter_profile" />
 
+                <!-- Skeleton until the first profile list arrives, so the empty-state illustration
+                     does not flash for users who do have a subscription. -->
+                <LinearLayout
+                    android:id="@+id/main_home_skeleton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/loading"
+                    android:orientation="vertical"
+                    android:visibility="@{profilesLoaded ? View.GONE : View.VISIBLE}">
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="96dp"
+                        android:layout_marginBottom="12dp"
+                        android:background="@drawable/bg_home_card_soft"
+                        android:importantForAccessibility="no" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="160dp"
+                        android:background="@drawable/bg_home_card_soft"
+                        android:importantForAccessibility="no" />
+                </LinearLayout>
+
                 <LinearLayout
                     android:id="@+id/main_home_empty_state"
                     android:layout_width="match_parent"
@@ -199,7 +226,7 @@
                     android:orientation="vertical"
                     android:paddingHorizontal="32dp"
                     android:paddingVertical="24dp"
-                    android:visibility="@{hasProfiles ? View.GONE : View.VISIBLE}">
+                    android:visibility="@{!profilesLoaded || hasProfiles ? View.GONE : View.VISIBLE}">
 
                     <FrameLayout
                         android:layout_width="96dp"
@@ -446,14 +473,14 @@
                     android:paddingVertical="12dp">
 
                     <FrameLayout
-                        android:layout_width="34dp"
-                        android:layout_height="34dp"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
                         android:layout_marginEnd="12dp"
                         android:background="@drawable/bg_flag_circle">
 
                         <ImageView
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
                             android:layout_gravity="center"
                             android:contentDescription="@string/announcement_text"
                             android:src="@drawable/ic_baseline_campaign"
@@ -520,9 +547,10 @@
                         android:visibility="gone">
 
                         <ImageView
+                            android:importantForAccessibility="no"
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:padding="9dp"
+                            android:padding="8dp"
                             android:src="@drawable/ic_baseline_route"
                             app:tint="?attr/colorPrimary"
                             tools:ignore="ContentDescription" />
@@ -553,6 +581,7 @@
                         </LinearLayout>
 
                         <ImageView
+                            android:importantForAccessibility="no"
                             android:layout_width="28dp"
                             android:layout_height="28dp"
                             android:padding="4dp"
@@ -577,9 +606,10 @@
                         android:visibility="gone">
 
                         <ImageView
+                            android:importantForAccessibility="no"
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:padding="9dp"
+                            android:padding="8dp"
                             android:src="@drawable/ic_baseline_stack"
                             app:tint="?attr/colorPrimary"
                             tools:ignore="ContentDescription" />
@@ -610,6 +640,7 @@
                         </LinearLayout>
 
                         <ImageView
+                            android:importantForAccessibility="no"
                             android:layout_width="28dp"
                             android:layout_height="28dp"
                             android:padding="4dp"
@@ -622,7 +653,7 @@
                     <com.google.android.material.divider.MaterialDivider
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="66dp"
+                        android:layout_marginStart="68dp"
                         android:layout_marginEnd="16dp"
                         android:visibility="gone" />
 
@@ -1014,6 +1045,28 @@
                             android:text="@string/main_add_subscription"
                             app:icon="@drawable/ic_baseline_add"
                             app:iconGravity="textStart" />
+                    </LinearLayout>
+                    <!-- Shown until the first profile list arrives (hidden in MainDesign.patchProfiles). -->
+                    <LinearLayout
+                        android:id="@+id/profiles_tab_skeleton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:contentDescription="@string/loading"
+                        android:orientation="vertical"
+                        android:paddingTop="4dp">
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="80dp"
+                            android:layout_marginBottom="12dp"
+                            android:background="@drawable/bg_home_card_soft"
+                            android:importantForAccessibility="no" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="80dp"
+                            android:background="@drawable/bg_home_card_soft"
+                            android:importantForAccessibility="no" />
                     </LinearLayout>
                 </FrameLayout>
             </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
@@ -1987,8 +2040,9 @@
                     android:orientation="vertical">
 
                     <ImageView
-                        android:layout_width="21dp"
-                        android:layout_height="21dp"
+                        android:importantForAccessibility="no"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:duplicateParentState="true"
                         android:src="@drawable/ic_baseline_bolt"
                         app:tint="@color/selector_bottom_nav_item" />
@@ -2020,8 +2074,9 @@
                     android:orientation="vertical">
 
                     <ImageView
-                        android:layout_width="21dp"
-                        android:layout_height="21dp"
+                        android:importantForAccessibility="no"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:duplicateParentState="true"
                         android:src="@drawable/ic_baseline_subscriptions"
                         app:tint="@color/selector_bottom_nav_item" />
@@ -2053,8 +2108,9 @@
                     android:orientation="vertical">
 
                     <ImageView
-                        android:layout_width="21dp"
-                        android:layout_height="21dp"
+                        android:importantForAccessibility="no"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:duplicateParentState="true"
                         android:src="@drawable/ic_baseline_route"
                         app:tint="@color/selector_bottom_nav_item" />
@@ -2087,9 +2143,10 @@
                     android:visibility="gone">
 
                     <ImageView
+                        android:importantForAccessibility="no"
                         android:id="@+id/main_nav_operator_icon"
-                        android:layout_width="21dp"
-                        android:layout_height="21dp"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:duplicateParentState="true"
                         android:src="@drawable/ic_baseline_business"
                         app:tint="@color/selector_bottom_nav_item" />
@@ -2122,8 +2179,9 @@
                     android:orientation="vertical">
 
                     <ImageView
-                        android:layout_width="21dp"
-                        android:layout_height="21dp"
+                        android:importantForAccessibility="no"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:duplicateParentState="true"
                         android:src="@drawable/ic_baseline_settings"
                         app:tint="@color/selector_bottom_nav_item" />

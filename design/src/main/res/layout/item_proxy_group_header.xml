@@ -17,7 +17,7 @@
         android:clickable="true"
         android:focusable="true"
         android:gravity="center_vertical"
-        android:minHeight="52dp"
+        android:minHeight="56dp"
         android:orientation="horizontal"
         android:paddingHorizontal="12dp"
         android:paddingVertical="8dp">
@@ -51,7 +51,7 @@
                 android:id="@+id/group_block_summary"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="4dp"
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:textAppearance="@style/TextAppearance.App.BodySmall"
@@ -69,7 +69,7 @@
             android:background="@drawable/bg_segment_count"
             android:gravity="center"
             android:minWidth="20dp"
-            android:paddingHorizontal="6dp"
+            android:paddingHorizontal="8dp"
             android:paddingVertical="2dp"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="11sp"
@@ -78,8 +78,8 @@
 
         <FrameLayout
             android:id="@+id/group_block_ping_slot"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_marginStart="4dp">
 
             <ImageView
@@ -90,7 +90,7 @@
                 android:clickable="true"
                 android:contentDescription="@string/profile_ping_all"
                 android:focusable="true"
-                android:padding="8dp"
+                android:padding="12dp"
                 android:scaleType="centerInside"
                 android:src="@drawable/ic_speedometer_ping"
                 app:tint="?attr/colorPrimary" />
@@ -107,11 +107,11 @@
 
         <ImageView
             android:id="@+id/group_block_chevron"
-            android:layout_width="26dp"
-            android:layout_height="26dp"
-            android:layout_marginStart="2dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="4dp"
             android:contentDescription="@string/profile_expand_proxies"
-            android:padding="3dp"
+            android:padding="4dp"
             android:rotation="-90"
             android:scaleType="centerInside"
             android:src="@drawable/ic_baseline_expand_more"

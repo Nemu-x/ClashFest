@@ -262,10 +262,14 @@ internal fun ProfileAdapter.openProxySheet(context: Context, profile: Profile) {
             nodeAdapter.submitList(items)
             if (items.isEmpty()) {
                 val groupHasNodes = rowsForCurrentGroup(selectedIndex).isNotEmpty()
-                sheet.proxySheetEmpty.text =
-                    context.getString(proxyPickerEmptyHint(profile, groupNames.getOrNull(selectedIndex), groupHasNodes))
-                sheet.proxySheetEmpty.visibility = View.VISIBLE
+                val hint = proxyPickerEmptyHint(profile, groupNames.getOrNull(selectedIndex), groupHasNodes)
+                // Loading shows the skeleton rows; every other empty case says why in words.
+                val loading = hint == R.string.proxy_nodes_loading
+                sheet.proxySheetSkeleton.visibility = if (loading) View.VISIBLE else View.GONE
+                sheet.proxySheetEmpty.text = context.getString(hint)
+                sheet.proxySheetEmpty.visibility = if (loading) View.GONE else View.VISIBLE
             } else {
+                sheet.proxySheetSkeleton.visibility = View.GONE
                 sheet.proxySheetEmpty.visibility = View.GONE
             }
             bindTestedAgo(sheet, profile, context)

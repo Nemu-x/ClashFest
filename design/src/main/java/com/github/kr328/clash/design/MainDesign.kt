@@ -442,6 +442,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     suspend fun patchProfiles(profiles: List<Profile>) {
         withContext(Dispatchers.Main) {
             binding.hasProfiles = profiles.isNotEmpty()
+            binding.profilesLoaded = true
             val homeProfiles = profiles.filter { it.active }.ifEmpty { profiles.take(1) }
             activeProfileForQuickActions = profiles.firstOrNull { it.active } ?: profiles.firstOrNull()
             renderActiveProfileCard(activeProfileForQuickActions)
@@ -460,6 +461,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
                 patchDataSet(this::profiles, sortTabProfiles(profiles), id = { it.uuid })
             }
             tabProfileAdapter.setExpandedUuids(subscriptionPreviewUuids.toSet())
+            binding.profilesTabSkeleton.visibility = View.GONE
             binding.profilesTabList.visibility = if (profiles.isEmpty()) View.GONE else View.VISIBLE
             binding.profilesTabEmpty.visibility = if (profiles.isEmpty()) View.VISIBLE else View.GONE
             val tabUpdatable = profiles.any { it.imported && it.type != Profile.Type.File }
@@ -839,6 +841,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         binding.self = this
         binding.tunnelStarting = false
         binding.hasProfiles = false
+        binding.profilesLoaded = false
         applyHomeBackgroundStyle()
         mainPager.setup()
 

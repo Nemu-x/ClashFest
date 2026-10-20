@@ -9,7 +9,7 @@
         android:orientation="vertical"
         android:paddingHorizontal="16dp"
         android:paddingTop="8dp"
-        android:paddingBottom="20dp">
+        android:paddingBottom="24dp">
 
         <!--
           One identity line, not a card. This sheet opens from a screen that already names the
@@ -24,7 +24,7 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingVertical="2dp">
+            android:paddingVertical="4dp">
 
             <TextView
                 android:id="@+id/proxy_sheet_sub_name"
@@ -55,11 +55,12 @@
 
             <View
                 android:id="@+id/proxy_sheet_sub_status_dot"
-                android:layout_width="7dp"
-                android:layout_height="7dp"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
                 android:layout_marginStart="12dp"
                 android:layout_marginEnd="8dp"
-                android:background="@drawable/dot_status" />
+                android:background="@drawable/dot_status"
+                android:importantForAccessibility="no" />
 
             <TextView
                 android:id="@+id/proxy_sheet_sub_status"
@@ -93,7 +94,7 @@
                 android:divider="@drawable/divider_group_segment"
                 android:dividerPadding="8dp"
                 android:gravity="center_vertical"
-                android:minHeight="40dp"
+                android:minHeight="48dp"
                 android:orientation="horizontal"
                 android:padding="4dp"
                 android:showDividers="middle" />
@@ -114,12 +115,12 @@
 
             <LinearLayout
                 android:layout_width="0dp"
-                android:layout_height="44dp"
+                android:layout_height="48dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_proxy_search_pill"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="16dp">
+                android:paddingStart="16dp">
 
                 <ImageView
                     android:layout_width="20dp"
@@ -139,7 +140,8 @@
                     android:imeOptions="actionSearch"
                     android:inputType="text"
                     android:maxLines="1"
-                    android:paddingHorizontal="0dp"
+                    android:paddingEnd="16dp"
+                    android:paddingStart="0dp"
                     android:paddingVertical="0dp"
                     android:textAppearance="@style/TextAppearance.App.BodyMedium"
                     android:textColor="?attr/colorOnSurface"
@@ -147,9 +149,10 @@
 
                 <ImageView
                     android:id="@+id/proxy_sheet_search_clear"
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:layout_marginStart="8dp"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:padding="14dp"
+                    android:scaleType="centerInside"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:clickable="true"
                     android:contentDescription="@string/profile_proxy_search_clear"
@@ -162,9 +165,9 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/proxy_sheet_sort_button"
                 style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_marginStart="8dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="4dp"
                 android:contentDescription="@string/profile_proxy_sort"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
@@ -178,9 +181,9 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/proxy_sheet_filter_button"
                 style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_marginStart="8dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="4dp"
                 android:contentDescription="@string/profile_proxy_filter"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
@@ -194,9 +197,9 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/proxy_sheet_layout_button"
                 style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_marginStart="6dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="4dp"
                 android:contentDescription="@string/proxy_layout_show_dropdown"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
@@ -209,15 +212,15 @@
 
             <FrameLayout
                 android:id="@+id/proxy_sheet_ping_slot"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_marginStart="8dp">
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="4dp">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/proxy_sheet_ping_button"
                     style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
                     android:contentDescription="@string/profile_ping_all_short"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
@@ -265,17 +268,18 @@
 
             <View
                 android:id="@+id/proxy_sheet_tested_dot"
-                android:layout_width="6dp"
-                android:layout_height="6dp"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
                 android:layout_marginEnd="8dp"
-                android:background="@drawable/dot_status" />
+                android:background="@drawable/dot_status"
+                android:importantForAccessibility="no" />
 
             <TextView
                 android:id="@+id/proxy_sheet_tested_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="11sp"
+                android:textAppearance="@style/TextAppearance.App.LabelSmall"
                 tools:text="Tested 12s ago" />
         </LinearLayout>
 
@@ -298,13 +302,57 @@
                 android:paddingBottom="8dp"
                 tools:listitem="@layout/adapter_home_proxy_node" />
 
+
+            <!-- Skeleton while the engine has not yet reported the group's nodes; swapped for the
+                 list by ProfileAdapter.renderProxySheet. Same soft-card placeholder as the chain screen. -->
+            <LinearLayout
+                android:id="@+id/proxy_sheet_skeleton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/proxy_nodes_loading"
+                android:orientation="vertical"
+                android:paddingHorizontal="8dp"
+                android:paddingTop="8dp"
+                android:visibility="gone">
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginBottom="4dp"
+                    android:background="@drawable/bg_home_card_soft"
+                    android:importantForAccessibility="no" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginBottom="4dp"
+                    android:background="@drawable/bg_home_card_soft"
+                    android:importantForAccessibility="no" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginBottom="4dp"
+                    android:background="@drawable/bg_home_card_soft"
+                    android:importantForAccessibility="no" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="@drawable/bg_home_card_soft"
+                    android:importantForAccessibility="no" />
+            </LinearLayout>
+
             <TextView
                 android:id="@+id/proxy_sheet_empty"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:padding="8dp"
-                android:textColor="@color/delay_timeout"
+                android:gravity="center"
+                android:paddingHorizontal="24dp"
+                android:paddingVertical="16dp"
+                android:textAppearance="@style/TextAppearance.App.BodyMedium"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:visibility="gone"
                 tools:text="Connect the VPN to load nodes"
                 tools:visibility="visible" />

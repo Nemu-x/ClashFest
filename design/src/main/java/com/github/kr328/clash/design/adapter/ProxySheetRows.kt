@@ -299,6 +299,9 @@ internal fun ProfileAdapter.bindProxyNodeRow(
 internal fun ProfileAdapter.bindDelayCapsule(capsule: View, dot: View, delayView: TextView, proxyName: String, delayMs: Int) {
     applyDelayStyle(capsule, dot, delayView, delayMs, capsule.context)
     delayView.text = if (isNodePingPending(proxyName)) NODE_PING_PENDING_TEXT else formatDelay(delayMs, delayView.context)
+    // The capsule is a button, so TalkBack reads its description instead of the child text;
+    // lead with the value so the latency is not lost behind the action label.
+    capsule.contentDescription = "${delayView.text}. ${capsule.context.getString(R.string.proxy_ping_node)}"
 }
 
 internal class ProxyNodeAdapter(

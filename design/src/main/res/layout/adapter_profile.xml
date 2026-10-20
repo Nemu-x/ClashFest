@@ -41,7 +41,7 @@
                 android:background="?attr/selectableItemBackground"
                 android:clickable="true"
                 android:focusable="true"
-                android:minHeight="78dp"
+                android:minHeight="80dp"
                 android:onClick="@{clicked}"
                 android:orientation="vertical">
 
@@ -49,7 +49,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
-                    android:minHeight="78dp"
+                    android:minHeight="80dp"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
                     android:paddingEnd="12dp">
@@ -76,6 +76,7 @@
                             tools:visibility="visible">
 
                             <com.google.android.material.imageview.ShapeableImageView
+                                android:importantForAccessibility="no"
                                 android:id="@+id/profile_flag_image"
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent"
@@ -206,8 +207,8 @@
 
                     <FrameLayout
                         android:id="@+id/force_update_slot"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
                         android:visibility="gone">
 
                         <ImageView
@@ -218,7 +219,7 @@
                             android:clickable="true"
                             android:contentDescription="@string/profile_force_update"
                             android:focusable="true"
-                            android:padding="9dp"
+                            android:padding="12dp"
                             android:scaleType="centerInside"
                             android:src="@drawable/ic_baseline_sync"
                             app:tint="?attr/colorOnSurfaceVariant" />
@@ -256,8 +257,8 @@
 
                     <FrameLayout
                         android:id="@+id/support_slot"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
                         android:visibility="gone">
 
                         <ImageView
@@ -268,7 +269,7 @@
                             android:clickable="true"
                             android:contentDescription="@string/sub_announcement_support"
                             android:focusable="true"
-                            android:padding="9dp"
+                            android:padding="12dp"
                             android:scaleType="centerInside"
                             android:src="@drawable/ic_baseline_headset_mic"
                             app:tint="?attr/colorPrimary" />
@@ -276,8 +277,8 @@
 
                     <FrameLayout
                         android:id="@+id/menu_view"
-                        android:layout_width="36dp"
-                        android:layout_height="40dp"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:clickable="true"
                         android:focusable="true">
@@ -286,7 +287,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:contentDescription="@string/more"
-                            android:padding="9dp"
+                            android:padding="12dp"
                             android:src="@drawable/ic_baseline_more_vert"
                             app:tint="?attr/colorOnSurfaceVariant" />
                     </FrameLayout>
