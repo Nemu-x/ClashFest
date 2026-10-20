@@ -113,7 +113,7 @@ internal class ProxyNodeRowBinder(private val adapter: ProfileAdapter) {
                 typeBadge.visibility = View.GONE
             }
 
-            val transportInfo = if (showBadge) adapter.transportInfoByProfile[profile.uuid]?.get(p.name) else null
+            val transportInfo = if (showBadge && hasTransport(typeName)) adapter.transportInfoByProfile[profile.uuid]?.get(p.name) else null
             val transportLabel = transportLabel(transportInfo, typeName)
             if (transportLabel != null) {
                 applyProtoChip(transportBadge, transportLabel, ContextCompat.getColor(context, R.color.proto_transport))
