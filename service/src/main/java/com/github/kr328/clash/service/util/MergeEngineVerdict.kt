@@ -35,5 +35,18 @@ enum class MergeEngineVerdict {
             fetchedError == null -> MergeIntroduced
             else -> PreexistingBroken
         }
+
+        /**
+         * Runs the gate: validates [composed] (and [fetched] only when that fails) with
+         * [validate], an engine call returning the error or null, and picks the config to write.
+         */
+        fun gate(fetched: String, composed: String, validate: (String) -> String?): Gate {
+            val composedError = validate(composed)
+            val verdict = if (composedError == null) Ok else classify(validate(fetched), composedError)
+            return Gate(verdict, if (verdict.appliesMergedConfig()) composed else fetched, composedError)
+        }
     }
+
+    /** Outcome of [gate]: the config to write, and the engine's error for the composed one. */
+    data class Gate(val verdict: MergeEngineVerdict, val config: String, val composedError: String?)
 }

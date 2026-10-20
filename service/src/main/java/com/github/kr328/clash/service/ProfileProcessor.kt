@@ -360,12 +360,9 @@ object ProfileProcessor {
                     // rejects. If our overlay broke an otherwise-valid subscription, fall back to the
                     // clean fetched subscription so the update still works, and surface that the local
                     // edits could not be applied. PreexistingBroken uses the fetched body as-is.
-                    val composedError = Clash.validateProfileBytes(composed)
-                    val verdict = if (composedError == null) {
-                        MergeEngineVerdict.Ok
-                    } else {
-                        MergeEngineVerdict.classify(Clash.validateProfileBytes(fetchedText), composedError)
-                    }
+                    val gate = MergeEngineVerdict.gate(fetchedText, composed) { Clash.validateProfileBytes(it) }
+                    val verdict = gate.verdict
+                    val composedError = gate.composedError
                     when (verdict) {
                         MergeEngineVerdict.MergeIntroduced -> {
                             Log.w("Overlay broke a valid subscription for ${snapshot.uuid}; applying clean fetched instead. $composedError")
@@ -375,7 +372,7 @@ object ProfileProcessor {
                             Log.w("Composed config invalid for ${snapshot.uuid}, but fetched was already invalid (using fetched): $composedError")
                         MergeEngineVerdict.Ok -> Unit
                     }
-                    configFile.writeText(if (verdict.appliesMergedConfig()) composed else fetchedText)
+                    configFile.writeText(gate.config)
                     Log.d("Subscription overlay composed: user layer re-applied onto fresh subscription for ${snapshot.uuid}")
 
                     // Subscription providers are already on disk from the fetch above; this pass only
