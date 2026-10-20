@@ -9,6 +9,7 @@ import com.github.kr328.clash.service.data.ImportedDao
 import com.github.kr328.clash.service.data.PendingDao
 import com.github.kr328.clash.service.branding.BrandRefresh
 import com.github.kr328.clash.service.util.FetchHeadersFile
+import com.github.kr328.clash.service.util.OperatorPolicyHeaders
 import com.github.kr328.clash.service.util.importedDir
 import com.github.kr328.clash.service.util.sendProfileChanged
 
@@ -50,6 +51,7 @@ internal class SubscriptionHeaderSync(private val context: Context) {
             // headers" signal (not a transient failure) and feeds the debounced
             // auto-clear.
             BrandRefresh.apply(context, old.uuid, brand, confirmedResponse = true)
+            OperatorPolicyHeaders.applyFromSnapshot(context, old.uuid, headers)
 
             // Re-derive the display name on EVERY update — not only when the panel sends
             // subscription-userinfo. Tying the rename to the quota header meant subscriptions

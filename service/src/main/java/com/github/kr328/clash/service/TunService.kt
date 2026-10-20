@@ -250,7 +250,7 @@ class TunService : VpnService(), CoroutineScope by CoroutineScope(Dispatchers.De
                     store.tunStackMode,
                     store.activeProfile?.let { store.subscriptionNetworkStackFor(it) },
                     readActiveProfileConfigYaml(),
-                ),
+                ).also { store.appliedTunStack = it },
                 gateway = "$TUN_GATEWAY/$TUN_SUBNET_PREFIX" + if (store.allowIpv6) ",$TUN_GATEWAY6/$TUN_SUBNET_PREFIX6" else "",
                 portal = TUN_PORTAL + if (store.allowIpv6) ",$TUN_PORTAL6" else "",
                 dns = buildTunDnsEndpoints(store.dnsHijacking, store.allowIpv6),

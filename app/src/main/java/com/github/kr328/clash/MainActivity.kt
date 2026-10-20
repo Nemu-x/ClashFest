@@ -294,6 +294,9 @@ class MainActivity : BaseActivity<MainDesign>() {
                             if (it == Event.ActivityStart) {
                                 updates.refreshUpdateBadge(design)
                             }
+                            if (it == Event.ProfileUpdateCompleted) {
+                                launch { subscriptionMeta.hintTunStackChange(design) }
+                            }
                         }
 
                         // Sent by NetworkObserveModule after a default-network switch: stale

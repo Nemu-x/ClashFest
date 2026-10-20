@@ -893,6 +893,7 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="tun_stack_gvisor">Gvisor Stack</string>
     <string name="tun_stack_mixed">Mixed Stack</string>
     <string name="tun_stack_mips">MIPS Stack (mihomo)</string>
+    <string name="tun_stack_changed_reconnect">Your provider changed the network stack to %1$s. Reconnect to apply it.</string>
 
     <string name="allow_all_apps">All</string>
     <string name="allow_all_apps_description">All apps use the VPN</string>
