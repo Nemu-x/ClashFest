@@ -30,8 +30,11 @@ modified freely: CI and the F-Droid recipe overwrite the embedded Root CA bundle
 modified while a build tree is set up; never commit the applied patches into the submodule.
 
 Tests that ship inside a patch run with the Go test task (`:core:goTestNativeSnapshot`, which runs
-`go test` on `component/tls`, `transport/xdrive`, `transport/vless/muxcool`, `adapter`
-and `adapter/outbound` from the `cfa` module), against the patched tree. Engine-oracle tests for
+`go test` on `component/tls`, `transport/xdrive`, `transport/vless/muxcool`, `adapter`,
+`adapter/outbound`, `adapter/outboundgroup` and `config` from the `cfa` module), against the
+patched tree. The `config` tests use testify, so `cfa`'s `go.sum` carries its checksums although
+`go.mod` does not require it; `go mod tidy` may drop them again, and
+`go mod download github.com/stretchr/testify` in `core/src/main/golang` restores them. Engine-oracle tests for
 the config surface a patch adds live in `cfa/native/snapshot` (`core_patch_oracle_test.go`).
 
 Optional capabilities a patch adds are advertised to Kotlin through `Clash.coreFeatures()`
@@ -112,13 +115,16 @@ inbound/listener side. Adapted to vanilla: TLS comes from `transport/vmess` (Cit
 `transport/v2ray`), and the go1.21 built-in `min` is replaced because mihomo's `go.mod` is still
 `go 1.20`. No new module requirements.
 
-Note: the engine accepts `service: local` (a folder on the device, meant for tests) like
-upstream does; it can only create and delete XDrive session files under the given folder.
-ClashFest's `YamlHardener` turns such nodes (in `proxies:` and inline `proxy-providers`
-payloads, under any key spelling the decoder accepts) into REJECT and drops `xdrive-config`
-listeners in Strict and Compat; Off leaves them alone. Remote and file proxy-providers
-(`type: http` / `file`) are fetched or read by the engine at runtime and never pass through the
-hardener, so a `service: local` node served that way is not neutralised.
+`service: local` (a folder on the device, meant for tests) is refused by the Android build when
+the proxy is constructed: `xdrive.AllowLocalService` is `runtime.GOOS != "android"`, so the
+check covers every source of proxies, including remote and file proxy-providers
+(`type: http` / `file`) that the engine fetches at runtime and that never pass through the app's
+hardener. Host builds (the Go tests) keep it on; the oracle tests switch it off to exercise the
+Android behaviour (`core_patch_xdrive_local_oracle_test.go`). On top of that, ClashFest's
+`YamlHardener` turns such nodes (in `proxies:` and inline `proxy-providers` payloads, under any
+key spelling the decoder accepts) into REJECT and drops `xdrive-config` listeners in Strict and
+Compat, so a subscription that contains one still loads with the node disabled instead of
+failing validation.
 
 Delete when mihomo ships XDrive itself, or when ClashFest stops advertising `xdrive` in
 `coreFeatures` (the bridge's `cfa/native/features` imports this package, so dropping the patch
@@ -134,3 +140,39 @@ implementation is ours on top of 0001/0002: no ML-KEM-by-default, no `mldsa65-ve
 adaptive ML-KEM policy from 0002 is untouched.
 
 Upstream: same status as 0001. Delete together with 0001.
+
+### 0005 Proxy groups of type chain
+
+`type: chain` lists the hops of a cascade in order (`proxies: [entry, ..., exit]`). Ported from Citrus
+commit 8d97eb8c. At load time
+`config/chain.go` (`expandChains`, called at the top of `parseProxies`) wires every hop after
+the first to the hop before it with `dialer-proxy`: a proxy itself, every member of a group and
+every provider in its `use`, the first hop of a nested chain. Configs without a chain group are
+not touched. The config is rejected on a missing or repeated hop, a loop (also one the wiring
+would create), a `dialer-proxy` (or provider `override.dialer-proxy`) already set to something
+else, two chains that disagree, a built-in or an `include-all` group after the first hop.
+
+At runtime `adapter/outboundgroup/chain.go` dials the last hop. Its health check tests the whole
+chain and, when that fails, tests hops 1..k to name the first broken hop (a provider health check
+can take a `Checker` for this, `adapter/provider/healthcheck.go`). `/proxies` shows `hops`
+(`ChainHop`: name, position, alive), `chainAlive`, `failedHop`, `failedHopPosition` and
+`chainError`; the group type is `Chain` (`constant.ChainGroup`), which Kotlin decodes as
+`Proxy.Type.Chain`.
+
+Left out from Citrus: the Prometheus metrics, the `chain.health` event-bus event, the relay
+error message rewording and the listener changes of the same commit. Citrus' `config/chain_test.go`
+comes along minus the metrics and event assertions (it runs real SOCKS5 / Shadowsocks inbounds on
+loopback). Engine-oracle tests in `cfa/native/snapshot`: `core_patch_chain_oracle_test.go`
+(3-hop chain, group and provider hops wired, loops and conflicts rejected) and
+`chain_user_layer_oracle_test.go`.
+
+Interaction with the user layer: ClashFest's proxy-chain edit (`UserLayer.proxyChain`) also writes
+`dialer-proxy`. If it sets another dialer on a proxy that a subscription chain must wire, the
+composed config is rejected by the engine, and the update-path gate (`MergeEngineVerdict.gate`)
+writes the clean subscription and logs the engine error, which names the chain, the proxy and
+both dialers (`ChainUserLayerGateTest` + the Go fixture oracle). The user sees only the generic
+"update engine warning" flag, not which edit was dropped.
+
+Upstream: mihomo removed `relay` groups in favour of `dialer-proxy`; nothing equivalent exists.
+Delete when mihomo ships a chain group, or when ClashFest stops advertising `chain` in
+`coreFeatures` (`cfa/native/features` references `outboundgroup.Chain`).
