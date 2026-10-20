@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One segment of the protocol capsule (proxy_proto_capsule clips the outer corners). White solid:
+     backgroundTintList sets the protocol colour @ ~14% in code. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@android:color/white" />
+</shape>

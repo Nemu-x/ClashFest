@@ -53,6 +53,12 @@ func queryAllGroupNamesIncludingHidden() *C.char {
 	return marshalJson(tunnel.QueryAllProxyGroupNamesIncludingHidden())
 }
 
+//export queryGroupSelections
+func queryGroupSelections() *C.char {
+	defer guard("queryGroupSelections")()
+	return marshalJson(tunnel.QueryProxyGroupSelections())
+}
+
 //export queryGroup
 func queryGroup(name C.c_string, sortMode C.c_string) *C.char {
 	defer guard("queryGroup")()

@@ -13,6 +13,7 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
 import java.net.InetSocketAddress
@@ -135,6 +136,12 @@ object Clash {
             require(it.jsonPrimitive.isString)
             it.jsonPrimitive.content
         }
+    }
+
+    /** Current choice (`now`) of every proxy group, hidden ones included, from one engine pass. */
+    fun queryGroupSelections(): Map<String, String> {
+        val obj = Json.Default.decodeFromString(JsonObject.serializer(), Bridge.nativeQueryGroupSelections())
+        return obj.mapValues { (_, v) -> v.jsonPrimitive.content }
     }
 
     fun queryGroup(name: String, sort: ProxySort): ProxyGroup {

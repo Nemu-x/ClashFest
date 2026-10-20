@@ -1060,6 +1060,20 @@ class MainActivity : BaseActivity<MainDesign>() {
                     scheduleDashboardRefresh()
                 }
 
+                design.profilePickerOpened.onReceive { profile ->
+                    // One engine pass for every group's current choice, so collapsed headers in the
+                    // picker show what is selected without loading each group's member list.
+                    if (profile.active) {
+                        launch {
+                            val selections = runCatching {
+                                val json = org.json.JSONObject(withClash { queryProxyGroupSelections() })
+                                json.keys().asSequence().associateWith { json.optString(it) }
+                            }.getOrNull()
+                            if (selections != null) design?.patchGroupSelections(selections)
+                        }
+                    }
+                }
+
                 design.profileVisibleGroupChanged.onReceive { (profile, group) ->
                     uiStore.proxyLastGroup = group
                     scheduleProxyDetailsRefresh(profile, group)

@@ -100,11 +100,20 @@
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
+            <!-- Protocol capsule: type | transport | security as one segmented element (F). -->
+            <LinearLayout
+                android:id="@+id/proxy_proto_capsule"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_proto_capsule"
+                android:orientation="horizontal"
+                android:outlineProvider="background">
+
             <TextView
                 android:id="@+id/proxy_type_badge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_proto_chip"
+                android:background="@drawable/bg_proto_segment"
                 android:paddingHorizontal="6dp"
                 android:paddingVertical="2dp"
                 android:fontFamily="monospace"
@@ -122,8 +131,8 @@
                 android:id="@+id/proxy_transport_badge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:background="@drawable/bg_proto_chip"
+                android:layout_marginStart="1dp"
+                android:background="@drawable/bg_proto_segment"
                 android:paddingHorizontal="6dp"
                 android:paddingVertical="2dp"
                 android:fontFamily="monospace"
@@ -141,8 +150,8 @@
                 android:id="@+id/proxy_reality_badge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:background="@drawable/bg_proto_chip"
+                android:layout_marginStart="1dp"
+                android:background="@drawable/bg_proto_segment"
                 android:paddingHorizontal="6dp"
                 android:paddingVertical="2dp"
                 android:fontFamily="monospace"
@@ -155,6 +164,7 @@
                 tools:text="REALITY"
                 tools:textColor="@color/proto_reality"
                 tools:visibility="visible" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/proxy_subtitle_sep"
@@ -204,12 +214,16 @@
             android:layout_width="6dp"
             android:layout_height="6dp"
             android:layout_marginEnd="7dp"
-            android:background="@drawable/dot_circle" />
+            android:background="@drawable/dot_circle"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/proxy_delay"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:background="@drawable/bg_latency_pill"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="2dp"
             android:fontFamily="@font/space_grotesk"
             android:gravity="center"
             android:textAppearance="@style/TextAppearance.App.LabelMedium"
