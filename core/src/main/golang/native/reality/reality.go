@@ -1,6 +1,6 @@
 // Package reality holds the bridge-side helpers for the REALITY policy that
-// the Kotlin settings push into the core (see docs/core-patches.md: patches
-// 0001 and 0002 expose tlsC.RealityClientVersion and SetRealityMLKEMPolicy).
+// the Kotlin settings push into the core (see docs/core-patches.md: patch
+// 0001 exposes them as defaults for proxies that set nothing themselves).
 package reality
 
 import (

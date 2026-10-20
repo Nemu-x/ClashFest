@@ -535,7 +535,7 @@
     <string name="proxy_switch_close_connections_failed">Прокси сменён, но активные соединения закрыть не удалось.</string>
     <string name="network_switch_reaction">Реагировать на смену сети</string>
     <string name="reality_mlkem_policy">REALITY: key share ML-KEM</string>
-    <string name="reality_mlkem_auto">Авто: подбирать по серверу (рекомендуется)</string>
+    <string name="reality_mlkem_auto">Авто: предлагать, если подписка не отключила (рекомендуется)</string>
     <string name="reality_mlkem_on">Всегда предлагать (только Xray 26.9+)</string>
     <string name="reality_mlkem_off">Никогда (только старые Xray)</string>
     <string name="reality_client_version">REALITY: версия клиента</string>

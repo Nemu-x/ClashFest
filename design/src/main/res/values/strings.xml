@@ -690,7 +690,7 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="proxy_switch_close_connections_failed">Proxy switched, but active connections could not be closed.</string>
     <string name="network_switch_reaction">React to network changes</string>
     <string name="reality_mlkem_policy">REALITY: ML-KEM key share</string>
-    <string name="reality_mlkem_auto">Auto: learn per server (recommended)</string>
+    <string name="reality_mlkem_auto">Auto: offer unless the subscription turns it off (recommended)</string>
     <string name="reality_mlkem_on">Always offer (Xray 26.9+ only)</string>
     <string name="reality_mlkem_off">Never offer (old Xray only)</string>
     <string name="reality_client_version">REALITY: client version</string>

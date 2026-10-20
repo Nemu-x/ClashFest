@@ -907,7 +907,7 @@
     <string name="keep_connections_on_old_proxy_summary">默认情况下,手动切换代理后 Mikan 会关闭活动连接,使新流量立即走所选代理。开启此项可让正在进行的连接保留在旧代理上——适合不想中断的大文件下载、视频流或游戏会话。</string>
     <string name="network_switch_reaction">响应网络切换</string>
     <string name="reality_mlkem_policy">REALITY：ML-KEM 密钥共享</string>
-    <string name="reality_mlkem_auto">自动：按服务器学习（推荐）</string>
+    <string name="reality_mlkem_auto">自动：除非订阅关闭，否则提供（推荐）</string>
     <string name="reality_mlkem_on">始终提供（仅 Xray 26.9+）</string>
     <string name="reality_mlkem_off">从不提供（仅旧版 Xray）</string>
     <string name="reality_client_version">REALITY：客户端版本</string>

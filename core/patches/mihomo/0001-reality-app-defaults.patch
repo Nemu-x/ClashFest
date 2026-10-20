@@ -1,0 +1,109 @@
+diff --git a/adapter/outbound/reality.go b/adapter/outbound/reality.go
+index c589ae12..a6dc0ca9 100644
+--- a/adapter/outbound/reality.go
++++ b/adapter/outbound/reality.go
+@@ -24,7 +24,11 @@ type RealityOptions struct {
+ func (o RealityOptions) Parse() (*tlsC.RealityConfig, error) {
+ 	if o.PublicKey != "" {
+ 		config := new(tlsC.RealityConfig)
+-		config.DisableX25519MLKEM768 = o.SupportX25519MLKEM768 != nil && !*o.SupportX25519MLKEM768
++		if o.SupportX25519MLKEM768 != nil {
++			config.DisableX25519MLKEM768 = !*o.SupportX25519MLKEM768
++		} else {
++			config.DisableX25519MLKEM768 = tlsC.RealityDisableX25519MLKEM768ByDefault
++		}
+ 
+ 		const x25519ScalarSize = 32
+ 		publicKey, err := base64.RawURLEncoding.DecodeString(o.PublicKey)
+@@ -46,6 +50,9 @@ func (o RealityOptions) Parse() (*tlsC.RealityConfig, error) {
+ 		}
+ 
+ 		clientVersion := o.ClientVersion
++		if clientVersion == "" {
++			clientVersion = tlsC.RealityClientVersionOverride
++		}
+ 		if clientVersion == "" {
+ 			clientVersion = tlsC.RealityDefaultClientVersion
+ 		}
+diff --git a/adapter/outbound/reality_defaults_test.go b/adapter/outbound/reality_defaults_test.go
+new file mode 100644
+index 00000000..ac5fadf9
+--- /dev/null
++++ b/adapter/outbound/reality_defaults_test.go
+@@ -0,0 +1,54 @@
++package outbound
++
++import (
++	"crypto/ecdh"
++	"crypto/rand"
++	"encoding/base64"
++	"testing"
++
++	tlsC "github.com/metacubex/mihomo/component/tls"
++)
++
++func testRealityPublicKey(t *testing.T) string {
++	t.Helper()
++	key, err := ecdh.X25519().GenerateKey(rand.Reader)
++	if err != nil {
++		t.Fatal(err)
++	}
++	return base64.RawURLEncoding.EncodeToString(key.PublicKey().Bytes())
++}
++
++func TestRealityAppDefaultsApplyOnlyWhereTheProxyIsSilent(t *testing.T) {
++	t.Cleanup(func() {
++		tlsC.RealityClientVersionOverride = ""
++		tlsC.RealityDisableX25519MLKEM768ByDefault = false
++	})
++	key := testRealityPublicKey(t)
++
++	cfg, err := RealityOptions{PublicKey: key}.Parse()
++	if err != nil {
++		t.Fatal(err)
++	}
++	if cfg.DisableX25519MLKEM768 || cfg.ClientVersion != [3]byte{26, 10, 10} {
++		t.Fatalf("stock defaults changed: %+v", cfg)
++	}
++
++	tlsC.RealityClientVersionOverride = "25.1.1"
++	tlsC.RealityDisableX25519MLKEM768ByDefault = true
++	cfg, err = RealityOptions{PublicKey: key}.Parse()
++	if err != nil {
++		t.Fatal(err)
++	}
++	if !cfg.DisableX25519MLKEM768 || cfg.ClientVersion != [3]byte{25, 1, 1} {
++		t.Fatalf("app defaults not applied: %+v", cfg)
++	}
++
++	on := true
++	cfg, err = RealityOptions{PublicKey: key, ClientVersion: "26.4.13", SupportX25519MLKEM768: &on}.Parse()
++	if err != nil {
++		t.Fatal(err)
++	}
++	if cfg.DisableX25519MLKEM768 || cfg.ClientVersion != [3]byte{26, 4, 13} {
++		t.Fatalf("proxy settings must win over app defaults: %+v", cfg)
++	}
++}
+diff --git a/component/tls/reality.go b/component/tls/reality.go
+index 748d127f..cc553a7c 100644
+--- a/component/tls/reality.go
++++ b/component/tls/reality.go
+@@ -36,6 +36,17 @@ const RealityMaxShortIDLen = 8
+ // by default, servers can reject clients outside their minClientVer..maxClientVer range.
+ const RealityDefaultClientVersion = "26.10.10"
+ 
++// The Android app's REALITY settings, set by its bridge before a profile loads. They only
++// replace the defaults: a proxy's own client-version / support-x25519mlkem768 still wins.
++var (
++	// RealityClientVersionOverride, when not empty, is reported instead of
++	// RealityDefaultClientVersion by proxies that set no client-version.
++	RealityClientVersionOverride string
++	// RealityDisableX25519MLKEM768ByDefault drops the hybrid key share for proxies that do not
++	// set support-x25519mlkem768, for users whose servers predate it.
++	RealityDisableX25519MLKEM768ByDefault bool
++)
++
+ type RealityConfig struct {
+ 	PublicKey     *ecdh.PublicKey
+ 	ShortID       [RealityMaxShortIDLen]byte

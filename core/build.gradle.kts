@@ -25,11 +25,13 @@ val mihomoHead = providers.exec {
 // tag of HEAD, else nearest release tag, else the require line in go.mod) and
 // exposed as BuildConfig.CORE_TAG so Kotlin HTTP probes can advertise the same
 // `mihomo/<version>` the native subscription fetch sends. Empty when unknown.
+// Only upstream mihomo release tags count: Citrus' own v1.0.0-beta.N tags would
+// tell panels the core is older than the mihomo it is built on.
 fun gitDescribe(vararg extra: String): String {
     val result = providers.exec {
         commandLine(
             listOf("git", "-C", file("src/foss/golang/clash").absolutePath, "describe", "--tags") +
-                extra + listOf("--match", "v[0-9]*"),
+                extra + listOf("--match", "v1.[1-9][0-9].*", "--exclude", "*-*"),
         )
         isIgnoreExitValue = true
     }
@@ -166,7 +168,7 @@ val goTestNativeSnapshot by tasks.registering(Exec::class) {
         "./native/snapshot/...", "./native/useragent/...", "./native/reality/...",
         // Tests shipped inside the patch series run against the patched tree, so a
         // patch that applied but no longer does what it claims fails here.
-        "-run", "Test", "github.com/metacubex/mihomo/component/tls",
+        "-run", "Test", "github.com/metacubex/mihomo/adapter/outbound",
         "github.com/metacubex/mihomo/adapter/provider",
     )
     dependsOn(applyCorePatches)

@@ -44,8 +44,11 @@ message(STATUS "git current branch = ${CURRENT_BRANCH}")
 # nearest release tag. CORE_TAG is also exported on its own (version.h) and is
 # what the subscription User-Agent advertises as `mihomo/<ver>`, so a value
 # that is not a release tag must stay empty rather than be guessed.
+# The core is Citrus, a mihomo fork with its own v1.0.0-beta.N tags; panels gate
+# protocols on the mihomo version, so only upstream mihomo releases (v1.1x.y)
+# count here, never Citrus' own tags.
 execute_process(
-  COMMAND git -C ${MIHOMO_DIR} describe --tags --exact-match --match v[0-9]*
+  COMMAND git -C ${MIHOMO_DIR} describe --tags --exact-match --match v1.[1-9][0-9].* --exclude *-*
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   OUTPUT_VARIABLE CORE_TAG
   RESULT_VARIABLE CORE_TAG_RESULT
@@ -54,7 +57,7 @@ execute_process(
 )
 if (NOT CORE_TAG_RESULT EQUAL 0 OR "${CORE_TAG}" STREQUAL "")
   execute_process(
-    COMMAND git -C ${MIHOMO_DIR} describe --tags --abbrev=0 --match v[0-9]*
+    COMMAND git -C ${MIHOMO_DIR} describe --tags --abbrev=0 --match v1.[1-9][0-9].* --exclude *-*
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     OUTPUT_VARIABLE CORE_TAG
     RESULT_VARIABLE CORE_TAG_RESULT

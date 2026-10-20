@@ -10,25 +10,27 @@ import (
 	"github.com/metacubex/mihomo/log"
 )
 
-// setRealityPolicy pushes the user-facing REALITY settings into the core:
-// the Xray-style client version carried in the ClientHello (core patch 0001;
-// empty or malformed keeps the core default) and the X25519MLKEM768 policy
-// (core patch 0002: 0 auto, 1 always, 2 never). Process-global, like the age
-// key: the service calls it right before loading a profile.
+// setRealityPolicy pushes the user-facing REALITY settings into the core as defaults for
+// proxies that set nothing themselves (core patch 0001): the Xray-style client version carried
+// in the ClientHello (empty or malformed keeps Citrus' default) and the X25519MLKEM768 policy
+// (0 auto, 1 always, 2 never). Citrus sends the hybrid key share by default, so auto and always
+// both keep it; never drops it for servers older than Xray 25. Process-global, like the age key:
+// the service calls it right before loading a profile.
 //
 //export setRealityPolicy
 func setRealityPolicy(version C.c_string, mlkem C.int) {
 	defer guard("setRealityPolicy")()
 
+	tlsC.RealityClientVersionOverride = ""
 	if v, ok := reality.ParseVersion(C.GoString(version)); ok {
-		tlsC.RealityClientVersion = v
+		tlsC.RealityClientVersionOverride = reality.FormatVersion(v)
 	}
-	policy := tlsC.RealityMLKEMPolicy(mlkem)
-	if policy < tlsC.RealityMLKEMAuto || policy > tlsC.RealityMLKEMOff {
-		policy = tlsC.RealityMLKEMAuto
-	}
-	tlsC.SetRealityMLKEMPolicy(policy)
+	tlsC.RealityDisableX25519MLKEM768ByDefault = int(mlkem) == 2
 
+	clientVersion := tlsC.RealityClientVersionOverride
+	if clientVersion == "" {
+		clientVersion = tlsC.RealityDefaultClientVersion
+	}
 	log.Infoln("REALITY policy: client version %s, X25519MLKEM768 %s",
-		reality.FormatVersion(tlsC.RealityClientVersion), reality.MLKEMPolicyName(int(policy)))
+		clientVersion, reality.MLKEMPolicyName(int(mlkem)))
 }

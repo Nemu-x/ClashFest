@@ -1,17 +1,17 @@
 diff --git a/adapter/provider/healthcheck.go b/adapter/provider/healthcheck.go
-index 822a00d5..161392ac 100644
+index 12c3b800..5d262412 100644
 --- a/adapter/provider/healthcheck.go
 +++ b/adapter/provider/healthcheck.go
-@@ -4,6 +4,7 @@ import (
- 	"context"
+@@ -5,6 +5,7 @@ import (
+ 	"net/url"
  	"strings"
  	"sync"
 +	stdatomic "sync/atomic"
  	"time"
  
  	"github.com/metacubex/mihomo/common/atomic"
-@@ -41,18 +42,36 @@ type HealthCheck struct {
- 	timeout        time.Duration
+@@ -54,18 +55,36 @@ func (hc *HealthCheck) SetChecker(fn Checker) {
+ 	hc.checker = fn
  }
  
 +// healthChecksSuspended pauses the timed checks while the device screen is off.
