@@ -51,20 +51,52 @@ val mihomoTag: String = gitDescribe("--exact-match").ifEmpty { gitDescribe("--ab
 // before every Go build and test, and reverted by `clean`. The task works as a
 // state machine on the tree itself, so a developer's stray edit can never be
 // mistaken for the series:
-//   * every patch reverse-applies cleanly  -> series already applied, no-op;
-//   * tree clean and every patch applies    -> apply the series;
+//   * the series reverse-applies (last first) -> already applied, no-op;
+//   * tree clean and the series applies in order -> apply the series;
 //   * anything else                          -> fail, naming the offending patch.
 // A core bump that moves the patched lines therefore stops the build here, not
 // after shipping an unpatched libclash.so.
 val mihomoDir = file("src/foss/golang/clash")
 val corePatchDir = file("patches/mihomo")
 
-fun mihomoGit(vararg args: String): Boolean {
+fun mihomoGit(vararg args: String): Boolean = mihomoGitIn(emptyMap(), *args)
+
+fun mihomoGitIn(env: Map<String, String>, vararg args: String): Boolean {
     val result = providers.exec {
         commandLine(listOf("git", "-C", mihomoDir.absolutePath) + args)
+        environment(env)
         isIgnoreExitValue = true
     }
     return result.result.get().exitValue == 0
+}
+
+// The series is a stack: a later patch may build on lines an earlier one changed
+// (0004 on 0001), so no patch can be checked on its own against the tree. Replay it in
+// order on a scratch index instead and return the first patch that does not apply.
+// Forward: from the submodule HEAD. Reverse: from the working tree, last patch first.
+fun firstNonApplyingPatch(patches: List<File>, reverse: Boolean): File? {
+    val index = layout.buildDirectory.file("tmp/mihomo-patch-check.index").get().asFile
+    index.parentFile.mkdirs()
+    index.delete()
+    val env = mapOf("GIT_INDEX_FILE" to index.absolutePath)
+    try {
+        if (!mihomoGitIn(env, "read-tree", "HEAD")) {
+            throw GradleException("cannot read the mihomo submodule HEAD into a scratch index")
+        }
+        if (reverse) {
+            val present = corePatchPaths(patches).filter { File(mihomoDir, it).exists() }
+            if (present.isNotEmpty() && !mihomoGitIn(env, *(listOf("add", "-A", "--") + present).toTypedArray())) {
+                throw GradleException("cannot stage the mihomo submodule working tree into a scratch index")
+            }
+        }
+        val order = if (reverse) patches.reversed() else patches
+        val reverseFlag = if (reverse) listOf("-R") else emptyList()
+        return order.firstOrNull { patch ->
+            !mihomoGitIn(env, *(listOf("apply", "--cached") + reverseFlag + patch.absolutePath).toTypedArray())
+        }
+    } finally {
+        index.delete()
+    }
 }
 
 fun corePatches(): List<File> =
@@ -95,7 +127,7 @@ val applyCorePatches by tasks.registering {
     doLast {
         val patches = corePatches()
         if (patches.isEmpty()) return@doLast
-        val applied = patches.reversed().all { mihomoGit("apply", "--check", "-R", it.absolutePath) }
+        val applied = firstNonApplyingPatch(patches, reverse = true) == null
         if (applied) {
             logger.lifecycle("mihomo patches: ${patches.size} already applied")
             return@doLast
@@ -108,13 +140,12 @@ val applyCorePatches by tasks.registering {
                     dirty + "\nRun `git -C core/src/foss/golang/clash checkout -- <file>` (or stash your work) and retry.",
             )
         }
-        patches.forEach { patch ->
-            if (!mihomoGit("apply", "--check", patch.absolutePath)) {
-                throw GradleException(
-                    "mihomo patch ${patch.name} no longer applies to submodule ${mihomoHead.get().take(12)}. " +
-                        "Rebase the patch (git apply --3way) or drop it if upstream fixed it; see docs/core-patches.md.",
-                )
-            }
+        firstNonApplyingPatch(patches, reverse = false)?.let { patch ->
+            throw GradleException(
+                "mihomo patch ${patch.name} no longer applies to submodule ${mihomoHead.get().take(12)} " +
+                    "on top of the patches before it. " +
+                    "Rebase the patch (git apply --3way) or drop it if upstream fixed it; see docs/core-patches.md.",
+            )
         }
         patches.forEach { patch ->
             if (!mihomoGit("apply", patch.absolutePath)) {
@@ -131,7 +162,7 @@ val revertCorePatches by tasks.registering {
     doLast {
         val patches = corePatches()
         if (patches.isEmpty()) return@doLast
-        if (patches.reversed().all { mihomoGit("apply", "--check", "-R", it.absolutePath) }) {
+        if (firstNonApplyingPatch(patches, reverse = true) == null) {
             patches.reversed().forEach { mihomoGit("apply", "-R", it.absolutePath) }
             logger.lifecycle("mihomo patches: reverted ${patches.size}")
         }
@@ -164,14 +195,23 @@ val goTestNativeSnapshot by tasks.registering(Exec::class) {
     commandLine(
         "go", "test", "-tags", "foss,with_gvisor,cmfa",
         "./native/snapshot/...", "./native/useragent/...", "./native/reality/...",
+        "./native/features/...",
         // Tests shipped inside the patch series run against the patched tree, so a
-        // patch that applied but no longer does what it claims fails here.
-        "-run", "Test", "github.com/metacubex/mihomo/component/tls",
+        // patch that applied but no longer does what it claims fails here. (Packages
+        // only: anything after a flag that follows the package list goes to the test
+        // binary instead, which is how these packages used to be skipped silently.)
+        "github.com/metacubex/mihomo/component/tls",
+        "github.com/metacubex/mihomo/transport/xdrive",
+        "github.com/metacubex/mihomo/transport/vless/muxcool",
+        "github.com/metacubex/mihomo/adapter",
+        "github.com/metacubex/mihomo/adapter/outbound",
     )
     dependsOn(applyCorePatches)
 
     inputs.dir("src/main/golang/native/snapshot")
     inputs.dir("src/main/golang/native/useragent")
+    inputs.dir("src/main/golang/native/reality")
+    inputs.dir("src/main/golang/native/features")
     // Re-run against a bumped core too: the test exercises mihomo itself
     // (module `cfa`, `replace mihomo => ../../foss/golang/clash`).
     inputs.property("mihomoCommit", mihomoHead)
