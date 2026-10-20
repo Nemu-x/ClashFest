@@ -16,7 +16,8 @@
         android:layout_width="240dp"
         android:layout_height="240dp"
         android:layout_gravity="center"
-        android:background="@drawable/bg_qr_viewfinder" />
+        android:background="@drawable/bg_qr_viewfinder"
+        android:importantForAccessibility="no" />
 
     <TextView
         android:layout_width="match_parent"

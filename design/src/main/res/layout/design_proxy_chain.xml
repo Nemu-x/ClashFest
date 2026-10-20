@@ -30,12 +30,17 @@
                     <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:hint="@string/profile" app:endIconMode="dropdown_menu">
                         <com.google.android.material.textfield.MaterialAutoCompleteTextView android:id="@+id/chain_first_profile" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="none"/>
                     </com.google.android.material.textfield.TextInputLayout>
-                    <com.google.android.material.textfield.TextInputLayout android:id="@+id/chain_first_node_box" style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:hint="@string/chain_server" app:endIconMode="dropdown_menu">
-                        <com.google.android.material.textfield.MaterialAutoCompleteTextView android:id="@+id/chain_first_node" android:layout_width="match_parent" android:layout_height="wrap_content" android:completionThreshold="1" android:inputType="text" android:maxLines="2"/>
+                    <com.google.android.material.textfield.TextInputLayout android:id="@+id/chain_first_node_box" style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:hint="@string/chain_server" app:endIconDrawable="@drawable/ic_arrow_drop_down" app:endIconMode="custom" app:endIconContentDescription="@string/chain_pick_server">
+                        <com.google.android.material.textfield.TextInputEditText android:id="@+id/chain_first_node" android:layout_width="match_parent" android:layout_height="wrap_content" android:clickable="true" android:cursorVisible="false" android:focusable="false" android:inputType="none" android:maxLines="2" android:minHeight="56dp"/>
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginVertical="8dp" android:gravity="center" android:text="↓" android:textSize="24sp" android:textColor="?attr/colorPrimary" android:importantForAccessibility="no"/>
+            <!-- Route connector: entry flows down into exit. Decorative; the card titles carry the order. -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_horizontal" android:orientation="vertical" android:importantForAccessibility="no">
+                <View android:layout_width="2dp" android:layout_height="8dp" android:background="@drawable/bg_chain_connector_line"/>
+                <ImageView android:layout_width="32dp" android:layout_height="32dp" android:background="@drawable/bg_chain_connector" android:importantForAccessibility="no" android:padding="6dp" android:src="@drawable/ic_baseline_arrow_downward"/>
+                <View android:layout_width="2dp" android:layout_height="8dp" android:background="@drawable/bg_chain_connector_line"/>
+            </LinearLayout>
             <com.google.android.material.card.MaterialCardView style="@style/AppCard.Filled" android:layout_width="match_parent" android:layout_height="wrap_content" app:strokeWidth="1dp" app:strokeColor="?attr/colorOutlineVariant">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
                     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/chain_exit_title" android:textAppearance="@style/TextAppearance.App.TitleMedium" android:textColor="?attr/colorOnSurface"/>
@@ -43,8 +48,8 @@
                     <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:hint="@string/profile" app:endIconMode="dropdown_menu">
                         <com.google.android.material.textfield.MaterialAutoCompleteTextView android:id="@+id/chain_exit_profile" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="none"/>
                     </com.google.android.material.textfield.TextInputLayout>
-                    <com.google.android.material.textfield.TextInputLayout android:id="@+id/chain_exit_node_box" style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:hint="@string/chain_server" app:endIconMode="dropdown_menu">
-                        <com.google.android.material.textfield.MaterialAutoCompleteTextView android:id="@+id/chain_exit_node" android:layout_width="match_parent" android:layout_height="wrap_content" android:completionThreshold="1" android:inputType="text" android:maxLines="2"/>
+                    <com.google.android.material.textfield.TextInputLayout android:id="@+id/chain_exit_node_box" style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:hint="@string/chain_server" app:endIconDrawable="@drawable/ic_arrow_drop_down" app:endIconMode="custom" app:endIconContentDescription="@string/chain_pick_server">
+                        <com.google.android.material.textfield.TextInputEditText android:id="@+id/chain_exit_node" android:layout_width="match_parent" android:layout_height="wrap_content" android:clickable="true" android:cursorVisible="false" android:focusable="false" android:inputType="none" android:maxLines="2" android:minHeight="56dp"/>
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

@@ -79,11 +79,11 @@
 
     <ImageButton
         android:id="@+id/btn_restore"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/rule_action_restore"
-        android:padding="8dp"
+        android:padding="12dp"
         android:src="@drawable/ic_baseline_restore"
         android:visibility="gone"
         app:tint="?attr/colorPrimary"

@@ -1332,7 +1332,11 @@
     <string name="chain_entry_description">手机能够连接的服务器。</string>
     <string name="chain_exit_title">2. 出口</string>
     <string name="chain_exit_description">网站看到的是此服务器的 IP。</string>
-    <string name="chain_server">服务器 · 输入名称搜索</string>
+    <string name="chain_server">服务器</string>
+    <string name="chain_pick_server">选择服务器</string>
+    <string name="chain_search_servers">搜索服务器</string>
+    <string name="chain_nothing_found">没有匹配的服务器。</string>
+    <string name="chain_selected">已选择</string>
     <string name="chain_no_subscriptions">请先添加订阅。设置时无需启动 VPN。</string>
     <string name="chain_no_nodes">没有已保存的服务器。请先更新此订阅。</string>
     <string name="chain_legacy_saved">此订阅包含旧代理链。可以在此删除，或用以下选择的服务器替换。</string>

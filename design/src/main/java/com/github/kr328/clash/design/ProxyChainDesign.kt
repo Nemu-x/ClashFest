@@ -15,6 +15,7 @@ import com.github.kr328.clash.service.util.SubscriptionChain
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
+import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import java.util.UUID
 
@@ -33,9 +34,11 @@ class ProxyChainDesign(context: Context) : Design<ProxyChainDesign.Request>(cont
     private val view = context.layoutInflater.inflate(R.layout.design_proxy_chain, context.root, false)
     override val root: View get() = view
     private val firstProfile: MaterialAutoCompleteTextView = view.findViewById(R.id.chain_first_profile)
-    private val firstNode: MaterialAutoCompleteTextView = view.findViewById(R.id.chain_first_node)
+    private val firstNode: TextInputEditText = view.findViewById(R.id.chain_first_node)
+    private val firstNodeBox: TextInputLayout = view.findViewById(R.id.chain_first_node_box)
+    private val exitNodeBox: TextInputLayout = view.findViewById(R.id.chain_exit_node_box)
     private val exitProfile: MaterialAutoCompleteTextView = view.findViewById(R.id.chain_exit_profile)
-    private val exitNode: MaterialAutoCompleteTextView = view.findViewById(R.id.chain_exit_node)
+    private val exitNode: TextInputEditText = view.findViewById(R.id.chain_exit_node)
     private val save: MaterialButton = view.findViewById(R.id.chain_save)
     private val connect: MaterialButton = view.findViewById(R.id.chain_connect)
     private val enabled: MaterialSwitch = view.findViewById(R.id.chain_enabled)
@@ -67,6 +70,10 @@ class ProxyChainDesign(context: Context) : Design<ProxyChainDesign.Request>(cont
         view.post { ViewCompat.requestApplyInsets(view) }
         firstProfile.setOnItemClickListener { _, _, position, _ -> chooseProfile(profiles[position].uuid, true) }
         exitProfile.setOnItemClickListener { _, _, position, _ -> chooseProfile(profiles[position].uuid, false) }
+        firstNode.setOnClickListener { pickNode(true) }
+        exitNode.setOnClickListener { pickNode(false) }
+        firstNodeBox.setEndIconOnClickListener { pickNode(true) }
+        exitNodeBox.setEndIconOnClickListener { pickNode(false) }
         firstNode.doAfterTextChanged { refreshEnabled() }
         exitNode.doAfterTextChanged { refreshEnabled() }
         save.setOnClickListener { if (!busy) { setBusy(true); requests.trySend(Request.Save) } }
@@ -134,8 +141,8 @@ class ProxyChainDesign(context: Context) : Design<ProxyChainDesign.Request>(cont
     }
 
     private fun chooseProfile(uuid: UUID, first: Boolean) {
-        if (first) { firstId = uuid; firstNames = emptyList(); firstNode.setText("", false) }
-        else { exitId = uuid; exitNames = emptyList(); exitNode.setText("", false) }
+        if (first) { firstId = uuid; firstNames = emptyList(); firstNode.setText("") }
+        else { exitId = uuid; exitNames = emptyList(); exitNode.setText("") }
         refreshEnabled()
         requests.trySend(Request.LoadNodes(uuid, first))
     }
@@ -144,13 +151,28 @@ class ProxyChainDesign(context: Context) : Design<ProxyChainDesign.Request>(cont
         if ((if (first) firstId else exitId) != uuid) return
         val field = if (first) firstNode else exitNode
         if (first) firstNames = names else exitNames = names
-        field.setAdapter(ArrayAdapter(context, android.R.layout.simple_dropdown_item_1line, names))
         val remembered = if (first) savedFirst else savedExit
-        if (remembered in names) field.setText(remembered, false)
+        if (remembered in names) field.setText(remembered)
         if (first) savedFirst = null else savedExit = null
-        val box: TextInputLayout = view.findViewById(if (first) R.id.chain_first_node_box else R.id.chain_exit_node_box)
+        val box = if (first) firstNodeBox else exitNodeBox
         box.helperText = if (names.isEmpty()) context.getString(R.string.chain_no_nodes) else null
         refreshEnabled()
+    }
+
+    private fun pickNode(first: Boolean) {
+        if (busy) return
+        val names = if (first) firstNames else exitNames
+        if (names.isEmpty()) return
+        val field = if (first) firstNode else exitNode
+        val owner = if (first) firstId else exitId
+        val subscription = profiles.firstOrNull { it.uuid == owner }?.name.orEmpty()
+        ChainNodeSheet(
+            context = context,
+            title = context.getString(if (first) R.string.chain_entry_title else R.string.chain_exit_title),
+            subtitle = subscription,
+            names = names,
+            selected = field.text.toString(),
+        ) { name -> field.setText(name) }.show()
     }
 
     fun selection(): Selection? {
@@ -166,8 +188,10 @@ class ProxyChainDesign(context: Context) : Design<ProxyChainDesign.Request>(cont
     private fun refreshEnabled() {
         firstProfile.isEnabled = !busy && profiles.isNotEmpty()
         exitProfile.isEnabled = !busy && profiles.isNotEmpty()
-        firstNode.isEnabled = !busy && firstNames.isNotEmpty()
-        exitNode.isEnabled = !busy && exitNames.isNotEmpty()
+        firstNodeBox.isEnabled = !busy && firstNames.isNotEmpty()
+        exitNodeBox.isEnabled = !busy && exitNames.isNotEmpty()
+        firstNode.isEnabled = firstNodeBox.isEnabled
+        exitNode.isEnabled = exitNodeBox.isEnabled
         save.isEnabled = !busy && selection() != null
         connect.isEnabled = !busy && selection() != null
         // Off -> on needs servers to apply; on -> off is always possible.
