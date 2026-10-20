@@ -1165,6 +1165,7 @@
     <string name="tun_stack_gvisor">Стек gVisor</string>
     <string name="tun_stack_mixed">Смешанный стек</string>
     <string name="tun_stack_mips">Стек MIPS (mihomo)</string>
+    <string name="tun_stack_changed_reconnect">Провайдер сменил сетевой стек на %1$s. Переподключитесь, чтобы применить.</string>
     <string name="tun_stack_mode">Режим стека</string>
     <string name="tun_stack_auto">Авто</string>
     <string name="tun_stack_auto_fmt">Авто: %1$s</string>

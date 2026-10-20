@@ -112,6 +112,14 @@ class ServiceStore(context: Context) {
         defaultValue = "system"
     )
 
+    // Stack the running tunnel was opened with (written by TunService at TUN open). The UI compares
+    // it with what TunStackResolver resolves now, to tell the user a changed operator header only
+    // takes effect after a reconnect.
+    var appliedTunStack by store.string(
+        key = "applied_tun_stack",
+        defaultValue = ""
+    )
+
     var dynamicNotification by store.boolean(
         key = "dynamic_notification",
         defaultValue = true
