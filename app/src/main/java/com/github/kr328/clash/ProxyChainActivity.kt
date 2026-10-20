@@ -29,6 +29,14 @@ class ProxyChainActivity : BaseActivity<ProxyChainDesign>() {
     private suspend fun saved(uuid: UUID): SubscriptionChain? = withProfile { readSubscriptionChain(uuid) }
         ?.let { json.decodeFromString(SubscriptionChain.serializer(), it) }
 
+    /** The last chain the user saved; it outlives turning the chain off. */
+    private var remembered: SubscriptionChain?
+        get() = uiStore.proxyChainRemembered.takeIf { it.isNotBlank() }
+            ?.let { runCatching { json.decodeFromString(SubscriptionChain.serializer(), it) }.getOrNull() }
+        set(value) {
+            uiStore.proxyChainRemembered = value?.let { json.encodeToString(SubscriptionChain.serializer(), it) }.orEmpty()
+        }
+
     override suspend fun main() {
         val screen = ProxyChainDesign(this)
         setContentDesign(screen)
@@ -37,7 +45,7 @@ class ProxyChainActivity : BaseActivity<ProxyChainDesign>() {
             val active = withProfile { queryActive() }
             val chain = active?.let { saved(it.uuid) }
             val legacy = if (active != null && chain == null) withProfile { listProxyDialerChains(active.uuid) }.size else 0
-            screen.bindProfiles(profiles, active?.uuid, chain, legacy)
+            screen.bindProfiles(profiles, active?.uuid, chain, legacy, remembered)
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (_: Exception) { screen.showStatus(R.string.chain_error); return }
         while (isActive) {
@@ -48,13 +56,17 @@ class ProxyChainActivity : BaseActivity<ProxyChainDesign>() {
                         withProfile { readSubscriptionChainNodes(request.uuid) })
                     ProxyChainDesign.Request.Save -> saveChain(screen, false)
                     ProxyChainDesign.Request.UseNow -> saveChain(screen, true)
-                    ProxyChainDesign.Request.Clear -> clearChain(screen)
+                    ProxyChainDesign.Request.Enable -> saveChain(screen, clashRunning)
+                    ProxyChainDesign.Request.Disable -> disableChain(screen)
                 }
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) {
                 if (request is ProxyChainDesign.Request.LoadNodes) screen.bindNodes(request.uuid, request.first, emptyList())
                 screen.showStatus(R.string.chain_error)
-            } finally { screen.setBusy(false) }
+            } finally {
+                // setBusy(false) also puts the switch back to the real state if the request failed.
+                screen.setBusy(false)
+            }
         }
     }
 
@@ -64,6 +76,7 @@ class ProxyChainActivity : BaseActivity<ProxyChainDesign>() {
         val preview = withProfile { previewSubscriptionChain(choice.exitProfile, choice.firstProfile, choice.firstNode, choice.exitProfile, choice.exitNode) }
         if (!applyYamlPreviewDirect(preview)) return screen.showStatus(R.string.chain_error)
         val chain = saved(choice.exitProfile) ?: return screen.showStatus(R.string.chain_error)
+        remembered = chain
         withProfile {
             rememberProxySelection(choice.exitProfile, "GLOBAL", chain.exitAlias)
             setActive(profile)
@@ -97,9 +110,10 @@ class ProxyChainActivity : BaseActivity<ProxyChainDesign>() {
         screen.showStatus(R.string.chain_connected)
     }
 
-    private suspend fun clearChain(screen: ProxyChainDesign) {
+    private suspend fun disableChain(screen: ProxyChainDesign) {
         val uuid = screen.savedProfile() ?: return
         val chain = saved(uuid)
+        if (chain != null) remembered = chain
         val preview = withProfile { if (chain != null) previewRemoveSubscriptionChain(uuid) else previewClearAllProxyDialerChains(uuid) }
         if (!applyYamlPreviewDirect(preview)) return screen.showStatus(R.string.chain_error)
         uiStore.tunnelModePreference = TunnelState.Mode.Rule.name
@@ -108,7 +122,7 @@ class ProxyChainActivity : BaseActivity<ProxyChainDesign>() {
             override.mode = TunnelState.Mode.Rule
             patchOverride(Clash.OverrideSlot.Session, override)
         }
-        screen.bindSaved(null, null)
-        screen.showStatus(R.string.chain_removed)
+        screen.bindSaved(null, null, remembered = remembered)
+        screen.showStatus(R.string.chain_disabled)
     }
 }

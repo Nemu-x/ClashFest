@@ -123,6 +123,15 @@ class UiStore(context: Context) {
         defaultValue = true,
     )
 
+    /**
+     * The last proxy chain the user saved (SubscriptionChain JSON), kept while the chain is
+     * turned off so turning it back on needs no re-selection. Empty when never saved.
+     */
+    var proxyChainRemembered: String by store.string(
+        key = "proxy_chain_remembered",
+        defaultValue = "",
+    )
+
     /** Experimental gate for the per-profile DNS & Hosts editor (OFF by default). */
     var dnsHostsEnabled: Boolean by store.boolean(
         key = "dns_hosts_enabled",

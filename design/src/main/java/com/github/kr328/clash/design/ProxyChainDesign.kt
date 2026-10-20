@@ -13,6 +13,7 @@ import com.github.kr328.clash.design.util.root
 import com.github.kr328.clash.service.model.Profile
 import com.github.kr328.clash.service.util.SubscriptionChain
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.android.material.textfield.TextInputLayout
 import java.util.UUID
@@ -22,7 +23,10 @@ class ProxyChainDesign(context: Context) : Design<ProxyChainDesign.Request>(cont
         data class LoadNodes(val uuid: UUID, val first: Boolean) : Request()
         object Save : Request()
         object UseNow : Request()
-        object Clear : Request()
+        /** Switch on: apply the chosen servers; starts nothing if the VPN is off. */
+        object Enable : Request()
+        /** Switch off: the chain leaves the config, the servers stay chosen for next time. */
+        object Disable : Request()
     }
     data class Selection(val firstProfile: UUID, val firstNode: String, val exitProfile: UUID, val exitNode: String)
 
@@ -34,7 +38,8 @@ class ProxyChainDesign(context: Context) : Design<ProxyChainDesign.Request>(cont
     private val exitNode: MaterialAutoCompleteTextView = view.findViewById(R.id.chain_exit_node)
     private val save: MaterialButton = view.findViewById(R.id.chain_save)
     private val connect: MaterialButton = view.findViewById(R.id.chain_connect)
-    private val clear: MaterialButton = view.findViewById(R.id.chain_clear)
+    private val enabled: MaterialSwitch = view.findViewById(R.id.chain_enabled)
+    private val stateTitle: TextView = view.findViewById(R.id.chain_state_title)
     private val status: TextView = view.findViewById(R.id.chain_status)
     private var profiles: List<Profile> = emptyList()
     private var firstId: UUID? = null
@@ -45,6 +50,9 @@ class ProxyChainDesign(context: Context) : Design<ProxyChainDesign.Request>(cont
     private var savedExit: String? = null
     private var busy = false
     private var savedOwner: UUID? = null
+    private var chainOn = false
+    private var kept: SubscriptionChain? = null
+    private var bindingSwitch = false
     fun savedProfile(): UUID? = savedOwner
 
     init {
@@ -63,11 +71,19 @@ class ProxyChainDesign(context: Context) : Design<ProxyChainDesign.Request>(cont
         exitNode.doAfterTextChanged { refreshEnabled() }
         save.setOnClickListener { if (!busy) { setBusy(true); requests.trySend(Request.Save) } }
         connect.setOnClickListener { if (!busy) { setBusy(true); requests.trySend(Request.UseNow) } }
-        clear.setOnClickListener { if (!busy) { setBusy(true); requests.trySend(Request.Clear) } }
+        enabled.setOnCheckedChangeListener { _, checked ->
+            if (bindingSwitch || busy || checked == chainOn) return@setOnCheckedChangeListener
+            setBusy(true)
+            requests.trySend(if (checked) Request.Enable else Request.Disable)
+        }
         refreshEnabled()
     }
 
-    fun bindProfiles(items: List<Profile>, active: UUID?, saved: SubscriptionChain?, legacyCount: Int) {
+    /**
+     * @param saved the chain applied to the active subscription, or null when it is off
+     * @param remembered the last chain the user saved, kept while the chain is off
+     */
+    fun bindProfiles(items: List<Profile>, active: UUID?, saved: SubscriptionChain?, legacyCount: Int, remembered: SubscriptionChain? = null) {
         profiles = items
         view.findViewById<View>(R.id.chain_loading).visibility = View.GONE
         view.findViewById<View>(R.id.chain_form).visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
@@ -75,22 +91,45 @@ class ProxyChainDesign(context: Context) : Design<ProxyChainDesign.Request>(cont
         val labels = items.map { p -> if (items.count { it.name == p.name } > 1) "${p.name} (${items.indexOf(p) + 1})" else p.name }
         firstProfile.setAdapter(ArrayAdapter(context, android.R.layout.simple_dropdown_item_1line, labels))
         exitProfile.setAdapter(ArrayAdapter(context, android.R.layout.simple_dropdown_item_1line, labels))
-        savedFirst = saved?.first?.proxyName
-        savedExit = saved?.exit?.proxyName
-        val first = items.firstOrNull { it.uuid.toString() == saved?.first?.profileId } ?: items.firstOrNull { it.uuid == active } ?: items.first()
-        val exit = items.firstOrNull { it.uuid.toString() == saved?.exit?.profileId } ?: items.firstOrNull { it.uuid == active } ?: items.first()
+        val shown = saved ?: remembered
+        savedFirst = shown?.first?.proxyName
+        savedExit = shown?.exit?.proxyName
+        val first = items.firstOrNull { it.uuid.toString() == shown?.first?.profileId } ?: items.firstOrNull { it.uuid == active } ?: items.first()
+        val exit = items.firstOrNull { it.uuid.toString() == shown?.exit?.profileId } ?: items.firstOrNull { it.uuid == active } ?: items.first()
         firstProfile.setText(labels[items.indexOf(first)], false)
         exitProfile.setText(labels[items.indexOf(exit)], false)
         chooseProfile(first.uuid, true)
         chooseProfile(exit.uuid, false)
-        bindSaved(active, saved, legacyCount)
+        bindSaved(active, saved, legacyCount, remembered)
     }
 
-    fun bindSaved(owner: UUID?, saved: SubscriptionChain?, legacyCount: Int = 0) {
+    fun bindSaved(owner: UUID?, saved: SubscriptionChain?, legacyCount: Int = 0, remembered: SubscriptionChain? = kept) {
         savedOwner = owner.takeIf { saved != null || legacyCount > 0 }
+        chainOn = saved != null || legacyCount > 0
+        kept = saved ?: remembered
         val text: TextView = view.findViewById(R.id.chain_saved)
-        text.text = if (saved != null) context.getString(R.string.chain_saved_route, saved.first.proxyName, saved.exit.proxyName)
-            else context.getString(if (legacyCount > 0) R.string.chain_legacy_saved else R.string.chain_not_saved)
+        val keptChain = kept
+        when {
+            saved != null -> {
+                stateTitle.setText(R.string.chain_state_on)
+                text.text = context.getString(R.string.chain_route, saved.first.proxyName, saved.exit.proxyName)
+            }
+            legacyCount > 0 -> {
+                stateTitle.setText(R.string.chain_state_on)
+                text.setText(R.string.chain_legacy_saved)
+            }
+            keptChain != null -> {
+                stateTitle.setText(R.string.chain_state_off)
+                text.text = context.getString(R.string.chain_kept_route, keptChain.first.proxyName, keptChain.exit.proxyName)
+            }
+            else -> {
+                stateTitle.setText(R.string.chain_state_none)
+                text.setText(R.string.chain_none_hint)
+            }
+        }
+        bindingSwitch = true
+        enabled.isChecked = chainOn
+        bindingSwitch = false
         refreshEnabled()
     }
 
@@ -131,7 +170,13 @@ class ProxyChainDesign(context: Context) : Design<ProxyChainDesign.Request>(cont
         exitNode.isEnabled = !busy && exitNames.isNotEmpty()
         save.isEnabled = !busy && selection() != null
         connect.isEnabled = !busy && selection() != null
-        clear.isEnabled = !busy && savedOwner != null
+        // Off -> on needs servers to apply; on -> off is always possible.
+        enabled.isEnabled = !busy && (chainOn || selection() != null)
+        if (!busy && enabled.isChecked != chainOn) {
+            bindingSwitch = true
+            enabled.isChecked = chainOn
+            bindingSwitch = false
+        }
     }
     fun showStatus(resource: Int) {
         view.findViewById<View>(R.id.chain_loading).visibility = View.GONE
