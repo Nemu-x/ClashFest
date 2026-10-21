@@ -5,4 +5,4 @@
 [submodule "clash-companion"]
 	path = clash-companion
 	url = https://github.com/Nemu-x/clash-companion.git
-	branch = feat/clashctl-protocol-v1
+	branch = feat/remote-control-surface

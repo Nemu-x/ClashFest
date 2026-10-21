@@ -14,7 +14,7 @@ import com.github.kr328.clash.design.preference.tips
 import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.design.util.root
 
-/** Controller screen: the controller's paired agents, each opening an action sheet. */
+/** Controller screen: the controller's paired agents, each opening its remote-control screen. */
 class CompanionControlDesign(
     context: Context,
     agents: List<ControllerStore.PairedAgent>,
@@ -39,7 +39,7 @@ class CompanionControlDesign(
                 agents.forEach { agent ->
                     clickable(
                         title = R.string.companion_devices_title,
-                        icon = R.drawable.ic_baseline_swap_horiz,
+                        icon = R.drawable.ic_baseline_tv,
                     ) {
                         title = agent.name
                         summary = "${agent.host}:${agent.port}"

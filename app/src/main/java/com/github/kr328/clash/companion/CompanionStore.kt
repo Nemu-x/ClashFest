@@ -2,6 +2,7 @@ package com.github.kr328.clash.companion
 
 import android.content.Context
 import android.os.Build
+import com.github.kr328.clash.companion.agent.GatewayServer
 import com.github.kr328.clash.companion.protocol.Ids
 
 /**
@@ -12,7 +13,7 @@ import com.github.kr328.clash.companion.protocol.Ids
  * default-OFF [agentEnabled] master toggle (§2). Pairings are kept separately in
  * [com.github.kr328.clash.companion.agent.PairingStore].
  */
-class CompanionStore(context: Context) {
+class CompanionStore(context: Context) : GatewayServer.AgentIdentity {
     private val prefs = context.applicationContext
         .getSharedPreferences("companion", Context.MODE_PRIVATE)
 
@@ -22,7 +23,7 @@ class CompanionStore(context: Context) {
         set(value) = prefs.edit().putBoolean(KEY_AGENT_ENABLED, value).apply()
 
     /** Stable device identifier, generated once and reused for the device's lifetime. */
-    val deviceId: String
+    override val deviceId: String
         get() {
             prefs.getString(KEY_DEVICE_ID, null)?.let { return it }
             val generated = Ids.newDeviceId()
@@ -40,7 +41,7 @@ class CompanionStore(context: Context) {
         set(value) = prefs.edit().putInt(KEY_GATEWAY_PORT, value).apply()
 
     /** Human-readable display name (advertised over mDNS, shown in the QR). */
-    var displayName: String
+    override var displayName: String
         get() = prefs.getString(KEY_DISPLAY_NAME, null) ?: defaultName()
         set(value) = prefs.edit().putString(KEY_DISPLAY_NAME, value).apply()
 

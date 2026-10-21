@@ -9,6 +9,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
+import com.github.kr328.clash.companion.agent.FakeSession
+import com.github.kr328.clash.companion.agent.GatewayServer
+import com.github.kr328.clash.companion.agent.bodyText
+import com.github.kr328.clash.companion.agent.gateway
+import fi.iki.elonen.NanoHTTPD
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import java.util.Base64
 
 /**
@@ -116,6 +124,114 @@ class VectorConformanceTest {
                 assertNotNull("pairing should decode: $name", PairingPayload.parse(uri))
             } else {
                 assertNull("pairing should reject: $name", PairingPayload.parse(uri))
+            }
+        }
+    }
+
+    // --- control.json (remote buttons, §8.6–§8.19, §9.2) -------------------------------------
+
+    private val controlDecoders: Map<String, (JsonElement) -> JsonObject> = mapOf(
+        "ProxyList" to { e -> ProxyList.fromJson(e).toJson() },
+        "SelectRequest" to { e -> SelectRequest.fromJson(e).toJson() },
+        "SelectResponse" to { e -> SelectResponse.fromJson(e).toJson() },
+        "UnfixRequest" to { e -> UnfixRequest.fromJson(e).toJson() },
+        "DelayRequest" to { e -> DelayRequest.fromJson(e).toJson() },
+        "DelayResponse" to { e -> DelayResponse.fromJson(e).toJson() },
+        "ModeState" to { e -> ModeState.fromJson(e).toJson() },
+        "ModeRequest" to { e -> ModeRequest.fromJson(e).toJson() },
+        "ModeResponse" to { e -> ModeResponse.fromJson(e).toJson() },
+        "ProfileList" to { e -> ProfileList.fromJson(e).toJson() },
+        "ProfileRequest" to { e -> ProfileRequest.fromJson(e).toJson() },
+        "ProfileSelectResponse" to { e -> ProfileSelectResponse.fromJson(e).toJson() },
+        "OKResponse" to { e -> OkResponse.fromJson(e).toJson() },
+        "ProviderList" to { e -> ProviderList.fromJson(e).toJson() },
+        "ProviderRequest" to { e -> ProviderRequest.fromJson(e).toJson() },
+        "ConnectionList" to { e -> ConnectionList.fromJson(e).toJson() },
+        "CloseRequest" to { e -> CloseRequest.fromJson(e).toJson() },
+        "CloseResponse" to { e -> CloseResponse.fromJson(e).toJson() },
+        "Traffic" to { e -> Traffic.fromJson(e).toJson() },
+        "LogList" to { e -> LogList.fromJson(e).toJson() },
+        "SettingList" to { e -> SettingList.fromJson(e).toJson() },
+        "SettingRequest" to { e -> SettingRequest.fromJson(e).toJson() },
+        "SettingResponse" to { e -> SettingResponse.fromJson(e).toJson() },
+        "ActionList" to { e -> ActionList.fromJson(e).toJson() },
+        "ActionRequest" to { e -> ActionRequest.fromJson(e).toJson() },
+        "Status" to { e -> Status.fromJson(e).toJson() },
+        "Changed" to { e -> Changed.fromJson(e).toJson() },
+    )
+
+    @Test
+    fun controlBodies() {
+        val bodies = Vectors.json("control.json").jsonObject["bodies"]!!.jsonArray
+        for (case in bodies) {
+            val obj = case.jsonObject
+            val name = obj["name"]!!.jsonPrimitive.content
+            val type = obj["type"]!!.jsonPrimitive.content
+            val canonical = obj["canonical"]!!.jsonPrimitive.content
+            val decode = controlDecoders[type] ?: error("control body $name: no model for $type")
+            // decode into the named model, re-encode canonically: bytes must match (§3.4).
+            assertEquals("control body: $name", canonical, CanonicalJson.encode(decode(Json.parseToJsonElement(canonical))))
+        }
+    }
+
+    @Test
+    fun controlEvents() {
+        val events = Vectors.json("control.json").jsonObject["events"]!!.jsonArray
+        for (case in events) {
+            val obj = case.jsonObject
+            val type = obj["type"]!!.jsonPrimitive.content
+            val data = obj["data"]!!.jsonPrimitive.content
+            val parsed = Json.parseToJsonElement(data)
+            val model = when (type) {
+                Events.CHANGED -> Changed.fromJson(parsed).toJson()
+                Events.TRAFFIC -> Traffic.fromJson(parsed).toJson()
+                Events.LOG -> LogLine.fromJson(parsed.jsonObject).toJson()
+                Events.STATUS -> Status.fromJson(parsed).toJson()
+                else -> error("unknown event type $type")
+            }
+            assertEquals("event data: $type", data, CanonicalJson.encode(model))
+            assertEquals("event frame: $type", obj["frame"]!!.jsonPrimitive.content, Events.frame(type, model))
+        }
+    }
+
+    /**
+     * Requests the gateway itself must reject. Agent "full" in the vectors advertises every
+     * capability; ClashFest does not advertise unfix / profile_delete / logs, so those cases must
+     * answer not_found instead (§8.6). Agent "p1" advertises no remote button.
+     */
+    @Test
+    fun controlErrors() {
+        val notAdvertised = mapOf(
+            "/v1/proxies/unfix" to Capabilities.UNFIX,
+            "/v1/profiles/delete" to Capabilities.PROFILE_DELETE,
+            "/v1/logs" to Capabilities.LOGS,
+        )
+        val errors = Vectors.json("control.json").jsonObject["errors"]!!.jsonArray
+        for (case in errors) {
+            val obj = case.jsonObject
+            val name = obj["name"]!!.jsonPrimitive.content
+            val agent = obj["agent"]!!.jsonPrimitive.content
+            val auth = obj["auth"]!!.jsonPrimitive.boolean
+            val path = obj["path"]!!.jsonPrimitive.content
+            val body = obj["body"]?.jsonPrimitive?.content
+            val method = NanoHTTPD.Method.valueOf(obj["method"]!!.jsonPrimitive.content)
+
+            val remote = if (agent == "p1") emptyList() else GatewayServer.CLASHFEST_REMOTE_CAPABILITIES
+            val server = gateway(remote = remote)
+            try {
+                val response = server.serve(FakeSession(method, path, body, token = if (auth) "good-token" else null))
+                val unadvertised = auth && agent == "full" && path.substringBefore('?') in notAdvertised
+                val status = if (unadvertised) 404 else obj["status"]!!.jsonPrimitive.int
+                val code = if (unadvertised) "not_found" else obj["code"]!!.jsonPrimitive.content
+                val text = response.bodyText()
+                assertEquals("control error status: $name", status, response.status.requestStatus)
+                assertEquals(
+                    "control error code: $name",
+                    code,
+                    Json.parseToJsonElement(text).jsonObject["error"]!!.jsonObject["code"]!!.jsonPrimitive.content,
+                )
+            } finally {
+                server.events.stop()
             }
         }
     }

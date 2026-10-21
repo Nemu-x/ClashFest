@@ -16,7 +16,7 @@ import kotlinx.serialization.json.Json
  * pairings are keyed by [Pairing.tokenHash]; the controller's identity ([Pairing.controllerId],
  * [Pairing.label]) is filled opportunistically from request headers on first authenticated use.
  */
-class PairingStore(context: Context) {
+class PairingStore(context: Context) : GatewayServer.Pairings {
     @Serializable
     data class Pairing(
         val tokenHash: String,
@@ -34,7 +34,7 @@ class PairingStore(context: Context) {
      * Mint a fresh token, persisting only its hash. Returns the raw token, which is handed to the
      * controller exactly once (embedded in the QR) and is never stored here.
      */
-    fun issueToken(): String {
+    override fun issueToken(): String {
         val token = Ids.newToken()
         val pairing = Pairing(tokenHash = Ids.tokenHash(token), pairedAt = System.currentTimeMillis())
         save(load() + pairing)
@@ -42,13 +42,13 @@ class PairingStore(context: Context) {
     }
 
     /** Returns the matching pairing for a presented bearer token, or null if unknown/revoked. */
-    fun authenticate(token: String): Pairing? {
+    override fun authenticate(token: String): Pairing? {
         val hash = Ids.tokenHash(token)
         return load().firstOrNull { Ids.hashesEqual(it.tokenHash, hash) }
     }
 
     /** Record the controller's advertised identity on a paired entry (best-effort, for the UI). */
-    fun recordController(tokenHash: String, controllerId: String?, label: String?) {
+    override fun recordController(tokenHash: String, controllerId: String?, label: String?) {
         if (controllerId == null && label == null) return
         val updated = load().map {
             if (it.tokenHash == tokenHash) {
@@ -64,9 +64,14 @@ class PairingStore(context: Context) {
     }
 
     /** Un-pair (revoke) a controller by its token hash. Its token no longer authenticates (§7.3). */
-    fun revoke(tokenHash: String) {
+    override fun revoke(tokenHash: String) {
         save(load().filterNot { it.tokenHash == tokenHash })
+        // §7.3: close the revoked controller's open event streams right away.
+        CompanionAgent.onRevoked?.invoke(tokenHash)
     }
+
+    override fun isPaired(tokenHash: String): Boolean =
+        load().any { Ids.hashesEqual(it.tokenHash, tokenHash) }
 
     private fun load(): List<Pairing> {
         val raw = prefs.getString(KEY, null) ?: return emptyList()

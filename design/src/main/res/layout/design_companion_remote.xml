@@ -1,0 +1,579 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Remote control for one paired TV. Built from Home's own pieces (status chip, power orb, the
+  mode / profile / node card, the node picker sheet) so it needs no learning, but headed by the
+  TV's name and link state so it can never be mistaken for the phone's own Home.
+-->
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+        <variable
+            name="surface"
+            type="com.github.kr328.clash.design.ui.Surface" />
+    </data>
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_home_canvas"
+        android:paddingStart="@{surface.insets.start}"
+        android:paddingEnd="@{surface.insets.end}">
+
+        <com.github.kr328.clash.design.view.ObservableScrollView
+            android:id="@+id/remote_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="@{surface.insets.bottom}"
+            android:scrollbars="none"
+            app:marginTopPx="@{surface.insets.top}">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:orientation="vertical"
+                android:paddingTop="12dp"
+                android:paddingBottom="24dp">
+
+                <!-- Header: which TV this is and whether it is reachable. -->
+                <LinearLayout
+                    android:id="@+id/remote_header"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="20dp"
+                    android:paddingEnd="8dp">
+
+                    <ImageView
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="@drawable/bg_flag_circle"
+                        android:padding="10dp"
+                        android:src="@drawable/ic_baseline_tv"
+                        app:tint="?attr/colorPrimary"
+                        tools:ignore="ContentDescription" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/remote_title"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textAppearance="@style/TextAppearance.App.TitleLarge"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textStyle="bold"
+                            tools:text="Living Room TV" />
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <View
+                                android:id="@+id/remote_link_dot"
+                                android:layout_width="7dp"
+                                android:layout_height="7dp"
+                                android:layout_marginEnd="6dp"
+                                android:background="@drawable/dot_status" />
+
+                            <TextView
+                                android:id="@+id/remote_link"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textAppearance="@style/TextAppearance.App.LabelMedium"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                tools:text="Live" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <ImageButton
+                        android:id="@+id/remote_menu"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/remote_more"
+                        android:padding="10dp"
+                        android:src="@drawable/ic_baseline_more_vert"
+                        app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <!-- Unreachable / error state; replaces the controls until the link is back. -->
+                <LinearLayout
+                    android:id="@+id/remote_error"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="20dp"
+                    android:layout_marginTop="40dp"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/remote_error_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:text="@string/remote_unreachable_hint"
+                        android:textAppearance="@style/TextAppearance.App.BodyMedium"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/remote_retry"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/remote_retry"
+                        app:icon="@drawable/ic_baseline_replay" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/remote_content"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:clipChildren="false"
+                        android:clipToPadding="false"
+                        android:gravity="center_horizontal"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/remote_status_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_m3_status_chip_neutral"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="4dp"
+                            android:textAppearance="@style/TextAppearance.App.LabelMedium"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            tools:text="Connected" />
+
+                        <FrameLayout
+                            android:layout_width="190dp"
+                            android:layout_height="190dp"
+                            android:layout_marginTop="8dp"
+                            android:clipChildren="false"
+                            android:clipToPadding="false">
+
+                            <View
+                                android:id="@+id/remote_power_halo"
+                                android:layout_width="210dp"
+                                android:layout_height="210dp"
+                                android:layout_gravity="center"
+                                android:alpha="0.12"
+                                android:background="@drawable/bg_power_glow" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/remote_power"
+                                style="@style/Widget.Material3.Button.IconButton.Filled"
+                                android:layout_width="136dp"
+                                android:layout_height="136dp"
+                                android:layout_gravity="center"
+                                android:contentDescription="@string/remote_power_toggle"
+                                android:foreground="@drawable/focus_ring_circle"
+                                android:insetLeft="0dp"
+                                android:insetTop="0dp"
+                                android:insetRight="0dp"
+                                android:insetBottom="0dp"
+                                android:padding="0dp"
+                                app:cornerRadius="68dp"
+                                app:icon="@drawable/ic_baseline_bolt"
+                                app:iconGravity="textStart"
+                                app:iconPadding="0dp"
+                                app:iconSize="44dp" />
+
+                            <View
+                                android:id="@+id/remote_power_sheen"
+                                android:layout_width="136dp"
+                                android:layout_height="136dp"
+                                android:layout_gravity="center"
+                                android:background="@drawable/bg_power_sheen"
+                                android:elevation="14dp"
+                                android:importantForAccessibility="no"
+                                android:outlineProvider="none" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:id="@+id/remote_speed"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:fontFamily="@font/space_grotesk"
+                            android:letterSpacing="0.01"
+                            android:textAppearance="@style/TextAppearance.App.TitleMedium"
+                            android:textColor="?attr/colorOnSurface"
+                            android:visibility="gone"
+                            tools:text="↓ 12.4 MB/s   ↑ 1.2 MB/s"
+                            tools:visibility="visible" />
+                    </LinearLayout>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/remote_overview_card"
+                        style="@style/AppCard.Filled"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="20dp"
+                        android:layout_marginTop="18dp"
+                        app:cardBackgroundColor="?attr/colorSurfaceContainer"
+                        app:cardCornerRadius="22dp"
+                        app:cardElevation="6dp"
+                        app:strokeColor="@color/lumen_hairline"
+                        app:strokeWidth="1dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <LinearLayout
+                                android:id="@+id/remote_mode_row"
+                                android:layout_width="match_parent"
+                                android:layout_height="64dp"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal"
+                                android:paddingHorizontal="14dp">
+
+                                <ImageView
+                                    android:layout_width="40dp"
+                                    android:layout_height="40dp"
+                                    android:background="@drawable/bg_flag_circle"
+                                    android:padding="9dp"
+                                    android:src="@drawable/ic_baseline_stack"
+                                    app:tint="?attr/colorPrimary"
+                                    tools:ignore="ContentDescription" />
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="12dp"
+                                    android:layout_weight="1"
+                                    android:text="@string/mode"
+                                    android:textAppearance="@style/TextAppearance.App.TitleSmall"
+                                    android:textColor="?attr/colorOnSurface"
+                                    android:textStyle="bold" />
+
+                                <com.google.android.material.button.MaterialButtonToggleGroup
+                                    android:id="@+id/remote_mode_segment"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="40dp"
+                                    app:selectionRequired="true"
+                                    app:singleSelection="true">
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/remote_mode_rule"
+                                        style="?attr/materialButtonOutlinedStyle"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="match_parent"
+                                        android:insetTop="0dp"
+                                        android:insetBottom="0dp"
+                                        android:minWidth="72dp"
+                                        android:paddingHorizontal="8dp"
+                                        android:text="@string/rule_mode_short"
+                                        android:textAppearance="@style/TextAppearance.App.LabelLarge" />
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/remote_mode_global"
+                                        style="?attr/materialButtonOutlinedStyle"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="match_parent"
+                                        android:insetTop="0dp"
+                                        android:insetBottom="0dp"
+                                        android:minWidth="72dp"
+                                        android:paddingHorizontal="8dp"
+                                        android:text="@string/global_mode_short"
+                                        android:textAppearance="@style/TextAppearance.App.LabelLarge" />
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/remote_mode_direct"
+                                        style="?attr/materialButtonOutlinedStyle"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="match_parent"
+                                        android:insetTop="0dp"
+                                        android:insetBottom="0dp"
+                                        android:minWidth="72dp"
+                                        android:paddingHorizontal="8dp"
+                                        android:text="@string/remote_mode_direct_short"
+                                        android:textAppearance="@style/TextAppearance.App.LabelLarge" />
+                                </com.google.android.material.button.MaterialButtonToggleGroup>
+                            </LinearLayout>
+
+                            <com.google.android.material.divider.MaterialDivider
+                                android:id="@+id/remote_mode_divider"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="66dp"
+                                android:layout_marginEnd="14dp" />
+
+                            <LinearLayout
+                                android:id="@+id/remote_profile_row"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:background="?attr/selectableItemBackground"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center_vertical"
+                                android:minHeight="64dp"
+                                android:orientation="horizontal"
+                                android:paddingStart="14dp"
+                                android:paddingTop="10dp"
+                                android:paddingEnd="10dp"
+                                android:paddingBottom="10dp">
+
+                                <ImageView
+                                    android:layout_width="40dp"
+                                    android:layout_height="40dp"
+                                    android:background="@drawable/bg_flag_circle"
+                                    android:padding="9dp"
+                                    android:src="@drawable/ic_baseline_subscriptions"
+                                    app:tint="?attr/colorPrimary"
+                                    tools:ignore="ContentDescription" />
+
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="12dp"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/main_active_profile_title"
+                                        android:textAppearance="@style/TextAppearance.App.TitleSmall"
+                                        android:textColor="?attr/colorOnSurface"
+                                        android:textStyle="bold" />
+
+                                    <TextView
+                                        android:id="@+id/remote_profile_value"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="2dp"
+                                        android:ellipsize="end"
+                                        android:maxLines="1"
+                                        android:textAppearance="@style/TextAppearance.App.BodySmall"
+                                        android:textColor="?attr/colorOnSurfaceVariant"
+                                        tools:text="Main" />
+
+                                    <TextView
+                                        android:id="@+id/remote_profile_meta"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="2dp"
+                                        android:ellipsize="end"
+                                        android:maxLines="2"
+                                        android:textAppearance="@style/TextAppearance.App.BodySmall"
+                                        android:textColor="?attr/colorOnSurfaceVariant"
+                                        android:visibility="gone"
+                                        tools:text="Days left: 22 • 5.01 GiB / 100 GiB"
+                                        tools:visibility="visible" />
+                                </LinearLayout>
+
+                                <ImageButton
+                                    android:id="@+id/remote_profile_update"
+                                    android:layout_width="36dp"
+                                    android:layout_height="36dp"
+                                    android:layout_marginStart="8dp"
+                                    android:background="?attr/selectableItemBackgroundBorderless"
+                                    android:contentDescription="@string/profile_force_update"
+                                    android:padding="8dp"
+                                    android:src="@drawable/ic_baseline_sync"
+                                    app:tint="?attr/colorOnSurfaceVariant" />
+
+                                <ImageView
+                                    android:id="@+id/remote_profile_chevron"
+                                    android:layout_width="28dp"
+                                    android:layout_height="28dp"
+                                    android:padding="4dp"
+                                    android:rotation="-90"
+                                    android:src="@drawable/ic_baseline_expand_more"
+                                    app:tint="?attr/colorOnSurfaceVariant"
+                                    tools:ignore="ContentDescription" />
+                            </LinearLayout>
+
+                            <com.google.android.material.divider.MaterialDivider
+                                android:id="@+id/remote_node_divider"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="66dp"
+                                android:layout_marginEnd="14dp" />
+
+                            <LinearLayout
+                                android:id="@+id/remote_node_row"
+                                android:layout_width="match_parent"
+                                android:layout_height="64dp"
+                                android:background="?attr/selectableItemBackground"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal"
+                                android:paddingHorizontal="14dp">
+
+                                <FrameLayout
+                                    android:layout_width="40dp"
+                                    android:layout_height="40dp"
+                                    android:background="@drawable/bg_flag_circle"
+                                    android:clipToOutline="true">
+
+                                    <ImageView
+                                        android:id="@+id/remote_node_flag"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent"
+                                        android:scaleType="centerCrop"
+                                        android:visibility="gone"
+                                        tools:ignore="ContentDescription" />
+
+                                    <TextView
+                                        android:id="@+id/remote_node_flag_emoji"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent"
+                                        android:gravity="center"
+                                        android:includeFontPadding="false"
+                                        android:textSize="18sp"
+                                        android:visibility="gone" />
+                                </FrameLayout>
+
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="12dp"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/main_node_title"
+                                        android:textAppearance="@style/TextAppearance.App.TitleSmall"
+                                        android:textColor="?attr/colorOnSurface"
+                                        android:textStyle="bold" />
+
+                                    <TextView
+                                        android:id="@+id/remote_node_value"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:ellipsize="end"
+                                        android:maxLines="1"
+                                        android:textAppearance="@style/TextAppearance.App.BodySmall"
+                                        android:textColor="?attr/colorOnSurfaceVariant"
+                                        tools:text="Spain Auto" />
+                                </LinearLayout>
+
+                                <ImageView
+                                    android:id="@+id/remote_node_chevron"
+                                    android:layout_width="28dp"
+                                    android:layout_height="28dp"
+                                    android:padding="4dp"
+                                    android:rotation="-90"
+                                    android:src="@drawable/ic_baseline_expand_more"
+                                    app:tint="?attr/colorOnSurfaceVariant"
+                                    tools:ignore="ContentDescription" />
+                            </LinearLayout>
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Sections: only the ones the TV advertises get a chip. -->
+                    <HorizontalScrollView
+                        android:id="@+id/remote_sections_scroll"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="18dp"
+                        android:clipToPadding="false"
+                        android:paddingHorizontal="20dp"
+                        android:scrollbars="none">
+
+                        <com.google.android.material.chip.ChipGroup
+                            android:id="@+id/remote_sections"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            app:selectionRequired="true"
+                            app:singleLine="true"
+                            app:singleSelection="true" />
+                    </HorizontalScrollView>
+
+                    <LinearLayout
+                        android:id="@+id/remote_section_bar"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:gravity="center_vertical"
+                        android:minHeight="44dp"
+                        android:orientation="horizontal"
+                        android:paddingStart="24dp"
+                        android:paddingEnd="16dp">
+
+                        <TextView
+                            android:id="@+id/remote_section_title"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:textAppearance="@style/TextAppearance.App.TitleSmall"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            tools:text="12 connections" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/remote_section_action"
+                            style="@style/Widget.Material3.Button.TextButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:visibility="gone"
+                            tools:text="Close all"
+                            tools:visibility="visible" />
+                    </LinearLayout>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/remote_section_card"
+                        style="@style/AppCard.Filled"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="20dp"
+                        app:cardBackgroundColor="?attr/colorSurfaceContainer"
+                        app:cardCornerRadius="22dp"
+                        app:cardElevation="2dp"
+                        app:strokeColor="@color/lumen_hairline"
+                        app:strokeWidth="1dp">
+
+                        <LinearLayout
+                            android:id="@+id/remote_section_list"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <TextView
+                        android:id="@+id/remote_section_empty"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="24dp"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center"
+                        android:paddingVertical="16dp"
+                        android:textAppearance="@style/TextAppearance.App.BodyMedium"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:visibility="gone"
+                        tools:text="Nothing here yet" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.github.kr328.clash.design.view.ObservableScrollView>
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+</layout>

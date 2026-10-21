@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One row of a remote-control section (profile, connection, provider, setting or action). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/remote_row"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:minHeight="60dp"
+    android:orientation="horizontal"
+    android:paddingStart="16dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="8dp"
+    android:paddingBottom="8dp">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/remote_row_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.App.TitleSmall"
+            android:textColor="?attr/colorOnSurface"
+            tools:text="www.youtube.com:443" />
+
+        <TextView
+            android:id="@+id/remote_row_subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textAppearance="@style/TextAppearance.App.BodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone"
+            tools:text="HK-01 · DomainSuffix(youtube.com)"
+            tools:visibility="visible" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/remote_row_value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:textAppearance="@style/TextAppearance.App.LabelLarge"
+        android:textColor="?attr/colorPrimary"
+        android:visibility="gone"
+        tools:text="info"
+        tools:visibility="visible" />
+
+    <ImageView
+        android:id="@+id/remote_row_check"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:padding="8dp"
+        android:src="@drawable/ic_baseline_check"
+        android:visibility="gone"
+        app:tint="?attr/colorPrimary"
+        tools:ignore="ContentDescription" />
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/remote_row_switch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:visibility="gone" />
+
+    <ImageButton
+        android:id="@+id/remote_row_action1"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:padding="9dp"
+        android:visibility="gone"
+        app:tint="?attr/colorOnSurfaceVariant"
+        tools:ignore="ContentDescription" />
+
+    <ImageButton
+        android:id="@+id/remote_row_action2"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:padding="9dp"
+        android:visibility="gone"
+        app:tint="?attr/colorOnSurfaceVariant"
+        tools:ignore="ContentDescription" />
+</LinearLayout>

@@ -10,7 +10,9 @@ data class Provider(
     val name: String,
     val type: Type,
     val vehicleType: VehicleType,
-    val updatedAt: Long
+    val updatedAt: Long,
+    /** Proxies or rules the provider holds (0 when the engine does not report it). */
+    val count: Int = 0,
 ) : Parcelable, Comparable<Provider> {
     enum class Type {
         Proxy, Rule

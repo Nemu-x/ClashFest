@@ -158,6 +158,14 @@ func HealthCheck(name string) {
 	p := tunnel.Proxies()[name]
 
 	if p == nil {
+		// Not a group: a proxy provider of that name is health-checked directly (the companion
+		// remote's provider health check goes through this same entry point).
+		if pp := tunnel.Providers()[name]; pp != nil && pp.VehicleType() != provider.Compatible {
+			pp.HealthCheck()
+
+			return
+		}
+
 		log.Warnln("Request health check for `%s`: not found", name)
 
 		return
