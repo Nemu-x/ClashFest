@@ -458,6 +458,18 @@ object ProfileProcessor {
                 imported.deleteRecursively()
 
                 context.sendProfileChanged(uuid)
+
+                // Deleting the active profile left activeProfile pointing at a uuid that no
+                // longer exists: the engine had "No profile selected" and Home showed no
+                // profile. Hand the active slot to the first remaining profile instead.
+                val store = ServiceStore(context)
+                if (store.activeProfile == uuid) {
+                    val next = ImportedDao().queryAllOrderedUUIDs()
+                        .map { it.uuid }
+                        .firstOrNull { it != uuid && ImportedDao().exists(it) }
+                    store.activeProfile = next
+                    next?.let { context.sendProfileChanged(it) }
+                }
             }
         }
     }
