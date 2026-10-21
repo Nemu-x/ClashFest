@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GOTOOLCHAIN: local
+      RELEASE_APPLICATION_ID: io.github.miroshka000.mikan
     environment: production-release
 
     steps:
@@ -84,6 +85,10 @@ jobs:
       - name: Populate embedded Root CA bundle
         run: bash .github/scripts/populate-ca-bundle.sh
 
+      - name: Configure release application ID
+        run: |
+          printf '\ncustom.application.id=%s\nremove.suffix=true\n' "$RELEASE_APPLICATION_ID" >> local.properties
+
       - name: Build Alpha Release APK
         run: ./gradlew assembleAlphaRelease
 
@@ -130,7 +135,7 @@ jobs:
               exit 1
             fi
             badging="$("$tools/aapt" dump badging "$apk")"
-            expected="package: name='com.nemu.clashfest.clash.alpha' versionCode='$expected_code' versionName='$expected_name'"
+            expected="package: name='$RELEASE_APPLICATION_ID' versionCode='$expected_code' versionName='$expected_name'"
             if [[ "$badging" != "$expected"* ]]; then
               echo "::error::Unexpected APK package or version: $apk"
               printf '%s\n' "$badging" | sed -n '/^package:/p'
@@ -141,7 +146,7 @@ jobs:
               exit 1
             fi
             "$tools/zipalign" -c -p 4 "$apk"
-            echo "Verified $apk: version=$expected_name build=$expected_code certificate=$expected_cert"
+            echo "Verified $apk: applicationId=$RELEASE_APPLICATION_ID version=$expected_name build=$expected_code certificate=$expected_cert"
           done
 
       - name: Remove signing files before publishing
