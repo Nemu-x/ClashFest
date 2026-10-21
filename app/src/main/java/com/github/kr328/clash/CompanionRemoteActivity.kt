@@ -44,6 +44,7 @@ import com.github.kr328.clash.service.store.ServiceStore
 import com.github.kr328.clash.util.withProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -147,7 +148,10 @@ class CompanionRemoteActivity : BaseActivity<CompanionRemoteDesign>() {
             refetchShown()
             while (currentCoroutineContext().isActive) {
                 delay(POLL_MS)
-                runCatching { io { client.status() } }.getOrNull()?.let { applyStatus(it) }
+                val polled = runCatching { io { client.status() } }
+                polled.getOrNull()?.let { applyStatus(it) }
+                val error = polled.exceptionOrNull()
+                if (error is CompanionError && !onRejected(error)) return
             }
             return
         }
@@ -355,7 +359,9 @@ class CompanionRemoteActivity : BaseActivity<CompanionRemoteDesign>() {
     private fun handle(request: Request) {
         when (request) {
             Request.Power -> call {
-                val now = client.power("toggle")
+                // An explicit target from the state on screen: a double tap or a stale view must
+                // not flip the TV twice, as a blind toggle would.
+                val now = client.power(if (status?.power == "on") "off" else "on")
                 status = status?.copy(power = now)
                 renderOverview()
             }
@@ -494,12 +500,17 @@ class CompanionRemoteActivity : BaseActivity<CompanionRemoteDesign>() {
     private suspend fun forget() {
         stopSession()
         remote.closeNodePicker()
-        val revoked = withTimeoutOrNull(FORGET_TIMEOUT_MS) {
-            runCatching { io { client.unpair() } }
-                .onFailure { Log.w("Companion remote: unpair ${agent.host}:${agent.port} failed: ${it.javaClass.simpleName}: ${it.message}") }
-                .isSuccess
-        } == true
-        store.remove(agent.deviceId)
+        // The local token goes no matter what: leaving the screen mid-request cancels this
+        // coroutine, and the token must not survive a "Forget" that the user already pressed.
+        val revoked = try {
+            withTimeoutOrNull(FORGET_TIMEOUT_MS) {
+                runCatching { io { client.unpair() } }
+                    .onFailure { Log.w("Companion remote: unpair ${agent.host}:${agent.port} failed: ${it.javaClass.simpleName}: ${it.message}") }
+                    .isSuccess
+            } == true
+        } finally {
+            withContext(NonCancellable) { store.remove(agent.deviceId) }
+        }
         if (revoked) {
             remote.showToast(getString(R.string.remote_forgotten, agent.name), ToastDuration.Short)
         } else {
