@@ -1,7 +1,7 @@
 # Core patch series
 
 The core is [Citrus](https://github.com/getmikan/Citrus), Mikan's mihomo fork, checked out unmodified
-at `core/src/foss/golang/clash` (pinned to a commit of its `main`). It keeps the module path
+at `core/src/foss/golang/clash` (pinned to `dev` commit `843a37008f6f65e441a531647efb6afb8194959c` (2026-10-21)). It keeps the module path
 `github.com/metacubex/mihomo`, so the bridge imports stay as they are. Citrus' own `replace`
 directives (utls, http, tls, smux forks) must be repeated in `core/src/main/golang/go.mod` and
 `core/src/foss/golang/go.mod`: Go applies `replace` only in the main module. The subscription
@@ -87,3 +87,12 @@ the next tick after the screen comes back. The tunnel itself keeps accepting con
 
 Test: `adapter/provider/healthcheck_suspend_test.go`. Not a server concern (no screen); keep it
 as long as the app suspends on screen off.
+
+### 0003 XDrive local storage on Android
+
+Adapted from ClashFest commits 79dd99ef and 6162bfd7. Android builds accept a local-storage
+XDrive node but replace its storage with an inert implementation: dialing fails and no device
+files are accessed. The engine guard also covers nodes supplied by external proxy providers.
+Cloud storage remains available. The patch includes storage-gate tests, and snapshot engine
+oracles cover top-level, inline and file-provider nodes. Keep this platform-specific guard
+until Citrus has an equivalent Android policy.

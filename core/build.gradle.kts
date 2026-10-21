@@ -187,6 +187,7 @@ val goTestNativeSnapshot by tasks.registering(Exec::class) {
         "github.com/metacubex/mihomo/adapter/outbound",
         "github.com/metacubex/mihomo/adapter/provider",
         "github.com/metacubex/mihomo/transport/trusttunnel",
+        "github.com/metacubex/mihomo/transport/xdrive",
     )
     dependsOn(applyCorePatches)
 

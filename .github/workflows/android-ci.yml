@@ -59,6 +59,13 @@ jobs:
           done
           go version
 
+      - name: Verify bridge Go module graphs
+        run: |
+          for module in core/src/main/golang core/src/foss/golang; do
+            (cd "$module" && go mod tidy)
+          done
+          git diff --exit-code -- core/src/main/golang/go.mod core/src/main/golang/go.sum core/src/foss/golang/go.mod core/src/foss/golang/go.sum
+
       - name: Grant gradlew execute permission
         run: chmod +x gradlew
 
