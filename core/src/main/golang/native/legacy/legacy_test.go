@@ -37,7 +37,13 @@ func TestDropKeepsTheConfigLoadable(t *testing.T) {
 	if _, err := config.ParseRawConfig(raw); err != nil {
 		t.Fatalf("config still fails after Drop: %v", err)
 	}
-	only := raw.ProxyGroup[1]["proxies"].([]any)
+	var only []any
+	for _, group := range raw.ProxyGroup {
+		if group["name"] == "OnlyOld" {
+			only, _ = group["proxies"].([]any)
+			break
+		}
+	}
 	if len(only) != 1 || only[0] != "REJECT" {
 		t.Fatalf("an emptied group must block, got %v", only)
 	}
