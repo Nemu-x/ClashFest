@@ -615,8 +615,8 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="duplicate">Duplicate</string>
     <string name="active_unsaved_tips">Profile needs to be saved before activation</string>
 
-    <string name="exit_without_save">Exit without Save</string>
-    <string name="exit_without_save_warning">All changed will *LOST*</string>
+    <string name="exit_without_save">Exit without saving?</string>
+    <string name="exit_without_save_warning">All changes will be lost.</string>
 
     <string name="raw_cn" translatable="false">cn</string>
     <string name="disabled">Disabled</string>
@@ -649,7 +649,7 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="logcat">Logcat</string>
 
     <string name="delete_all_logs">Delete All Logs</string>
-    <string name="delete_all_logs_warn">All historical logs will *LOST*</string>
+    <string name="delete_all_logs_warn">All saved logs will be deleted.</string>
     <string name="file_exported">File Exported</string>
 
     <string name="behavior">Behavior</string>
