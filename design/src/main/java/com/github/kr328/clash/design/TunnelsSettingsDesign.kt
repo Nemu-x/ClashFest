@@ -1,5 +1,6 @@
 package com.github.kr328.clash.design
 
+import com.github.kr328.clash.design.util.capContentWidthOnTv
 import android.content.Context
 import android.view.View
 import android.widget.TextView
@@ -48,6 +49,7 @@ class TunnelsSettingsDesign(context: Context) : Design<TunnelsSettingsDesign.Req
     private val adapter = TunnelEntryRowsAdapter(rows, emptyList()) { }
 
     init {
+        root.capContentWidthOnTv()
         rootView.findViewById<TextView>(R.id.screen_title).text =
             context.getString(R.string.tunnels_title)
 

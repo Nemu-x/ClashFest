@@ -1,5 +1,6 @@
 package com.github.kr328.clash.design
 
+import com.github.kr328.clash.design.util.capContentWidthOnTv
 import android.content.Context
 import android.view.View
 import android.widget.TextView
@@ -100,6 +101,7 @@ class RulesHubDesign(context: Context) : Design<RulesHubDesign.Request>(context)
     )
 
     init {
+        root.capContentWidthOnTv()
         ViewCompat.setOnApplyWindowInsetsListener(rootView) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPaddingRelative(bars.left, bars.top, bars.right, 0)

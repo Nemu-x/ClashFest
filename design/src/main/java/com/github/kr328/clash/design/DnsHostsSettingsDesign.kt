@@ -1,5 +1,6 @@
 package com.github.kr328.clash.design
 
+import com.github.kr328.clash.design.util.capContentWidthOnTv
 import android.content.Context
 import android.view.View
 import android.widget.TextView
@@ -51,6 +52,7 @@ class DnsHostsSettingsDesign(context: Context) : Design<DnsHostsSettingsDesign.R
     private val btnSave: MaterialButton = rootView.findViewById(R.id.btn_save)
 
     init {
+        root.capContentWidthOnTv()
         rootView.findViewById<TextView>(R.id.screen_title).text =
             context.getString(R.string.dns_hosts_title)
 

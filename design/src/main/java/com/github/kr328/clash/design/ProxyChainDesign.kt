@@ -1,5 +1,6 @@
 package com.github.kr328.clash.design
 
+import com.github.kr328.clash.design.util.capContentWidthOnTv
 import android.content.Context
 import android.view.View
 import android.widget.ArrayAdapter
@@ -61,6 +62,7 @@ class ProxyChainDesign(
         get() = rootView
 
     init {
+        root.capContentWidthOnTv()
         ViewCompat.setOnApplyWindowInsetsListener(rootView) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPaddingRelative(bars.left, 0, bars.right, 0)

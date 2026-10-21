@@ -1,6 +1,8 @@
 package com.github.kr328.clash.design
 
 import android.view.View
+import androidx.recyclerview.widget.GridLayoutManager
+import com.github.kr328.clash.design.util.isTelevision
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.DefaultItemAnimator
 import com.github.kr328.clash.design.util.applyLinearAdapter
@@ -192,6 +194,8 @@ internal fun MainDesign.setupProfileLists() {
 
     binding.profilesTabList.also {
         it.applyLinearAdapter(context, tabProfileAdapter)
+        // TV: the list is ~900dp wide there, so subscription cards sit two per row.
+        if (context.isTelevision()) it.layoutManager = GridLayoutManager(context, 2)
         it.itemAnimator = DefaultItemAnimator().apply {
             supportsChangeAnimations = false
             changeDuration = 0

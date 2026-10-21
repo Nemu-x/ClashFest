@@ -1,5 +1,6 @@
 package com.github.kr328.clash.design
 
+import com.github.kr328.clash.design.util.capContentWidthOnTv
 import android.content.Context
 import android.view.View
 import com.github.kr328.clash.design.databinding.DesignRuleProvidersEditorBinding
@@ -20,6 +21,7 @@ class RuleProvidersEditorDesign(context: Context) : Design<RuleProvidersEditorDe
         get() = binding.root
 
     init {
+        root.capContentWidthOnTv()
         binding.btnSave.setOnClickListener { requests.trySend(Request.Save) }
     }
 

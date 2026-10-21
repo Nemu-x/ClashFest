@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- TV: a 1080p panel is ~960x540dp. Landscape.kt caps content at max(height, this), which
+         left a 540dp phone column in the middle of the TV; let content use most of the width
+         while keeping a ~30dp overscan-safe margin on each side. -->
+    <dimen name="surface_landscape_min_width">900dp</dimen>
+</resources>
