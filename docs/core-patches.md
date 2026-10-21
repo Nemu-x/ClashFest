@@ -1,7 +1,7 @@
 # Core patch series
 
 The core is [Citrus](https://github.com/getmikan/Citrus), Mikan's mihomo fork, checked out unmodified
-at `core/src/foss/golang/clash` (pinned to `dev` commit `843a37008f6f65e441a531647efb6afb8194959c` (2026-10-21)). It keeps the module path
+at `core/src/foss/golang/clash` (pinned to `dev` commit `ca8204d95c32664303a00ba917a45df8254adb1f` (2026-10-22)). It keeps the module path
 `github.com/metacubex/mihomo`, so the bridge imports stay as they are. Citrus' own `replace`
 directives (utls, http, tls, smux forks) must be repeated in `core/src/main/golang/go.mod` and
 `core/src/foss/golang/go.mod`: Go applies `replace` only in the main module. The subscription
