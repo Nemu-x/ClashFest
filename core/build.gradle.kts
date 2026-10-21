@@ -186,6 +186,7 @@ val goTestNativeSnapshot by tasks.registering(Exec::class) {
         // patch that applied but no longer does what it claims fails here.
         "-run", "Test", "github.com/metacubex/mihomo/adapter/outbound",
         "github.com/metacubex/mihomo/adapter/provider",
+        "github.com/metacubex/mihomo/transport/trusttunnel",
     )
     dependsOn(applyCorePatches)
 

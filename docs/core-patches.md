@@ -31,7 +31,10 @@ modified freely: CI and the F-Droid recipe overwrite the embedded Root CA bundle
 modified while a build tree is set up; never commit the applied patches into the submodule.
 
 Tests that ship inside a patch run with the Go test task (`go test github.com/metacubex/mihomo/adapter/outbound github.com/metacubex/mihomo/adapter/provider`
-from the `cfa` module), against the patched tree.
+from the `cfa` module), against the patched tree. The same task also runs
+`github.com/metacubex/mihomo/transport/trusttunnel`: the pinned Citrus already includes
+[getmikan/Citrus#54](https://github.com/getmikan/Citrus/pull/54), including its connection,
+handshake timeout and HTTP/2 ping tests. Do not reapply the superseded TrustTunnel patches.
 
 ## Rules for a patch
 
