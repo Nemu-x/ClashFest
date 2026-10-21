@@ -1,0 +1,141 @@
+diff --git a/transport/xdrive/config.go b/transport/xdrive/config.go
+--- a/transport/xdrive/config.go
++++ b/transport/xdrive/config.go
+@@ -2,8 +2,10 @@
+ package xdrive
+ 
+ import (
++	"errors"
+ 	"fmt"
+ 	"net"
++	"runtime"
+ 	"strconv"
+ 	"strings"
+ )
+@@ -23,6 +25,18 @@
+ 	HoleTimeoutMs     uint32         `proxy:"hole-timeout-ms,omitempty" inbound:"hole-timeout-ms,omitempty" yaml:"hole-timeout-ms,omitempty" json:"hole-timeout-ms,omitempty"`
+ 	Template          map[string]any `proxy:"template,omitempty" inbound:"template,omitempty" yaml:"template,omitempty" json:"template,omitempty"`
+ }
++
++// AllowLocalService gates `service: local`, a folder on the device meant for
++// tests. Mikan Android patch 0003: Android builds accept such a node in a
++// config, so one bad node does not fail a whole subscription, but give it a
++// storage that refuses every operation: it never touches the filesystem and
++// every dial through it fails. This covers http and file proxy-providers too
++// (the app's YAML hardening only sees config.yaml and inline payloads).
++var AllowLocalService = runtime.GOOS != "android"
++
++// ErrLocalServiceDisabled is returned by every operation of a `service: local`
++// storage while AllowLocalService is off.
++var ErrLocalServiceDisabled = errors.New("xdrive service local (a folder on the device) is disabled in this build")
+ 
+ func (c Config) Validate() error {
+ 	if c.Fronting != "" {
+diff --git a/transport/xdrive/storage.go b/transport/xdrive/storage.go
+--- a/transport/xdrive/storage.go
++++ b/transport/xdrive/storage.go
+@@ -42,6 +42,9 @@
+ 	}
+ 	switch c.Service {
+ 	case "local":
++		if !AllowLocalService {
++			return disabledLocalStorage{}, nil
++		}
+ 		return newLocalStorage(c.RemoteFolder)
+ 	case "google-drive", "Google Drive":
+ 		return newDriveStorage(client, &c)
+@@ -49,3 +52,22 @@
+ 		return newTemplateStorage(client, &c)
+ 	}
+ }
++
++// disabledLocalStorage stands in for `service: local` while AllowLocalService
++// is off (Mikan Android patch 0003). It creates nothing and refuses every
++// operation, so the proxy loads but cannot be used.
++type disabledLocalStorage struct{}
++
++func (disabledLocalStorage) Put(context.Context, string, []byte) error {
++	return ErrLocalServiceDisabled
++}
++func (disabledLocalStorage) Get(context.Context, string) ([]byte, error) {
++	return nil, ErrLocalServiceDisabled
++}
++func (disabledLocalStorage) Delete(context.Context, string) error {
++	return ErrLocalServiceDisabled
++}
++func (disabledLocalStorage) List(context.Context, string) ([]Entry, error) {
++	return nil, ErrLocalServiceDisabled
++}
++func (disabledLocalStorage) Close() error { return nil }
+diff --git a/transport/xdrive/session.go b/transport/xdrive/session.go
+--- a/transport/xdrive/session.go
++++ b/transport/xdrive/session.go
+@@ -133,6 +133,9 @@
+ 	if err != nil {
+ 		return nil, err
+ 	}
++	if _, disabled := storage.(disabledLocalStorage); disabled {
++		return nil, ErrLocalServiceDisabled
++	}
+ 	ctx, cancel := context.WithCancel(context.Background())
+ 	l := &Listener{ctx: ctx, cancel: cancel, storage: storage, http: h, params: paramsFromConfig(&c), accepted: make(chan net.Conn, 32), active: make(map[string]*Conn), handled: make(map[string]time.Time), idleSince: make(map[string]time.Time)}
+ 	go l.run()
+diff --git a/transport/xdrive/config_local_test.go b/transport/xdrive/config_local_test.go
+new file mode 100644
+--- /dev/null
++++ b/transport/xdrive/config_local_test.go
+@@ -0,0 +1,54 @@
++package xdrive
++
++import (
++	"context"
++	"errors"
++	"os"
++	"path/filepath"
++	"testing"
++)
++
++func TestLocalServiceGate(t *testing.T) {
++	saved := AllowLocalService
++	t.Cleanup(func() { AllowLocalService = saved })
++
++	AllowLocalService = true
++	allowed := Config{Service: "local", RemoteFolder: filepath.Join(t.TempDir(), "allowed")}
++	if err := allowed.Validate(); err != nil {
++		t.Fatalf("local allowed: %v", err)
++	}
++	if _, err := newStorage(allowed, nil); err != nil {
++		t.Fatalf("local storage allowed: %v", err)
++	}
++	if _, err := os.Stat(allowed.RemoteFolder); err != nil {
++		t.Fatalf("allowed local storage must create its folder: %v", err)
++	}
++
++	AllowLocalService = false
++	folder := filepath.Join(t.TempDir(), "refused")
++	cfg := Config{Service: "local", RemoteFolder: folder}
++	if err := cfg.Validate(); err != nil {
++		t.Fatalf("a refused local node must still validate: %v", err)
++	}
++	client, err := NewClient(cfg, nil)
++	if err != nil {
++		t.Fatalf("client for a refused local node: %v", err)
++	}
++	if _, err := client.Dial(context.Background()); !errors.Is(err, ErrLocalServiceDisabled) {
++		t.Fatalf("dial through a refused local node: got %v", err)
++	}
++	if err := client.Close(); err != nil {
++		t.Fatalf("close: %v", err)
++	}
++	if _, err := Listen(cfg, nil); !errors.Is(err, ErrLocalServiceDisabled) {
++		t.Fatalf("listen on a refused local node: got %v", err)
++	}
++	if _, err := os.Stat(folder); !os.IsNotExist(err) {
++		t.Fatalf("a refused local node touched the filesystem: %v", err)
++	}
++
++	cloud := Config{Service: "google-drive", RemoteFolder: "id", Secrets: []string{"a", "b", "c"}}
++	if err := cloud.Validate(); err != nil {
++		t.Fatalf("google-drive must not be affected: %v", err)
++	}
++}

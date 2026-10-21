@@ -1,7 +1,7 @@
 [submodule "clash-foss"]
 	path = core/src/foss/golang/clash
 	url = https://github.com/getmikan/Citrus
-	branch = main
+	branch = dev
 [submodule "clash-companion"]
 	path = clash-companion
 	url = https://github.com/Nemu-x/clash-companion.git
