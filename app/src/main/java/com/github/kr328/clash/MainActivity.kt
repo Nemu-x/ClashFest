@@ -28,7 +28,8 @@ import com.github.kr328.clash.service.model.Profile
 import com.github.kr328.clash.service.store.ServiceStore
 import com.github.kr328.clash.util.AppUpdateChecker
 import com.github.kr328.clash.util.showProfileQuickEditSheet
-import com.github.kr328.clash.util.closeConnectionsAfterUserProxySwitchIfEnabled
+import com.github.kr328.clash.util.ChangeBus
+import com.github.kr328.clash.util.applyUserProxySelection
 import com.github.kr328.clash.util.stopClashService
 import com.github.kr328.clash.util.withClash
 import com.github.kr328.clash.util.withProfile
@@ -240,6 +241,36 @@ class MainActivity : BaseActivity<MainDesign>() {
                         design.showExceptionToast(e)
                     }
                 } while (refreshRequests.tryReceive().isSuccess)
+            }
+        }
+
+        // A paired controller (companion remote) changed the mode or the node through the same
+        // shared paths the Home controls use. Adopt it: drop our own converging pick and re-read
+        // the persisted state, so the dashboard follows the remote instead of reverting it.
+        // Profile switches and VPN on/off already arrive through the service broadcasts above.
+        launch {
+            val remoteChanges = kotlinx.coroutines.channels.Channel<ChangeBus.Change>(kotlinx.coroutines.channels.Channel.UNLIMITED)
+            val listener = ChangeBus.Listener { change, remote ->
+                if (remote) remoteChanges.trySend(change)
+            }
+            ChangeBus.addListener(listener)
+            try {
+                for (change in remoteChanges) {
+                    when (change) {
+                        ChangeBus.Change.Mode -> {
+                            dashboard.adoptExternalTunnelMode()
+                            scheduleDashboardRefresh(force = true)
+                        }
+                        ChangeBus.Change.Proxies -> {
+                            val active = runCatching { withProfile { queryActive() } }.getOrNull()
+                            if (active != null) scheduleProxyDetailsRefresh(active, uiStore.proxyLastGroup)
+                            scheduleDashboardRefresh(force = true)
+                        }
+                        else -> Unit
+                    }
+                }
+            } finally {
+                ChangeBus.removeListener(listener)
             }
         }
 
@@ -468,18 +499,10 @@ class MainActivity : BaseActivity<MainDesign>() {
                                 return@launch
                             }
                             design.markProxySelectionPending(profile, group, name)
-                            val patched = withClash {
-                                patchSelector(group, name)
+                            val patched = applyUserProxySelection(profile.uuid, group, name, remote = false) { message, duration ->
+                                design.showToast(message, duration)
                             }
-                            if (patched) {
-                                uiStore.proxyLastGroup = group
-                                withProfile {
-                                    rememberProxySelection(profile.uuid, group, name)
-                                }
-                                closeConnectionsAfterUserProxySwitchIfEnabled { message, duration ->
-                                    design.showToast(message, duration)
-                                }
-                            } else {
+                            if (!patched) {
                                 design.showToast(R.string.proxy_switch_selector_failed, ToastDuration.Long)
                             }
                             scheduleProxyDetailsRefresh(profile, group)

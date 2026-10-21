@@ -11,6 +11,7 @@ import com.github.kr328.clash.remote.StatusClient
 import com.github.kr328.clash.service.model.Profile
 import com.github.kr328.clash.service.model.ProxyGroupPreviewRow
 import com.github.kr328.clash.service.remote.IProxyDelayObserver
+import com.github.kr328.clash.util.TunnelModeApplier
 import com.github.kr328.clash.util.withClash
 import com.github.kr328.clash.util.withProfile
 import kotlinx.coroutines.CoroutineScope
@@ -44,15 +45,10 @@ internal class MainProxyRuntime(private val activity: MainActivity) {
     internal val profileLoadEpoch = AtomicInteger(0)
 
     internal fun normalizeTunnelMode(mode: TunnelState.Mode): TunnelState.Mode =
-        if (mode == TunnelState.Mode.Direct) TunnelState.Mode.Rule else mode
+        TunnelModeApplier.normalize(mode)
 
     internal fun parseTunnelMode(name: String): TunnelState.Mode? =
-        when (name) {
-            TunnelState.Mode.Rule.name -> TunnelState.Mode.Rule
-            TunnelState.Mode.Global.name -> TunnelState.Mode.Global
-            TunnelState.Mode.Direct.name -> TunnelState.Mode.Rule
-            else -> null
-        }
+        TunnelModeApplier.parse(name)
 
     internal fun resolveStatusSnapshot(): StatusClient.StatusSnapshot =
         runCatching { StatusClient(activity).statusSnapshot() }
@@ -102,48 +98,12 @@ internal class MainProxyRuntime(private val activity: MainActivity) {
             normalized.contains("быстр")
     }
 
-    private fun isBlockedGlobalChoice(name: String): Boolean =
-        name.equals("DIRECT", ignoreCase = true) || name.equals("REJECT", ignoreCase = true)
-
-    private fun isBlockedGlobalChoice(proxy: Proxy): Boolean =
-        proxy.type == Proxy.Type.Direct ||
-            proxy.type == Proxy.Type.Reject ||
-            isBlockedGlobalChoice(proxy.name)
-
-    internal suspend fun ensureGlobalSelectionSafe() {
-        runCatching {
-            val global = withClash {
-                queryProxyGroup("GLOBAL", com.github.kr328.clash.core.model.ProxySort.Default)
-            }
-            if (!isBlockedGlobalChoice(global.now)) return@runCatching
-            val firstUsable = global.proxies.firstOrNull { !isBlockedGlobalChoice(it) }?.name ?: return@runCatching
-            withClash { patchSelector("GLOBAL", firstUsable) }
-        }
-    }
+    internal suspend fun ensureGlobalSelectionSafe() = TunnelModeApplier.ensureGlobalSelectionSafe()
 
     internal suspend fun ensureGlobalSelectionSafeWithRetry(
         attempts: Int = 10,
         delayMs: Long = 180L,
-    ) {
-        repeat(attempts) { index ->
-            val done = runCatching {
-                val running = resolveStatusSnapshot().serviceRunning
-                if (!running) return@runCatching true
-
-                val mode = withClash { queryTunnelState().mode }
-                if (normalizeTunnelMode(mode) != TunnelState.Mode.Global) return@runCatching true
-
-                val hasGlobal = withClash { queryProxyGroupNames(false).any { it.equals("GLOBAL", ignoreCase = true) } }
-                if (!hasGlobal) return@runCatching false
-
-                ensureGlobalSelectionSafe()
-                true
-            }.getOrDefault(false)
-
-            if (done) return
-            if (index < attempts - 1) delay(delayMs)
-        }
-    }
+    ) = TunnelModeApplier.ensureGlobalSelectionSafeWithRetry(activity, attempts, delayMs)
 
     /**
      * Run a per-proxy health check on [group] and stream each proxy's delay

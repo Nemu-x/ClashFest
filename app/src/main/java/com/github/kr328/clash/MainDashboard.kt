@@ -16,6 +16,7 @@ import com.github.kr328.clash.design.util.showExceptionToast
 import com.github.kr328.clash.remote.Remote
 import com.github.kr328.clash.service.model.Profile
 import com.github.kr328.clash.service.store.ServiceStore
+import com.github.kr328.clash.util.TunnelModeApplier
 import com.github.kr328.clash.util.startClashService
 import com.github.kr328.clash.util.withClash
 import com.github.kr328.clash.util.withProfile
@@ -64,43 +65,31 @@ internal class MainDashboard(private val activity: MainActivity) {
     internal var suppressRunningReviveUntil: Long = 0L
     private var pendingTunnelMode: TunnelState.Mode? = null
 
+    /**
+     * A paired controller changed the mode through [TunnelModeApplier]: drop any pick of ours that
+     * is still converging so the next [fetch] shows the persisted (remote) mode instead of
+     * re-asserting the stale one.
+     */
+    internal fun adoptExternalTunnelMode() {
+        pendingTunnelMode = null
+    }
+
     internal suspend fun MainDesign.patchTunnelMode(mode: TunnelState.Mode, scheduleRefresh: () -> Unit) {
         try {
             val normalized = runtime.normalizeTunnelMode(mode)
-            uiStore.tunnelModePreference = normalized.name
             pendingTunnelMode = normalized
             setMode(normalized)
 
             val running = clashRunning || withContext(Dispatchers.IO) { runtime.resolveStatusSnapshot().serviceRunning }
-            if (running) {
-                val error = runCatching {
-                    withClash {
-                        val o = queryOverride(Clash.OverrideSlot.Session)
-                        o.mode = normalized
-                        patchOverride(Clash.OverrideSlot.Session, o)
-                    }
-                    if (normalized == TunnelState.Mode.Global) {
-                        runtime.ensureGlobalSelectionSafe()
-                    }
-                    delay(120L)
-                    val applied = runCatching {
-                        withClash { queryTunnelState().mode }
-                    }.getOrNull()
-                    if (applied != null && runtime.normalizeTunnelMode(applied) != normalized) {
-                        withClash {
-                            val o = queryOverride(Clash.OverrideSlot.Session)
-                            o.mode = normalized
-                            patchOverride(Clash.OverrideSlot.Session, o)
-                        }
-                    } else if (applied != null) {
-                        pendingTunnelMode = null
-                    }
-                }.exceptionOrNull()
-
-                if (error != null && error !is CancellationException) {
+            val error = runCatching {
+                if (TunnelModeApplier.apply(activity, normalized, running, remote = false)) {
                     pendingTunnelMode = null
-                    showExceptionToast(error as? Exception ?: Exception(error))
                 }
+            }.exceptionOrNull()
+
+            if (error != null && error !is CancellationException) {
+                pendingTunnelMode = null
+                showExceptionToast(error as? Exception ?: Exception(error))
             }
         } catch (e: Exception) {
             pendingTunnelMode = null
