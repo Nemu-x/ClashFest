@@ -80,7 +80,7 @@ interface IProfileManager {
     /** `rule-providers` YAML block or null. */
     suspend fun readRuleProvidersYaml(uuid: UUID): String?
 
-    /** Full processed `config.yaml` text for [uuid], or null if missing. Read-only. */
+    /** Processed `config.yaml` for read-only display, with XDrive credentials hidden; null if missing. */
     suspend fun readConfigYaml(uuid: UUID): String?
 
     /** The profile's user JS script and whether it is switched on. */

@@ -81,6 +81,10 @@ jobs:
       - name: Populate embedded Root CA bundle
         run: bash .github/scripts/populate-ca-bundle.sh
 
+      - name: Test subscription, transport and picker regressions
+        run: |
+          ./gradlew :common:testAlphaDebugUnitTest --tests com.github.kr328.clash.common.util.SubscriptionNameGuesserTest :core:testAlphaDebugUnitTest --tests com.github.kr328.clash.core.model.ChainTypeTest :service:testAlphaDebugUnitTest --tests com.github.kr328.clash.service.util.SubscriptionMaintenanceTest --tests com.github.kr328.clash.service.util.OperatorPolicyHeadersTest --tests com.github.kr328.clash.service.util.XDriveSecretRedactorTest --tests com.github.kr328.clash.service.util.YamlHardenerTest --tests com.github.kr328.clash.service.util.WritePipelineOracleFixtureTest :app:testAlphaDebugUnitTest --tests com.github.kr328.clash.util.AboutVersionsTest :design:testAlphaDebugUnitTest --tests com.github.kr328.clash.design.util.ProxyTransportLabelTest --tests com.github.kr328.clash.design.motion.SheetMotionTest --max-workers=2
+
       - name: Build Alpha Debug APK
         run: ./gradlew assembleAlphaDebug
 

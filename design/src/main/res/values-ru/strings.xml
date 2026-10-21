@@ -1435,4 +1435,5 @@
     <string name="theme_colors_custom">Активен ваш цвет акцента.</string>
     <string name="theme_colors_preset">Палитра: %1$s</string>
     <string name="theme_custom_accent_saved">Свой акцент · %1$s</string>
+    <string name="tun_stack_changed_reconnect">Провайдер сменил сетевой стек на %1$s. Переподключитесь, чтобы применить.</string>
 </resources>

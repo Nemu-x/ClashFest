@@ -12,6 +12,8 @@ import com.github.kr328.clash.service.data.PendingDao
 import com.github.kr328.clash.service.model.Profile
 import com.github.kr328.clash.service.remote.IFetchObserver
 import com.github.kr328.clash.service.store.ServiceStore
+import com.github.kr328.clash.service.util.OperatorPolicyHeaders
+import com.github.kr328.clash.service.util.activeProfileAfterDelete
 import com.github.kr328.clash.service.util.FetchHeadersFile
 import com.github.kr328.clash.service.util.GeoUrlSanitizer
 import com.github.kr328.clash.service.util.MihomoConfigDocument
@@ -205,6 +207,11 @@ object ProfileProcessor {
                             context.pendingDir.resolve(snapshot.uuid.toString())
                                 .deleteRecursively()
 
+                            if (snapshot.type == Profile.Type.Url && snapshot.source.startsWith("https://", true)) {
+                                FetchHeadersFile.readFrom(context.importedDir.resolve(snapshot.uuid.toString()))?.let {
+                                    OperatorPolicyHeaders.applyFromSnapshot(context, snapshot.uuid, it)
+                                }
+                            }
                             context.sendProfileChanged(snapshot.uuid)
                         } else if (snapshot?.type == Profile.Type.File) {
                             val new = Imported(
@@ -437,6 +444,11 @@ object ProfileProcessor {
                             context.processingDir
                                 .copyRecursively(context.importedDir.resolve(snapshot.uuid.toString()))
 
+                            if (snapshot.type == Profile.Type.Url && snapshot.source.startsWith("https://", true)) {
+                                FetchHeadersFile.readFrom(context.importedDir.resolve(snapshot.uuid.toString()))?.let {
+                                    OperatorPolicyHeaders.applyFromSnapshot(context, snapshot.uuid, it)
+                                }
+                            }
                             context.sendProfileChanged(snapshot.uuid)
                         }
                     }
@@ -457,19 +469,16 @@ object ProfileProcessor {
                 pending.deleteRecursively()
                 imported.deleteRecursively()
 
-                context.sendProfileChanged(uuid)
-
-                // Deleting the active profile left activeProfile pointing at a uuid that no
-                // longer exists: the engine had "No profile selected" and Home showed no
-                // profile. Hand the active slot to the first remaining profile instead.
                 val store = ServiceStore(context)
-                if (store.activeProfile == uuid) {
-                    val next = ImportedDao().queryAllOrderedUUIDs()
-                        .map { it.uuid }
-                        .firstOrNull { it != uuid && ImportedDao().exists(it) }
-                    store.activeProfile = next
-                    next?.let { context.sendProfileChanged(it) }
+                val previous = store.activeProfile
+                val next = activeProfileAfterDelete(previous, uuid) {
+                    ImportedDao().queryAllOrderedUUIDs().map { it.uuid }
                 }
+                if (next != previous) {
+                    store.activeProfile = next
+                }
+                context.sendProfileChanged(uuid)
+                if (next != previous) next?.let { context.sendProfileChanged(it) }
             }
         }
     }

@@ -57,6 +57,7 @@ data class Proxy(
 
 
         Relay(true),
+        Chain(true),
         Selector(true),
         Fallback(true),
         URLTest(true),

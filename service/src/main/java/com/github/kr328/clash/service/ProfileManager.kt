@@ -281,6 +281,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
             // headers" signal (not a transient failure) and feeds the debounced
             // auto-clear.
             BrandRefresh.apply(context, old.uuid, brand, confirmedResponse = true)
+            com.github.kr328.clash.service.util.OperatorPolicyHeaders.applyFromSnapshot(context, old.uuid, headers)
 
             // Re-derive the display name on EVERY update — not only when the panel sends
             // subscription-userinfo. Tying the rename to the quota header meant subscriptions
@@ -572,7 +573,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
                 return@withContext null
             }
             try {
-                file.readText()
+                com.github.kr328.clash.service.util.XDriveSecretRedactor.redactConfigYaml(file.readText())
             } catch (_: Exception) {
                 null
             }

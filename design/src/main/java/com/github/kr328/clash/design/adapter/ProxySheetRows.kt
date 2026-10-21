@@ -14,6 +14,7 @@ import com.github.kr328.clash.design.util.FlagDrawableLoader
 import com.github.kr328.clash.design.util.FlagParser
 import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.design.util.proxyTransportLabel
+import com.github.kr328.clash.design.util.proxyUsesTls
 import com.github.kr328.clash.service.model.Profile
 import com.google.android.material.color.MaterialColors
 
@@ -237,10 +238,16 @@ internal fun ProfileAdapter.bindProxyNodeRow(
         }
         if (transportInfo?.reality == true) {
             applyProtoChip(realityBadge, "REALITY", ContextCompat.getColor(context, R.color.proto_reality))
+        } else if (proxyUsesTls(p.type, transportInfo)) {
+            applyProtoChip(realityBadge, "TLS", ContextCompat.getColor(context, R.color.proto_reality))
         } else {
             realityBadge.visibility = View.GONE
         }
     }
+
+    row.findViewById<View>(R.id.proxy_protocol_capsule).visibility =
+        if (typeBadge.visibility == View.VISIBLE || transportBadge.visibility == View.VISIBLE ||
+            realityBadge.visibility == View.VISIBLE) View.VISIBLE else View.GONE
 
     val rawSubtitle = p.subtitle
         .takeIf { it.isNotBlank() && !it.equals(typeName, ignoreCase = true) }

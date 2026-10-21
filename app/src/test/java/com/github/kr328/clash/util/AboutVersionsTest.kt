@@ -13,7 +13,8 @@ class AboutVersionsTest {
         val channel = if (BuildConfig.DEBUG) "Debug" else "Release"
         assertTrue(AboutVersions.app.matches(Regex("\\d+\\.\\d+\\.\\d+\\.$channel")))
         assertEquals(
-            AboutVersions.coreLabel(CoreBuildConfig.CORE_NAME, CoreBuildConfig.CORE_TAG, CoreBuildConfig.CITRUS_TAG),
+            AboutVersions.coreLabel(CoreBuildConfig.CORE_NAME, CoreBuildConfig.CORE_TAG,
+                CoreBuildConfig.CITRUS_TAG, CoreBuildConfig.CORE_REVISION),
             AboutVersions.core,
         )
         assertTrue(AboutVersions.core.startsWith("${CoreBuildConfig.CORE_NAME} "))
@@ -26,5 +27,12 @@ class AboutVersionsTest {
         assertEquals("Citrus —", AboutVersions.coreLabel("Citrus", "v1.19.32", ""))
         assertEquals("Mihomo 1.19.32", AboutVersions.coreLabel("Mihomo", "v1.19.32", ""))
         assertEquals("Mihomo —", AboutVersions.coreLabel("Mihomo", "", ""))
+    }
+
+    @Test fun devBuildsShowTheActualPinnedCommit() {
+        assertEquals("Citrus 1.0.0-beta.2 · 843a3700",
+            AboutVersions.coreLabel("Citrus", "v1.19.32", "v1.0.0-beta.2", "843a37008f6f"))
+        assertEquals("Citrus 1.0.0-beta.2",
+            AboutVersions.coreLabel("Citrus", "v1.19.32", "v1.0.0-beta.2", "unknown"))
     }
 }

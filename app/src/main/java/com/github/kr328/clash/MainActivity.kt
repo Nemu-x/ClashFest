@@ -280,6 +280,10 @@ class MainActivity : BaseActivity<MainDesign>() {
                             val serviceStateEvent = it == Event.ClashStop ||
                                 it == Event.ClashStart ||
                                 it == Event.ServiceRecreated
+                            if (it == Event.ProfileLoaded) {
+                                probe.clearWarmedGroups()
+                                design.clearProxyDetails()
+                            }
                             scheduleDashboardRefresh(
                                 includeAnnouncement = it == Event.ActivityStart ||
                                     it == Event.ProfileChanged ||
@@ -302,6 +306,9 @@ class MainActivity : BaseActivity<MainDesign>() {
                             }
                             if (it == Event.ActivityStart) {
                                 updates.refreshUpdateBadge(design)
+                            }
+                            if (it == Event.ProfileUpdateCompleted) {
+                                launch { subscriptionMetadata.hintTunStackChange(design) }
                             }
                         }
 

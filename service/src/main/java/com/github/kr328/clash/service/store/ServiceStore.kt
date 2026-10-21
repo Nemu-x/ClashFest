@@ -104,6 +104,8 @@ class ServiceStore(context: Context) {
         defaultValue = ""
     )
 
+    var appliedTunStack by store.string(key = "applied_tun_stack", defaultValue = "")
+
     var tunStackMode by store.string(
         key = "tun_stack_mode",
         // Default "system" (matches upstream CMFA). "auto" follows the subscription's tun.stack;

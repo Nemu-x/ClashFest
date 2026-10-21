@@ -18,12 +18,11 @@ import com.github.kr328.clash.service.data.Imported
 import com.github.kr328.clash.service.data.ImportedDao
 import com.github.kr328.clash.service.model.Profile
 import com.github.kr328.clash.service.store.ServiceStore
-import com.github.kr328.clash.service.util.ProfileComposer
+import com.github.kr328.clash.service.util.lastSubscriptionFetchAt
 import com.github.kr328.clash.service.util.importedDir
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.io.File
 import java.util.concurrent.TimeUnit
 
 class ProfileReceiver : BroadcastReceiver() {
@@ -98,8 +97,7 @@ class ProfileReceiver : BroadcastReceiver() {
             // is fetched; config.yaml is re-composed on every VPN start and profile load, so timing
             // from it pushed the next update back after every connect and a daily user never got one.
             val profileDir = context.importedDir.resolve(imported.uuid.toString())
-            val last = File(profileDir, ProfileComposer.SUBSCRIPTION_FILE).takeIf { it.isFile }?.lastModified()
-                ?: File(profileDir, "config.yaml").lastModified()
+            val last = lastSubscriptionFetchAt(profileDir)
 
             // file not existed
             if (last <= 0)
