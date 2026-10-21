@@ -180,11 +180,11 @@ val goTestNativeSnapshot by tasks.registering(Exec::class) {
     // only exist under these tags (temporaryUpdateGeneral, etc), so go test
     // fails with "relocation target ... not defined" without them.
     commandLine(
-        "go", "test", "-tags", "foss,with_gvisor,cmfa",
+        "go", "test", "-tags", "foss,with_gvisor,cmfa", "-run", "Test",
         "./native/snapshot/...", "./native/useragent/...", "./native/reality/...", "./native/legacy/...",
         // Tests shipped inside the patch series run against the patched tree, so a
         // patch that applied but no longer does what it claims fails here.
-        "-run", "Test", "github.com/metacubex/mihomo/adapter/outbound",
+        "github.com/metacubex/mihomo/adapter/outbound",
         "github.com/metacubex/mihomo/adapter/provider",
         "github.com/metacubex/mihomo/transport/trusttunnel",
     )
