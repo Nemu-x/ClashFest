@@ -158,6 +158,7 @@ val revertCorePatches by tasks.registering {
 
 tasks.matching { it.name.startsWith("externalGolangBuild") }.configureEach {
     dependsOn(applyCorePatches)
+    inputs.property("coreRevision", mihomoHead)
 }
 tasks.matching { it.name == "clean" }.configureEach {
     dependsOn(revertCorePatches)
@@ -235,6 +236,7 @@ android {
         buildConfigField("String", "CORE_TAG", "\"$mihomoTag\"")
         buildConfigField("String", "CORE_NAME", if (coreIsCitrus) "\"Citrus\"" else "\"Mihomo\"")
         buildConfigField("String", "CITRUS_TAG", "\"$citrusTag\"")
+        buildConfigField("String", "CORE_REVISION", "\"${mihomoHead.get().take(12)}\"")
     }
 
     productFlavors {

@@ -175,4 +175,131 @@ class WritePipelineOracleFixtureTest {
         assertTrue(!root.containsKey("mixed-port"))
         File(dir, "json_profile.yaml").writeText(hardened)
     }
+    /**
+     * XDrive hardening (core patch 0003): `service: local` nodes become REJECT, xdrive
+     * listeners go. The Go side (hardening_xdrive_oracle_test.go) loads these through the
+     * patched engine and checks the neutralised nodes really are REJECT while the cloud
+     * xdrive node and the group still resolve.
+     */
+    @Test
+    fun emit_hardened_xdrive_fixtures_for_go_oracle() {
+        val dir = listOf(
+            "../core/src/main/golang/native/snapshot/testdata/hardening",
+            "core/src/main/golang/native/snapshot/testdata/hardening",
+        ).map(::File).first { it.parentFile.parentFile.parentFile.exists() }
+        dir.mkdirs()
+
+        val encryption = "mlkem768x25519plus.native.0rtt.XKbaq1BuzJKKKPxZbwgRpn-gYQbnhrYketgezASCL1I"
+        val unsafe = """
+            listeners:
+              - name: drive-in
+                type: socks
+                listen: 0.0.0.0
+                port: 0
+                xdrive-config:
+                  service: local
+                  remote-folder: /sdcard/Download
+              - name: local-socks
+                type: socks
+                listen: 0.0.0.0
+                port: 17890
+            proxies:
+              - name: local-node
+                type: vless
+                server: 127.0.0.1
+                port: 443
+                uuid: 27848739-7e62-4138-9fd3-098a63964b6b
+                network: xdrive
+                encryption: $encryption
+                xdrive-opts:
+                  service: local
+                  remote-folder: /sdcard/Download
+              - name: snake-node
+                type: vless
+                server: 127.0.0.1
+                port: 443
+                uuid: 27848739-7e62-4138-9fd3-098a63964b6b
+                network: xdrive
+                encryption: $encryption
+                xdrive_opts:
+                  service: local
+                  remote-folder: /sdcard/Download
+              - Name: caps-node
+                type: vless
+                server: 127.0.0.1
+                port: 443
+                uuid: 27848739-7e62-4138-9fd3-098a63964b6b
+                Network: xdrive
+                encryption: $encryption
+                XDrive-Opts:
+                  Service: local
+                  remote_folder: /sdcard/Download
+              - name: cloud-node
+                type: vless
+                server: www.googleapis.com
+                port: 443
+                uuid: 27848739-7e62-4138-9fd3-098a63964b6b
+                network: xdrive
+                encryption: $encryption
+                xdrive-opts:
+                  service: google-drive
+                  remote-folder: dummy-folder-id
+                  secrets:
+                    - dummy-client-id
+                    - dummy-client-secret
+                    - dummy-refresh-token
+            proxy-providers:
+              inline:
+                type: inline
+                payload:
+                  - name: provider-local
+                    type: vless
+                    server: 127.0.0.1
+                    port: 443
+                    uuid: 27848739-7e62-4138-9fd3-098a63964b6b
+                    network: xdrive
+                    encryption: $encryption
+                    xdrive-opts:
+                      service: local
+                      remote-folder: /data/local/tmp/xdrive
+              caps:
+                Type: inline
+                Payload:
+                  - name: provider-caps
+                    type: vless
+                    server: 127.0.0.1
+                    port: 443
+                    uuid: 27848739-7e62-4138-9fd3-098a63964b6b
+                    network: xdrive
+                    encryption: $encryption
+                    xdrive-opts:
+                      service: local
+                      remote-folder: /data/local/tmp/xdrive
+            proxy-groups:
+              - name: G
+                type: select
+                proxies:
+                  - local-node
+                  - snake-node
+                  - caps-node
+                  - cloud-node
+                use:
+                  - inline
+                  - caps
+            rules:
+              - MATCH,G
+        """.trimIndent() + "\n"
+
+        for ((mode, name) in listOf(
+            ProxyHardeningMode.Strict to "xdrive_local_strict.yaml",
+            ProxyHardeningMode.Compat to "xdrive_local_compat.yaml",
+        )) {
+            val hardened = assertNotNull(YamlHardener.hardenYaml(unsafe, mode))
+            assertTrue(!hardened.contains("service: local", ignoreCase = true), "$mode")
+            assertTrue(!hardened.contains("/sdcard/Download"), "$mode")
+            assertTrue(!hardened.contains("/data/local/tmp/xdrive"), "$mode")
+            assertTrue(!hardened.contains("xdrive-config"), "$mode")
+            File(dir, name).writeText(hardened)
+        }
+    }
 }

@@ -5,6 +5,10 @@ import android.content.Intent
 import android.net.Uri
 import com.github.kr328.clash.MainActivity
 import com.github.kr328.clash.common.util.SubscriptionOverrides
+import com.github.kr328.clash.design.R
+import com.github.kr328.clash.design.ui.ToastDuration
+import com.github.kr328.clash.service.util.TunStackResolver
+import com.github.kr328.clash.service.util.OperatorPolicyHeaders
 import com.github.kr328.clash.design.MainDesign
 import com.github.kr328.clash.service.model.Profile
 import com.github.kr328.clash.service.store.ServiceStore
@@ -27,6 +31,41 @@ internal class MainSubscriptionMetadata(private val activity: MainActivity) {
 
     private val subscriptionMetadataSyncMutex = Mutex()
 
+    private var lastHintedTunStack: String? = null
+
+    /**
+     * The TUN stack is fixed when the tunnel opens. If an update or the metadata sync changed what
+     * [TunStackResolver] picks now (an operator `X-Network-Stack` added, changed or withdrawn),
+     * tell the user once that it applies after a reconnect.
+     */
+    internal suspend fun hintTunStackChange(design: MainDesign) {
+        if (!activity.isClashRunning) return
+        val change = withContext(Dispatchers.IO) {
+            val store = ServiceStore(activity)
+            val applied = store.appliedTunStack.takeIf { it.isNotBlank() } ?: return@withContext null
+            val uuid = store.activeProfile
+            val configYaml = uuid?.let {
+                runCatching {
+                    java.io.File(activity.importedDir.resolve(it.toString()), "config.yaml").readText()
+                }.getOrNull()
+            }
+            TunStackResolver.resolve(
+                store.tunStackMode,
+                uuid?.let { store.subscriptionNetworkStackFor(it) },
+                configYaml,
+            ).takeIf { it != applied }?.let { applied to it }
+        } ?: return
+        // Keyed by the pair, so a later change after a reconnect is hinted again.
+        val key = "${change.first}>${change.second}"
+        if (key == lastHintedTunStack) return
+        lastHintedTunStack = key
+        design.showToast(
+            activity.getString(R.string.tun_stack_changed_reconnect, change.second),
+            ToastDuration.Long,
+        )
+    }
+
+
     /**
      * Reads announcement settings from [uiStore] and forwards them to the design.
      * Resets the dismissed-flag automatically when the announcement text changes.
@@ -41,6 +80,7 @@ internal class MainSubscriptionMetadata(private val activity: MainActivity) {
             if (updated) {
                 withContext(Dispatchers.Main) {
                     renderAnnouncementFromStore(design)
+                    hintTunStackChange(design)
                 }
             }
         }
@@ -107,7 +147,8 @@ internal class MainSubscriptionMetadata(private val activity: MainActivity) {
             !url.substringBefore('#').startsWith("http://", ignoreCase = true) ||
                 uiStore.subscriptionMetadataAllowInsecureHttp
 
-        val (meta, brandManifest) = if (headersFile != null && headersFresh && allowCachedHeaders) {
+        val fromSnapshot = headersFile != null && headersFresh && allowCachedHeaders
+        val (meta, brandManifest) = if (fromSnapshot) {
             com.github.kr328.clash.common.util.SubscriptionMetadataFetcher
                 .parseHeaders { key -> headersFile.get(key) } to
                 com.github.kr328.clash.common.branding.BrandManifestParser
@@ -121,21 +162,25 @@ internal class MainSubscriptionMetadata(private val activity: MainActivity) {
             )
         }
         com.github.kr328.clash.service.branding.BrandRefresh.apply(activity, active.uuid, brandManifest)
-        meta.shareLinksDisable?.let {
-            ServiceStore(activity).setSubscriptionShareLinksLockedFor(active.uuid, it)
-        }
-        // Operator TUN-stack policy (X-Network-Stack). Store as-is; `auto` is the operator's explicit
-        // "unlock". Applied at TUN open by TunStackResolver, independent of branding.
-        meta.networkStack?.let {
-            ServiceStore(activity).setSubscriptionNetworkStackFor(active.uuid, it)
-        }
-        // Operator bypass-preset recommendation (X-Bypass-Preset). Stored only — the offer
-        // dialog rides the pre-start bypass prompt; `none` withdraws the recommendation.
-        meta.bypassPreset?.let {
-            ServiceStore(activity).setSubscriptionBypassPresetFor(
-                active.uuid,
-                it.takeUnless { v -> v == "none" },
-            )
+        if (fromSnapshot) {
+            OperatorPolicyHeaders.applyFromSnapshot(activity, active.uuid, headersFile!!)
+        } else {
+            meta.shareLinksDisable?.let {
+                ServiceStore(activity).setSubscriptionShareLinksLockedFor(active.uuid, it)
+            }
+            // Operator TUN-stack policy (X-Network-Stack). Store as-is; `auto` is the operator's explicit
+            // "unlock". Applied at TUN open by TunStackResolver, independent of branding.
+            meta.networkStack?.let {
+                ServiceStore(activity).setSubscriptionNetworkStackFor(active.uuid, it)
+            }
+            // Operator bypass-preset recommendation (X-Bypass-Preset). Stored only — the offer
+            // dialog rides the pre-start bypass prompt; `none` withdraws the recommendation.
+            meta.bypassPreset?.let {
+                ServiceStore(activity).setSubscriptionBypassPresetFor(
+                    active.uuid,
+                    it.takeUnless { v -> v == "none" },
+                )
+            }
         }
         uiStore.subscriptionHwidActive = meta.hwidActive?.toString().orEmpty()
         uiStore.subscriptionHwidNotSupported = meta.hwidNotSupported?.toString().orEmpty()

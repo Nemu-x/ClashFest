@@ -74,23 +74,26 @@
             tools:text="AuraVPN | Нидерланды | VLESS XHTTP" />
 
         <com.google.android.material.chip.ChipGroup
+            android:id="@+id/proxy_protocol_capsule"
+            android:background="@drawable/bg_proto_capsule"
+            android:clipToOutline="true"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:importantForAccessibility="no"
-            app:chipSpacingHorizontal="4dp"
-            app:chipSpacingVertical="4dp"
+            app:chipSpacingHorizontal="1dp"
+            app:chipSpacingVertical="1dp"
             app:singleLine="false">
 
             <TextView
                 android:id="@+id/proxy_type_badge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_proto_chip"
+                android:background="@drawable/bg_proto_segment"
                 android:fontFamily="@font/manrope_semibold"
                 android:letterSpacing="0"
                 android:maxLines="1"
-                android:paddingHorizontal="8dp"
+                android:paddingHorizontal="6dp"
                 android:paddingVertical="2dp"
                 android:textAllCaps="true"
                 android:textSize="11sp"
@@ -104,11 +107,11 @@
                 android:id="@+id/proxy_transport_badge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_proto_chip"
+                android:background="@drawable/bg_proto_segment"
                 android:fontFamily="@font/manrope_semibold"
                 android:letterSpacing="0"
                 android:maxLines="1"
-                android:paddingHorizontal="8dp"
+                android:paddingHorizontal="6dp"
                 android:paddingVertical="2dp"
                 android:textAllCaps="true"
                 android:textSize="11sp"
@@ -122,11 +125,11 @@
                 android:id="@+id/proxy_reality_badge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_proto_chip"
+                android:background="@drawable/bg_proto_segment"
                 android:fontFamily="@font/manrope_semibold"
                 android:letterSpacing="0"
                 android:maxLines="1"
-                android:paddingHorizontal="8dp"
+                android:paddingHorizontal="6dp"
                 android:paddingVertical="2dp"
                 android:textAllCaps="true"
                 android:textSize="11sp"
@@ -176,7 +179,7 @@
             android:gravity="center_vertical"
             android:minHeight="28dp"
             android:orientation="horizontal"
-            android:paddingHorizontal="8dp">
+            android:paddingHorizontal="6dp">
 
             <View
                 android:id="@+id/latency_dot"

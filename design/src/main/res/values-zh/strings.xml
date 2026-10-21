@@ -1364,4 +1364,5 @@
     <string name="theme_colors_custom">正在使用自定义强调色。</string>
     <string name="theme_colors_preset">配色：%1$s</string>
     <string name="theme_custom_accent_saved">自定义强调色 · %1$s</string>
+    <string name="tun_stack_changed_reconnect">服务商已将网络栈更改为 %1$s，重新连接后生效。</string>
 </resources>

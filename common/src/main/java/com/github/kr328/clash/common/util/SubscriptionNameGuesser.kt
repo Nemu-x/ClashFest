@@ -296,16 +296,30 @@ object SubscriptionNameGuesser {
 
         if (!looksLikeBase64(payload)) return null
 
+        // A plain name made only of letters and digits ("PokeMesh") is also valid base64. Decoding
+        // it yields arbitrary bytes, which a lenient String(bytes, UTF_8) turned into U+FFFD
+        // garbage shown as the profile name. Accept a decode only when the bytes are strict UTF-8
+        // and carry no control characters; otherwise the caller keeps the raw value.
         fun tryDecode(flags: Int): String? = try {
             val normalized = payload.replace('-', '+').replace('_', '/')
-            val decoded = String(Base64.decode(normalized, flags), Charsets.UTF_8).trim()
-            decoded.takeIf { it.isNotBlank() }
+            val decoded = strictUtf8(Base64.decode(normalized, flags))?.trim()
+            decoded?.takeIf { it.isNotBlank() && it.none(Char::isISOControl) }
         } catch (_: Exception) {
             null
         }
 
         return tryDecode(Base64.DEFAULT)
             ?: tryDecode(Base64.DEFAULT or Base64.URL_SAFE)
+    }
+
+    internal fun strictUtf8(bytes: ByteArray): String? = try {
+        Charsets.UTF_8.newDecoder()
+            .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+            .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
+            .decode(java.nio.ByteBuffer.wrap(bytes))
+            .toString()
+    } catch (_: java.nio.charset.CharacterCodingException) {
+        null
     }
 
     private fun decodeResponseText(body: ByteArray): String {

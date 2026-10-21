@@ -131,12 +131,13 @@ internal class MainProfileActions(
     }
 
     suspend fun showProxyYamlDialog(title: String, body: String) {
+        val safeBody = com.github.kr328.clash.service.util.XDriveSecretRedactor.redactEntryYaml(body)
         withContext(Dispatchers.Main) {
             val themed = themedContext
             val pad = (16 * activity.resources.displayMetrics.density).toInt()
             val scroll = ScrollView(themed)
             val tv = TextView(themed).apply {
-                text = body
+                text = safeBody
                 setTextIsSelectable(true)
                 setPadding(pad, pad, pad, pad)
                 textSize = 12f

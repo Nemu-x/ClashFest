@@ -88,6 +88,7 @@ internal fun proxyTypeFromYamlName(raw: String?): Proxy.Type = when (raw?.trim()
     "direct" -> Proxy.Type.Direct
     "reject" -> Proxy.Type.Reject
     "dns" -> Proxy.Type.Dns
+    "chain" -> Proxy.Type.Chain
     "rematch" -> Proxy.Type.Rematch
     else -> Proxy.Type.Unknown
 }
@@ -143,6 +144,7 @@ internal fun groupTypeLabel(type: Proxy.Type): String? = when (type) {
     Proxy.Type.LoadBalance -> "LOAD-BALANCE"
     Proxy.Type.Selector -> "SELECTOR"
     Proxy.Type.Relay -> "RELAY"
+    Proxy.Type.Chain -> "CHAIN"
     else -> null
 }
 
@@ -153,6 +155,7 @@ internal fun groupTypeColor(type: Proxy.Type): Int = when (type) {
     Proxy.Type.LoadBalance -> R.color.group_loadbalance
     Proxy.Type.Selector -> R.color.group_selector
     Proxy.Type.Relay -> R.color.group_relay
+    Proxy.Type.Chain -> R.color.group_relay
     else -> R.color.proto_default
 }
 

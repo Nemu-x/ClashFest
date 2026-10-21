@@ -10,6 +10,7 @@ import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.github.kr328.clash.common.branding.BrandManifest
 import com.github.kr328.clash.design.R
+import com.github.kr328.clash.design.dialog.SheetDragToDismiss
 import com.github.kr328.clash.design.databinding.BottomSheetProxyGroupsBinding
 import com.github.kr328.clash.design.dialog.AppBottomSheetDialog
 import com.github.kr328.clash.design.model.ServerPingMode
@@ -36,9 +37,11 @@ internal fun ProfileAdapter.openProxySheet(context: Context, profile: Profile) {
     )
     val dialog = AppBottomSheetDialog(context)
     proxySheetDialog = dialog
+    var drag: SheetDragToDismiss? = null
     var dismissCleanup: () -> Unit = {}
     dialog.setOnDismissListener {
         proxySheetDialog = null
+        drag?.dispose()
         dismissCleanup()
     }
     val groupNames = effectiveGroupsForProfile(profile)
@@ -68,6 +71,7 @@ internal fun ProfileAdapter.openProxySheet(context: Context, profile: Profile) {
         var dropdown = isDropdownLayout()
         val expandedGroups = sheetExpandedGroups.getOrPut(profile.uuid) { linkedSetOf(groupNames[idx]) }
         expandedGroups.retainAll(groupNames.toSet())
+        expandedGroups.add(groupNames[idx])
         var query = ""
         val uiStore = UiStore(context)
         val manualOrders = groupNames.associateWith { uiStore.proxyOrderFor(profile.uuid, it) }.toMutableMap()
@@ -183,6 +187,7 @@ internal fun ProfileAdapter.openProxySheet(context: Context, profile: Profile) {
         })
         sheet.proxySheetNodesList.layoutManager = LinearLayoutManager(context)
         sheet.proxySheetNodesList.adapter = nodeAdapter
+        val stickyHeader = StickyProxyGroupHeader(sheet.proxySheetNodesList, nodeAdapter)
         // Rebinds during live ping / selection are content-only; suppress the change animation
         // so delay capsules update without a flicker.
         sheet.proxySheetNodesList.itemAnimator = null
@@ -554,6 +559,7 @@ internal fun ProfileAdapter.openProxySheet(context: Context, profile: Profile) {
             }
         }
         dismissCleanup = {
+            stickyHeader.dispose()
             sheetDetailsRefresher = null
             sheetDelayPatcher = null
             sheet.root.removeCallbacks(refreshRunnable)
@@ -564,6 +570,7 @@ internal fun ProfileAdapter.openProxySheet(context: Context, profile: Profile) {
 
     dialog.setContentView(sheet.root)
     dialog.show()
+    drag = SheetDragToDismiss.attach(dialog, sheet.proxySheetNodesList)
     // Open fully expanded, single-state (no collapsed peek). A previous peek override
     // (skipCollapsed=false + peekHeight=0.55h) caused two real bugs: (1) the sheet flashed
     // at peek then animated to full on the next frame ("comes out in two stages"), and

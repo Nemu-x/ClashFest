@@ -586,6 +586,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     suspend fun clearProxyDetails() {
         withContext(Dispatchers.Main) {
             profileAdapter.clearProxyDetails()
+            tabProfileAdapter.clearProxyDetails()
         }
     }
 

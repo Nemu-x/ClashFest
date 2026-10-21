@@ -1444,4 +1444,5 @@ Password: %4$s</string>
     <string name="theme_colors_custom">Your custom accent is active.</string>
     <string name="theme_colors_preset">Palette: %1$s</string>
     <string name="theme_custom_accent_saved">Custom accent · %1$s</string>
+    <string name="tun_stack_changed_reconnect">Your provider changed the network stack to %1$s. Reconnect to apply it.</string>
 </resources>
