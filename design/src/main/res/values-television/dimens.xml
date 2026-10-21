@@ -10,4 +10,7 @@
     <dimen name="proxy_node_row_min_height">46dp</dimen>
     <dimen name="proxy_node_row_padding_vertical">5dp</dimen>
     <dimen name="proxy_group_segment_min_height">30dp</dimen>
+
+    <!-- Keeps the empty-state focus ring inside the 16dp content column, like the rule rows. -->
+    <dimen name="rules_hub_empty_margin_horizontal">16dp</dimen>
 </resources>

@@ -1,8 +1,10 @@
 package com.github.kr328.clash.design
 
 import com.github.kr328.clash.design.util.capContentWidthOnTv
+import com.github.kr328.clash.design.util.isTelevision
 import android.content.Context
 import android.view.View
+import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -100,24 +102,40 @@ class RulesHubDesign(context: Context) : Design<RulesHubDesign.Request>(context)
         },
     )
 
+    private val floatingSaveBar = context.isTelevision()
+
     init {
         root.capContentWidthOnTv()
+        if (floatingSaveBar) {
+            val density = context.resources.displayMetrics.density
+            saveBar.radius = 16 * density
+            saveBar.cardElevation = 4 * density
+        }
         ViewCompat.setOnApplyWindowInsetsListener(rootView) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPaddingRelative(bars.left, bars.top, bars.right, 0)
             val density = context.resources.displayMetrics.density
             val gap = (8 * density).toInt()
-            val barPad = bars.bottom + gap
-            saveBar.setPadding(saveBar.paddingLeft, saveBar.paddingTop, saveBar.paddingRight, barPad)
+            if (floatingSaveBar) {
+                // TV: the bar floats as a card inset to the content column (16dp, like the rows),
+                // instead of a square slab cut off by the capped column's edges.
+                val m = (16 * density).toInt()
+                (saveBar.layoutParams as ViewGroup.MarginLayoutParams).setMargins(m, 0, m, bars.bottom + m)
+                saveBar.requestLayout()
+            } else {
+                val barPad = bars.bottom + gap
+                saveBar.setPadding(saveBar.paddingLeft, saveBar.paddingTop, saveBar.paddingRight, barPad)
+            }
             // Pad the list by the pinned bar's REAL height (measured after it
             // applies its own bottom inset) so it never covers the last rows or
             // a section's expand control. (The old `88` was raw px, ~30dp.)
             saveBar.post {
+                val below = (saveBar.layoutParams as ViewGroup.MarginLayoutParams).bottomMargin
                 recycler.setPadding(
                     recycler.paddingLeft,
                     0,
                     recycler.paddingRight,
-                    saveBar.height + gap,
+                    saveBar.height + below + gap,
                 )
             }
             insets
