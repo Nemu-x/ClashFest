@@ -6,7 +6,6 @@ import android.os.Build
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
-import android.widget.TextView
 import kotlin.math.abs
 
 internal val expressiveSpatial = TimeInterpolator { expressiveSpringProgress(it) }
@@ -22,8 +21,7 @@ internal fun animateNavigationItem(view: View, selected: Boolean, animate: Boole
             child.animate().cancel()
             val scale = if (child is ImageView && selected) 1.12f else 1f
             val y = if (child is ImageView && selected) -2f * view.resources.displayMetrics.density else 0f
-            val opacity = if (child is TextView && !selected) 0.8f else 1f
-            child.alpha = opacity
+            child.alpha = 1f
             if (animate && motionEnabled()) {
                 child.animate().scaleX(scale).scaleY(scale).translationY(y)
                     .setDuration(420L).setInterpolator(expressiveSpatial).start()
@@ -31,7 +29,6 @@ internal fun animateNavigationItem(view: View, selected: Boolean, animate: Boole
                 child.scaleX = scale
                 child.scaleY = scale
                 child.translationY = y
-                child.alpha = opacity
             }
         }
     }

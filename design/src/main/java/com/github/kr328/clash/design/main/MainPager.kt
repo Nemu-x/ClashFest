@@ -28,6 +28,7 @@ internal class MainPager(
     private val uiStore: UiStore,
     private val sendRequest: (Request) -> Unit,
     private val onTabRendered: () -> Unit,
+    private val onNavigationHeightChanged: (Int) -> Unit,
 ) {
     /**
      * The set of tabs currently visible in bottom nav + ViewPager, in display order.
@@ -46,6 +47,9 @@ internal class MainPager(
     fun setup() {
         if (pagerInitialised) return
         pagerInitialised = true
+        binding.mainBottomNavCard.addOnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
+            if (view.height > 0) onNavigationHeightChanged(view.height)
+        }
 
         attachPagerAdapter()
         binding.mainPager.setPageTransformer(::transformExpressivePage)
@@ -238,8 +242,10 @@ internal class MainPager(
             })
         }
         if (tab == MainTab.Routing) sendRequest(Request.RefreshRouting)
+        val animate = renderedTab != null && renderedTab != tab
+        binding.mainBottomNavItems.selectItem(navForMainTab(tab), animate)
         MainTab.values().forEach {
-            animateNavigationItem(navForMainTab(it), it == tab, renderedTab != null && renderedTab != tab)
+            animateNavigationItem(navForMainTab(it), it == tab, animate)
             // The ViewPager keeps off-screen tab pages attached + VISIBLE (offscreenPageLimit =
             // all), so without this their content stays focusable and the D-pad escapes into the
             // hidden tab ("ghost" focus on TV). Only the current tab's page accepts focus.

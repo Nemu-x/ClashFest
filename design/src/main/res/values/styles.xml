@@ -280,7 +280,9 @@
     </style>
 
     <style name="TextAppearance.App.BottomNavigation" parent="TextAppearance.Material3.LabelMedium">
-        <item name="android:textSize">11sp</item>
+        <item name="android:textSize">12sp</item>
+        <item name="lineHeight">16sp</item>
+        <item name="android:includeFontPadding">false</item>
         <item name="android:fontFamily">@font/manrope_semibold</item>
         <item name="fontFamily">@font/manrope_semibold</item>
     </style>

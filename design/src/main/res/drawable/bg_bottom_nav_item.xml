@@ -3,23 +3,10 @@
     android:color="?attr/colorControlHighlight">
     <item>
         <selector>
-            <item android:state_focused="true" android:state_selected="true">
-                <shape android:shape="rectangle">
-                    <solid android:color="?attr/colorSecondaryContainer" />
-                    <stroke android:width="2dp" android:color="?attr/colorPrimary" />
-                    <corners android:radius="28dp" />
-                </shape>
-            </item>
             <item android:state_focused="true">
                 <shape android:shape="rectangle">
                     <solid android:color="@android:color/transparent" />
                     <stroke android:width="2dp" android:color="?attr/colorPrimary" />
-                    <corners android:radius="28dp" />
-                </shape>
-            </item>
-            <item android:state_selected="true">
-                <shape android:shape="rectangle">
-                    <solid android:color="?attr/colorSecondaryContainer" />
                     <corners android:radius="28dp" />
                 </shape>
             </item>

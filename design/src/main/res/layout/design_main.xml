@@ -66,7 +66,7 @@
             android:fillViewport="true"
             android:overScrollMode="never"
             android:paddingTop="@{self.surface.insets.top}"
-            android:paddingBottom="@{self.surface.insets.bottom + context.resources.getDimensionPixelSize(com.github.kr328.clash.design.R.dimen.main_bottom_nav_reserved_space)}">
+            android:paddingBottom="@{self.surface.insets.bottom + self.bottomNavReservedSpace}">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -905,7 +905,7 @@
             android:layout_height="match_parent"
             android:orientation="vertical"
             android:paddingTop="@{self.surface.insets.top}"
-            android:paddingBottom="@{self.surface.insets.bottom + context.resources.getDimensionPixelSize(com.github.kr328.clash.design.R.dimen.main_bottom_nav_reserved_space)}"
+            android:paddingBottom="@{self.surface.insets.bottom + self.bottomNavReservedSpace}"
             android:visibility="gone">
             <LinearLayout
                 android:layout_width="match_parent"
@@ -1057,7 +1057,7 @@
             android:fillViewport="false"
             android:overScrollMode="never"
             android:paddingTop="@{self.surface.insets.top}"
-            android:paddingBottom="@{self.surface.insets.bottom + context.resources.getDimensionPixelSize(com.github.kr328.clash.design.R.dimen.main_bottom_nav_reserved_space)}"
+            android:paddingBottom="@{self.surface.insets.bottom + self.bottomNavReservedSpace}"
             android:visibility="gone">
             <LinearLayout
                 android:layout_width="match_parent"
@@ -1441,7 +1441,7 @@
             android:fillViewport="false"
             android:overScrollMode="never"
             android:paddingTop="@{self.surface.insets.top}"
-            android:paddingBottom="@{self.surface.insets.bottom + context.resources.getDimensionPixelSize(com.github.kr328.clash.design.R.dimen.main_bottom_nav_reserved_space)}"
+            android:paddingBottom="@{self.surface.insets.bottom + self.bottomNavReservedSpace}"
             android:visibility="gone">
 
             <LinearLayout
@@ -1580,7 +1580,7 @@
             android:fillViewport="false"
             android:overScrollMode="never"
             android:paddingTop="@{self.surface.insets.top}"
-            android:paddingBottom="@{self.surface.insets.bottom + context.resources.getDimensionPixelSize(com.github.kr328.clash.design.R.dimen.main_bottom_nav_reserved_space)}"
+            android:paddingBottom="@{self.surface.insets.bottom + self.bottomNavReservedSpace}"
             android:visibility="gone">
             <LinearLayout
                 android:layout_width="match_parent"
@@ -1997,7 +1997,8 @@
             android:id="@+id/main_bottom_nav_card"
             style="@style/AppCard.BottomNav"
             android:layout_width="match_parent"
-            android:layout_height="80dp"
+            android:layout_height="wrap_content"
+            android:minHeight="@dimen/main_bottom_nav_min_height"
             android:layout_gravity="bottom"
             android:layout_marginHorizontal="@dimen/main_bottom_nav_horizontal_margin"
             app:bottomNavInset="@{self.surface.insets.bottom}"
@@ -2005,13 +2006,16 @@
             app:cardCornerRadius="@dimen/main_bottom_nav_corner_radius"
             app:cardElevation="@dimen/main_bottom_nav_elevation"
             app:cardUseCompatPadding="false"
+            app:cardPreventCornerOverlap="false"
+            app:contentPadding="0dp"
             app:rippleColor="?attr/colorControlHighlight"
             app:strokeColor="@color/lumen_hairline"
             app:strokeWidth="0dp">
 
-            <LinearLayout
+            <com.github.kr328.clash.design.view.LiquidNavigationBar
+                android:id="@+id/main_bottom_nav_items"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:baselineAligned="false"
                 android:gravity="center"
                 android:orientation="horizontal"
@@ -2024,11 +2028,14 @@
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
+                    android:minHeight="@dimen/main_bottom_nav_item_min_height"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="4dp"
                     android:background="@drawable/bg_bottom_nav_item"
                     android:clickable="true"
                     android:contentDescription="@string/nav_home"
                     android:focusable="true"
-                    android:gravity="center"
+                    android:gravity="top|center_horizontal"
                     android:orientation="vertical">
 
                     <ImageView
@@ -2042,11 +2049,12 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
+                        android:layout_marginTop="0dp"
                         android:duplicateParentState="true"
-                        android:ellipsize="end"
                         android:gravity="center"
-                        android:maxLines="1"
+                        android:minLines="2"
+                        android:breakStrategy="balanced"
+                        android:hyphenationFrequency="normal"
                         android:text="@string/nav_home"
                         android:textAppearance="@style/TextAppearance.App.BottomNavigation"
                         android:textColor="@color/selector_bottom_nav_item" />
@@ -2058,12 +2066,14 @@
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:layout_marginStart="4dp"
+                    android:minHeight="@dimen/main_bottom_nav_item_min_height"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="4dp"
                     android:background="@drawable/bg_bottom_nav_item"
                     android:clickable="true"
                     android:contentDescription="@string/nav_subscriptions"
                     android:focusable="true"
-                    android:gravity="center"
+                    android:gravity="top|center_horizontal"
                     android:orientation="vertical">
 
                     <ImageView
@@ -2077,11 +2087,12 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
+                        android:layout_marginTop="0dp"
                         android:duplicateParentState="true"
-                        android:ellipsize="end"
                         android:gravity="center"
-                        android:maxLines="1"
+                        android:minLines="2"
+                        android:breakStrategy="balanced"
+                        android:hyphenationFrequency="normal"
                         android:text="@string/nav_subscriptions"
                         android:textAppearance="@style/TextAppearance.App.BottomNavigation"
                         android:textColor="@color/selector_bottom_nav_item" />
@@ -2093,12 +2104,14 @@
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:layout_marginStart="4dp"
+                    android:minHeight="@dimen/main_bottom_nav_item_min_height"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="4dp"
                     android:background="@drawable/bg_bottom_nav_item"
                     android:clickable="true"
                     android:contentDescription="@string/nav_routing"
                     android:focusable="true"
-                    android:gravity="center"
+                    android:gravity="top|center_horizontal"
                     android:orientation="vertical">
 
                     <ImageView
@@ -2112,11 +2125,12 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
+                        android:layout_marginTop="0dp"
                         android:duplicateParentState="true"
-                        android:ellipsize="end"
                         android:gravity="center"
-                        android:maxLines="1"
+                        android:minLines="2"
+                        android:breakStrategy="balanced"
+                        android:hyphenationFrequency="normal"
                         android:text="@string/nav_routing"
                         android:textAppearance="@style/TextAppearance.App.BottomNavigation"
                         android:textColor="@color/selector_bottom_nav_item" />
@@ -2128,12 +2142,14 @@
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:layout_marginStart="4dp"
+                    android:minHeight="@dimen/main_bottom_nav_item_min_height"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="4dp"
                     android:background="@drawable/bg_bottom_nav_item"
                     android:clickable="true"
                     android:contentDescription="@string/nav_operator"
                     android:focusable="true"
-                    android:gravity="center"
+                    android:gravity="top|center_horizontal"
                     android:orientation="vertical"
                     android:visibility="gone">
 
@@ -2150,11 +2166,12 @@
                         android:id="@+id/main_nav_operator_label"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
+                        android:layout_marginTop="0dp"
                         android:duplicateParentState="true"
-                        android:ellipsize="end"
                         android:gravity="center"
-                        android:maxLines="1"
+                        android:minLines="2"
+                        android:breakStrategy="balanced"
+                        android:hyphenationFrequency="normal"
                         android:text="@string/nav_operator"
                         android:textAppearance="@style/TextAppearance.App.BottomNavigation"
                         android:textColor="@color/selector_bottom_nav_item" />
@@ -2166,12 +2183,14 @@
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:layout_marginStart="4dp"
+                    android:minHeight="@dimen/main_bottom_nav_item_min_height"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="4dp"
                     android:background="@drawable/bg_bottom_nav_item"
                     android:clickable="true"
                     android:contentDescription="@string/settings"
                     android:focusable="true"
-                    android:gravity="center"
+                    android:gravity="top|center_horizontal"
                     android:orientation="vertical">
 
                     <ImageView
@@ -2185,16 +2204,17 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
+                        android:layout_marginTop="0dp"
                         android:duplicateParentState="true"
-                        android:ellipsize="end"
                         android:gravity="center"
-                        android:maxLines="1"
+                        android:minLines="2"
+                        android:breakStrategy="balanced"
+                        android:hyphenationFrequency="normal"
                         android:text="@string/settings"
                         android:textAppearance="@style/TextAppearance.App.BottomNavigation"
                         android:textColor="@color/selector_bottom_nav_item" />
                 </LinearLayout>
-            </LinearLayout>
+            </com.github.kr328.clash.design.view.LiquidNavigationBar>
         </com.google.android.material.card.MaterialCardView>
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 </layout>

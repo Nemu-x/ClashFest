@@ -3,6 +3,7 @@ package com.github.kr328.clash.design
 import android.content.Context
 import android.os.SystemClock
 import android.view.View
+import androidx.databinding.ObservableInt
 import androidx.lifecycle.LifecycleOwner
 import com.google.android.material.R as MaterialR
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -129,6 +130,8 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     private val binding = DesignMainBinding
         .inflate(context.layoutInflater, context.root, false)
 
+    val bottomNavReservedSpace = ObservableInt(context.resources.getDimensionPixelSize(R.dimen.main_bottom_nav_reserved_space))
+
     private val clickGuard = ClickGuard<Request>(600L, SystemClock::elapsedRealtime)
     private val subscriptionClickGuard = ClickGuard<Pair<UUID, Int>>(600L, SystemClock::elapsedRealtime)
 
@@ -152,6 +155,9 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         uiStore = uiStore,
         sendRequest = { requests.trySend(it) },
         onTabRendered = { powerVisuals.refreshMotion() },
+        onNavigationHeightChanged = { height ->
+            bottomNavReservedSpace.set(height + context.resources.getDimensionPixelSize(R.dimen.main_bottom_nav_content_gap))
+        },
     )
     private val expandedProfileUuids: LinkedHashSet<UUID> = linkedSetOf()
     private val subscriptionPreviewUuids: LinkedHashSet<UUID> = linkedSetOf()
