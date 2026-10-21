@@ -23,6 +23,7 @@ import com.github.kr328.clash.design.ui.DayNight
 import com.github.kr328.clash.design.util.resolveThemedBoolean
 import com.github.kr328.clash.design.util.resolveThemedColor
 import com.github.kr328.clash.design.util.showExceptionToast
+import com.github.kr328.clash.design.util.TvFocusHighlight
 import com.github.kr328.clash.remote.Broadcasts
 import com.github.kr328.clash.remote.Remote
 import com.github.kr328.clash.util.ActivityResultLifecycle
@@ -125,6 +126,7 @@ abstract class BaseActivity<D : Design<*>> : AppCompatActivity(),
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         applyDayNight()
+        TvFocusHighlight.install(window)
 
         // Apply excludeFromRecents setting to all app tasks.
         checkNotNull(getSystemService<ActivityManager>()).appTasks.forEach { task ->
