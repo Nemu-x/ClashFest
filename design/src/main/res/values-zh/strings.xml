@@ -1109,6 +1109,7 @@
     <string name="companion_notification_channel">远程控制</string>
     <string name="companion_notification_title">远程控制已启用</string>
     <string name="companion_notification_text">此设备可通过局域网被控制</string>
+    <string name="companion_action_reconnect">重新连接</string>
     <string name="companion_agent_section">本设备（代理）</string>
     <string name="companion_agent_enable_title">允许远程控制</string>
     <string name="companion_agent_enable_summary">允许此网络中已配对的设备控制本设备。默认关闭。</string>

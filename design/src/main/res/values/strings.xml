@@ -1185,6 +1185,7 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="companion_notification_channel">Remote control</string>
     <string name="companion_notification_title">Remote control active</string>
     <string name="companion_notification_text">This device can be controlled over the local network</string>
+    <string name="companion_action_reconnect">Reconnect</string>
     <string name="companion_agent_section">This device (agent)</string>
     <string name="companion_agent_enable_title">Allow remote control</string>
     <string name="companion_agent_enable_summary">Let paired devices on this network control this device. Off by default.</string>

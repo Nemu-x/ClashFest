@@ -1179,6 +1179,7 @@
     <string name="companion_notification_channel">Удалённое управление</string>
     <string name="companion_notification_title">Удалённое управление активно</string>
     <string name="companion_notification_text">Этим устройством можно управлять по локальной сети</string>
+    <string name="companion_action_reconnect">Переподключить</string>
     <string name="companion_agent_section">Это устройство (агент)</string>
     <string name="companion_agent_enable_title">Разрешить удалённое управление</string>
     <string name="companion_agent_enable_summary">Разрешить сопряжённым устройствам в этой сети управлять этим устройством. По умолчанию выключено.</string>

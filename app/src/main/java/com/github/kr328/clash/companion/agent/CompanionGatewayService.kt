@@ -43,6 +43,8 @@ class CompanionGatewayService : Service(), CompanionHooks,
     private lateinit var store: CompanionStore
     private lateinit var pairingStore: PairingStore
     private val mdns by lazy { CompanionMdns(this) }
+    private val remoteControl by lazy { CompanionRemoteControl(applicationContext, this) }
+    private val changeBridge by lazy { CompanionChangeBridge(applicationContext) }
 
     private var server: GatewayServer? = null
     private var multicastLock: WifiManager.MulticastLock? = null
@@ -81,14 +83,15 @@ class CompanionGatewayService : Service(), CompanionHooks,
             // Reuse the previously chosen port so a scanned QR stays valid across restarts;
             // fall back to an ephemeral port if the saved one is taken.
             val srv = try {
-                GatewayServer(store.gatewayPort, identity.serverSocketFactory(), pairingStore, store, this)
+                GatewayServer(store.gatewayPort, identity.serverSocketFactory(), pairingStore, store, remoteControl)
                     .also { it.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false) }
             } catch (bind: java.io.IOException) {
                 Log.w("Companion: port ${store.gatewayPort} unavailable, using ephemeral: ${bind.message}")
-                GatewayServer(0, identity.serverSocketFactory(), pairingStore, store, this)
+                GatewayServer(0, identity.serverSocketFactory(), pairingStore, store, remoteControl)
                     .also { it.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false) }
             }
             server = srv
+            changeBridge.register()
 
             val port = srv.listeningPort
             store.gatewayPort = port // persist the actual bound port
@@ -104,6 +107,7 @@ class CompanionGatewayService : Service(), CompanionHooks,
 
     @Synchronized
     private fun stopGateway() {
+        changeBridge.unregister()
         mdns.unregister()
         server?.stop()
         server = null

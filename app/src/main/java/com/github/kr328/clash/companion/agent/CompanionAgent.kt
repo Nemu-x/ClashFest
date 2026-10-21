@@ -20,6 +20,10 @@ object CompanionAgent {
     var fingerprint: String? = null
         private set
 
+    /** Set by the running gateway: closes the event streams of a pairing revoked on this device. */
+    @Volatile
+    var onRevoked: ((tokenHash: String) -> Unit)? = null
+
     fun onStarted(port: Int, fingerprint: String) {
         this.port = port
         this.fingerprint = fingerprint
