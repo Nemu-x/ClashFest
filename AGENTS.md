@@ -109,7 +109,7 @@ fastly.jsdelivr.net
   - `fix(geo): fallback mirrors for geoip download`
   - `ui(nav): merge rules+routing into single hub screen`
 - Никаких force-push, rebase или удаления чужих коммитов без явного запроса пользователя.
-- Submodules (`core/src/foss/golang/clash`) трогаем только при необходимости — обновление ядра делается отдельным PR. Текущее ядро запинено на `v1.19.26`. При bump'е: `go mod tidy` в `core/src/main/golang` и `core/src/foss/golang`, и учитывай, что golang-таск не трекает submodule как input → закэшированная `libclash.so` может не пересобраться (чистить `core/build` при необходимости).
+- Submodules (`core/src/foss/golang/clash`) трогаем только при необходимости — обновление ядра делается отдельным PR. Текущее ядро запинено на `v1.19.33`. При bump'е: `go mod tidy` в `core/src/main/golang` и `core/src/foss/golang`, и учитывай, что golang-таск не трекает submodule как input → закэшированная `libclash.so` может не пересобраться (чистить `core/build` при необходимости).
 - **Сборка требует JDK 21** (Java/Kotlin target 21). Старый JDK падает с `invalid source release: 21` — в Android Studio выставить Gradle JDK 21, в CLI `JAVA_HOME` на JDK 21.
 - Перед push агент должен убедиться, что `./gradlew.bat assembleAlphaDebug` собирается локально (если нет — пометить TODO в сообщении пользователю).
 
