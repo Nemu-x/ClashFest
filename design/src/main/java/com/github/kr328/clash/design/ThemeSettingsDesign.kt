@@ -254,12 +254,13 @@ class ThemeSettingsDesign(
         get() = uiStore.customAccent != null &&
             com.google.android.material.color.DynamicColors.isDynamicColorAvailable()
 
-    private val brandOwnsColors: Boolean by lazy {
+    private val brandOwnsColors: Boolean
+        get() {
         val uuid = com.github.kr328.clash.service.store.ServiceStore(context).activeProfile
         val brand = com.github.kr328.clash.service.branding.BrandStore(context)
-        uuid != null && brand.isActiveFor(uuid) &&
+        return uuid != null && brand.isActiveFor(uuid) &&
             BrandThemeApplier.applicableAccent(brand.manifestFor(uuid).accentColor).isNotEmpty()
-    }
+        }
 
     // --- Custom accent: a "+" tile appended to the palette grid. Tapping it lets the user pick any
     //     color, which seeds the full M3 palette via the same harmoniser as the operator brand.
