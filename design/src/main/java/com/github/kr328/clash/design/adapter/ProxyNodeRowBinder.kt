@@ -82,8 +82,13 @@ internal class ProxyNodeRowBinder(private val adapter: ProfileAdapter) {
         val mainHit = row.findViewById<View>(R.id.proxy_row_main_hit)
         val tryPickNode: () -> Boolean = {
             val canPickLive = adapter.clashRunning && adapter.selection.useEngineFor(profile)
+            // No profile is active yet (e.g. a subscription imported without being switched on):
+            // Home already presents this one as "Active profile" and opens its picker, so picking a
+            // node there activates it instead of answering with the node's YAML detail.
+            val activatesProfile = profile.imported && adapter.activeProfileUuid == null && !adapter.clashRunning
             val canPickOffline = profile.imported && profile.uuid == adapter.activeProfileUuid
-            if (canPickLive || canPickOffline) {
+            if (activatesProfile) adapter.activateProfile(profile)
+            if (canPickLive || canPickOffline || activatesProfile) {
                 adapter.setPendingProxySelection(profile.uuid, groupName, p.name)
                 // Re-submit the list so the newly-selected and previously-selected rows rebind
                 // (the RecyclerView is data-driven; DiffUtil touches just those two rows).
