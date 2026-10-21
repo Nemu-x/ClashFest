@@ -1200,7 +1200,7 @@
     <string name="proxy_layout_show_dropdown">以下拉列表显示分组</string>
     <string name="proxy_layout_show_tabs">以标签页显示分组</string>
     <!-- Companion remote-control screen -->
-    <string name="remote_tv_title">📺 %1$s</string>
+    <string name="remote_tv_title">%1$s</string>
     <string name="remote_more">更多</string>
     <string name="remote_unreachable_hint">无法连接到这台电视。请确认它已开机、处于同一网络，并且已允许远程控制。</string>
     <string name="remote_retry">重试</string>
@@ -1227,7 +1227,7 @@
     <string name="remote_close_connection">关闭连接</string>
     <string name="remote_health_check">健康检查</string>
     <string name="remote_update_provider">更新提供者</string>
-    <string name="remote_settings_hint">立即应用到电视</string>
+    <string name="remote_settings_hint">设置保存在电视上。网络设置在电视重新连接后生效。</string>
     <string name="remote_actions_hint">在电视上执行</string>
     <string name="remote_run_action">执行</string>
     <string name="remote_profiles_empty">电视上没有配置</string>

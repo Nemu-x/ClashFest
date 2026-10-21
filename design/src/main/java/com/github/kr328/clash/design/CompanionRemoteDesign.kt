@@ -407,6 +407,10 @@ class CompanionRemoteDesign(context: Context, initialName: String) : Design<Comp
                 emoji.visibility = View.VISIBLE
             }
         }
+        // The flag view starts GONE in the layout, and a GONE view is never laid out, so
+        // doOnLayout would never fire and the flag stayed blank. Make it take space first.
+        image.visibility = View.VISIBLE
+        emoji.visibility = View.GONE
         if (image.width > 0) apply(image.width) else image.doOnLayout { apply(it.width) }
     }
 

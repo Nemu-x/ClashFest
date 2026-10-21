@@ -1270,7 +1270,7 @@
     <string name="proxy_layout_show_dropdown">Группы выпадающими списками</string>
     <string name="proxy_layout_show_tabs">Группы вкладками</string>
     <!-- Companion remote-control screen -->
-    <string name="remote_tv_title">📺 %1$s</string>
+    <string name="remote_tv_title">%1$s</string>
     <string name="remote_more">Ещё</string>
     <string name="remote_unreachable_hint">Не удаётся связаться с ТВ. Проверьте, что он включён, в той же сети и на нём разрешено удалённое управление.</string>
     <string name="remote_retry">Повторить</string>
@@ -1297,7 +1297,7 @@
     <string name="remote_close_connection">Закрыть соединение</string>
     <string name="remote_health_check">Проверить узлы</string>
     <string name="remote_update_provider">Обновить провайдер</string>
-    <string name="remote_settings_hint">Применяется на ТВ сразу</string>
+    <string name="remote_settings_hint">Сохраняется на ТВ. Сетевые настройки применятся после переподключения ТВ.</string>
     <string name="remote_actions_hint">Выполняются на ТВ</string>
     <string name="remote_run_action">Выполнить</string>
     <string name="remote_profiles_empty">На ТВ нет профилей</string>

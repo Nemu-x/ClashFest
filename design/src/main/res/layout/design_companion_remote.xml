@@ -74,7 +74,7 @@
                             android:textAppearance="@style/TextAppearance.App.TitleLarge"
                             android:textColor="?attr/colorOnSurface"
                             android:textStyle="bold"
-                            tools:text="📺 Living Room TV" />
+                            tools:text="Living Room TV" />
 
                         <LinearLayout
                             android:layout_width="wrap_content"

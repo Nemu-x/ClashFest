@@ -1278,7 +1278,7 @@ Password: %4$s</string>
     <string name="proxy_layout_show_dropdown">Show groups as dropdown lists</string>
     <string name="proxy_layout_show_tabs">Show groups as tabs</string>
     <!-- Companion remote-control screen -->
-    <string name="remote_tv_title">📺 %1$s</string>
+    <string name="remote_tv_title">%1$s</string>
     <string name="remote_more">More</string>
     <string name="remote_unreachable_hint">Can\'t reach this TV. Check that it is on, on the same network, and that remote control is allowed on it.</string>
     <string name="remote_retry">Retry</string>
@@ -1305,7 +1305,7 @@ Password: %4$s</string>
     <string name="remote_close_connection">Close connection</string>
     <string name="remote_health_check">Health check</string>
     <string name="remote_update_provider">Update provider</string>
-    <string name="remote_settings_hint">Applied on the TV right away</string>
+    <string name="remote_settings_hint">Saved on the TV. Network settings apply after the TV reconnects.</string>
     <string name="remote_actions_hint">Run on the TV</string>
     <string name="remote_run_action">Run</string>
     <string name="remote_profiles_empty">No profiles on the TV</string>
