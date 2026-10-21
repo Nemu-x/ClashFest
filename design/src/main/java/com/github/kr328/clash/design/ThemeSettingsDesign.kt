@@ -256,10 +256,10 @@ class ThemeSettingsDesign(
 
     private val brandOwnsColors: Boolean
         get() {
-        val uuid = com.github.kr328.clash.service.store.ServiceStore(context).activeProfile
-        val brand = com.github.kr328.clash.service.branding.BrandStore(context)
-        return uuid != null && brand.isActiveFor(uuid) &&
-            BrandThemeApplier.applicableAccent(brand.manifestFor(uuid).accentColor).isNotEmpty()
+            val uuid = com.github.kr328.clash.service.store.ServiceStore(context).activeProfile
+            val brand = com.github.kr328.clash.service.branding.BrandStore(context)
+            return uuid != null && brand.isActiveFor(uuid) &&
+                BrandThemeApplier.applicableAccent(brand.manifestFor(uuid).accentColor).isNotEmpty()
         }
 
     // --- Custom accent: a "+" tile appended to the palette grid. Tapping it lets the user pick any

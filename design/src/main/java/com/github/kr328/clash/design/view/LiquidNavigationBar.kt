@@ -64,6 +64,7 @@ class LiquidNavigationBar @JvmOverloads constructor(context: Context, attrs: Att
                 addUpdateListener {
                     progress = liquidNavigationProgress(it.animatedFraction)
                     requestLayout()
+                    invalidate()
                 }
                 start()
             }
