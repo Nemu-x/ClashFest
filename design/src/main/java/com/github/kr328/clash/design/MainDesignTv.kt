@@ -1,5 +1,7 @@
 package com.github.kr328.clash.design
 
+import android.graphics.Rect
+import android.view.FocusFinder
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
@@ -98,10 +100,64 @@ internal fun MainDesign.applyTvHomeLayout() {
  * the end of the content), so a D-pad move could park the focused row behind the nav. On TV the
  * pages keep the focused control above the nav instead.
  */
+/**
+ * Profiles header on TV: "Add subscription" and "Update" split the row evenly, so each sits over
+ * one column of the two-up card grid (the phone's 1.4 : 1 left a wide pill beside a short one).
+ */
+internal fun MainDesign.applyTvProfilesHeader() {
+    listOf(binding.profilesTabAdd, binding.profilesTabUpdate).forEach { button ->
+        (button.layoutParams as? LinearLayout.LayoutParams)?.let {
+            it.weight = 1f
+            button.layoutParams = it
+        }
+    }
+}
+
 internal fun MainDesign.applyTvPageFocusMargins() {
     val navSpace = context.resources.getDimensionPixelSize(R.dimen.main_bottom_nav_reserved_space)
-    listOf(binding.mainRoutingPage, binding.mainOperatorPage, binding.mainSettingsPage)
-        .forEach { it.bottomFocusInset = navSpace + context.dp(12) }
+    listOf(
+        binding.mainRoutingPage to binding.mainNavRouting,
+        binding.mainOperatorPage to binding.mainNavOperator,
+        binding.mainSettingsPage to binding.mainNavSettings,
+    ).forEach { (page, nav) ->
+        page.bottomFocusInset = navSpace + context.dp(12)
+        // DOWN from the page's last row: its own tab in the nav, like Home's last row.
+        page.focusDownExit = { nav }
+    }
+
+    // UP from the bottom nav into a scrolling page: the row just above the nav. The default search
+    // skipped a last row that sits half under the floating nav (its rect overlaps the nav's) and
+    // jumped to the row above it.
+    listOf(
+        binding.mainNavHome,
+        binding.mainNavProfiles,
+        binding.mainNavRouting,
+        binding.mainNavOperator,
+        binding.mainNavSettings,
+    ).forEach { nav ->
+        nav.setOnKeyListener { v, keyCode, event ->
+            keyCode == KeyEvent.KEYCODE_DPAD_UP && event.action == KeyEvent.ACTION_DOWN &&
+                focusRowAboveNav(v)
+        }
+    }
+}
+
+private fun MainDesign.focusRowAboveNav(nav: View): Boolean {
+    val page: ViewGroup = when (currentTab) {
+        MainDesign.MainTab.Routing -> binding.mainRoutingPage
+        MainDesign.MainTab.Operator -> binding.mainOperatorPage
+        MainDesign.MainTab.Settings -> binding.mainSettingsPage
+        else -> return false
+    }
+    // Search up from the page's visible bottom edge (in its scrolled coordinates) under this nav
+    // button, rather than from the nav's own rect, which the half-hidden last row overlaps.
+    val navLocation = IntArray(2).also(nav::getLocationInWindow)
+    val pageLocation = IntArray(2).also(page::getLocationInWindow)
+    val left = navLocation[0] - pageLocation[0] + page.scrollX
+    val bottom = page.scrollY + page.height
+    val from = Rect(left, bottom, left + nav.width, bottom)
+    val next = FocusFinder.getInstance().findNextFocusFromRect(page, from, View.FOCUS_UP) ?: return false
+    return next.requestFocus()
 }
 
 /**

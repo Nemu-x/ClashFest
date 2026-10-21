@@ -13,4 +13,7 @@
 
     <!-- Keeps the empty-state focus ring inside the 16dp content column, like the rule rows. -->
     <dimen name="rules_hub_empty_margin_horizontal">16dp</dimen>
+    <!-- Section headers share that inset (one ring width down the column); their text keeps a
+         small inner gap from the ring instead of a second 16dp. -->
+    <dimen name="rules_hub_section_padding_horizontal">8dp</dimen>
 </resources>

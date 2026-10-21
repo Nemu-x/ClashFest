@@ -5,6 +5,7 @@ import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import com.github.kr328.clash.design.databinding.DesignSettingsBinding
 import com.github.kr328.clash.design.store.UiStore
+import com.github.kr328.clash.design.util.isTelevision
 import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.design.util.root
 
@@ -31,6 +32,8 @@ class SettingsDesign(context: Context) : Design<SettingsDesign.Request>(context)
     init {
         binding.self = this
         binding.header.screenTitle.text = context.getString(R.string.main_advanced_settings)
+        // TV: the same TV glyph as the Home "Remote control" row (this device is the TV here).
+        if (context.isTelevision()) binding.companionIcon.setImageResource(R.drawable.ic_baseline_tv)
         applyExperimentalVisibility()
     }
 

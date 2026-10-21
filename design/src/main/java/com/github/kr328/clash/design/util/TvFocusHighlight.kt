@@ -96,9 +96,30 @@ private class FocusHalo(private val root: View) {
         observer.addOnWindowFocusChangeListener { hasFocus ->
             windowFocused = hasFocus
             drawable.invalidateSelf()
+            if (hasFocus) focusFirstIfNone()
         }
+        observer.addOnGlobalLayoutListener { focusFirstIfNone() }
         root.findFocus()?.let(::retarget)
     }
+
+    /**
+     * A screen whose layout asks for no initial focus (a plain list of cards, a list filled in
+     * later) opened with nothing focused, so the first D-pad press only woke focus up somewhere.
+     * Once the window has focus and is laid out, the first focusable in reading order gets it.
+     * Screens that place focus themselves (Home's power orb, the picker's selected node) already
+     * hold it by then and are left alone.
+     */
+    private fun focusFirstIfNone() {
+        if (focusPosted || root.isInTouchMode || !root.hasWindowFocus() || root.findFocus() != null) return
+        focusPosted = true
+        root.post {
+            focusPosted = false
+            if (root.isInTouchMode || !root.hasWindowFocus() || root.findFocus() != null) return@post
+            root.requestFocus(View.FOCUS_DOWN)
+        }
+    }
+
+    private var focusPosted = false
 
     private fun retarget(view: View?) {
         val next = view?.takeIf(::wantsHalo)
@@ -110,6 +131,7 @@ private class FocusHalo(private val root: View) {
             return
         }
         unclipAncestors(next)
+        keepWideButtonsUnscaled(next)
         if (!measure(next, to)) return
         toRadii = radiiOf(next, to)
         if (visible && !shown.isEmpty) {
@@ -144,6 +166,21 @@ private class FocusHalo(private val root: View) {
             if (parent.clipToPadding) parent.clipToPadding = false
             parent = parent.parent
         }
+    }
+
+    /**
+     * The focus_scale grow is 5% of the width: a few dp on a normal button, but on a full-width one
+     * (a list's "Add rule") it pushed the body past the list's edges, where the list clipped it and
+     * the ring flat on both sides. Wide buttons skip the grow; the ring alone marks them.
+     */
+    private fun keepWideButtonsUnscaled(view: View) {
+        if (view !is MaterialButton || view.stateListAnimator == null) return
+        val wide = view.layoutParams?.width == ViewGroup.LayoutParams.MATCH_PARENT ||
+            view.width * 0.025f > 6f * density
+        if (!wide) return
+        view.stateListAnimator = null
+        view.scaleX = 1f
+        view.scaleY = 1f
     }
 
     /** Scrolling or a relayout moved the focused view: keep the ring on it. */

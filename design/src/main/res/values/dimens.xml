@@ -133,8 +133,10 @@
     <dimen name="about_icon_size">50dp</dimen>
     <dimen name="about_text_margin">15dp</dimen>
 
-    <!-- Rules hub "add your first rule" row: full-bleed on phones, inset to the column on TV -->
+    <!-- Rules hub "add your first rule" row and section headers: full-bleed on phones, inset to the column on TV -->
     <dimen name="rules_hub_empty_margin_horizontal">0dp</dimen>
+    <!-- Section header text inset; on TV the header row itself is inset by the margin above. -->
+    <dimen name="rules_hub_section_padding_horizontal">16dp</dimen>
 
     <!-- Logcat Design -->
     <dimen name="logcat_padding_vertical">12dp</dimen>

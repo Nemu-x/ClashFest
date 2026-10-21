@@ -748,6 +748,20 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     /** Switch to the Profiles tab (the in-app profile manager) instead of opening a separate screen. */
     fun openProfilesTab() = selectMainTab(MainTab.Profiles)
 
+    /**
+     * TV BACK on a tab other than Home goes to Home first (the nav is the only way between tabs
+     * there, so BACK leaving the app from Settings was a surprise); BACK on Home exits as before.
+     * Returns false when BACK should take its default path. Phones never call this.
+     */
+    fun handleTvBack(): Boolean {
+        if (!context.isTelevision()) return false
+        val tab = currentTab ?: return false
+        if (tab == MainTab.Home || MainTab.Home !in activeTabs) return false
+        selectMainTab(MainTab.Home)
+        binding.mainNavHome.requestFocus()
+        return true
+    }
+
     /** The logical tab currently shown — captured by MainActivity before a soft recreate (D5). */
     val currentTab: MainTab?
         get() = mainTabForPagerPosition(binding.mainPager.currentItem)
@@ -780,6 +794,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             binding.mainCompanionEmptyButton.visibility = View.VISIBLE
             applyTvHomeLayout()
             applyTvPageFocusMargins()
+            applyTvProfilesHeader()
         }
 
         setupProfileLists()

@@ -1102,14 +1102,12 @@ internal class ProxyPickerSheet(private val adapter: ProfileAdapter) {
             height = px(40)
         }
 
-        // Node list: a smaller gap above it and slimmer inner padding.
+        // Node list: a smaller gap above it. The inner padding keeps the focus ring (5dp outside a
+        // row) clear of the list card's edges, the bottom row's included.
         (sheet.proxySheetNodesList.parent as? View)?.let { surface ->
             (surface.layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin = px(8)
         }
-        sheet.proxySheetNodesList.setPadding(
-            sheet.proxySheetNodesList.paddingLeft, px(4),
-            sheet.proxySheetNodesList.paddingRight, px(4),
-        )
+        sheet.proxySheetNodesList.setPadding(px(10), px(8), px(10), px(10))
     }
 
     /**

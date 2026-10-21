@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import android.os.PowerManager
+import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
@@ -22,6 +23,7 @@ import com.github.kr328.clash.design.MainDesign
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.model.DarkMode
 import com.github.kr328.clash.design.ui.ToastDuration
+import com.github.kr328.clash.design.util.isTelevision
 import com.github.kr328.clash.design.util.showExceptionToast
 import com.github.kr328.clash.remote.Remote
 import com.github.kr328.clash.service.model.Profile
@@ -665,6 +667,16 @@ class MainActivity : BaseActivity<MainDesign>() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // TV: BACK on a non-Home tab returns to Home first; on Home it exits as usual.
+        if (isTelevision()) {
+            onBackPressedDispatcher.addCallback(this) {
+                if (mainDesign?.handleTvBack() == true) return@addCallback
+                isEnabled = false
+                onBackPressedDispatcher.onBackPressed()
+                isEnabled = true
+            }
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val requestPermissionLauncher =
