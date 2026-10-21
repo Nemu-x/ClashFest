@@ -147,11 +147,55 @@ class GatewayServer(
         r.mimeType?.startsWith(MIME_EVENT_STREAM) != true && super.useGzipWhenAccepted(r)
 
     public override fun serve(session: IHTTPSession): Response {
-        return try {
-            handle(session)
+        val tracked = BodyTrackingSession(session)
+        val response = try {
+            handle(tracked)
         } catch (t: Throwable) {
             Log.w("Companion gateway error: ${t.message}")
             error(Response.Status.INTERNAL_ERROR, "internal", "unexpected agent error")
+        }
+        // Early answers (401, not_found, unpair, oversize) never read the body; leftover bytes on a
+        // keep-alive connection would be parsed as the next request. Drain it, or close the link.
+        if (!tracked.bodyConsumed && !drainBody(session)) {
+            response.closeConnection(true)
+            response.addHeader("Connection", "close")
+        }
+        return response
+    }
+
+    /** Marks whether a handler consumed the request body through [parseBody]. */
+    private class BodyTrackingSession(private val inner: IHTTPSession) : IHTTPSession by inner {
+        var bodyConsumed = false
+            private set
+
+        override fun parseBody(files: MutableMap<String, String>?) {
+            bodyConsumed = true
+            inner.parseBody(files)
+        }
+    }
+
+    /**
+     * Discards an unread request body so the connection can be reused. Returns false when that is
+     * not possible (chunked or unknown framing, over the largest accepted body, or a short read).
+     */
+    private fun drainBody(session: IHTTPSession): Boolean {
+        if (session.headers["transfer-encoding"] != null) return false
+        val raw = session.headers["content-length"] ?: return true
+        val length = raw.trim().toLongOrNull() ?: return false
+        if (length !in 0..MAX_SUBSCRIPTION_BODY_BYTES) return false
+        return try {
+            val input = session.inputStream
+            val buffer = ByteArray(DRAIN_BUFFER_BYTES)
+            var remaining = length
+            while (remaining > 0) {
+                val read = input.read(buffer, 0, minOf(buffer.size.toLong(), remaining).toInt())
+                if (read < 0) return false
+                remaining -= read
+            }
+            true
+        } catch (e: Exception) {
+            Log.d("Companion: request body drain failed: ${e.message}")
+            false
         }
     }
 
@@ -189,9 +233,9 @@ class GatewayServer(
             session.method == Method.POST && uri == "/v1/rename" -> rename(session)
             // §7.4: giving up control needs a valid token and nothing else.
             session.method == Method.POST && uri == "/v1/unpair" -> unpair(pairing)
-            // Explicitly refuse core forwarding / upgrade (§2, §9.1 is not offered by ClashFest).
+            // `core` (§9.1) is not advertised, so per §8.6 its paths answer not_found after auth.
             uri.startsWith("/v1/core") || uri == "/upgrade" ->
-                error(Response.Status.FORBIDDEN, "forbidden", "endpoint not permitted")
+                error(Response.Status.NOT_FOUND, "not_found", "capability not supported: ${Capabilities.CORE}")
             else -> error(Response.Status.NOT_FOUND, "not_found", "unknown endpoint")
         }
     }
@@ -523,6 +567,7 @@ class GatewayServer(
         private const val DEFAULT_DELAY_TIMEOUT = 5000
         private const val MIN_DELAY_TIMEOUT = 100
         private const val MAX_DELAY_TIMEOUT = 30000
+        private const val DRAIN_BUFFER_BYTES = 8 * 1024
 
         private val P1_CAPABILITIES = listOf(
             Capabilities.STATUS, Capabilities.POWER, Capabilities.SUBSCRIPTION, Capabilities.RENAME, Capabilities.UNPAIR,
