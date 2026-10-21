@@ -6,7 +6,9 @@ import androidx.core.content.ContextCompat
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.util.FlagDrawableLoader
 import com.github.kr328.clash.design.util.FlagParser
+import com.github.kr328.clash.core.model.Proxy
 import com.github.kr328.clash.service.model.Profile
+import com.github.kr328.clash.service.model.ProxyTransportInfo
 
 /**
  * Binds one proxy-node row view (flag, name, protocol chips, latency capsule, selection
@@ -45,103 +47,17 @@ internal class ProxyNodeRowBinder(private val adapter: ProfileAdapter) {
         showGroupInSubtitle: Boolean,
         onSelectionChanged: () -> Unit,
     ) {
-        val context = row.context
         val p = pickerRow.proxy
         val groupName = pickerRow.groupName
 
-        val title = p.title.ifBlank { p.name }
-        val flag = FlagParser.parse(title)
-        val cleanTitle = flag?.let {
-            title.removePrefix(it.emoji)
-                .trimStart(' ', '|', '-', '_', '.', ':')
-                .ifBlank { title }
-        } ?: title
-        val (namePart, cityPart) = splitNameAndCity(cleanTitle)
-        row.findViewById<TextView>(R.id.proxy_title).text = namePart
-        row.findViewById<TextView>(R.id.proxy_city).apply {
-            if (cityPart != null) {
-                text = cityPart
-                visibility = View.VISIBLE
-            } else {
-                visibility = View.GONE
-            }
-        }
-        val flagCard = row.findViewById<View>(R.id.proxy_flag_card)
-        val flagImage = row.findViewById<com.google.android.material.imageview.ShapeableImageView>(R.id.proxy_flag_image)
-        val flagText = row.findViewById<TextView>(R.id.proxy_flag)
-        if (flag != null) {
-            flagCard.visibility = View.VISIBLE
-            val sizePx = context.dp(28)
-            val bitmap = FlagDrawableLoader.loadBitmap(context, flag.code, sizePx)
-            if (bitmap != null) {
-                flagImage.setImageBitmap(bitmap)
-                flagImage.visibility = View.VISIBLE
-                flagText.visibility = View.GONE
-            } else {
-                flagImage.visibility = View.GONE
-                flagText.text = flag.emoji
-                flagText.visibility = View.VISIBLE
-            }
-        } else {
-            flagCard.visibility = View.GONE
-        }
-
-        val typeBadge = row.findViewById<TextView>(R.id.proxy_type_badge)
-        val transportBadge = row.findViewById<TextView>(R.id.proxy_transport_badge)
-        val realityBadge = row.findViewById<TextView>(R.id.proxy_reality_badge)
-        val typeName = p.type.name
-
-        // Leaf node → protocol chips (VLESS / GRPC / REALITY). Nested auto-group →
-        // a single group-type chip (URL-TEST / FALLBACK / …) so groups read distinctly
-        // from nodes. Both resolve offline (overlay: type from transport/groups preview).
-        val groupTypeLabel = groupTypeLabel(p.type)
-        val showBadge: Boolean
-        if (p.type.group) {
-            if (groupTypeLabel != null) {
-                applyProtoChip(typeBadge, groupTypeLabel, ContextCompat.getColor(context, groupTypeColor(p.type)))
-            } else {
-                typeBadge.visibility = View.GONE
-            }
-            transportBadge.visibility = View.GONE
-            realityBadge.visibility = View.GONE
-            showBadge = groupTypeLabel != null
-        } else {
-            showBadge = typeName != "Unknown"
-            if (showBadge) {
-                applyProtoChip(typeBadge, typeName.uppercase(), ContextCompat.getColor(context, protocolFamilyColor(typeName)))
-            } else {
-                typeBadge.visibility = View.GONE
-            }
-
-            val transportInfo = if (showBadge && hasTransport(typeName)) adapter.transportInfoByProfile[profile.uuid]?.get(p.name) else null
-            val transportLabel = transportLabel(transportInfo, typeName)
-            if (transportLabel != null) {
-                applyProtoChip(transportBadge, transportLabel, ContextCompat.getColor(context, R.color.proto_transport))
-            } else {
-                transportBadge.visibility = View.GONE
-            }
-            // One security chip: REALITY when set, otherwise TLS when the node encrypts with it.
-            when {
-                transportInfo?.reality == true ->
-                    applyProtoChip(realityBadge, "REALITY", ContextCompat.getColor(context, R.color.proto_reality))
-                transportInfo != null && usesTls(transportInfo, typeName) ->
-                    applyProtoChip(realityBadge, "TLS", ContextCompat.getColor(context, R.color.proto_tls))
-                else -> realityBadge.visibility = View.GONE
-            }
-        }
-
-        val rawSubtitle = p.subtitle
-            .takeIf { it.isNotBlank() && !it.equals(typeName, ignoreCase = true) }
-        val subtitle = buildList {
-            rawSubtitle?.let(::add)
-            if (showGroupInSubtitle) add(displayGroupName(groupName))
-        }.joinToString(" · ").takeIf { it.isNotBlank() }
-        row.findViewById<TextView>(R.id.proxy_subtitle).apply {
-            visibility = if (subtitle == null) View.GONE else View.VISIBLE
-            text = subtitle.orEmpty()
-        }
-        row.findViewById<View>(R.id.proxy_subtitle_sep).visibility =
-            if (showBadge && subtitle != null) View.VISIBLE else View.GONE
+        bindNodeRowAppearance(
+            row = row,
+            title = p.title.ifBlank { p.name },
+            type = p.type,
+            subtitle = p.subtitle,
+            groupName = groupName,
+            showGroupInSubtitle = showGroupInSubtitle,
+        ) { adapter.transportInfoByProfile[profile.uuid]?.get(p.name) }
 
         val delayMs = pickerRow.delayMs
 
@@ -194,6 +110,115 @@ internal class ProxyNodeRowBinder(private val adapter: ProfileAdapter) {
         applyDelayStyle(capsule, dot, delayView, delayMs, capsule.context)
         delayView.text = if (adapter.isNodePingPending(proxyName)) NODE_PING_PENDING_TEXT else formatDelay(delayMs)
     }
+}
+
+/**
+ * The static look of one node row — flag, name / city, protocol chips and subtitle — shared by the
+ * local picker rows and the remote-control picker (which has no transport detail: [transportFor]
+ * returns null there, so only the protocol chip shows).
+ */
+internal fun bindNodeRowAppearance(
+    row: View,
+    title: String,
+    type: Proxy.Type,
+    subtitle: String,
+    groupName: String,
+    showGroupInSubtitle: Boolean,
+    transportFor: () -> ProxyTransportInfo?,
+) {
+    val context = row.context
+    val flag = FlagParser.parse(title)
+    val cleanTitle = flag?.let {
+        title.removePrefix(it.emoji)
+            .trimStart(' ', '|', '-', '_', '.', ':')
+            .ifBlank { title }
+    } ?: title
+    val (namePart, cityPart) = splitNameAndCity(cleanTitle)
+    row.findViewById<TextView>(R.id.proxy_title).text = namePart
+    row.findViewById<TextView>(R.id.proxy_city).apply {
+        if (cityPart != null) {
+            text = cityPart
+            visibility = View.VISIBLE
+        } else {
+            visibility = View.GONE
+        }
+    }
+    val flagCard = row.findViewById<View>(R.id.proxy_flag_card)
+    val flagImage = row.findViewById<com.google.android.material.imageview.ShapeableImageView>(R.id.proxy_flag_image)
+    val flagText = row.findViewById<TextView>(R.id.proxy_flag)
+    if (flag != null) {
+        flagCard.visibility = View.VISIBLE
+        val sizePx = context.dp(28)
+        val bitmap = FlagDrawableLoader.loadBitmap(context, flag.code, sizePx)
+        if (bitmap != null) {
+            flagImage.setImageBitmap(bitmap)
+            flagImage.visibility = View.VISIBLE
+            flagText.visibility = View.GONE
+        } else {
+            flagImage.visibility = View.GONE
+            flagText.text = flag.emoji
+            flagText.visibility = View.VISIBLE
+        }
+    } else {
+        flagCard.visibility = View.GONE
+    }
+
+    val typeBadge = row.findViewById<TextView>(R.id.proxy_type_badge)
+    val transportBadge = row.findViewById<TextView>(R.id.proxy_transport_badge)
+    val realityBadge = row.findViewById<TextView>(R.id.proxy_reality_badge)
+    val typeName = type.name
+
+    // Leaf node → protocol chips (VLESS / GRPC / REALITY). Nested auto-group →
+    // a single group-type chip (URL-TEST / FALLBACK / …) so groups read distinctly
+    // from nodes. Both resolve offline (overlay: type from transport/groups preview).
+    val groupTypeLabel = groupTypeLabel(type)
+    val showBadge: Boolean
+    if (type.group) {
+        if (groupTypeLabel != null) {
+            applyProtoChip(typeBadge, groupTypeLabel, ContextCompat.getColor(context, groupTypeColor(type)))
+        } else {
+            typeBadge.visibility = View.GONE
+        }
+        transportBadge.visibility = View.GONE
+        realityBadge.visibility = View.GONE
+        showBadge = groupTypeLabel != null
+    } else {
+        showBadge = typeName != "Unknown"
+        if (showBadge) {
+            applyProtoChip(typeBadge, typeName.uppercase(), ContextCompat.getColor(context, protocolFamilyColor(typeName)))
+        } else {
+            typeBadge.visibility = View.GONE
+        }
+
+        val transportInfo = if (showBadge && hasTransport(typeName)) transportFor() else null
+        val transportLabel = transportLabel(transportInfo, typeName)
+        if (transportLabel != null) {
+            applyProtoChip(transportBadge, transportLabel, ContextCompat.getColor(context, R.color.proto_transport))
+        } else {
+            transportBadge.visibility = View.GONE
+        }
+        // One security chip: REALITY when set, otherwise TLS when the node encrypts with it.
+        when {
+            transportInfo?.reality == true ->
+                applyProtoChip(realityBadge, "REALITY", ContextCompat.getColor(context, R.color.proto_reality))
+            transportInfo != null && usesTls(transportInfo, typeName) ->
+                applyProtoChip(realityBadge, "TLS", ContextCompat.getColor(context, R.color.proto_tls))
+            else -> realityBadge.visibility = View.GONE
+        }
+    }
+
+    val rawSubtitle = subtitle
+        .takeIf { it.isNotBlank() && !it.equals(typeName, ignoreCase = true) }
+    val shownSubtitle = buildList {
+        rawSubtitle?.let(::add)
+        if (showGroupInSubtitle) add(displayGroupName(groupName))
+    }.joinToString(" · ").takeIf { it.isNotBlank() }
+    row.findViewById<TextView>(R.id.proxy_subtitle).apply {
+        visibility = if (shownSubtitle == null) View.GONE else View.VISIBLE
+        text = shownSubtitle.orEmpty()
+    }
+    row.findViewById<View>(R.id.proxy_subtitle_sep).visibility =
+        if (showBadge && shownSubtitle != null) View.VISIBLE else View.GONE
 }
 
 /** Shown in the latency capsule while a single-node test is in flight. */
