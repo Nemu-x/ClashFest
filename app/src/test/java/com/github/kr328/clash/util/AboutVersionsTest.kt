@@ -12,8 +12,19 @@ class AboutVersionsTest {
         // JVM tests have no JNI runtime: touching Bridge here would fail to load it.
         val channel = if (BuildConfig.DEBUG) "Debug" else "Release"
         assertTrue(AboutVersions.app.matches(Regex("\\d+\\.\\d+\\.\\d+\\.$channel")))
-        val compiledVersion = Regex("v?(\\d+\\.\\d+\\.\\d+)")
-            .find(CoreBuildConfig.CORE_TAG)?.groupValues?.get(1)
-        assertEquals("Mihomo $compiledVersion", AboutVersions.core)
+        assertEquals(
+            AboutVersions.coreLabel(CoreBuildConfig.CORE_NAME, CoreBuildConfig.CORE_TAG, CoreBuildConfig.CITRUS_TAG),
+            AboutVersions.core,
+        )
+        assertTrue(AboutVersions.core.startsWith("${CoreBuildConfig.CORE_NAME} "))
+    }
+
+    @Test
+    fun coreIsNamedAfterTheSubmodule() {
+        assertEquals("Citrus 1.0.0-beta.2", AboutVersions.coreLabel("Citrus", "v1.19.32", "v1.0.0-beta.2"))
+        assertEquals("Citrus 1.0.0", AboutVersions.coreLabel("Citrus", "", "v1.0.0"))
+        assertEquals("Citrus —", AboutVersions.coreLabel("Citrus", "v1.19.32", ""))
+        assertEquals("Mihomo 1.19.32", AboutVersions.coreLabel("Mihomo", "v1.19.32", ""))
+        assertEquals("Mihomo —", AboutVersions.coreLabel("Mihomo", "", ""))
     }
 }
