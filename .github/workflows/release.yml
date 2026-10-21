@@ -115,19 +115,29 @@ jobs:
 
       - name: Verify release APK identity and signature
         run: |
-          tools="$(dirname "$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)")"
+          tools="$ANDROID_HOME/build-tools/35.0.0"
+          test -x "$tools/apksigner"
+          echo "Using project Android Build Tools: $tools"
           expected_name="$(sed -n 's/^[[:space:]]*versionName = "\([^"]*\)".*/\1/p' build.gradle.kts)"
           expected_code="$(sed -n 's/^[[:space:]]*versionCode = \([0-9]*\).*/\1/p' build.gradle.kts)"
           expected_cert="33dda52638af204dc81726c0e8e230556904a6d46d90e4938102a09c0b42bd83"
           test -n "$expected_name" && test -n "$expected_code"
           for apk in release-artifacts/*.apk; do
             signing="$("$tools/apksigner" verify --verbose --print-certs "$apk")"
-            grep -Fxq "Signer #1 certificate SHA-256 digest: $expected_cert" <<< "$signing"
+            if ! grep -Fxq "Signer #1 certificate SHA-256 digest: $expected_cert" <<< "$signing"; then
+              echo "::error::Unexpected release signing certificate: $apk"
+              printf '%s\n' "$signing"
+              exit 1
+            fi
             badging="$("$tools/aapt" dump badging "$apk")"
             expected="package: name='com.nemu.clashfest.clash.alpha' versionCode='$expected_code' versionName='$expected_name'"
-            [[ "$badging" == "$expected"* ]]
+            if [[ "$badging" != "$expected"* ]]; then
+              echo "::error::Unexpected APK package or version: $apk"
+              printf '%s\n' "$badging" | sed -n '/^package:/p'
+              exit 1
+            fi
             if grep -q '^application-debuggable' <<< "$badging"; then
-              echo "Refusing to publish a debuggable APK: $apk"
+              echo "::error::Refusing to publish a debuggable APK: $apk"
               exit 1
             fi
             "$tools/zipalign" -c -p 4 "$apk"
