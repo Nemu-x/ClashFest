@@ -298,6 +298,11 @@
             android:configChanges="uiMode"
             android:exported="false"
             android:label="@string/companion_devices_title" />
+        <activity
+            android:name=".CompanionRemoteActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/companion_title" />
 
         <service
             android:name=".companion.agent.CompanionGatewayService"
