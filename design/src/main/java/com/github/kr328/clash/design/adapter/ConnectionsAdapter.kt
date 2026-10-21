@@ -142,7 +142,7 @@ class ConnectionsAdapter(
         holder.rule.text = ruleLine.ifBlank { "—" }
 
         val expanded = c.id in expandedIds
-        holder.expand.rotation = if (expanded) 180f else 0f
+        com.github.kr328.clash.design.motion.animateDisclosure(holder.expand, c.id, if (expanded) 180f else 0f)
         holder.details.visibility = if (expanded) View.VISIBLE else View.GONE
         holder.details.text = if (expanded) formatDetails(ctx, c, app) else ""
         holder.root.setOnClickListener {

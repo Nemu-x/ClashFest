@@ -14,6 +14,7 @@ import com.github.kr328.clash.common.compat.isSystemBarsTranslucentCompat
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.ui.Insets
 import com.github.kr328.clash.design.ui.Surface
+import com.github.kr328.clash.design.ui.SnackbarHosts
 import com.github.kr328.clash.design.util.getPixels
 import com.github.kr328.clash.design.util.resolveThemedResourceId
 import com.github.kr328.clash.design.util.setOnInsertsChangedListener
@@ -43,6 +44,20 @@ class AppBottomSheetDialog(
     private val fitContentHeight: Boolean = false,
 ) : BottomSheetDialog(context) {
     private var insets: Insets = Insets.EMPTY
+    private var snackbarHost: View? = null
+
+    override fun onStart() {
+        super.onStart()
+        snackbarHost = findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)?.parent as? View
+        snackbarHost?.let { SnackbarHosts.register(context, it) }
+    }
+
+    override fun onStop() {
+        snackbarHost?.let { SnackbarHosts.unregister(context, it) }
+        snackbarHost = null
+        super.onStop()
+    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Pure-black (OLED): the bottom-sheet dialog has its OWN theme (colorSurface = tech_surface)

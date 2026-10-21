@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <item name="close_button" type="id" />
+    <item name="subscription_update_icon_motion" type="id" />
+    <item name="disclosure_icon_state" type="id" />
 </resources>

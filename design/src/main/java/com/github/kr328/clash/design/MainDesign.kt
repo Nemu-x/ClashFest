@@ -14,6 +14,7 @@ import com.github.kr328.clash.design.adapter.ProfileAdapter
 import com.github.kr328.clash.design.main.MainPager
 import com.github.kr328.clash.design.main.PowerVisuals
 import com.github.kr328.clash.design.main.SubscriptionDetailsSheet
+import com.github.kr328.clash.design.main.SubscriptionUpdates
 import com.github.kr328.clash.design.main.bindAnnouncementCard
 import com.github.kr328.clash.design.main.bindMainNodeFlag
 import com.github.kr328.clash.design.main.bindOperatorPage
@@ -47,6 +48,8 @@ import com.github.kr328.clash.service.model.ProxyTransportInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
+import com.github.kr328.clash.design.motion.bindSubscriptionUpdateButton
 import java.util.UUID
 
 class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
@@ -170,7 +173,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         { profile, group, proxyNames, testUrl ->
             profilePingAllRequests.trySend(PingAllRequest(profile, group, proxyNames, testUrl))
         },
-        { profile -> profileForceUpdateRequests.trySend(profile) },
+        { profile -> requestSubscriptionUpdate(profile) },
         { profile, group, proxy -> profileProxyYamlRequests.trySend(Triple(profile, group, proxy)) },
         { profile, group -> profileVisibleGroupChanged.trySend(profile to group) },
         { profile, group, proxy -> proxyPingNodeRequests.trySend(Triple(profile, group, proxy)) },
@@ -198,10 +201,20 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         { profile, group, proxy -> proxyPingNodeRequests.trySend(Triple(profile, group, proxy)) },
         expandOnProfileClick = false,
         compactSubscriptions = true,
+        states = profileAdapter.states,
         readProxyGroupLayout = { uiStore.proxyGroupLayout },
         writeProxyGroupLayout = { uiStore.proxyGroupLayout = it },
     )
     private var tabProfilesAll: List<Profile> = emptyList()
+    private val subscriptionUpdates = SubscriptionUpdates(
+        state = tabProfileAdapter.states,
+        dispatch = { profileForceUpdateRequests.trySend(it).isSuccess },
+        dispatchAll = { profileUpdateAllRequests.trySend(Unit).isSuccess },
+        render = ::refreshSubscriptionUpdateUi,
+        bulkRefreshing = { binding.profilesTabRefresh.isRefreshing = it },
+        feedback = { message, duration -> launch { showToast(message, duration) } },
+    )
+
     private val subscriptionDetails: SubscriptionDetailsSheet = SubscriptionDetailsSheet(
         context = context,
         adapter = tabProfileAdapter,
@@ -460,7 +473,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             binding.profilesTabSkeleton.visibility = View.GONE
             binding.profilesTabList.visibility = if (profiles.isEmpty()) View.GONE else View.VISIBLE
             binding.profilesTabEmpty.visibility = if (profiles.isEmpty()) View.VISIBLE else View.GONE
-            val tabUpdatable = profiles.any { it.imported && it.type != Profile.Type.File }
+            val tabUpdatable = profiles.any { it.imported && it.type == Profile.Type.Url }
             binding.profilesTabRefresh.isEnabled = tabUpdatable
             refreshSubscriptionDetails()
         }
@@ -471,8 +484,9 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         binding.mainActiveProfileValue.text = p?.name.orEmpty().ifBlank { context.getString(R.string.not_selected) }
         binding.mainActiveProfileMeta.text = p?.let { profileUsageLabel(context, uiStore, it) }.orEmpty()
         binding.mainActiveProfileMeta.visibility = if (p != null) View.VISIBLE else View.GONE
-        val showUpdate = p?.imported == true && p.type != Profile.Type.File
+        val showUpdate = p?.imported == true && p.type == Profile.Type.Url
         binding.mainActiveProfileUpdate.visibility = if (showUpdate) View.VISIBLE else View.GONE
+        if (p != null) bindSubscriptionUpdateButton(binding.mainActiveProfileUpdate, tabProfileAdapter.states, p.uuid)
         val showSupport = !resolveSupportUrl().isNullOrBlank()
         binding.mainActiveProfileSupport.visibility = if (showSupport) View.VISIBLE else View.GONE
         binding.mainActiveProfileActions.visibility = if (showUpdate || showSupport) View.VISIBLE else View.GONE
@@ -633,46 +647,25 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
 
     fun setSubscriptionActivating(uuid: UUID?) = subscriptionDetails.setActivating(uuid)
 
-    private fun requestSubscriptionUpdate(profile: Profile) {
-        if (!profile.imported || profile.type == Profile.Type.File) return
-        if (!tabProfileAdapter.states.beginUpdate(profile.uuid)) return
-        refreshSubscriptionUpdateUi(profile.uuid)
-        profileForceUpdateRequests.trySend(profile)
-    }
-
-    fun markSubscriptionUpdateStarted(uuid: UUID): Boolean {
-        if (!tabProfileAdapter.states.beginUpdate(uuid)) return false
-        refreshSubscriptionUpdateUi(uuid)
-        return true
-    }
-
-    fun finishSubscriptionUpdate(uuid: UUID, success: Boolean) {
-        tabProfileAdapter.states.finishUpdate(uuid, success)
-        refreshSubscriptionUpdateUi(uuid)
-    }
-
-    fun recordSubscriptionUpdateResult(uuid: UUID, success: Boolean) {
-        tabProfileAdapter.states.recordObservedUpdate(uuid, success)
-        refreshSubscriptionUpdateUi(uuid)
-    }
+    fun requestSubscriptionUpdate(profile: Profile) = subscriptionUpdates.request(profile)
+    fun markSubscriptionUpdateStarted(uuid: UUID): Boolean = subscriptionUpdates.begin(uuid)
+    fun finishSubscriptionUpdate(uuid: UUID, success: Boolean) = subscriptionUpdates.finish(uuid, success)
+    fun cancelSubscriptionUpdate(uuid: UUID) = subscriptionUpdates.cancel(uuid)
+    fun recordSubscriptionUpdateResult(uuid: UUID, success: Boolean): Boolean = subscriptionUpdates.observed(uuid, success)
 
     private fun refreshSubscriptionUpdateUi(uuid: UUID) {
-        val index = tabProfileAdapter.profiles.indexOfFirst { it.uuid == uuid }
-        if (index >= 0) tabProfileAdapter.notifyItemChanged(index)
+        for (adapter in listOf(profileAdapter, tabProfileAdapter)) {
+            val index = adapter.profiles.indexOfFirst { it.uuid == uuid }
+            if (index >= 0) adapter.notifyItemChanged(index)
+        }
+        activeProfileForQuickActions?.takeIf { it.uuid == uuid }?.let {
+            bindSubscriptionUpdateButton(binding.mainActiveProfileUpdate, tabProfileAdapter.states, uuid)
+        }
         refreshSubscriptionDetails()
     }
 
-    private fun requestAllSubscriptionUpdates() {
-        if (tabProfileAdapter.states.allUpdating) return
-        tabProfileAdapter.states.allUpdating = true
-        binding.profilesTabRefresh.isRefreshing = true
-        profileUpdateAllRequests.trySend(Unit)
-    }
-
-    fun finishAllSubscriptionUpdates() {
-        tabProfileAdapter.states.allUpdating = false
-        binding.profilesTabRefresh.isRefreshing = false
-    }
+    private fun requestAllSubscriptionUpdates() = subscriptionUpdates.requestAll()
+    fun finishAllSubscriptionUpdates() = subscriptionUpdates.finishAll()
 
     /**
      * Node-row entry to the proxy picker (redesign 1.0). Unlike a bare [openProxySheetWhenReady],

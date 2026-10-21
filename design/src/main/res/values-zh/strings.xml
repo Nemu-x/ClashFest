@@ -1348,4 +1348,14 @@
     <string name="chain_connected">已选择代理链。流量通过入口并从第二个服务器出口。</string>
     <string name="proxy_layout_show_dropdown">以下拉列表显示分组</string>
     <string name="proxy_layout_show_tabs">以标签页显示分组</string>
+    <string name="subscription_update_already_running">订阅正在更新，请稍候。</string>
+    <string name="subscription_update_unavailable">此配置无法通过链接更新，请打开其设置。</string>
+    <string name="subscription_update_none">没有可以更新的链接订阅。</string>
+    <string name="subscription_update_all_result">已更新：%1$d。失败：%2$d。</string>
+    <string name="subscription_update_expired">订阅已过期，请向服务提供商续订。</string>
+    <string name="subscription_update_device_limit">已达到设备数量限制，请断开其他设备或联系支持。</string>
+    <string name="subscription_update_network_error">无法连接订阅服务器，请检查网络后重试。</string>
+    <string name="subscription_update_refused">服务器拒绝更新，请检查订阅链接。</string>
+    <string name="subscription_update_key_error">解密密钥缺失或不正确，请导入完整的订阅链接。</string>
+    <string name="subscription_update_invalid_response">服务器返回了无效响应，已保存的订阅仍然可用。</string>
 </resources>

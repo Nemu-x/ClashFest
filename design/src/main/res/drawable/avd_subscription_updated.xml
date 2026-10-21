@@ -1,0 +1,3 @@
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android" android:drawable="@drawable/ic_subscription_updated_motion">
+    <target android:name="check" android:animation="@animator/subscription_updated_stroke" />
+</animated-vector>

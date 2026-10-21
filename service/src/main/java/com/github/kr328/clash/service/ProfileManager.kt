@@ -24,6 +24,7 @@ import com.github.kr328.clash.service.remote.IProfileManager
 import com.github.kr328.clash.service.store.ServiceStore
 import com.github.kr328.clash.service.util.FetchHeadersFile
 import com.github.kr328.clash.service.util.ProfileComposer
+import com.github.kr328.clash.service.util.ProfileUpdateTasks
 import com.github.kr328.clash.service.util.RawConfigEdit
 import com.github.kr328.clash.service.util.directoryLastModified
 import com.github.kr328.clash.service.util.generateProfileUUID
@@ -56,15 +57,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
     // and produce duplicate ordering values that compare non-deterministically.
     private val profileOrderLock = Mutex()
 
-    /**
-     * UUIDs that currently have a manual [update] in flight. The second click
-     * on the "refresh" button arrives while the first is still running and
-     * would otherwise start a parallel fetch — that's what produced the
-     * "io read/write on closed pipe" errors in the wild. Set membership is
-     * the only signal; entries are removed in a `finally` so a crash or
-     * coroutine cancellation can't strand a profile in "updating forever".
-     */
-    private val updatingUuids = java.util.Collections.synchronizedSet(mutableSetOf<UUID>())
+    private val updateTasks = ProfileUpdateTasks()
 
     init {
         launch {
@@ -236,56 +229,22 @@ class ProfileManager(private val context: Context) : IProfileManager,
     }
 
     override suspend fun update(uuid: UUID, callback: IFetchObserver?) {
-        // Per-uuid dedupe: drop the call if an update for this profile is
-        // already in flight. The UI also blocks rapid taps via a modal
-        // progress dialog, but this is the belt-and-suspenders guarantee:
-        // any caller (auto-update WorkManager, notification action, AIDL
-        // client) gets the same protection.
-        if (!updatingUuids.add(uuid)) {
-            Log.d("update($uuid) skipped — already in flight")
-            return
-        }
-        try {
-            val imported = ImportedDao().queryByUUID(uuid) ?: return
-            if (imported.type != Profile.Type.Url) return
-
-            // Direct invocation so the suspend point holds the lock for the
-            // FULL fetch+verify duration. The previous implementation called
-            // scheduleUpdate(true) which dispatched the work to ProfileWorker
-            // (foreground service) and returned immediately — the lock would
-            // have released after ~50ms while the real work ran in the
-            // background, defeating the dedupe and letting a second tap kick
-            // off a parallel fetch that fought the first one for the YAML
-            // pipe. ProfileProcessor.update already holds its own
-            // processLock so reentrancy from auto-update is safe.
-            //
-            // Side effect of bypassing ProfileWorker: the worker is what used
-            // to broadcast Profile-Update-Completed / Failed (so observers
-            // could surface a toast). We now emit those broadcasts here so
-            // the UI keeps getting the same lifecycle events on every path.
+        updateTasks.run(uuid) {
+            val imported = ImportedDao().queryByUUID(uuid)
+                ?: throw FileNotFoundException("Profile no longer exists")
+            require(imported.type == Profile.Type.Url) { "Only URL subscriptions can be updated" }
             try {
                 ProfileProcessor.update(context, uuid, callback)
-
-                if (imported.source.startsWith("https://", true)) {
-                    updateFlow(imported)
-                }
-
-                // Re-arm the timer-based auto-update from the new mtime so the
-                // next automatic refresh fires at the correct interval — we no
-                // longer go through scheduleUpdate() which used to do this for us.
-                ImportedDao().queryByUUID(uuid)?.let {
-                    ProfileReceiver.scheduleNext(context, it)
-                }
+                if (imported.source.startsWith("https://", true)) updateFlow(imported)
+                ImportedDao().queryByUUID(uuid)?.let { ProfileReceiver.scheduleNext(context, it) }
                 context.sendProfileUpdateCompleted(uuid)
-            } catch (e: Exception) {
-                if (e !is kotlinx.coroutines.CancellationException) {
-                    val reason = e.message?.takeIf { it.isNotBlank() } ?: e.javaClass.simpleName
+            } catch (error: Exception) {
+                if (error !is kotlinx.coroutines.CancellationException) {
+                    val reason = error.message?.takeIf { it.isNotBlank() } ?: error.javaClass.simpleName
                     context.sendProfileUpdateFailed(uuid, reason)
                 }
-                throw e
+                throw error
             }
-        } finally {
-            updatingUuids.remove(uuid)
         }
     }
 

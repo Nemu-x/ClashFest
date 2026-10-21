@@ -74,4 +74,18 @@ class ProfilePageStateTest {
         assertFalse(state.isUpdating(first))
         assertFalse(state.hasUpdateError(second))
     }
+
+    @Test fun lateFailureBroadcastCannotOverwriteSuccessfulUserUpdate() {
+        state.beginUpdate(first)
+        state.finishUpdate(first, true)
+        state.recordObservedUpdate(first, false)
+        assertFalse(state.hasUpdateError(first))
+    }
+
+    @Test fun lateSuccessBroadcastCannotHideFinalManualFailure() {
+        state.beginUpdate(first)
+        state.finishUpdate(first, false)
+        state.recordObservedUpdate(first, true)
+        assertTrue(state.hasUpdateError(first))
+    }
 }

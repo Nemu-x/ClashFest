@@ -141,7 +141,7 @@ class RulesHubListAdapter(
         }
         if (item.collapsible) {
             holder.chevron.visibility = View.VISIBLE
-            holder.chevron.rotation = if (item.expanded) 180f else 0f
+            com.github.kr328.clash.design.motion.animateDisclosure(holder.chevron, item.section, if (item.expanded) 180f else 0f)
             holder.itemView.setOnClickListener { callbacks.onToggleSection(item.section) }
         } else {
             holder.chevron.visibility = View.GONE

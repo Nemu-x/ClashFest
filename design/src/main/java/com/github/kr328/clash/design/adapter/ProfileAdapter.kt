@@ -20,6 +20,8 @@ import com.github.kr328.clash.design.databinding.AdapterProfileBinding
 import com.github.kr328.clash.design.databinding.AdapterSubscriptionBinding
 import com.github.kr328.clash.design.dialog.AppBottomSheetDialog
 import com.github.kr328.clash.design.model.ProfilePageState
+import com.github.kr328.clash.design.motion.bindSubscriptionUpdateButton
+import com.github.kr328.clash.design.motion.bindSubscriptionUpdateIcon
 import com.github.kr328.clash.design.model.ServerPingMode
 import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.common.branding.BrandManifest
@@ -47,13 +49,14 @@ class ProfileAdapter(
     /** The user's own picker layout choice ("tabs" / "dropdown"), "" when never toggled. */
     private val readProxyGroupLayout: () -> String = { "" },
     internal val writeProxyGroupLayout: (String) -> Unit = {},
+    val states: ProfilePageState = ProfilePageState(),
 ) : RecyclerView.Adapter<ProfileAdapter.Holder>() {
     sealed class Holder(view: View) : RecyclerView.ViewHolder(view)
     class ProfileHolder(val binding: AdapterProfileBinding) : Holder(binding.root)
     class SubscriptionHolder(val binding: AdapterSubscriptionBinding) : Holder(binding.root)
 
     var profiles: List<Profile> = emptyList()
-    val states = ProfilePageState()
+    internal var pingingUuid: UUID? = null
     private val subscriptionClickGuard = ClickGuard<Pair<UUID, Int>>(600L, SystemClock::elapsedRealtime)
 
     internal var proxyGroupNames: List<String> = emptyList()
@@ -230,9 +233,9 @@ class ProfileAdapter(
     }
 
     fun setPingingUuid(uuid: UUID?) {
-        val prev = states.pingingUuid
+        val prev = pingingUuid
         if (prev == uuid) return
-        states.pingingUuid = uuid
+        pingingUuid = uuid
         // Targeted notify instead of full-list rebind: ping spinners only affect at most
         // two cards (the one that was pinging and the one that just started).
         prev?.let { id ->
@@ -739,11 +742,13 @@ class ProfileAdapter(
             reportVisibleGroup(current, selectedGroup)
         }
 
-        val showForceUpdate = !compactHomeCard && current.imported && current.type != Profile.Type.File
+        val showForceUpdate = !compactHomeCard && current.imported && current.type == Profile.Type.Url
         binding.forceUpdateSlot.visibility = if (showForceUpdate) View.VISIBLE else View.GONE
         binding.forceUpdateView.visibility = if (showForceUpdate) View.VISIBLE else View.INVISIBLE
         binding.forceUpdateView.isClickable = false
         binding.forceUpdateView.isFocusable = false
+        binding.forceUpdateSlot.isEnabled = !states.isUpdating(current.uuid)
+        bindSubscriptionUpdateIcon(binding.forceUpdateView, states.isUpdating(current.uuid), states.wasUpdatedSuccessfully(current.uuid))
         binding.forceUpdateSlot.isClickable = showForceUpdate
         binding.forceUpdateSlot.setOnClickListener {
             if (showForceUpdate) onForceUpdate(current)
@@ -807,7 +812,8 @@ class ProfileAdapter(
             if (failed) com.google.android.material.R.attr.colorError
             else com.google.android.material.R.attr.colorOnSurfaceVariant,
         ))
-        binding.subscriptionRetry.visibility = if (failed && !updating) View.VISIBLE else View.GONE
+        binding.subscriptionRetry.visibility = if (updating || failed) View.VISIBLE else View.GONE
+        bindSubscriptionUpdateButton(binding.subscriptionRetry, states, profile.uuid)
         binding.subscriptionRetry.setOnClickListener { onForceUpdate(profile) }
     }
 

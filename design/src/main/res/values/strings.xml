@@ -1428,4 +1428,14 @@ Password: %4$s</string>
     <string name="chain_connected">Chain selected. Traffic passes through the entry and exits through the second server.</string>
     <string name="proxy_layout_show_dropdown">Show groups as dropdown lists</string>
     <string name="proxy_layout_show_tabs">Show groups as tabs</string>
+    <string name="subscription_update_already_running">Already updating this subscription. Please wait.</string>
+    <string name="subscription_update_unavailable">This profile cannot be refreshed from a URL. Open its settings.</string>
+    <string name="subscription_update_none">No URL subscriptions are available to update.</string>
+    <string name="subscription_update_all_result">Updated: %1$d. Failed: %2$d.</string>
+    <string name="subscription_update_expired">Your subscription has expired. Renew it with your provider.</string>
+    <string name="subscription_update_device_limit">Device limit reached. Disconnect another device or contact support.</string>
+    <string name="subscription_update_network_error">Cannot reach the subscription server. Check your connection and try again.</string>
+    <string name="subscription_update_refused">The server refused the update. Check the subscription link.</string>
+    <string name="subscription_update_key_error">The decryption key is missing or incorrect. Import the complete subscription link.</string>
+    <string name="subscription_update_invalid_response">The server returned an invalid response. Your saved subscription is still available.</string>
 </resources>

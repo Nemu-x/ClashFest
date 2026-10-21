@@ -145,7 +145,7 @@ internal fun bindPickerGroupHeader(
         visibility = if (item.summary.isNullOrBlank()) View.GONE else View.VISIBLE
     }
     view.findViewById<TextView>(R.id.group_block_count).text = item.count.toString()
-    view.findViewById<View>(R.id.group_block_chevron).rotation = if (item.expanded) 0f else -90f
+    com.github.kr328.clash.design.motion.animateDisclosure(view.findViewById(R.id.group_block_chevron), item.groupName, if (item.expanded) 0f else -90f)
     view.findViewById<View>(R.id.group_block_ping_progress).visibility =
         if (item.pinging) View.VISIBLE else View.GONE
     view.findViewById<View>(R.id.group_block_ping).apply {

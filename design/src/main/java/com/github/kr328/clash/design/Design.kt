@@ -2,6 +2,7 @@ package com.github.kr328.clash.design
 
 import android.content.Context
 import android.view.View
+import com.github.kr328.clash.design.ui.SnackbarHosts
 import androidx.appcompat.app.AppCompatActivity
 import com.github.kr328.clash.design.ui.Surface
 import com.github.kr328.clash.design.ui.ToastDuration
@@ -41,9 +42,12 @@ abstract class Design<R>(val context: Context) :
                 ToastDuration.Long -> Snackbar.LENGTH_LONG
                 ToastDuration.Indefinite -> Snackbar.LENGTH_INDEFINITE
             }
-            Snackbar.make(root, message, len).apply {
-                root.findViewById<View>(R.id.main_bottom_nav_card)?.let { anchorView = it }
+            val host = SnackbarHosts.resolve(context, root)
+            Snackbar.make(host, message, len).apply {
+                if (host === root) root.findViewById<View>(R.id.main_bottom_nav_card)?.let { anchorView = it }
                 styleAsMaterial3()
+                val sheetElevation = host.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)?.elevation ?: 0f
+                view.elevation = maxOf(view.elevation, sheetElevation + context.resources.displayMetrics.density)
                 configure()
             }.show()
         }
@@ -82,12 +86,10 @@ abstract class Design<R>(val context: Context) :
         setBackgroundTint(bgColor)
         view.elevation = 6f * ctx.resources.displayMetrics.density
 
-        // Snackbar.setTextColor / setActionTextColor push a ColorStateList
-        // through ViewCompat that survives view re-measures — these are the
-        // documented Snackbar styling hooks, safer than touching the
-        // internal snackbar_text / snackbar_action TextView directly.
+        // Keep the failure reason and recovery action readable for longer messages.
         setTextColor(textColor)
         setActionTextColor(actionColor)
+        view.findViewById<android.widget.TextView>(com.google.android.material.R.id.snackbar_text)?.maxLines = 4
     }
 
     init {

@@ -1419,4 +1419,14 @@
     <string name="chain_connected">Цепочка выбрана. Трафик проходит через вход и выходит через второй сервер.</string>
     <string name="proxy_layout_show_dropdown">Группы выпадающими списками</string>
     <string name="proxy_layout_show_tabs">Группы вкладками</string>
+    <string name="subscription_update_already_running">Подписка уже обновляется. Подождите завершения.</string>
+    <string name="subscription_update_unavailable">Этот профиль нельзя обновить по ссылке. Откройте его настройки.</string>
+    <string name="subscription_update_none">Нет подписок по ссылке, которые можно обновить.</string>
+    <string name="subscription_update_all_result">Обновлено: %1$d. Ошибок: %2$d.</string>
+    <string name="subscription_update_expired">Срок подписки истёк. Продлите её у провайдера.</string>
+    <string name="subscription_update_device_limit">Достигнут лимит устройств. Отключите другое устройство или обратитесь в поддержку.</string>
+    <string name="subscription_update_network_error">Не удалось подключиться к серверу подписки. Проверьте интернет и повторите обновление.</string>
+    <string name="subscription_update_refused">Сервер отклонил обновление. Проверьте ссылку подписки.</string>
+    <string name="subscription_update_key_error">Ключ расшифровки отсутствует или неверен. Импортируйте полную ссылку подписки.</string>
+    <string name="subscription_update_invalid_response">Сервер вернул некорректный ответ. Сохранённая подписка остаётся доступной.</string>
 </resources>

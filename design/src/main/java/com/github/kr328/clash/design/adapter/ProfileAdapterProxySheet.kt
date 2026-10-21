@@ -191,7 +191,7 @@ internal fun ProfileAdapter.openProxySheet(context: Context, profile: Profile) {
         }
 
         fun isGroupPinging(groupName: String): Boolean =
-            states.pingingUuid == profile.uuid && pingingGroupByUuid[profile.uuid] == groupName
+            pingingUuid == profile.uuid && pingingGroupByUuid[profile.uuid] == groupName
 
         /**
          * Dropdown layout: every group is a collapsible header with its nodes underneath when
@@ -292,11 +292,11 @@ internal fun ProfileAdapter.openProxySheet(context: Context, profile: Profile) {
             )
         }
 
-        var wasPinging = states.pingingUuid == profile.uuid
+        var wasPinging = pingingUuid == profile.uuid
         val refreshRunnable = object : Runnable {
             override fun run() {
                 if (!dialog.isShowing) return
-                val pingingNow = states.pingingUuid == profile.uuid
+                val pingingNow = pingingUuid == profile.uuid
                 val currentIndex = (selectedGroupIndex[profile.uuid] ?: 0)
                     .coerceIn(0, groupNames.lastIndex)
 
@@ -345,7 +345,7 @@ internal fun ProfileAdapter.openProxySheet(context: Context, profile: Profile) {
             }
         }
 
-        val pinging = states.pingingUuid == profile.uuid
+        val pinging = pingingUuid == profile.uuid
         sheet.proxySheetPingProgress.visibility = if (pinging) View.VISIBLE else View.GONE
         sheet.proxySheetPingButton.visibility = if (pinging) View.INVISIBLE else View.VISIBLE
         // Resolves what a ping would cover right now: the rows the user can actually see in
@@ -548,7 +548,7 @@ internal fun ProfileAdapter.openProxySheet(context: Context, profile: Profile) {
         // pick up the group's choice and new rows appear. Frozen while a ping runs (the ping
         // tick owns the list then and re-renders once when it ends).
         sheetDetailsRefresher = {
-            if (dialog.isShowing && states.pingingUuid != profile.uuid) {
+            if (dialog.isShowing && pingingUuid != profile.uuid) {
                 invalidateRowCache()
                 render((selectedGroupIndex[profile.uuid] ?: 0).coerceIn(0, groupNames.lastIndex))
             }

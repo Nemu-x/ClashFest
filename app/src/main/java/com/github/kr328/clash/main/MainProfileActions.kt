@@ -203,22 +203,25 @@ internal class MainProfileActions(
 
     fun forceUpdate(scope: CoroutineScope, design: MainDesign, profile: Profile, scheduleRefresh: () -> Unit) {
         scope.launch {
-            // Progress stays on the subscription card; broadcasts report the result.
+            if (!profile.imported || profile.type != Profile.Type.Url) {
+                design.cancelSubscriptionUpdate(profile.uuid)
+                design.showToast(R.string.subscription_update_unavailable, ToastDuration.Long)
+                return@launch
+            }
+            var updated = false
             try {
                 ImportRetry.withTransientRetry { withProfile { update(profile.uuid) } }
                 design.finishSubscriptionUpdate(profile.uuid, true)
+                updated = true
+                design.showToast(activity.getString(R.string.toast_profile_updated_complete, profile.name), ToastDuration.Long)
             } catch (error: CancellationException) {
-                design.finishSubscriptionUpdate(profile.uuid, false)
+                design.cancelSubscriptionUpdate(profile.uuid)
                 throw error
-            } catch (_: Exception) {
+            } catch (error: Exception) {
                 design.finishSubscriptionUpdate(profile.uuid, false)
+                design.showSubscriptionUpdateFailure(profile, error)
             }
-            // Run metadata sync in the background so the UI tap returns
-            // immediately. The earlier race (announcement-card hiding the
-            // active-card support button for a tick) was structural — we
-            // removed that coverage logic, so there's nothing to race now
-            // and we don't need to block the user on a slow HTTP roundtrip.
-            launch(Dispatchers.IO) {
+            if (updated) launch(Dispatchers.IO) {
                 uiStore.subscriptionMetadataLastFetch = 0L
                 runCatching { metadata.syncSubscriptionMetadata() }
                 withContext(Dispatchers.Main) { metadata.refreshAnnouncement(design) }
@@ -251,39 +254,40 @@ internal class MainProfileActions(
 
     fun updateAll(scope: CoroutineScope, design: MainDesign) {
         scope.launch {
-            // Per-profile guard: one subscription failing (network /
-            // bad config / commit) must NOT take down the whole
-            // "Update all" with an uncaught coroutine exception.
+            var updated = 0
             var failed = 0
+            var eligible = 0
             try {
-                val profiles = withProfile { queryAll() }
-                for (p in profiles) {
-                    if (p.imported && p.type != Profile.Type.File && design.markSubscriptionUpdateStarted(p.uuid)) {
-                        try {
-                            ImportRetry.withTransientRetry { withProfile { update(p.uuid) } }
-                            design.finishSubscriptionUpdate(p.uuid, true)
-                        } catch (error: CancellationException) {
-                            design.finishSubscriptionUpdate(p.uuid, false)
-                            throw error
-                        } catch (_: Exception) {
-                            failed++
-                            design.finishSubscriptionUpdate(p.uuid, false)
-                        }
+                for (profile in withProfile { queryAll() }) {
+                    if (!profile.imported || profile.type != Profile.Type.Url) continue
+                    eligible++
+                    if (!design.markSubscriptionUpdateStarted(profile.uuid)) continue
+                    try {
+                        ImportRetry.withTransientRetry { withProfile { update(profile.uuid) } }
+                        design.finishSubscriptionUpdate(profile.uuid, true)
+                        updated++
+                    } catch (error: CancellationException) {
+                        design.cancelSubscriptionUpdate(profile.uuid)
+                        throw error
+                    } catch (_: Exception) {
+                        failed++
+                        design.finishSubscriptionUpdate(profile.uuid, false)
                     }
                 }
             } catch (error: CancellationException) {
                 throw error
-            } catch (error: Exception) {
-                design.showExceptionToast(error)
+            } catch (_: Exception) {
+                design.showToast(R.string.remote_service_unavailable, ToastDuration.Long)
+                return@launch
             } finally {
                 design.finishAllSubscriptionUpdates()
             }
-            if (failed > 0) {
-                design.showToast(
-                    activity.getString(R.string.profiles_update_all_failed, failed),
-                    ToastDuration.Long,
-                )
+            val result = when {
+                eligible == 0 -> activity.getString(R.string.subscription_update_none)
+                updated + failed == 0 -> activity.getString(R.string.subscription_update_already_running)
+                else -> activity.getString(R.string.subscription_update_all_result, updated, failed)
             }
+            design.showToast(result, ToastDuration.Long)
             dashboard.fetch(design)
         }
     }
@@ -294,11 +298,11 @@ internal class MainProfileActions(
 
     fun onProfileUpdateCompleted(uuid: UUID?) {
         if (uuid == null) return
-        design?.recordSubscriptionUpdateResult(uuid, true)
+        val announce = design?.recordSubscriptionUpdateResult(uuid, true) == true
 
         activity.launch {
             val name = withProfile { queryByUUID(uuid)?.name } ?: return@launch
-            design?.showToast(
+            if (announce) design?.showToast(
                 activity.getString(R.string.toast_profile_updated_complete, name),
                 ToastDuration.Long
             )
@@ -341,19 +345,10 @@ internal class MainProfileActions(
     }
 
     fun onProfileUpdateFailed(uuid: UUID?, reason: String?) {
-        if (uuid == null) return
-        design?.recordSubscriptionUpdateResult(uuid, false)
-
+        if (uuid == null || design?.recordSubscriptionUpdateResult(uuid, false) != true) return
         activity.launch {
-            val name = withProfile { queryByUUID(uuid)?.name } ?: return@launch
-            design?.showToast(
-                activity.getString(R.string.toast_profile_updated_failed, name, reason ?: "Unknown"),
-                ToastDuration.Long
-            ) {
-                setAction(R.string.edit) {
-                    activity.startActivity(PropertiesActivity::class.intent.setUUID(uuid))
-                }
-            }
+            val profile = withProfile { queryByUUID(uuid) } ?: return@launch
+            design?.showSubscriptionUpdateFailure(profile, IllegalStateException(reason))
         }
     }
 }

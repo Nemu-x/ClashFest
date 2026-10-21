@@ -3,6 +3,7 @@ package com.github.kr328.clash.design.main
 import android.content.Context
 import android.view.View
 import com.github.kr328.clash.design.R
+import com.github.kr328.clash.design.motion.bindSubscriptionUpdateButton
 import com.github.kr328.clash.design.adapter.ProfileAdapter
 import com.github.kr328.clash.design.databinding.BottomSheetSubscriptionBinding
 import com.github.kr328.clash.design.dialog.AppBottomSheetDialog
@@ -121,13 +122,8 @@ internal class SubscriptionDetailsSheet(
             context.getString(R.string.subscription_loading_servers)
         } else adapter.activeNodeDisplayName(profile)
             ?: context.getString(R.string.subscription_server_hint)
-        sheet.detailUpdate.visibility = if (profile.imported && profile.type != Profile.Type.File) View.VISIBLE else View.GONE
-        sheet.detailUpdate.isEnabled = !updating
-        sheet.detailUpdate.setText(when {
-            updating -> R.string.subscription_updating
-            failed -> R.string.subscription_retry
-            else -> R.string.update
-        })
+        sheet.detailUpdate.visibility = if (profile.imported && profile.type == Profile.Type.Url) View.VISIBLE else View.GONE
+        bindSubscriptionUpdateButton(sheet.detailUpdate, adapter.states, profile.uuid)
         sheet.detailUpdate.setOnClickListener { onUpdate(profile) }
         sheet.detailUpdateStatus.visibility = if (failed) View.VISIBLE else View.GONE
         sheet.detailUpdateStatus.setText(R.string.subscription_update_error)
