@@ -17,6 +17,7 @@ import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.ui.ToastDuration
 import com.github.kr328.clash.design.util.resolveThemedColor
 import com.github.kr328.clash.service.model.Profile
+import com.github.kr328.clash.service.store.ServiceStore
 import com.github.kr328.clash.util.withProfile
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.github.kr328.clash.qr.QrScanResult
@@ -221,14 +222,20 @@ class CompanionActivity : BaseActivity<CompanionDesign>() {
         launch {
             val active = withProfile { queryActive() }
             val shareable = active?.takeIf { it.type == Profile.Type.Url && it.source.isNotBlank() }
-            promptAfterPair(agent, shareable)
+            // The operator's share-links lock covers sending the subscription to a TV too.
+            val locked = shareable != null && ServiceStore(this@CompanionActivity).subscriptionShareLinksLockedFor(shareable.uuid)
+            promptAfterPair(agent, shareable.takeUnless { locked }, locked)
         }
     }
 
-    private fun promptAfterPair(agent: ControllerStore.PairedAgent, shareable: Profile?) {
+    private fun promptAfterPair(agent: ControllerStore.PairedAgent, shareable: Profile?, locked: Boolean) {
         val builder = MaterialAlertDialogBuilder(this)
             .setTitle(getString(R.string.companion_pair_success, agent.name))
-        if (shareable != null) {
+        if (locked) {
+            builder
+                .setMessage(R.string.remote_share_locked)
+                .setPositiveButton(android.R.string.ok, null)
+        } else if (shareable != null) {
             builder
                 .setMessage(getString(R.string.companion_share_after_pair, shareable.name))
                 .setPositiveButton(R.string.companion_action_share) { _, _ ->
