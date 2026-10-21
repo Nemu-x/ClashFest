@@ -11,6 +11,10 @@
     <!-- Surface -->
     <dimen name="surface_landscape_min_width">500dp</dimen>
 
+    <!-- Proxy picker node row (adapter_home_proxy_node); TV overrides in values-television. -->
+    <dimen name="proxy_node_row_min_height">56dp</dimen>
+    <dimen name="proxy_node_row_padding_vertical">9dp</dimen>
+
     <!--  Toolbar  -->
     <dimen name="main_toolbar_padding_horizontal">10dp</dimen>
     <dimen name="toolbar_height">42dp</dimen>

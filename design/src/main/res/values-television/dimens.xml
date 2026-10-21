@@ -4,4 +4,8 @@
          left a 540dp phone column in the middle of the TV; let content use most of the width
          while keeping a ~30dp overscan-safe margin on each side. -->
     <dimen name="surface_landscape_min_width">900dp</dimen>
+
+    <!-- Node rows read from the sofa: a little taller than on the phone. -->
+    <dimen name="proxy_node_row_min_height">60dp</dimen>
+    <dimen name="proxy_node_row_padding_vertical">10dp</dimen>
 </resources>

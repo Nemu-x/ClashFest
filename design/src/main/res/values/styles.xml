@@ -178,4 +178,10 @@
         <item name="android:textSize">10sp</item>
     </style>
 
+    <!-- TvSidePanelDialog (TV node picker): slides in from / out to the right edge. -->
+    <style name="TvSidePanelAnimation">
+        <item name="android:windowEnterAnimation">@anim/tv_side_panel_enter</item>
+        <item name="android:windowExitAnimation">@anim/tv_side_panel_exit</item>
+    </style>
+
 </resources>

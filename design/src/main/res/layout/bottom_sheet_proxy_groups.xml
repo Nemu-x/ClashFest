@@ -84,7 +84,7 @@
             android:requiresFadingEdge="horizontal"
             android:scrollbars="none">
 
-            <LinearLayout
+            <com.github.kr328.clash.design.view.SegmentFlowRow
                 android:id="@+id/proxy_sheet_group_segments"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
