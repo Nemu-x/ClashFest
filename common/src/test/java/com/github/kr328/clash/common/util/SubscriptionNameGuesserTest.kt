@@ -178,4 +178,24 @@ class SubscriptionNameGuesserTest {
 
         assertEquals(expected.size, actual?.size)
     }
+
+    // A plain ASCII name is valid base64; decoding it gives arbitrary bytes. The name decoder only
+    // accepts a decode that is strict UTF-8, so such names stay as typed instead of becoming U+FFFD.
+    @Test
+    fun plain_alphanumeric_name_is_not_taken_for_base64() {
+        for (name in listOf("PokeMesh", "Pokemesh", "Premium1", "VpnPlan2024")) {
+            val padded = name + "=".repeat((4 - name.length % 4) % 4)
+            val bytes = runCatching { java.util.Base64.getDecoder().decode(padded) }.getOrNull() ?: continue
+            assertEquals(null, SubscriptionNameGuesser.strictUtf8(bytes), name)
+        }
+    }
+
+    @Test
+    fun real_base64_titles_still_decode() {
+        for (title in listOf("Подписка Premium", "Pokemesh VPN", "日本 节点")) {
+            val encoded = java.util.Base64.getEncoder().encodeToString(title.toByteArray(Charsets.UTF_8))
+            val bytes = java.util.Base64.getDecoder().decode(encoded)
+            assertEquals(title, SubscriptionNameGuesser.strictUtf8(bytes))
+        }
+    }
 }
