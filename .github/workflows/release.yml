@@ -90,7 +90,9 @@ jobs:
           printf '\ncustom.application.id=%s\nremove.suffix=true\n' "$RELEASE_APPLICATION_ID" >> local.properties
 
       - name: Build Alpha Release APK
-        run: ./gradlew assembleAlphaRelease
+        run: |
+          ./gradlew :design:testAlphaReleaseUnitTest --tests com.github.kr328.clash.design.motion.LiquidNavigationMotionTest assembleAlphaRelease
+          grep '<testsuite ' design/build/test-results/testAlphaReleaseUnitTest/TEST-com.github.kr328.clash.design.motion.LiquidNavigationMotionTest.xml
 
       - name: Remove Android signing files
         if: always()
