@@ -12,6 +12,7 @@
     </data>
 
     <RelativeLayout
+        android:stateListAnimator="@animator/focus_scale"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?attr/selectableItemBackground"

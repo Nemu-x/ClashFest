@@ -34,7 +34,7 @@
                 android:id="@+id/yaml_input"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:fontFamily="monospace"
+                android:fontFamily="@font/manrope_semibold"
                 android:gravity="top|start"
                 android:hint="@string/rule_providers_yaml_hint"
                 android:inputType="textMultiLine|textNoSuggestions"
@@ -43,7 +43,8 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_save"
-            style="@style/Widget.Material3.Button"
+            style="@style/AppButton"
+            android:stateListAnimator="@animator/focus_scale"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="@dimen/main_padding_horizontal"

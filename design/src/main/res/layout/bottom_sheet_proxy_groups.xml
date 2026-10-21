@@ -32,8 +32,8 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:ellipsize="end"
-                android:fontFamily="sans-serif-medium"
-                app:fontFamily="sans-serif-medium"
+                android:fontFamily="@font/manrope_semibold"
+                app:fontFamily="@font/manrope_semibold"
                 android:maxLines="1"
                 android:textAppearance="@style/TextAppearance.App.BodyMedium"
                 android:textColor="?attr/colorOnSurface"
@@ -149,6 +149,7 @@
 
                 <ImageView
                     android:id="@+id/proxy_sheet_search_clear"
+                    android:stateListAnimator="@animator/focus_scale"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:padding="14dp"
@@ -165,6 +166,7 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/proxy_sheet_sort_button"
                 style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                android:stateListAnimator="@animator/focus_scale"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:layout_marginStart="4dp"
@@ -181,6 +183,7 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/proxy_sheet_filter_button"
                 style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                android:stateListAnimator="@animator/focus_scale"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:layout_marginStart="4dp"
@@ -197,6 +200,7 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/proxy_sheet_layout_button"
                 style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                android:stateListAnimator="@animator/focus_scale"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:layout_marginStart="4dp"
@@ -219,6 +223,7 @@
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/proxy_sheet_ping_button"
                     style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                    android:stateListAnimator="@animator/focus_scale"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:contentDescription="@string/profile_ping_all_short"
@@ -315,28 +320,28 @@
                 android:paddingTop="8dp"
                 android:visibility="gone">
 
-                <View
+                <com.github.kr328.clash.design.view.SkeletonView
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:layout_marginBottom="4dp"
                     android:background="@drawable/bg_home_card_soft"
                     android:importantForAccessibility="no" />
 
-                <View
+                <com.github.kr328.clash.design.view.SkeletonView
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:layout_marginBottom="4dp"
                     android:background="@drawable/bg_home_card_soft"
                     android:importantForAccessibility="no" />
 
-                <View
+                <com.github.kr328.clash.design.view.SkeletonView
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:layout_marginBottom="4dp"
                     android:background="@drawable/bg_home_card_soft"
                     android:importantForAccessibility="no" />
 
-                <View
+                <com.github.kr328.clash.design.view.SkeletonView
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:background="@drawable/bg_home_card_soft"

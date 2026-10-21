@@ -9,8 +9,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingTop="8dp"
-        android:paddingBottom="12dp"
-        android:textAppearance="@style/TextAppearance.App.TitleLarge"
+        android:paddingBottom="20dp"
+        android:textAppearance="@style/TextAppearance.App.HeadlineLarge"
         android:textColor="?attr/colorOnSurface"
         android:textStyle="bold"
         tools:text="Routing" />

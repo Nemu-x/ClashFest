@@ -41,6 +41,13 @@
         android:clipToPadding="true"
         android:paddingStart="@{self.surface.insets.start}"
         android:paddingEnd="@{self.surface.insets.end}">
+        <com.github.kr328.clash.design.view.ExpressiveBackdropView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:focusable="false"
+            android:clickable="false" />
+
 
         <androidx.viewpager2.widget.ViewPager2
             android:id="@+id/main_pager"
@@ -54,7 +61,7 @@
             android:id="@+id/main_home_page"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@drawable/bg_home_canvas"
+            android:background="@android:color/transparent"
             android:clipToPadding="false"
             android:fillViewport="true"
             android:overScrollMode="never"
@@ -76,7 +83,7 @@
             <LinearLayout
                 android:id="@+id/main_top_bar"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
+                android:layout_height="64dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:paddingHorizontal="20dp">
@@ -108,12 +115,12 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:ellipsize="end"
-                            android:fontFamily="sans-serif-medium"
-                            app:fontFamily="sans-serif-medium"
-                            android:letterSpacing="0.01"
+                            android:fontFamily="@font/manrope_bold"
+                            app:fontFamily="@font/manrope_bold"
+                            android:letterSpacing="-0.03"
                             android:maxLines="1"
                             android:text="@string/launch_name_meta"
-                            android:textAppearance="@style/TextAppearance.App.TitleMedium"
+                            android:textAppearance="@style/TextAppearance.App.HeadlineMedium"
                             android:textColor="?attr/colorOnSurface"
                             android:textStyle="bold" />
 
@@ -158,9 +165,10 @@
 
                 <ImageButton
                     android:id="@+id/top_add_button"
+                    android:stateListAnimator="@animator/focus_scale"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:background="@drawable/bg_expressive_icon"
                     android:contentDescription="@string/add"
                     android:foreground="@drawable/focus_ring"
                     android:onClick="@{() -> self.request(Request.OpenNewProfile)}"
@@ -203,14 +211,14 @@
                     android:orientation="vertical"
                     android:visibility="@{profilesLoaded ? View.GONE : View.VISIBLE}">
 
-                    <View
+                    <com.github.kr328.clash.design.view.SkeletonView
                         android:layout_width="match_parent"
                         android:layout_height="96dp"
                         android:layout_marginBottom="12dp"
                         android:background="@drawable/bg_home_card_soft"
                         android:importantForAccessibility="no" />
 
-                    <View
+                    <com.github.kr328.clash.design.view.SkeletonView
                         android:layout_width="match_parent"
                         android:layout_height="160dp"
                         android:background="@drawable/bg_home_card_soft"
@@ -229,17 +237,16 @@
                     android:visibility="@{!profilesLoaded || hasProfiles ? View.GONE : View.VISIBLE}">
 
                     <FrameLayout
-                        android:layout_width="96dp"
-                        android:layout_height="96dp"
-                        android:background="@drawable/bg_m3_hero_icon">
-
+                        android:layout_width="200dp"
+                        android:layout_height="200dp"
+                        android:layout_gravity="center_horizontal"
+                        android:background="@drawable/ic_expressive_flower">
                         <ImageView
-                            android:layout_width="52dp"
-                            android:layout_height="52dp"
+                            android:layout_width="100dp"
+                            android:layout_height="100dp"
                             android:layout_gravity="center"
                             android:importantForAccessibility="no"
-                            android:src="@drawable/ic_baseline_vpn_lock"
-                            app:tint="?attr/colorPrimary" />
+                            android:src="@drawable/ic_clash" />
                     </FrameLayout>
 
                     <TextView
@@ -263,6 +270,7 @@
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/main_empty_add_button"
                         style="@style/AppButton"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="32dp"
@@ -281,7 +289,8 @@
                          so a fresh TV can enable remote control to receive a subscription. -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/main_companion_empty_button"
-                        style="@style/Widget.Material3.Button.TonalButton"
+                        style="@style/AppButton.Tonal"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
@@ -315,57 +324,42 @@
                 android:clipToPadding="false"
                 android:gravity="center_horizontal"
                 android:orientation="vertical"
-                android:paddingTop="24dp">
+                android:paddingTop="8dp"
+                    android:paddingBottom="8dp">
 
                 <TextView
                     android:id="@+id/main_status_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/bg_m3_status_chip_neutral"
+                    android:background="@android:color/transparent"
                     android:paddingHorizontal="12dp"
-                    android:paddingVertical="4dp"
+                    android:paddingVertical="0dp"
                     android:text="@{clashRunning ? @string/main_status_connected : (tunnelStarting ? @string/main_status_connecting : @string/main_status_stopped)}"
-                    android:textAppearance="@style/TextAppearance.App.LabelMedium"
+                    android:textAppearance="@style/TextAppearance.App.HeadlineLarge"
                     android:textColor="?attr/colorOnSurfaceVariant"
-                    tools:text="Connected" />
+                    tools:text="Connected"
+                    android:accessibilityLiveRegion="polite" />
 
                 <FrameLayout
                     android:id="@+id/main_power_shell"
-                    android:layout_width="248dp"
-                    android:layout_height="248dp"
-                    android:layout_marginTop="28dp"
+                    android:layout_width="224dp"
+                    android:layout_height="224dp"
+                    android:layout_marginTop="12dp"
                     android:clipChildren="false"
                     android:clipToPadding="false">
 
-                    <View
-                        android:id="@+id/power_halo"
-                        android:layout_width="280dp"
-                        android:layout_height="280dp"
-                        android:layout_gravity="center"
-                        android:alpha="0.12"
-                        android:background="@drawable/bg_power_glow" />
-
-                    <View
-                        android:id="@+id/power_ring_outer"
-                        android:layout_width="228dp"
-                        android:layout_height="228dp"
-                        android:layout_gravity="center"
-                        android:alpha="0.0"
-                        android:background="@drawable/bg_power_ring" />
-
-                    <View
-                        android:id="@+id/power_ring_inner"
-                        android:layout_width="212dp"
-                        android:layout_height="212dp"
-                        android:layout_gravity="center"
-                        android:alpha="0.0"
-                        android:background="@drawable/bg_power_ring" />
+                    <com.github.kr328.clash.design.view.ExpressivePowerView
+                        android:id="@+id/power_shape"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:importantForAccessibility="no"
+                        android:focusable="false" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/main_power_card"
                         style="@style/Widget.Material3.Button.IconButton.Filled"
-                        android:layout_width="180dp"
-                        android:layout_height="180dp"
+                        android:layout_width="224dp"
+                        android:layout_height="224dp"
                         android:layout_gravity="center"
                         android:contentDescription="@string/tap_to_start"
                         android:focusedByDefault="true"
@@ -375,59 +369,26 @@
                         android:insetRight="0dp"
                         android:insetBottom="0dp"
                         android:padding="0dp"
-                        app:cornerRadius="90dp"
+                        app:cornerRadius="112dp"
                         app:icon="@drawable/ic_clash"
                         app:iconGravity="textStart"
                         app:iconPadding="0dp"
-                        app:iconSize="96dp" />
+                        app:iconSize="100dp"
+                    android:stateListAnimator="@null"
+                    android:elevation="0dp"
+                    app:strokeWidth="0dp" />
 
-                    <!-- Top-light sheen overlaid on the button so it reads as a lit 3D orb.
-                         High elevation draws it above the button fill; outlineProvider=none
-                         keeps it from casting its own shadow. -->
-                    <!-- Dome vignette (deepens the rim → volumetric fill). Connected-only. -->
-                    <View
-                        android:id="@+id/power_dome"
-                        android:layout_width="180dp"
-                        android:layout_height="180dp"
-                        android:layout_gravity="center"
-                        android:alpha="0"
-                        android:background="@drawable/bg_power_dome"
-                        android:elevation="12dp"
-                        android:importantForAccessibility="no"
-                        android:outlineProvider="none" />
-
-                    <View
-                        android:id="@+id/power_sheen"
-                        android:layout_width="180dp"
-                        android:layout_height="180dp"
-                        android:layout_gravity="center"
-                        android:background="@drawable/bg_power_sheen"
-                        android:elevation="14dp"
-                        android:importantForAccessibility="no"
-                        android:outlineProvider="none" />
-
-                    <!-- Rotating glint (alive light sweep). Connected-only; rotation driven in code. -->
-                    <View
-                        android:id="@+id/power_sweep"
-                        android:layout_width="180dp"
-                        android:layout_height="180dp"
-                        android:layout_gravity="center"
-                        android:alpha="0"
-                        android:background="@drawable/bg_power_sweep"
-                        android:elevation="15dp"
-                        android:importantForAccessibility="no"
-                        android:outlineProvider="none" />
                 </FrameLayout>
 
                 <TextView
                     android:id="@+id/main_power_hint"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="-4dp"
+                    android:layout_marginTop="4dp"
                     android:text="@{clashRunning ? @string/main_power_hint_stop : @string/main_power_hint_start}"
-                    android:textAppearance="@style/TextAppearance.App.BodySmall"
+                    android:textAppearance="@style/TextAppearance.App.BodyMedium"
                     android:textColor="?attr/colorOnSurfaceVariant"
-                    android:visibility="gone" />
+                    android:visibility="visible" />
 
                 <!-- Redesign 1.0: live ↓/↑ speed under the connect hero (issue #101). Visibility +
                      text driven by MainDesign (shown only while running). -->
@@ -435,21 +396,25 @@
                     android:id="@+id/main_speed"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:fontFamily="sans-serif-medium"
-                    app:fontFamily="sans-serif-medium"
+                    android:layout_marginTop="16dp"
+                    android:fontFamily="@font/manrope_semibold"
+                    app:fontFamily="@font/manrope_semibold"
                     android:letterSpacing="0.01"
                     android:textAppearance="@style/TextAppearance.App.TitleMedium"
                     android:textColor="?attr/colorOnSurface"
                     android:visibility="gone"
                     tools:text="↓ 12.4 MB/s   ↑ 1.2 MB/s"
-                    tools:visibility="visible" />
+                    tools:visibility="visible"
+                    android:background="@drawable/bg_expressive_speed"
+                    android:paddingHorizontal="20dp"
+                    android:paddingVertical="8dp" />
             </LinearLayout>
 
             <!-- Announcement sits between the connect button and the routing card. -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/main_announcement_card"
                 style="@style/AppCard.Filled"
+                android:stateListAnimator="@animator/focus_scale"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="20dp"
@@ -458,10 +423,10 @@
                 android:focusable="true"
                 android:visibility="gone"
                 app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="24dp"
                 app:cardElevation="0dp"
-                app:strokeColor="@color/lumen_hairline"
-                app:strokeWidth="1dp">
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -523,9 +488,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="20dp"
-                android:layout_marginTop="32dp"
+                android:layout_marginTop="20dp"
                 app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="28dp"
                 app:cardElevation="0dp">
 
                 <LinearLayout
@@ -535,6 +500,7 @@
 
                     <LinearLayout
                         android:id="@+id/main_routing_row"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="match_parent"
                         android:layout_height="64dp"
                         android:background="?attr/selectableItemBackground"
@@ -594,6 +560,7 @@
                     <!-- Remote control quick entry — shown only on Android TV (set in MainDesign). -->
                     <LinearLayout
                         android:id="@+id/main_companion_row"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="match_parent"
                         android:layout_height="64dp"
                         android:background="?attr/selectableItemBackground"
@@ -659,6 +626,7 @@
 
                     <LinearLayout
                         android:id="@+id/main_active_profile_row"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:minHeight="72dp"
@@ -731,6 +699,7 @@
 
                     <LinearLayout
                         android:id="@+id/main_active_node_row"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:minHeight="72dp"
@@ -816,7 +785,8 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/main_active_profile_update"
-                            style="@style/Widget.Material3.Button.TonalButton"
+                            style="@style/AppButton.Tonal"
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -830,7 +800,7 @@
                             android:text="@string/update"
                             android:textAllCaps="false"
                             android:textAppearance="@style/TextAppearance.App.LabelMedium"
-                            app:cornerRadius="12dp"
+                            app:cornerRadius="24dp"
                             app:icon="@drawable/ic_baseline_sync"
                             app:iconSize="20dp"
                             app:iconPadding="8dp"
@@ -838,7 +808,8 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/main_active_profile_support"
-                            style="@style/Widget.Material3.Button.TonalButton"
+                            style="@style/AppButton.Tonal"
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -852,7 +823,7 @@
                             android:textAllCaps="false"
                             android:textAppearance="@style/TextAppearance.App.LabelMedium"
                             android:visibility="gone"
-                            app:cornerRadius="12dp"
+                            app:cornerRadius="24dp"
                             app:icon="@drawable/ic_baseline_headset_mic"
                             app:iconSize="20dp"
                             app:iconPadding="8dp"
@@ -893,6 +864,7 @@
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/main_mode_rule"
                                 style="?attr/materialButtonOutlinedStyle"
+                                android:stateListAnimator="@animator/focus_scale"
                                 android:layout_width="0dp"
                                 android:layout_height="match_parent"
                                 android:layout_weight="1"
@@ -907,6 +879,7 @@
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/main_mode_global"
                                 style="?attr/materialButtonOutlinedStyle"
+                                android:stateListAnimator="@animator/focus_scale"
                                 android:layout_width="0dp"
                                 android:layout_height="match_parent"
                                 android:layout_weight="1"
@@ -951,15 +924,16 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:fontFamily="sans-serif-medium"
-                        app:fontFamily="sans-serif-medium"
+                        android:fontFamily="@font/manrope_semibold"
+                        app:fontFamily="@font/manrope_semibold"
                         android:text="@string/nav_subscriptions"
-                        android:textAppearance="@style/TextAppearance.App.TitleLarge"
+                        android:textAppearance="@style/TextAppearance.App.HeadlineLarge"
                         android:textColor="?attr/colorOnSurface"
                         android:textSize="22sp" />
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/profiles_tab_add"
                         style="@style/Widget.Material3.Button.IconButton.Filled"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         android:layout_marginStart="12dp"
@@ -974,6 +948,7 @@
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/profiles_tab_sort"
                         style="@style/Widget.Material3.Button.IconButton"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         android:layout_marginStart="8dp"
@@ -1020,8 +995,8 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="24dp"
                             android:gravity="center"
-                            android:fontFamily="sans-serif-medium"
-                            app:fontFamily="sans-serif-medium"
+                            android:fontFamily="@font/manrope_semibold"
+                            app:fontFamily="@font/manrope_semibold"
                             android:text="@string/main_no_profiles_title"
                             android:textAppearance="@style/TextAppearance.App.TitleMedium"
                             android:textColor="?attr/colorOnSurface" />
@@ -1030,13 +1005,14 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
                             android:gravity="center"
-                            android:fontFamily="sans-serif"
-                            app:fontFamily="sans-serif"
+                            android:fontFamily="@font/manrope_regular"
+                            app:fontFamily="@font/manrope_regular"
                             android:text="@string/main_no_profiles_subtitle"
                             android:textAppearance="@style/TextAppearance.App.BodyMedium"
                             android:textColor="?attr/colorOnSurfaceVariant" />
                         <com.google.android.material.button.MaterialButton
                             style="@style/AppButton"
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="24dp"
@@ -1055,14 +1031,14 @@
                         android:orientation="vertical"
                         android:paddingTop="4dp">
 
-                        <View
+                        <com.github.kr328.clash.design.view.SkeletonView
                             android:layout_width="match_parent"
                             android:layout_height="80dp"
                             android:layout_marginBottom="12dp"
                             android:background="@drawable/bg_home_card_soft"
                             android:importantForAccessibility="no" />
 
-                        <View
+                        <com.github.kr328.clash.design.view.SkeletonView
                             android:layout_width="match_parent"
                             android:layout_height="80dp"
                             android:background="@drawable/bg_home_card_soft"
@@ -1074,7 +1050,7 @@
 
         <androidx.core.widget.NestedScrollView
             android:id="@+id/main_routing_page"
-            android:background="@drawable/bg_home_canvas"
+            android:background="@android:color/transparent"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
@@ -1094,7 +1070,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/nav_routing"
-                    android:textAppearance="@style/TextAppearance.App.TitleLarge"
+                    android:textAppearance="@style/TextAppearance.App.HeadlineLarge"
                     android:textColor="?attr/colorOnSurface"/>
                 <com.google.android.material.card.MaterialCardView
                     style="@style/AppCard.Filled"
@@ -1151,6 +1127,7 @@
                         </LinearLayout>
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/main_routing_add"
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="16dp"
@@ -1174,7 +1151,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-                    app:cardCornerRadius="16dp"
+                    app:cardCornerRadius="24dp"
                     app:cardElevation="0dp">
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -1182,6 +1159,7 @@
                         android:orientation="vertical">
                         <LinearLayout
                             android:id="@+id/main_card_rules"
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:minHeight="72dp"
@@ -1229,6 +1207,7 @@
                         </LinearLayout>
                         <LinearLayout
                             android:id="@+id/main_card_providers"
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:minHeight="72dp"
@@ -1276,6 +1255,7 @@
                         </LinearLayout>
                         <LinearLayout
                             android:id="@+id/main_card_effective"
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:minHeight="72dp"
@@ -1345,7 +1325,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-                    app:cardCornerRadius="16dp"
+                    app:cardCornerRadius="24dp"
                     app:cardElevation="0dp">
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -1353,6 +1333,7 @@
                         android:orientation="vertical">
                         <LinearLayout
                             android:id="@+id/main_card_per_app"
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:minHeight="72dp"
@@ -1400,6 +1381,7 @@
                         </LinearLayout>
                         <LinearLayout
                             android:id="@+id/main_card_proxy_chain"
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:minHeight="72dp"
@@ -1452,7 +1434,7 @@
 
         <androidx.core.widget.NestedScrollView
             android:id="@+id/main_operator_page"
-            android:background="@drawable/bg_home_canvas"
+            android:background="@android:color/transparent"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
@@ -1474,7 +1456,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="16dp"
+                    app:cardCornerRadius="24dp"
                     app:cardElevation="0dp"
                     app:strokeColor="@color/lumen_hairline"
                     app:strokeWidth="1dp">
@@ -1514,7 +1496,7 @@
                                     android:layout_height="wrap_content"
                                     android:ellipsize="end"
                                     android:maxLines="1"
-                                    android:textAppearance="@style/TextAppearance.App.TitleLarge"
+                                    android:textAppearance="@style/TextAppearance.App.HeadlineLarge"
                                     android:textColor="?attr/colorOnSurface"
                                     android:textStyle="bold"
                                     tools:text="SwiftVPN" />
@@ -1547,6 +1529,7 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/operator_renew_button"
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="16dp"
@@ -1564,7 +1547,8 @@
                         -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/operator_cabinet_button"
-                            style="@style/Widget.Material3.Button.TonalButton"
+                            style="@style/AppButton.Tonal"
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
@@ -1589,7 +1573,7 @@
 
         <androidx.core.widget.NestedScrollView
             android:id="@+id/main_settings_page"
-            android:background="@drawable/bg_home_canvas"
+            android:background="@android:color/transparent"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
@@ -1609,7 +1593,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/settings"
-                    android:textAppearance="@style/TextAppearance.App.TitleLarge"
+                    android:textAppearance="@style/TextAppearance.App.HeadlineLarge"
                     android:textColor="?attr/colorOnSurface"/>
                 <TextView
                     android:layout_width="match_parent"
@@ -1625,13 +1609,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-                    app:cardCornerRadius="16dp"
+                    app:cardCornerRadius="24dp"
                     app:cardElevation="0dp">
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical">
                         <LinearLayout
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:minHeight="72dp"
@@ -1678,6 +1663,7 @@
                                 app:tint="?attr/colorOnSurfaceVariant"/>
                         </LinearLayout>
                         <LinearLayout
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:minHeight="72dp"
@@ -1739,13 +1725,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-                    app:cardCornerRadius="16dp"
+                    app:cardCornerRadius="24dp"
                     app:cardElevation="0dp">
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical">
                         <LinearLayout
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:minHeight="72dp"
@@ -1792,6 +1779,7 @@
                                 app:tint="?attr/colorOnSurfaceVariant"/>
                         </LinearLayout>
                         <LinearLayout
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:minHeight="72dp"
@@ -1838,6 +1826,7 @@
                                 app:tint="?attr/colorOnSurfaceVariant"/>
                         </LinearLayout>
                         <LinearLayout
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:minHeight="72dp"
@@ -1899,13 +1888,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-                    app:cardCornerRadius="16dp"
+                    app:cardCornerRadius="24dp"
                     app:cardElevation="0dp">
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical">
                         <LinearLayout
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:minHeight="72dp"
@@ -1952,6 +1942,7 @@
                                 app:tint="?attr/colorOnSurfaceVariant"/>
                         </LinearLayout>
                         <LinearLayout
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:minHeight="72dp"
@@ -2006,17 +1997,17 @@
             android:id="@+id/main_bottom_nav_card"
             style="@style/AppCard.BottomNav"
             android:layout_width="match_parent"
-            android:layout_height="64dp"
+            android:layout_height="80dp"
             android:layout_gravity="bottom"
             android:layout_marginHorizontal="@dimen/main_bottom_nav_horizontal_margin"
             app:bottomNavInset="@{self.surface.insets.bottom}"
-            app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+            app:cardBackgroundColor="?attr/colorSurfaceContainer"
             app:cardCornerRadius="@dimen/main_bottom_nav_corner_radius"
             app:cardElevation="@dimen/main_bottom_nav_elevation"
             app:cardUseCompatPadding="false"
             app:rippleColor="?attr/colorControlHighlight"
             app:strokeColor="@color/lumen_hairline"
-            app:strokeWidth="1dp">
+            app:strokeWidth="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -2029,6 +2020,7 @@
 
                 <LinearLayout
                     android:id="@+id/main_nav_home"
+                    android:stateListAnimator="@animator/focus_scale"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
@@ -2062,6 +2054,7 @@
 
                 <LinearLayout
                     android:id="@+id/main_nav_profiles"
+                    android:stateListAnimator="@animator/focus_scale"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
@@ -2096,6 +2089,7 @@
 
                 <LinearLayout
                     android:id="@+id/main_nav_routing"
+                    android:stateListAnimator="@animator/focus_scale"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
@@ -2130,6 +2124,7 @@
 
                 <LinearLayout
                     android:id="@+id/main_nav_operator"
+                    android:stateListAnimator="@animator/focus_scale"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
@@ -2167,6 +2162,7 @@
 
                 <LinearLayout
                     android:id="@+id/main_nav_settings"
+                    android:stateListAnimator="@animator/focus_scale"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"

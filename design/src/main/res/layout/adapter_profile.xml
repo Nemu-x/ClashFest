@@ -28,14 +28,15 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-            app:cardCornerRadius="16dp"
+            app:cardCornerRadius="32dp"
             app:cardElevation="0dp"
             app:rippleColor="?attr/colorControlHighlight"
             app:strokeColor="?attr/colorOutlineVariant"
-            app:strokeWidth="1dp">
+            app:strokeWidth="0dp">
 
             <LinearLayout
                 android:id="@+id/root_view"
+                android:stateListAnimator="@animator/focus_scale"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="?attr/selectableItemBackground"
@@ -213,6 +214,7 @@
 
                         <ImageView
                             android:id="@+id/force_update_view"
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:background="?attr/selectableItemBackgroundBorderless"
@@ -233,6 +235,7 @@
 
                         <ImageView
                             android:id="@+id/ping_all_view"
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:background="?attr/selectableItemBackgroundBorderless"
@@ -263,6 +266,7 @@
 
                         <ImageView
                             android:id="@+id/support_view"
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:background="?attr/selectableItemBackgroundBorderless"
@@ -277,6 +281,7 @@
 
                     <FrameLayout
                         android:id="@+id/menu_view"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         android:background="?attr/selectableItemBackgroundBorderless"

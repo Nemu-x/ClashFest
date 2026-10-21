@@ -2,12 +2,12 @@
 <!-- M3 neutral surface colors (dark theme). See values/colors_brand_neutral.xml. -->
 <resources>
     <color name="mikan_power_icon_idle">#A3A3A3</color>
-    <color name="brand_neutral_surface_variant">#302A24</color>
-    <color name="brand_neutral_on_surface_variant">#C5BCAF</color>
-    <color name="brand_neutral_outline">#948779</color>
-    <color name="brand_neutral_outline_variant">#443B31</color>
-    <color name="brand_neutral_surface_container">#24201B</color>
-    <color name="brand_neutral_surface_container_low">#1D1A16</color>
-    <color name="brand_neutral_surface_container_high">#2D2721</color>
-    <color name="brand_neutral_surface_container_highest">#373029</color>
+    <color name="brand_neutral_surface_variant">#3F4A41</color>
+    <color name="brand_neutral_on_surface_variant">#BDCBBE</color>
+    <color name="brand_neutral_outline">#87958A</color>
+    <color name="brand_neutral_outline_variant">#3F4D42</color>
+    <color name="brand_neutral_surface_container">#1E2B22</color>
+    <color name="brand_neutral_surface_container_low">#18221B</color>
+    <color name="brand_neutral_surface_container_high">#29382D</color>
+    <color name="brand_neutral_surface_container_highest">#344439</color>
 </resources>

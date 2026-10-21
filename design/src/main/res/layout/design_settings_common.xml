@@ -14,6 +14,13 @@
         android:background="@drawable/bg_home_canvas"
         android:paddingStart="@{surface.insets.start}"
         android:paddingEnd="@{surface.insets.end}">
+        <com.github.kr328.clash.design.view.ExpressiveBackdropView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:focusable="false"
+            android:clickable="false" />
+
 
         <com.github.kr328.clash.design.view.ObservableScrollView
             android:id="@+id/scroll_root"

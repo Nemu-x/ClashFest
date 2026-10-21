@@ -26,6 +26,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
         <com.github.kr328.clash.design.view.LargeActionLabel
+            android:stateListAnimator="@animator/focus_scale"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:onClick="@{() -> master.requestImport(self, file)}"
@@ -35,6 +36,7 @@
             app:text="@string/import_" />
 
         <com.github.kr328.clash.design.view.LargeActionLabel
+            android:stateListAnimator="@animator/focus_scale"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:onClick="@{() -> master.requestExport(self, file)}"
@@ -44,6 +46,7 @@
             app:text="@string/export" />
 
         <com.github.kr328.clash.design.view.LargeActionLabel
+            android:stateListAnimator="@animator/focus_scale"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:onClick="@{() -> master.requestRename(self, file)}"
@@ -53,6 +56,7 @@
             app:text="@string/rename" />
 
         <com.github.kr328.clash.design.view.LargeActionLabel
+            android:stateListAnimator="@animator/focus_scale"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:onClick="@{() -> master.requestDelete(self, file)}"

@@ -8,15 +8,19 @@
     </data>
 
     <LinearLayout
+        android:stateListAnimator="@animator/focus_scale"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/selectableItemBackground"
+        android:background="@drawable/bg_home_card_soft"
+        android:foreground="?attr/selectableItemBackground"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginBottom="8dp"
         android:clickable="true"
         android:focusable="true"
         android:gravity="center_vertical"
         android:orientation="vertical"
-        android:paddingHorizontal="@dimen/logcat_padding_horizontal"
-        android:paddingVertical="@dimen/logcat_padding_vertical">
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="16dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -29,7 +33,7 @@
                 android:gravity="start|center_vertical"
                 android:text="@{message.level.name()}"
                 android:textAppearance="@style/TextAppearance.App.BodySmall"
-                android:textColor="?colorControlActivated" />
+                android:textColor="?attr/colorOnSurfaceVariant" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -37,7 +41,7 @@
                 android:gravity="end|center_vertical"
                 android:text="@{I18nKt.format(message.time, context, false, true)}"
                 android:textAppearance="@style/TextAppearance.App.BodySmall"
-                android:textColor="?colorControlActivated" />
+                android:textColor="?attr/colorOnSurfaceVariant" />
         </LinearLayout>
 
         <TextView

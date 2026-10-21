@@ -21,6 +21,13 @@
         android:background="@drawable/bg_home_canvas"
         android:paddingStart="@{self.surface.insets.start}"
         android:paddingEnd="@{self.surface.insets.end}">
+        <com.github.kr328.clash.design.view.ExpressiveBackdropView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:focusable="false"
+            android:clickable="false" />
+
 
         <com.github.kr328.clash.design.view.ObservableScrollView
             android:id="@+id/scroll_root"
@@ -51,7 +58,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="16dp"
+                    app:cardCornerRadius="24dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="0dp">
 
@@ -259,7 +266,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="16dp"
+                    app:cardCornerRadius="24dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="0dp">
 
@@ -281,6 +288,7 @@
                             android:textStyle="bold" />
 
                         <com.github.kr328.clash.design.view.ActionLabel
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginVertical="@dimen/properties_element_margin_vertical"
@@ -290,6 +298,7 @@
                             app:text="@string/properties_proxy_providers" />
 
                         <com.github.kr328.clash.design.view.ActionLabel
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginVertical="@dimen/properties_element_margin_vertical"
@@ -336,6 +345,7 @@
                         android:visibility="@{processing ? View.VISIBLE : View.GONE}" />
 
                     <ImageView
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="@dimen/item_tailing_component_size"
                         android:layout_height="@dimen/item_tailing_component_size"
                         android:layout_gravity="end|center_vertical"

@@ -11,6 +11,13 @@
         android:layout_height="match_parent"
         android:paddingStart="@{self.surface.insets.start}"
         android:paddingEnd="@{self.surface.insets.end}">
+        <com.github.kr328.clash.design.view.ExpressiveBackdropView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:focusable="false"
+            android:clickable="false" />
+
 
         <com.github.kr328.clash.design.view.ObservableScrollView
             android:id="@+id/scroll_root"
@@ -47,6 +54,7 @@
 
                 <ImageView
                     android:id="@+id/clear_view"
+                    android:stateListAnimator="@animator/focus_scale"
                     android:layout_width="@dimen/item_tailing_component_size"
                     android:layout_height="@dimen/item_tailing_component_size"
                     android:layout_alignParentEnd="true"

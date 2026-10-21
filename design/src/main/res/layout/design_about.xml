@@ -169,7 +169,8 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/about_check_updates_button"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/AppButton.Outlined"
+                android:stateListAnimator="@animator/focus_scale"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -178,7 +179,8 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/about_support_button"
-                style="@style/Widget.Material3.Button.TonalButton"
+                style="@style/AppButton.Tonal"
+                android:stateListAnimator="@animator/focus_scale"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -205,7 +207,8 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/about_brand_renew_button"
-                style="@style/Widget.Material3.Button"
+                style="@style/AppButton"
+                android:stateListAnimator="@animator/focus_scale"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"

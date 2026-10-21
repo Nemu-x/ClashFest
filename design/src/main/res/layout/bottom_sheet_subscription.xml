@@ -21,8 +21,8 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:fontFamily="sans-serif-medium"
-                    app:fontFamily="sans-serif-medium"
+                    android:fontFamily="@font/manrope_semibold"
+                    app:fontFamily="@font/manrope_semibold"
                     android:ellipsize="end"
                     android:maxLines="2"
                     android:textAppearance="@style/TextAppearance.App.TitleLarge"
@@ -31,6 +31,7 @@
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/detail_menu"
                     style="@style/Widget.Material3.Button.IconButton"
+                    android:stateListAnimator="@animator/focus_scale"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:layout_marginStart="12dp"
@@ -45,16 +46,16 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:fontFamily="sans-serif"
-                app:fontFamily="sans-serif"
+                android:fontFamily="@font/manrope_regular"
+                app:fontFamily="@font/manrope_regular"
                 android:textAppearance="@style/TextAppearance.App.LabelMedium"
                 android:textColor="?attr/colorOnSurfaceVariant" />
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
-                android:fontFamily="sans-serif"
-                app:fontFamily="sans-serif"
+                android:fontFamily="@font/manrope_regular"
+                app:fontFamily="@font/manrope_regular"
                 android:text="@string/subscription_traffic"
                 android:textAppearance="@style/TextAppearance.App.LabelLarge"
                 android:textColor="?attr/colorOnSurfaceVariant" />
@@ -63,8 +64,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:fontFamily="sans-serif-medium"
-                app:fontFamily="sans-serif-medium"
+                android:fontFamily="@font/manrope_semibold"
+                app:fontFamily="@font/manrope_semibold"
                 android:textAppearance="@style/TextAppearance.App.TitleMedium"
                 android:textColor="?attr/colorOnSurface" />
             <com.google.android.material.progressindicator.LinearProgressIndicator
@@ -80,8 +81,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:fontFamily="sans-serif"
-                app:fontFamily="sans-serif"
+                android:fontFamily="@font/manrope_regular"
+                app:fontFamily="@font/manrope_regular"
                 android:textAppearance="@style/TextAppearance.App.BodyMedium"
                 android:textColor="?attr/colorOnSurfaceVariant" />
             <TextView
@@ -89,8 +90,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:fontFamily="sans-serif"
-                app:fontFamily="sans-serif"
+                android:fontFamily="@font/manrope_regular"
+                app:fontFamily="@font/manrope_regular"
                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                 android:textColor="?attr/colorOnSurfaceVariant" />
             <TextView
@@ -98,19 +99,20 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:fontFamily="sans-serif"
-                app:fontFamily="sans-serif"
+                android:fontFamily="@font/manrope_regular"
+                app:fontFamily="@font/manrope_regular"
                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                 android:textColor="?attr/colorOnSurfaceVariant" />
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/detail_update"
-                style="@style/Widget.Material3.Button.TextButton"
+                style="@style/AppButton.Text"
+                android:stateListAnimator="@animator/focus_scale"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
                 android:layout_marginTop="4dp"
-                android:fontFamily="sans-serif-medium"
-                app:fontFamily="sans-serif-medium"
+                android:fontFamily="@font/manrope_semibold"
+                app:fontFamily="@font/manrope_semibold"
                 android:minHeight="48dp"
                 android:text="@string/update"
                 android:textColor="?attr/colorOnSurface"
@@ -123,8 +125,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:accessibilityLiveRegion="polite"
-                android:fontFamily="sans-serif"
-                app:fontFamily="sans-serif"
+                android:fontFamily="@font/manrope_regular"
+                app:fontFamily="@font/manrope_regular"
                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:visibility="gone" />
@@ -137,14 +139,15 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/detail_servers"
                 style="@style/AppButton.Outlined"
+                android:stateListAnimator="@animator/focus_scale"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:fontFamily="sans-serif-medium"
-                app:fontFamily="sans-serif-medium"
+                android:fontFamily="@font/manrope_semibold"
+                app:fontFamily="@font/manrope_semibold"
                 android:minHeight="48dp"
                 android:text="@string/subscription_choose_server"
-                app:cornerRadius="12dp"
+                app:cornerRadius="24dp"
                 app:icon="@drawable/ic_baseline_language"
                 app:iconGravity="textStart" />
             <TextView
@@ -152,23 +155,24 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:fontFamily="sans-serif"
-                app:fontFamily="sans-serif"
+                android:fontFamily="@font/manrope_regular"
+                app:fontFamily="@font/manrope_regular"
                 android:textAppearance="@style/TextAppearance.App.BodySmall"
                 android:textColor="?attr/colorOnSurfaceVariant" />
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/detail_use"
                 style="@style/AppButton"
+                android:stateListAnimator="@animator/focus_scale"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:fontFamily="sans-serif-medium"
-                app:fontFamily="sans-serif-medium"
+                android:fontFamily="@font/manrope_semibold"
+                app:fontFamily="@font/manrope_semibold"
                 android:minHeight="52dp"
                 android:text="@string/profile_use"
                 android:textColor="@color/mikan_action_foreground"
                 app:backgroundTint="@color/mikan_action_background"
-                app:cornerRadius="12dp" />
+                app:cornerRadius="24dp" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </layout>

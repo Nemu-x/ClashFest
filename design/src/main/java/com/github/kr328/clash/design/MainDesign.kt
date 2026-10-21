@@ -139,7 +139,6 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         context = context,
         binding = binding,
         hostLifecycle = hostLifecycle,
-        brandHolder = { brandHolder },
         isRunning = { clashRunningState },
         isTunnelStarting = { tunnelStartingState },
         isHomeVisible = { currentTab == MainTab.Home },
@@ -149,7 +148,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         binding = binding,
         uiStore = uiStore,
         sendRequest = { requests.trySend(it) },
-        onTabRendered = { powerVisuals.refreshBreath() },
+        onTabRendered = { powerVisuals.refreshMotion() },
     )
     private val expandedProfileUuids: LinkedHashSet<UUID> = linkedSetOf()
     private val subscriptionPreviewUuids: LinkedHashSet<UUID> = linkedSetOf()
@@ -377,9 +376,6 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     }
 
     private fun applyPowerVisuals() = powerVisuals.applyVisuals()
-
-    private fun updateBreathAnimator(requestedRunning: Boolean, starting: Boolean) =
-        powerVisuals.updateBreathAnimator(requestedRunning, starting)
 
     suspend fun setForwarded(value: Long) {
         withContext(Dispatchers.Main) {
@@ -749,7 +745,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
                     clickGuard.close(Request.OpenAbout)
                     applyPowerVisuals()
                 },
-                onBeforeShow = { updateBreathAnimator(false, false) },
+                onBeforeShow = { powerVisuals.stopMotion() },
                 onDevMenu = { showBrandDevDialog(context) { profileExpandChanged.trySend(Unit) } },
             )
         }
@@ -883,6 +879,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
 
         powerVisuals.install()
         binding.mainPowerCard.setOnClickListener {
+            it.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
             request(Request.ToggleStatus)
         }
 

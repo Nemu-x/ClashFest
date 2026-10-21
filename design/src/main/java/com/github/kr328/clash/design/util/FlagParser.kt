@@ -13,57 +13,6 @@ object FlagParser {
     private val NONE = ParsedFlag("", "")
     private val cache = LruCache<String, ParsedFlag>(512)
 
-    private val COUNTRY_NAMES = mapOf(
-        "united states" to "US", "usa" to "US", "us" to "US", "america" to "US",
-        "united kingdom" to "GB", "uk" to "GB", "britain" to "GB", "england" to "GB",
-        "germany" to "DE", "deutschland" to "DE",
-        "france" to "FR",
-        "japan" to "JP",
-        "china" to "CN",
-        "russia" to "RU", "россия" to "RU",
-        "singapore" to "SG",
-        "hong kong" to "HK", "hongkong" to "HK",
-        "taiwan" to "TW",
-        "south korea" to "KR", "korea" to "KR",
-        "australia" to "AU",
-        "canada" to "CA",
-        "brazil" to "BR",
-        "india" to "IN",
-        "netherlands" to "NL",
-        "germany" to "DE",
-        "finland" to "FI",
-        "sweden" to "SE",
-        "switzerland" to "CH",
-        "turkey" to "TR", "turkiye" to "TR",
-        "argentina" to "AR",
-        "ireland" to "IE",
-        "poland" to "PL",
-        "romania" to "RO",
-        "spain" to "ES",
-        "italy" to "IT",
-        "portugal" to "PT",
-        "mexico" to "MX",
-        "colombia" to "CO",
-        "chile" to "CL",
-        "peru" to "PE",
-        "thailand" to "TH",
-        "vietnam" to "VN",
-        "indonesia" to "ID",
-        "malaysia" to "MY",
-        "philippines" to "PH",
-        "israel" to "IL",
-        "uae" to "AE", "dubai" to "AE",
-        "south africa" to "ZA",
-        "ukraine" to "UA", "украина" to "UA",
-        "norway" to "NO",
-        "denmark" to "DK",
-        "czech" to "CZ", "czechia" to "CZ",
-        "austria" to "AT",
-        "belgium" to "BE",
-        "new zealand" to "NZ",
-        "luxembourg" to "LU",
-        "iceland" to "IS",
-    )
 
     private val VALID_CODES = Locale.getISOCountries().toSet()
 
@@ -104,12 +53,7 @@ object FlagParser {
             if (code in VALID_CODES) return ParsedFlag(code, codeToEmoji(code))
         }
 
-        val lower = name.lowercase()
-        for ((countryName, code) in COUNTRY_NAMES) {
-            if (lower.contains(countryName)) {
-                return ParsedFlag(code, codeToEmoji(code))
-            }
-        }
+        countryCodeFromName(name)?.let { code -> return ParsedFlag(code, codeToEmoji(code)) }
 
         // No country flag — fall back to any pictographic emoji in the name
         // (e.g. 🌍 in "Авто EU · 🌍 Сеть"). code="" → no SVG, shown as emoji text.

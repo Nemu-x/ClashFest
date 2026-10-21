@@ -4,8 +4,8 @@
         <shape android:shape="rectangle">
             <solid android:color="?attr/colorSurface" />
             <corners
-                android:topLeftRadius="20dp"
-                android:topRightRadius="20dp" />
+                android:topLeftRadius="32dp"
+                android:topRightRadius="32dp" />
         </shape>
     </item>
     <item
@@ -16,7 +16,7 @@
                 android:width="40dp"
                 android:height="@dimen/bottom_sheet_header_height" />
             <solid android:color="?attr/colorControlHighlight" />
-            <corners android:radius="5dp" />
+            <corners android:radius="2dp" />
         </shape>
     </item>
 </layer-list>

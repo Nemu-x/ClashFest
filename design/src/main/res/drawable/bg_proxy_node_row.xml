@@ -4,7 +4,7 @@
     <item android:id="@android:id/mask">
         <shape android:shape="rectangle">
             <solid android:color="@android:color/white" />
-            <corners android:radius="16dp" />
+            <corners android:radius="20dp" />
         </shape>
     </item>
     <item>
@@ -13,8 +13,8 @@
                  focused node is always visible. focus_ring language: colorPrimary 3dp stroke. -->
             <item android:state_focused="true" android:state_selected="true">
                 <shape android:shape="rectangle">
-                    <solid android:color="?attr/colorSurfaceContainerHigh" />
-                    <corners android:radius="16dp" />
+                    <solid android:color="?attr/colorSurfaceContainer" />
+                    <corners android:radius="20dp" />
                     <stroke
                         android:width="3dp"
                         android:color="?attr/colorPrimary" />
@@ -23,7 +23,7 @@
             <item android:state_focused="true">
                 <shape android:shape="rectangle">
                     <solid android:color="@android:color/transparent" />
-                    <corners android:radius="16dp" />
+                    <corners android:radius="20dp" />
                     <stroke
                         android:width="3dp"
                         android:color="?attr/colorPrimary" />
@@ -31,17 +31,18 @@
             </item>
             <item android:state_selected="true">
                 <shape android:shape="rectangle">
-                    <solid android:color="?attr/colorSurfaceContainerHigh" />
-                    <corners android:radius="16dp" />
+                    <solid android:color="?attr/colorSurfaceContainer" />
+                    <corners android:radius="20dp" />
                     <!-- Lux: accent "обводочка" on the selected node (dynamic accent colour). -->
                     <stroke
-                        android:width="1dp"
+                        android:width="2dp"
                         android:color="?attr/colorPrimary" />
                 </shape>
             </item>
             <item>
                 <shape android:shape="rectangle">
-                    <solid android:color="@android:color/transparent" />
+                    <solid android:color="?attr/colorSurfaceContainerLow" />
+                    <corners android:radius="20dp" />
                 </shape>
             </item>
         </selector>

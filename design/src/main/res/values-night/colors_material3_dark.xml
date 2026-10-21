@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Material 3 Dark Color Scheme for ClashFest -->
+    <!-- Mikan: mandarin, leaf and tonal Material 3 surfaces. -->
 
     <!-- Primary Colors -->
-    <color name="md3_dark_primary">#FFA021</color>
-    <color name="md3_dark_onPrimary">#251507</color>
-    <color name="md3_dark_primaryContainer">#4D3214</color>
-    <color name="md3_dark_onPrimaryContainer">#FFDFB1</color>
+    <color name="md3_dark_primary">#FFB779</color>
+    <color name="md3_dark_onPrimary">#4F2500</color>
+    <color name="md3_dark_primaryContainer">#683400</color>
+    <color name="md3_dark_onPrimaryContainer">#FFDCBE</color>
 
     <!-- Secondary Colors -->
-    <color name="md3_dark_secondary">#D8BFA5</color>
-    <color name="md3_dark_onSecondary">#33271B</color>
-    <color name="md3_dark_secondaryContainer">#463729</color>
-    <color name="md3_dark_onSecondaryContainer">#F3DEC8</color>
+    <color name="md3_dark_secondary">#A5D5B5</color>
+    <color name="md3_dark_onSecondary">#0D3823</color>
+    <color name="md3_dark_secondaryContainer">#284F39</color>
+    <color name="md3_dark_onSecondaryContainer">#C1ECD0</color>
 
     <!-- Tertiary Colors -->
-    <color name="md3_dark_tertiary">#D8BFA5</color>
-    <color name="md3_dark_onTertiary">#33271B</color>
-    <color name="md3_dark_tertiaryContainer">#463729</color>
-    <color name="md3_dark_onTertiaryContainer">#F3DEC8</color>
+    <color name="md3_dark_tertiary">#B2C7EF</color>
+    <color name="md3_dark_onTertiary">#1E3252</color>
+    <color name="md3_dark_tertiaryContainer">#364A6A</color>
+    <color name="md3_dark_onTertiaryContainer">#D8E2FF</color>
 
     <!-- Error Colors -->
     <color name="md3_dark_error">#FFB4AB</color>
@@ -26,34 +26,33 @@
     <color name="md3_dark_errorContainer">#93000A</color>
     <color name="md3_dark_onErrorContainer">#FFDAD6</color>
 
-    <!-- Background Colors — Lumen "obsidian": deep neutral near-black (warm-neutral, no blue
-         cast) so cards read premium against the canvas and any dynamic accent sits cleanly. -->
-    <color name="md3_dark_background">#11100E</color>
-    <color name="md3_dark_onBackground">#F4EFE8</color>
+    <!-- Background and surfaces -->
+    <color name="md3_dark_background">#101813</color>
+    <color name="md3_dark_onBackground">#E1EBE0</color>
 
     <!-- Surface Colors -->
-    <color name="md3_dark_surface">#191714</color>
-    <color name="md3_dark_onSurface">#F4EFE8</color>
+    <color name="md3_dark_surface">#101813</color>
+    <color name="md3_dark_onSurface">#E1EBE0</color>
 
     <!-- Surface Variant Colors -->
-    <color name="md3_dark_surfaceVariant">#302A24</color>
-    <color name="md3_dark_onSurfaceVariant">#C5BCAF</color>
+    <color name="md3_dark_surfaceVariant">#3F4A41</color>
+    <color name="md3_dark_onSurfaceVariant">#BDCBBE</color>
 
     <!-- Outline Colors -->
-    <color name="md3_dark_outline">#948779</color>
-    <color name="md3_dark_outlineVariant">#443B31</color>
+    <color name="md3_dark_outline">#87958A</color>
+    <color name="md3_dark_outlineVariant">#3F4D42</color>
 
     <!-- Surface Container Colors — deliberate depth ladder (recessed → raised) -->
-    <color name="md3_dark_surfaceContainerLowest">#11100E</color>
-    <color name="md3_dark_surfaceContainerLow">#1D1A16</color>
-    <color name="md3_dark_surfaceContainer">#24201B</color>
-    <color name="md3_dark_surfaceContainerHigh">#2D2721</color>
-    <color name="md3_dark_surfaceContainerHighest">#373029</color>
+    <color name="md3_dark_surfaceContainerLowest">#0B120D</color>
+    <color name="md3_dark_surfaceContainerLow">#18221B</color>
+    <color name="md3_dark_surfaceContainer">#1E2B22</color>
+    <color name="md3_dark_surfaceContainerHigh">#29382D</color>
+    <color name="md3_dark_surfaceContainerHighest">#344439</color>
 
     <!-- Inverse Colors -->
-    <color name="md3_dark_inverseSurface">#F4EFE8</color>
-    <color name="md3_dark_inverseOnSurface">#302A24</color>
-    <color name="md3_dark_inversePrimary">#A64F00</color>
+    <color name="md3_dark_inverseSurface">#E1EBE0</color>
+    <color name="md3_dark_inverseOnSurface">#29342D</color>
+    <color name="md3_dark_inversePrimary">#914600</color>
 
     <!-- Proxy Delay Colors (dark variants) -->
     <color name="delay_good">#7DDF93</color>
@@ -89,8 +88,8 @@
     <color name="proto_wireguard">#A5D6A7</color>
     <color name="proto_default">#A8AFB5</color>
 
-    <!-- Lumen lux-card hairline: a whisper of light on the card edge (top-light feel). -->
-    <color name="lumen_hairline">#16FFFFFF</color>
+    <!-- Subtle outlines used by secondary surfaces. -->
+    <color name="lumen_hairline">#18FFFFFF</color>
 
     <!-- Proxy-group type chips — shared palette with SlothClash (brand unity). -->
     <color name="group_urltest">#7EE0A8</color>

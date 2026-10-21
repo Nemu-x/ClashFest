@@ -5,7 +5,7 @@
 
     <!-- Dialog -->
     <dimen name="dialog_padding">20dp</dimen>
-    <dimen name="dialog_button_margin">5dp</dimen>
+    <dimen name="dialog_button_margin">4dp</dimen>
     <dimen name="dialog_menu_min_width">150dp</dimen>
 
     <!-- Surface -->
@@ -13,11 +13,11 @@
 
     <!--  Toolbar  -->
     <dimen name="main_toolbar_padding_horizontal">10dp</dimen>
-    <dimen name="toolbar_height">42dp</dimen>
+    <dimen name="toolbar_height">56dp</dimen>
     <dimen name="profiles_header_height">150dp</dimen>
     <dimen name="toolbar_elevation">5dp</dimen>
     <dimen name="toolbar_image_action_padding">5dp</dimen>
-    <dimen name="toolbar_theme_button_size">38dp</dimen>
+    <dimen name="toolbar_theme_button_size">48dp</dimen>
     <dimen name="stroke_hairline">0dp</dimen>
     <dimen name="stroke_neon">2dp</dimen>
 
@@ -26,9 +26,9 @@
     <dimen name="tab_layout_elevation">5dp</dimen>
 
     <!--  Bottom Sheet  -->
-    <dimen name="bottom_sheet_background_padding_top">10dp</dimen>
-    <dimen name="bottom_sheet_header_height">5dp</dimen>
-    <dimen name="bottom_sheet_menu_items_padding">5dp</dimen>
+    <dimen name="bottom_sheet_background_padding_top">12dp</dimen>
+    <dimen name="bottom_sheet_header_height">4dp</dimen>
+    <dimen name="bottom_sheet_menu_items_padding">8dp</dimen>
 
     <!-- Large Item -->
     <dimen name="large_item_padding_vertical">15dp</dimen>
@@ -40,13 +40,13 @@
     <dimen name="large_item_text_margin">5dp</dimen>
 
     <!--  Common Item  -->
-    <dimen name="item_min_height">75dp</dimen>
+    <dimen name="item_min_height">80dp</dimen>
     <dimen name="item_header_component_size">30dp</dimen>
-    <dimen name="item_header_margin">17.5dp</dimen>
+    <dimen name="item_header_margin">16dp</dimen>
     <dimen name="item_tailing_component_size">30dp</dimen>
-    <dimen name="item_tailing_margin">17.5dp</dimen>
+    <dimen name="item_tailing_margin">16dp</dimen>
     <dimen name="item_padding_vertical">16dp</dimen>
-    <dimen name="item_text_margin">5dp</dimen>
+    <dimen name="item_text_margin">4dp</dimen>
     <dimen name="item_midden_margin">10dp</dimen>
 
     <!-- Large Card -->
@@ -62,10 +62,10 @@
     <dimen name="preference_fullscreen_button_padding">20dp</dimen>
 
     <!-- Profile list / proxy block -->
-    <dimen name="profile_item_spacing">6dp</dimen>
-    <dimen name="profile_proxy_block_spacing">6dp</dimen>
+    <dimen name="profile_item_spacing">12dp</dimen>
+    <dimen name="profile_proxy_block_spacing">8dp</dimen>
     <dimen name="profile_header_strip_height">52dp</dimen>
-    <dimen name="proxy_row_spacing">5dp</dimen>
+    <dimen name="proxy_row_spacing">8dp</dimen>
     <dimen name="proxy_flag_size">28dp</dimen>
     <dimen name="proxy_flag_text_size">16sp</dimen>
     <dimen name="proxy_flag_corner_radius">6dp</dimen>
@@ -74,21 +74,21 @@
     <dimen name="proxy_type_badge_padding_horizontal">6dp</dimen>
     <dimen name="proxy_type_badge_text_size">10sp</dimen>
     <dimen name="proxy_delay_badge_padding_horizontal">8dp</dimen>
-    <dimen name="proxy_delay_badge_padding_vertical">3dp</dimen>
+    <dimen name="proxy_delay_badge_padding_vertical">4dp</dimen>
     <dimen name="proxy_delay_badge_corner_radius">8dp</dimen>
 
     <!-- Main Design -->
     <dimen name="main_card_margin_vertical">5dp</dimen>
     <dimen name="main_label_margin_vertical">2dp</dimen>
-    <dimen name="main_padding_horizontal">12dp</dimen>
+    <dimen name="main_padding_horizontal">20dp</dimen>
     <dimen name="properties_editor_padding_extra_top">12dp</dimen>
     <dimen name="properties_editor_padding_extra_bottom">8dp</dimen>
-    <dimen name="main_bottom_nav_horizontal_margin">12dp</dimen>
+    <dimen name="main_bottom_nav_horizontal_margin">16dp</dimen>
     <dimen name="main_bottom_nav_top_margin">8dp</dimen>
     <dimen name="main_bottom_nav_bottom_margin">12dp</dimen>
-    <dimen name="main_bottom_nav_corner_radius">20dp</dimen>
+    <dimen name="main_bottom_nav_corner_radius">32dp</dimen>
     <dimen name="main_bottom_nav_elevation">0dp</dimen>
-    <dimen name="main_bottom_nav_reserved_space">104dp</dimen>
+    <dimen name="main_bottom_nav_reserved_space">112dp</dimen>
     <dimen name="main_logo_size">50dp</dimen>
     <dimen name="main_top_banner_height">90dp</dimen>
     <dimen name="profile_action_slot">40dp</dimen>

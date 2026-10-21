@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Material 3 Light Color Scheme for ClashFest -->
+    <!-- Mikan: mandarin, leaf and tonal Material 3 surfaces. -->
 
     <!-- Primary Colors -->
-    <color name="md3_light_primary">#A64F00</color>
+    <color name="md3_light_primary">#914600</color>
     <color name="md3_light_onPrimary">#FFFFFF</color>
-    <color name="md3_light_primaryContainer">#FFE3BD</color>
-    <color name="md3_light_onPrimaryContainer">#36200A</color>
+    <color name="md3_light_primaryContainer">#FFDCBE</color>
+    <color name="md3_light_onPrimaryContainer">#311400</color>
 
     <!-- Secondary Colors -->
-    <color name="md3_light_secondary">#715A42</color>
+    <color name="md3_light_secondary">#3E6650</color>
     <color name="md3_light_onSecondary">#FFFFFF</color>
-    <color name="md3_light_secondaryContainer">#EEDFCC</color>
-    <color name="md3_light_onSecondaryContainer">#291E12</color>
+    <color name="md3_light_secondaryContainer">#C1ECD0</color>
+    <color name="md3_light_onSecondaryContainer">#072015</color>
 
     <!-- Tertiary Colors -->
-    <color name="md3_light_tertiary">#715A42</color>
+    <color name="md3_light_tertiary">#50658A</color>
     <color name="md3_light_onTertiary">#FFFFFF</color>
-    <color name="md3_light_tertiaryContainer">#EEDFCC</color>
-    <color name="md3_light_onTertiaryContainer">#291E12</color>
+    <color name="md3_light_tertiaryContainer">#D8E2FF</color>
+    <color name="md3_light_onTertiaryContainer">#0B1B36</color>
 
     <!-- Error Colors -->
     <color name="md3_light_error">#BA1A1A</color>
@@ -26,33 +26,33 @@
     <color name="md3_light_errorContainer">#FFDAD6</color>
     <color name="md3_light_onErrorContainer">#410002</color>
 
-    <!-- Background Colors -->
-    <color name="md3_light_background">#FAF8F5</color>
-    <color name="md3_light_onBackground">#24211E</color>
+    <!-- Background and surfaces -->
+    <color name="md3_light_background">#F7FAF5</color>
+    <color name="md3_light_onBackground">#17211B</color>
 
     <!-- Surface Colors -->
-    <color name="md3_light_surface">#FAF8F5</color>
-    <color name="md3_light_onSurface">#24211E</color>
+    <color name="md3_light_surface">#F7FAF5</color>
+    <color name="md3_light_onSurface">#17211B</color>
 
     <!-- Surface Variant Colors -->
-    <color name="md3_light_surfaceVariant">#EBE4DB</color>
-    <color name="md3_light_onSurfaceVariant">#625A50</color>
+    <color name="md3_light_surfaceVariant">#DFE7DD</color>
+    <color name="md3_light_onSurfaceVariant">#455348</color>
 
     <!-- Outline Colors -->
-    <color name="md3_light_outline">#847B70</color>
-    <color name="md3_light_outlineVariant">#D8CFC3</color>
+    <color name="md3_light_outline">#758278</color>
+    <color name="md3_light_outlineVariant">#C4D0C5</color>
 
     <!-- Surface Container Colors -->
     <color name="md3_light_surfaceContainerLowest">#FFFFFF</color>
-    <color name="md3_light_surfaceContainerLow">#F4EFE8</color>
-    <color name="md3_light_surfaceContainer">#EEE8DF</color>
-    <color name="md3_light_surfaceContainerHigh">#E8E1D7</color>
-    <color name="md3_light_surfaceContainerHighest">#E2D9CE</color>
+    <color name="md3_light_surfaceContainerLow">#EFF4ED</color>
+    <color name="md3_light_surfaceContainer">#E7EEE5</color>
+    <color name="md3_light_surfaceContainerHigh">#DFE8DD</color>
+    <color name="md3_light_surfaceContainerHighest">#D7E1D5</color>
 
     <!-- Inverse Colors -->
-    <color name="md3_light_inverseSurface">#302A24</color>
-    <color name="md3_light_inverseOnSurface">#F8F0E7</color>
-    <color name="md3_light_inversePrimary">#FFA021</color>
+    <color name="md3_light_inverseSurface">#29342D</color>
+    <color name="md3_light_inverseOnSurface">#EFF4ED</color>
+    <color name="md3_light_inversePrimary">#FFB779</color>
 
     <!-- Proxy Delay Colors -->
     <color name="delay_good">#1B6E2F</color>
@@ -88,10 +88,8 @@
     <color name="proto_wireguard">#2E7D32</color>
     <color name="proto_default">#5F6368</color>
 
-    <!-- Lumen lux-card hairline (light: a clearly visible dark edge so cards keep a crisp contour
-         without relying on elevation shadow. Black on a light surface reads lower-contrast than the
-         dark theme's white hairline, so it needs a higher alpha (~25%) to look equivalent). -->
-    <color name="lumen_hairline">#40000000</color>
+    <!-- Subtle outlines used by secondary surfaces. -->
+    <color name="lumen_hairline">#14000000</color>
 
     <!-- Proxy-group type chips — shared palette with SlothClash (brand unity), light variants. -->
     <color name="group_urltest">#1F7A44</color>

@@ -12,6 +12,8 @@ import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.branding.BrandHolder
 import com.github.kr328.clash.design.databinding.DesignMainBinding
 import com.github.kr328.clash.design.model.AppLanguage
+import com.github.kr328.clash.design.motion.animateNavigationItem
+import com.github.kr328.clash.design.motion.transformExpressivePage
 import com.github.kr328.clash.design.store.UiStore
 import com.github.kr328.clash.design.util.resolveThemedColor
 import com.google.android.material.R as MaterialR
@@ -38,6 +40,7 @@ internal class MainPager(
     /** Held so [rebuildMainPagerForTabs] can detach/reattach without piling up. */
     private var pagerPageChangeCallback: ViewPager2.OnPageChangeCallback? = null
     private var pagerInitialised: Boolean = false
+    private var renderedTab: MainTab? = null
 
     /** One-time setup. Wires the OnPageChangeCallback exactly once. */
     fun setup() {
@@ -45,6 +48,7 @@ internal class MainPager(
         pagerInitialised = true
 
         attachPagerAdapter()
+        binding.mainPager.setPageTransformer(::transformExpressivePage)
 
         val cb = object : ViewPager2.OnPageChangeCallback() {
             override fun onPageScrollStateChanged(state: Int) {
@@ -235,7 +239,7 @@ internal class MainPager(
         }
         if (tab == MainTab.Routing) sendRequest(Request.RefreshRouting)
         MainTab.values().forEach {
-            navForMainTab(it).isSelected = it == tab
+            animateNavigationItem(navForMainTab(it), it == tab, renderedTab != null && renderedTab != tab)
             // The ViewPager keeps off-screen tab pages attached + VISIBLE (offscreenPageLimit =
             // all), so without this their content stays focusable and the D-pad escapes into the
             // hidden tab ("ghost" focus on TV). Only the current tab's page accepts focus.
@@ -243,6 +247,7 @@ internal class MainPager(
                 if (it == tab) ViewGroup.FOCUS_AFTER_DESCENDANTS
                 else ViewGroup.FOCUS_BLOCK_DESCENDANTS
         }
+        renderedTab = tab
         onTabRendered()
         sendRequest(Request.MainTabChanged)
     }

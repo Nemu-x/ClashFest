@@ -13,7 +13,7 @@
         android:id="@+id/screen_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textAppearance="@style/TextAppearance.App.TitleLarge"
+        android:textAppearance="@style/TextAppearance.App.HeadlineLarge"
         android:textColor="?attr/colorOnSurface"
         android:textStyle="bold"
         tools:text="Rules · My profile" />

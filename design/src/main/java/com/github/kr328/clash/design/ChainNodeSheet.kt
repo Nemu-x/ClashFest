@@ -7,11 +7,14 @@ import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.appcompat.widget.TooltipCompat
 import androidx.core.view.ViewCompat
 import androidx.core.widget.doAfterTextChanged
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.github.kr328.clash.design.dialog.AppBottomSheetDialog
+import com.github.kr328.clash.design.util.FlagDrawableLoader
+import com.github.kr328.clash.design.util.FlagParser
 import com.google.android.material.textfield.TextInputEditText
 
 /**
@@ -88,6 +91,12 @@ internal class ChainNodeSheet(
             val name = items[position]
             val checked = name == selected
             holder.name.text = name
+            TooltipCompat.setTooltipText(holder.name, name)
+            val code = FlagParser.parse(name)?.code
+            val size = (32 * holder.itemView.resources.displayMetrics.density).toInt()
+            val bitmap = FlagDrawableLoader.loadBitmap(holder.itemView.context, code, size)
+            if (bitmap != null) holder.flag.setImageBitmap(bitmap)
+            else holder.flag.setImageResource(R.drawable.ic_baseline_language)
             holder.check.visibility = if (checked) View.VISIBLE else View.INVISIBLE
             holder.itemView.isSelected = checked
             ViewCompat.setStateDescription(holder.itemView, if (checked) holder.itemView.context.getString(R.string.chain_selected) else null)
@@ -95,6 +104,7 @@ internal class ChainNodeSheet(
         }
 
         class Holder(view: View) : RecyclerView.ViewHolder(view) {
+            val flag: ImageView = view.findViewById(R.id.chain_node_flag)
             val name: TextView = view.findViewById(R.id.chain_node_name)
             val check: ImageView = view.findViewById(R.id.chain_node_check)
         }

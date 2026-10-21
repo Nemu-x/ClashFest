@@ -5,28 +5,16 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class PowerAnimationGateTest {
-    @Test
-    fun connectedHomeStopsWhileOtherTabsRemainAttached() {
-        assertTrue(shouldAnimatePowerAmbient(true, true, true, true, false, true))
-        assertFalse(shouldAnimatePowerAmbient(true, true, true, false, false, true))
-        assertTrue(shouldAnimatePowerAmbient(true, true, true, true, false, true))
+    @Test fun visibleHomeAnimatesWithoutDependingOnTunnelState() {
+        assertTrue(shouldAnimatePowerAmbient(true, true, true, false, true))
     }
-
-    @Test
-    fun backgroundAndDetachedDesignCannotKeepAnimating() {
-        assertFalse(shouldAnimatePowerAmbient(true, true, false, true, false, true))
-        assertFalse(shouldAnimatePowerAmbient(true, false, true, true, false, true))
-        assertTrue(shouldAnimatePowerAmbient(true, true, true, true, false, true))
+    @Test fun offscreenAndBackgroundPagesStopTheirAmbientWork() {
+        assertFalse(shouldAnimatePowerAmbient(true, true, false, false, true))
+        assertFalse(shouldAnimatePowerAmbient(true, false, true, false, true))
+        assertFalse(shouldAnimatePowerAmbient(false, true, true, false, true))
     }
-
-    @Test
-    fun aboutAndDisabledSystemAnimationsKeepConnectedHomeStatic() {
-        assertFalse(shouldAnimatePowerAmbient(true, true, true, true, true, true))
-        assertFalse(shouldAnimatePowerAmbient(true, true, true, true, false, false))
-    }
-
-    @Test
-    fun disconnectedHomeNeverStartsAmbientAnimation() {
-        assertFalse(shouldAnimatePowerAmbient(false, true, true, true, false, true))
+    @Test fun disabledSystemMotionAndCoveringSheetsRemainRespected() {
+        assertFalse(shouldAnimatePowerAmbient(true, true, true, false, false))
+        assertFalse(shouldAnimatePowerAmbient(true, true, true, true, true))
     }
 }

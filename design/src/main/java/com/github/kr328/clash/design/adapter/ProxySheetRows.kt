@@ -179,7 +179,10 @@ internal fun ProfileAdapter.bindProxyNodeRow(
             .trimStart(' ', '|', '-', '_', '.', ':')
             .ifBlank { title }
     } ?: title
-    row.findViewById<TextView>(R.id.proxy_title).text = cleanTitle
+    row.findViewById<TextView>(R.id.proxy_title).apply {
+        text = cleanTitle
+        androidx.appcompat.widget.TooltipCompat.setTooltipText(this, cleanTitle)
+    }
     val flagCard = row.findViewById<View>(R.id.proxy_flag_card)
     val flagImage = row.findViewById<com.google.android.material.imageview.ShapeableImageView>(R.id.proxy_flag_image)
     val flagText = row.findViewById<TextView>(R.id.proxy_flag)

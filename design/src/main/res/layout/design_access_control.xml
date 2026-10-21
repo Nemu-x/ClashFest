@@ -14,6 +14,13 @@
         android:background="@drawable/bg_home_canvas"
         android:paddingStart="@{self.surface.insets.start}"
         android:paddingEnd="@{self.surface.insets.end}">
+        <com.github.kr328.clash.design.view.ExpressiveBackdropView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:focusable="false"
+            android:clickable="false" />
+
 
         <include
             android:id="@+id/main_list"
@@ -48,12 +55,13 @@
                         android:paddingBottom="4dp"
                         android:ellipsize="end"
                         android:maxLines="1"
-                        android:textAppearance="@style/TextAppearance.App.TitleLarge"
+                        android:textAppearance="@style/TextAppearance.App.HeadlineLarge"
                         android:textColor="?attr/colorOnSurface"
                         android:textStyle="bold" />
 
                     <ImageView
                         android:id="@+id/menu_view"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="@dimen/item_tailing_component_size"
                         android:layout_height="@dimen/item_tailing_component_size"
                         android:layout_marginStart="@dimen/item_tailing_margin"
@@ -77,6 +85,7 @@
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/mode_all_button"
                         style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -91,6 +100,7 @@
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/mode_allow_button"
                         style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -105,6 +115,7 @@
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/mode_deny_button"
                         style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"

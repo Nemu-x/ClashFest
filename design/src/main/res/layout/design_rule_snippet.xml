@@ -14,6 +14,13 @@
         android:background="@drawable/bg_home_canvas"
         android:paddingStart="@{self.surface.insets.start}"
         android:paddingEnd="@{self.surface.insets.end}">
+        <com.github.kr328.clash.design.view.ExpressiveBackdropView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:focusable="false"
+            android:clickable="false" />
+
 
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
@@ -39,7 +46,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="16dp"
+                    app:cardCornerRadius="24dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="0dp">
 
@@ -65,7 +72,8 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_update_all_rule_sets"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            style="@style/AppButton.Outlined"
+                            android:stateListAnimator="@animator/focus_scale"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"

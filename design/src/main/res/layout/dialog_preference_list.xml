@@ -13,6 +13,13 @@
         android:paddingTop="@{surface.insets.top}"
         android:paddingEnd="@{surface.insets.end}"
         android:paddingBottom="@{surface.insets.bottom}">
+        <com.github.kr328.clash.design.view.ExpressiveBackdropView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:focusable="false"
+            android:clickable="false" />
+
 
         <RelativeLayout
             android:layout_width="match_parent"
@@ -33,6 +40,7 @@
 
             <ImageView
                 android:id="@+id/new_view"
+                android:stateListAnimator="@animator/focus_scale"
                 android:layout_width="@dimen/item_tailing_component_size"
                 android:layout_height="@dimen/item_tailing_component_size"
                 android:layout_alignParentEnd="true"

@@ -24,8 +24,8 @@
         <item name="colorControlActivated">?attr/colorPrimary</item>
         <item name="android:textColor">?attr/colorControlNormal</item>
         <item name="android:windowBackground">@color/color_light_background</item>
-        <item name="android:fontFamily">sans-serif</item>
-        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontFamily">@font/manrope_regular</item>
+        <item name="fontFamily">@font/manrope_regular</item>
         <item name="colorPrimaryContainer">@color/md3_light_primaryContainer</item>
         <item name="colorOnPrimaryContainer">@color/md3_light_onPrimaryContainer</item>
         <item name="colorOnPrimary">@color/md3_light_onPrimary</item>
@@ -66,8 +66,8 @@
         <item name="colorControlActivated">?attr/colorPrimary</item>
         <item name="colorClashStopped">@color/tech_card</item>
         <item name="android:textColor">@color/tech_text_primary</item>
-        <item name="android:fontFamily">sans-serif</item>
-        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontFamily">@font/manrope_regular</item>
+        <item name="fontFamily">@font/manrope_regular</item>
         <item name="colorPrimaryContainer">@color/md3_dark_primaryContainer</item>
         <item name="colorOnPrimaryContainer">@color/md3_dark_onPrimaryContainer</item>
         <item name="colorOnPrimary">@color/md3_dark_onPrimary</item>
@@ -115,8 +115,8 @@
         <item name="android:textColor">?attr/colorControlNormal</item>
 
         <item name="bottomSheetStyle">@style/AppBottomSheetStyle</item>
-        <item name="android:fontFamily">sans-serif</item>
-        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontFamily">@font/manrope_regular</item>
+        <item name="fontFamily">@font/manrope_regular</item>
         <item name="colorPrimaryContainer">@color/md3_light_primaryContainer</item>
         <item name="colorOnPrimaryContainer">@color/md3_light_onPrimaryContainer</item>
         <item name="colorOnPrimary">@color/md3_light_onPrimary</item>
@@ -158,8 +158,8 @@
         <item name="android:windowBackground">@android:color/transparent</item>
 
         <item name="bottomSheetStyle">@style/AppBottomSheetStyle</item>
-        <item name="android:fontFamily">sans-serif</item>
-        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontFamily">@font/manrope_regular</item>
+        <item name="fontFamily">@font/manrope_regular</item>
         <item name="colorPrimaryContainer">@color/md3_dark_primaryContainer</item>
         <item name="colorOnPrimaryContainer">@color/md3_dark_onPrimaryContainer</item>
         <item name="colorOnPrimary">@color/md3_dark_onPrimary</item>
@@ -191,8 +191,8 @@
 
     <style name="AppThemeLightBase" parent="Theme.Material3.Light.NoActionBar">
         <!-- Neutral system typography keeps every screen legible. -->
-        <item name="android:fontFamily">sans-serif</item>
-        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontFamily">@font/manrope_regular</item>
+        <item name="fontFamily">@font/manrope_regular</item>
         <item name="homeGlowColor">#0DFFFFFF</item>
         <item name="android:windowBackground">@color/color_light_background</item>
         <item name="android:ambientShadowAlpha">0.08</item>
@@ -279,28 +279,43 @@
         <item name="yamlComment">@color/yaml_comment_light</item>
         <item name="yamlPunctuation">@color/yaml_punctuation_light</item>
         <item name="yamlPlain">@color/yaml_plain_light</item>
+        <item name="textAppearanceDisplayLarge">@style/TextAppearance.App.DisplayLarge</item>
+        <item name="textAppearanceDisplayMedium">@style/TextAppearance.App.DisplayMedium</item>
+        <item name="textAppearanceDisplaySmall">@style/TextAppearance.App.DisplaySmall</item>
+        <item name="textAppearanceHeadlineLarge">@style/TextAppearance.App.HeadlineLarge</item>
+        <item name="textAppearanceHeadlineMedium">@style/TextAppearance.App.HeadlineMedium</item>
+        <item name="textAppearanceHeadlineSmall">@style/TextAppearance.App.HeadlineSmall</item>
+        <item name="textAppearanceTitleLarge">@style/TextAppearance.App.TitleLarge</item>
+        <item name="textAppearanceTitleMedium">@style/TextAppearance.App.TitleMedium</item>
+        <item name="textAppearanceTitleSmall">@style/TextAppearance.App.TitleSmall</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.App.BodyLarge</item>
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.App.BodyMedium</item>
+        <item name="textAppearanceBodySmall">@style/TextAppearance.App.BodySmall</item>
+        <item name="textAppearanceLabelLarge">@style/TextAppearance.App.LabelLarge</item>
+        <item name="textAppearanceLabelMedium">@style/TextAppearance.App.LabelMedium</item>
+        <item name="textAppearanceLabelSmall">@style/TextAppearance.App.LabelSmall</item>
     </style>
 
     <!-- Material 3 Shape Styles -->
     <style name="ShapeAppearance.App.SmallComponent" parent="ShapeAppearance.Material3.SmallComponent">
         <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">8dp</item>
+        <item name="cornerSize">12dp</item>
     </style>
 
     <style name="ShapeAppearance.App.MediumComponent" parent="ShapeAppearance.Material3.MediumComponent">
         <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">12dp</item>
+        <item name="cornerSize">20dp</item>
     </style>
 
     <style name="ShapeAppearance.App.LargeComponent" parent="ShapeAppearance.Material3.LargeComponent">
         <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">16dp</item>
+        <item name="cornerSize">28dp</item>
     </style>
 
     <style name="AppThemeDarkBase" parent="Theme.Material3.Dark.NoActionBar">
         <!-- Neutral system typography keeps every screen legible. -->
-        <item name="android:fontFamily">sans-serif</item>
-        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontFamily">@font/manrope_regular</item>
+        <item name="fontFamily">@font/manrope_regular</item>
         <item name="homeGlowColor">#2BFFFFFF</item>
         <item name="android:windowBackground">@color/tech_bg</item>
         <item name="android:ambientShadowAlpha">0.12</item>
@@ -386,6 +401,21 @@
         <item name="yamlComment">@color/yaml_comment_dark</item>
         <item name="yamlPunctuation">@color/yaml_punctuation_dark</item>
         <item name="yamlPlain">@color/yaml_plain_dark</item>
+        <item name="textAppearanceDisplayLarge">@style/TextAppearance.App.DisplayLarge</item>
+        <item name="textAppearanceDisplayMedium">@style/TextAppearance.App.DisplayMedium</item>
+        <item name="textAppearanceDisplaySmall">@style/TextAppearance.App.DisplaySmall</item>
+        <item name="textAppearanceHeadlineLarge">@style/TextAppearance.App.HeadlineLarge</item>
+        <item name="textAppearanceHeadlineMedium">@style/TextAppearance.App.HeadlineMedium</item>
+        <item name="textAppearanceHeadlineSmall">@style/TextAppearance.App.HeadlineSmall</item>
+        <item name="textAppearanceTitleLarge">@style/TextAppearance.App.TitleLarge</item>
+        <item name="textAppearanceTitleMedium">@style/TextAppearance.App.TitleMedium</item>
+        <item name="textAppearanceTitleSmall">@style/TextAppearance.App.TitleSmall</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.App.BodyLarge</item>
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.App.BodyMedium</item>
+        <item name="textAppearanceBodySmall">@style/TextAppearance.App.BodySmall</item>
+        <item name="textAppearanceLabelLarge">@style/TextAppearance.App.LabelLarge</item>
+        <item name="textAppearanceLabelMedium">@style/TextAppearance.App.LabelMedium</item>
+        <item name="textAppearanceLabelSmall">@style/TextAppearance.App.LabelSmall</item>
     </style>
 
     <style name="AppThemeLight" parent="AppThemeLightBase">

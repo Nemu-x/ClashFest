@@ -15,6 +15,13 @@
         android:background="@drawable/bg_home_canvas"
         android:paddingStart="@{surface.insets.start}"
         android:paddingEnd="@{surface.insets.end}">
+        <com.github.kr328.clash.design.view.ExpressiveBackdropView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:focusable="false"
+            android:clickable="false" />
+
 
         <com.github.kr328.clash.design.view.ObservableScrollView
             android:id="@+id/scroll_root"
@@ -45,7 +52,8 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/theme_mode_auto"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
@@ -56,7 +64,8 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/theme_mode_light"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
@@ -67,7 +76,8 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/theme_mode_dark"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
@@ -161,7 +171,8 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/text_scale_small"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
@@ -170,7 +181,8 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/text_scale_default"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
@@ -179,7 +191,8 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/text_scale_large"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
@@ -188,7 +201,8 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/text_scale_extra"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
@@ -215,7 +229,8 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/font_weight_default"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
@@ -224,7 +239,8 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/font_weight_medium"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
@@ -233,7 +249,8 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/font_weight_semibold"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
@@ -242,7 +259,8 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/font_weight_bold"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
@@ -269,7 +287,8 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/home_background_material"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
@@ -278,7 +297,8 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/home_background_preview"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
@@ -287,7 +307,8 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/home_background_sloth"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
@@ -297,7 +318,8 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/reset_theme_button"
-                    style="@style/Widget.Material3.Button.TextButton"
+                    style="@style/AppButton.Text"
+                    android:stateListAnimator="@animator/focus_scale"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
                     android:layout_marginTop="16dp"

@@ -31,7 +31,8 @@
                         <com.google.android.material.textfield.MaterialAutoCompleteTextView android:id="@+id/chain_first_profile" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="none"/>
                     </com.google.android.material.textfield.TextInputLayout>
                     <com.google.android.material.textfield.TextInputLayout android:id="@+id/chain_first_node_box" style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:hint="@string/chain_server" app:endIconDrawable="@drawable/ic_arrow_drop_down" app:endIconMode="custom" app:endIconContentDescription="@string/chain_pick_server">
-                        <com.google.android.material.textfield.TextInputEditText android:id="@+id/chain_first_node" android:layout_width="match_parent" android:layout_height="wrap_content" android:clickable="true" android:cursorVisible="false" android:focusable="false" android:inputType="none" android:maxLines="2" android:minHeight="56dp"/>
+                        <com.google.android.material.textfield.TextInputEditText android:id="@+id/chain_first_node" android:stateListAnimator="@animator/focus_scale"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:clickable="true" android:cursorVisible="false" android:focusable="false" android:inputType="none" android:maxLines="2" android:minHeight="56dp"/>
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -49,13 +50,16 @@
                         <com.google.android.material.textfield.MaterialAutoCompleteTextView android:id="@+id/chain_exit_profile" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="none"/>
                     </com.google.android.material.textfield.TextInputLayout>
                     <com.google.android.material.textfield.TextInputLayout android:id="@+id/chain_exit_node_box" style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:hint="@string/chain_server" app:endIconDrawable="@drawable/ic_arrow_drop_down" app:endIconMode="custom" app:endIconContentDescription="@string/chain_pick_server">
-                        <com.google.android.material.textfield.TextInputEditText android:id="@+id/chain_exit_node" android:layout_width="match_parent" android:layout_height="wrap_content" android:clickable="true" android:cursorVisible="false" android:focusable="false" android:inputType="none" android:maxLines="2" android:minHeight="56dp"/>
+                        <com.google.android.material.textfield.TextInputEditText android:id="@+id/chain_exit_node" android:stateListAnimator="@animator/focus_scale"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:clickable="true" android:cursorVisible="false" android:focusable="false" android:inputType="none" android:maxLines="2" android:minHeight="56dp"/>
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="@string/chain_compatibility" android:textAppearance="@style/TextAppearance.App.BodySmall" android:textColor="?attr/colorOnSurfaceVariant"/>
-            <com.google.android.material.button.MaterialButton android:id="@+id/chain_connect" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:minHeight="52dp" android:text="@string/chain_save_and_enable"/>
-            <com.google.android.material.button.MaterialButton android:id="@+id/chain_save" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:minHeight="52dp" android:text="@string/chain_save_only"/>
+            <com.google.android.material.button.MaterialButton android:id="@+id/chain_connect" android:stateListAnimator="@animator/focus_scale"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:minHeight="52dp" android:text="@string/chain_save_and_enable"/>
+            <com.google.android.material.button.MaterialButton android:id="@+id/chain_save" style="@style/AppButton.Outlined" android:stateListAnimator="@animator/focus_scale"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:minHeight="52dp" android:text="@string/chain_save_only"/>
         </LinearLayout>
         <TextView android:id="@+id/chain_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:textAppearance="@style/TextAppearance.App.BodyMedium" android:textColor="?attr/colorOnSurface" android:accessibilityLiveRegion="polite" android:visibility="gone"/>
     </LinearLayout>

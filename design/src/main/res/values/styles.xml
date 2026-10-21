@@ -14,27 +14,39 @@
          overlay is too faint on the neutralised theme, so the explicit ring makes
          the focused control unmistakable. -->
     <style name="AppButton" parent="Widget.Material3.Button">
-        <item name="cornerRadius">12dp</item>
+        <item name="cornerRadius">28dp</item>
         <item name="android:foreground">@drawable/focus_ring</item>
         <item name="android:stateListAnimator">@animator/focus_scale</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:textAppearance">@style/TextAppearance.App.LabelLarge</item>
+        <item name="android:textAllCaps">false</item>
     </style>
 
     <style name="AppButton.Outlined" parent="Widget.Material3.Button.OutlinedButton">
-        <item name="cornerRadius">12dp</item>
+        <item name="cornerRadius">28dp</item>
         <item name="android:foreground">@drawable/focus_ring</item>
         <item name="android:stateListAnimator">@animator/focus_scale</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:textAppearance">@style/TextAppearance.App.LabelLarge</item>
+        <item name="android:textAllCaps">false</item>
     </style>
 
     <style name="AppButton.Text" parent="Widget.Material3.Button.TextButton">
-        <item name="cornerRadius">12dp</item>
+        <item name="cornerRadius">28dp</item>
         <item name="android:foreground">@drawable/focus_ring</item>
         <item name="android:stateListAnimator">@animator/focus_scale</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:textAppearance">@style/TextAppearance.App.LabelLarge</item>
+        <item name="android:textAllCaps">false</item>
     </style>
 
     <style name="AppButton.Tonal" parent="Widget.Material3.Button.TonalButton">
-        <item name="cornerRadius">12dp</item>
+        <item name="cornerRadius">28dp</item>
         <item name="android:foreground">@drawable/focus_ring</item>
         <item name="android:stateListAnimator">@animator/focus_scale</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:textAppearance">@style/TextAppearance.App.LabelLarge</item>
+        <item name="android:textAllCaps">false</item>
     </style>
 
     <style name="AppButton.Icon" parent="Widget.Material3.Button.IconButton">
@@ -54,19 +66,27 @@
 
     <!-- Neutral borders keep cards readable in both themes. -->
     <style name="AppCard.Filled" parent="Widget.Material3.CardView.Filled">
-        <item name="cardCornerRadius">16dp</item>
+        <item name="cardCornerRadius">28dp</item>
         <item name="strokeColor">?attr/colorOutlineVariant</item>
-        <item name="strokeWidth">1dp</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="boxCornerRadiusTopStart">20dp</item>
+        <item name="boxCornerRadiusTopEnd">20dp</item>
+        <item name="boxCornerRadiusBottomStart">20dp</item>
+        <item name="boxCornerRadiusBottomEnd">20dp</item>
     </style>
 
     <style name="AppCard.Surface" parent="Widget.Material3.CardView.Filled">
-        <item name="cardCornerRadius">16dp</item>
+        <item name="cardCornerRadius">28dp</item>
         <item name="strokeColor">?attr/colorOutlineVariant</item>
-        <item name="strokeWidth">1dp</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="cardElevation">0dp</item>
     </style>
 
     <style name="AppCard.Action" parent="Widget.Material3.CardView.Filled">
-        <item name="cardCornerRadius">16dp</item>
+        <item name="cardCornerRadius">28dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeWidth">0dp</item>
     </style>
 
     <style name="AppCard.BottomNav" parent="Widget.Material3.CardView.Filled" />
@@ -79,6 +99,9 @@
     <style name="ShapeAppearance.App.Circle" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">50%</item>
+        <item name="cardCornerRadius">28dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeWidth">0dp</item>
     </style>
 
     <!-- Smaller filter chip for sort/filter rows in the proxy picker. -->
@@ -109,6 +132,10 @@
     <!-- ========== Material 3 Toolbar Style ========== -->
     <style name="AppToolbar" parent="Widget.Material3.Toolbar">
         <item name="titleTextEllipsize">end</item>
+        <item name="boxCornerRadiusTopStart">20dp</item>
+        <item name="boxCornerRadiusTopEnd">20dp</item>
+        <item name="boxCornerRadiusBottomStart">20dp</item>
+        <item name="boxCornerRadiusBottomEnd">20dp</item>
     </style>
 
     <!-- ========== Material 3 Progress Indicator Style ========== -->
@@ -129,68 +156,133 @@
     <!-- Shared typography for Mikan screens. -->
     <!-- Display -->
     <style name="TextAppearance.App.DisplayLarge" parent="TextAppearance.Material3.DisplayLarge">
-        <item name="android:fontFamily">sans-serif-medium</item>
-        <item name="fontFamily">sans-serif-medium</item>
+        <item name="android:fontFamily">@font/manrope_bold</item>
+        <item name="fontFamily">@font/manrope_bold</item>
+        <item name="android:textSize">56sp</item>
+        <item name="android:letterSpacing">-0.025</item>
+        <item name="android:includeFontPadding">false</item>
     </style>
 
     <style name="TextAppearance.App.DisplayMedium" parent="TextAppearance.Material3.DisplayMedium">
-        <item name="android:fontFamily">sans-serif-medium</item>
-        <item name="fontFamily">sans-serif-medium</item>
+        <item name="android:fontFamily">@font/manrope_bold</item>
+        <item name="fontFamily">@font/manrope_bold</item>
+        <item name="android:textSize">44sp</item>
+        <item name="android:letterSpacing">-0.025</item>
+        <item name="android:includeFontPadding">false</item>
     </style>
 
     <style name="TextAppearance.App.DisplaySmall" parent="TextAppearance.Material3.DisplaySmall">
-        <item name="android:fontFamily">sans-serif-medium</item>
-        <item name="fontFamily">sans-serif-medium</item>
+        <item name="android:fontFamily">@font/manrope_bold</item>
+        <item name="fontFamily">@font/manrope_bold</item>
+        <item name="android:textSize">36sp</item>
+        <item name="android:letterSpacing">-0.025</item>
+        <item name="android:includeFontPadding">false</item>
     </style>
 
     <!-- Headline -->
     <style name="TextAppearance.App.HeadlineLarge" parent="TextAppearance.Material3.HeadlineLarge">
-        <item name="android:fontFamily">sans-serif-medium</item>
-        <item name="fontFamily">sans-serif-medium</item>
+        <item name="android:fontFamily">@font/manrope_semibold</item>
+        <item name="fontFamily">@font/manrope_semibold</item>
+        <item name="android:textSize">32sp</item>
+        <item name="android:letterSpacing">-0.025</item>
+        <item name="android:includeFontPadding">false</item>
     </style>
 
     <style name="TextAppearance.App.HeadlineMedium" parent="TextAppearance.Material3.HeadlineMedium">
-        <item name="android:fontFamily">sans-serif-medium</item>
-        <item name="fontFamily">sans-serif-medium</item>
+        <item name="android:fontFamily">@font/manrope_semibold</item>
+        <item name="fontFamily">@font/manrope_semibold</item>
+        <item name="android:textSize">28sp</item>
+        <item name="android:letterSpacing">-0.025</item>
+        <item name="android:includeFontPadding">false</item>
     </style>
 
     <style name="TextAppearance.App.HeadlineSmall" parent="TextAppearance.Material3.HeadlineSmall">
-        <item name="android:fontFamily">sans-serif-medium</item>
-        <item name="fontFamily">sans-serif-medium</item>
+        <item name="android:fontFamily">@font/manrope_semibold</item>
+        <item name="fontFamily">@font/manrope_semibold</item>
+        <item name="android:textSize">24sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:includeFontPadding">false</item>
     </style>
 
     <!-- Title -->
     <style name="TextAppearance.App.TitleLarge" parent="TextAppearance.Material3.TitleLarge">
-        <item name="android:fontFamily">sans-serif-medium</item>
-        <item name="fontFamily">sans-serif-medium</item>
+        <item name="android:fontFamily">@font/manrope_semibold</item>
+        <item name="fontFamily">@font/manrope_semibold</item>
+        <item name="android:textSize">24sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:includeFontPadding">false</item>
     </style>
 
     <style name="TextAppearance.App.TitleMedium" parent="TextAppearance.Material3.TitleMedium">
-        <item name="android:fontFamily">sans-serif-medium</item>
-        <item name="fontFamily">sans-serif-medium</item>
+        <item name="android:fontFamily">@font/manrope_semibold</item>
+        <item name="fontFamily">@font/manrope_semibold</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:includeFontPadding">false</item>
     </style>
 
     <style name="TextAppearance.App.TitleSmall" parent="TextAppearance.Material3.TitleSmall">
-        <item name="android:fontFamily">sans-serif-medium</item>
-        <item name="fontFamily">sans-serif-medium</item>
+        <item name="android:fontFamily">@font/manrope_semibold</item>
+        <item name="fontFamily">@font/manrope_semibold</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:includeFontPadding">false</item>
     </style>
 
     <!-- Body -->
-    <style name="TextAppearance.App.BodyLarge" parent="TextAppearance.Material3.BodyLarge" />
+    <style name="TextAppearance.App.BodyLarge" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:fontFamily">?attr/fontFamily</item>
+        <item name="fontFamily">?attr/fontFamily</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
 
-    <style name="TextAppearance.App.BodyMedium" parent="TextAppearance.Material3.BodyMedium" />
+    <style name="TextAppearance.App.BodyMedium" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:fontFamily">?attr/fontFamily</item>
+        <item name="fontFamily">?attr/fontFamily</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
 
-    <style name="TextAppearance.App.BodySmall" parent="TextAppearance.Material3.BodySmall" />
+    <style name="TextAppearance.App.BodySmall" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:fontFamily">?attr/fontFamily</item>
+        <item name="fontFamily">?attr/fontFamily</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
 
     <!-- Label -->
-    <style name="TextAppearance.App.LabelLarge" parent="TextAppearance.Material3.LabelLarge" />
+    <style name="TextAppearance.App.LabelLarge" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:fontFamily">@font/manrope_semibold</item>
+        <item name="fontFamily">@font/manrope_semibold</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
 
-    <style name="TextAppearance.App.LabelMedium" parent="TextAppearance.Material3.LabelMedium" />
+    <style name="TextAppearance.App.LabelMedium" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:fontFamily">@font/manrope_semibold</item>
+        <item name="fontFamily">@font/manrope_semibold</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
 
-    <style name="TextAppearance.App.LabelSmall" parent="TextAppearance.Material3.LabelSmall" />
+    <style name="TextAppearance.App.LabelSmall" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:fontFamily">@font/manrope_semibold</item>
+        <item name="fontFamily">@font/manrope_semibold</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
 
     <style name="TextAppearance.App.BottomNavigation" parent="TextAppearance.Material3.LabelMedium">
-        <item name="android:textSize">10sp</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:fontFamily">@font/manrope_semibold</item>
+        <item name="fontFamily">@font/manrope_semibold</item>
     </style>
 
 </resources>

@@ -11,13 +11,14 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:fontFamily="monospace"
+        android:fontFamily="@font/manrope_semibold"
         android:textAppearance="@style/TextAppearance.App.BodyMedium"
         android:textColor="?attr/colorOnSurface" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_remove"
         style="@style/AppButton.Text"
+        android:stateListAnimator="@animator/focus_scale"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/proxy_providers_merged_remove" />

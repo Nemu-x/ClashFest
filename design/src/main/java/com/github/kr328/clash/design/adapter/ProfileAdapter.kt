@@ -754,6 +754,9 @@ class ProfileAdapter(
     private fun bindSubscriptionCard(holder: SubscriptionHolder, profile: Profile) {
         val binding = holder.binding
         val context = binding.root.context
+        bindSubscriptionVisuals(binding, profile)
+        binding.subscriptionChooseServer.isEnabled = profile.imported && !profile.pending
+        binding.subscriptionChooseServer.setOnClickListener { showProxySheet(context, profile) }
         binding.subscriptionCard.setOnClickListener { onClicked(profile) }
         binding.subscriptionMenu.setOnClickListener {
             if (subscriptionClickGuard.accept(profile.uuid to it.id)) onMenuClicked(profile, it)

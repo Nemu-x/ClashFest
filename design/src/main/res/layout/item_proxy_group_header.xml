@@ -11,6 +11,7 @@
 
     <LinearLayout
         android:id="@+id/group_block_header"
+        android:stateListAnimator="@animator/focus_scale"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?attr/selectableItemBackground"
@@ -84,6 +85,7 @@
 
             <ImageView
                 android:id="@+id/group_block_ping"
+                android:stateListAnimator="@animator/focus_scale"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="?attr/selectableItemBackgroundBorderless"

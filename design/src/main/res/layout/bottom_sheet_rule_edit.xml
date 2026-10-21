@@ -83,7 +83,8 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_pick_app"
-            style="@style/Widget.Material3.Button.TextButton"
+            style="@style/AppButton.Text"
+            android:stateListAnimator="@animator/focus_scale"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:minHeight="48dp"
@@ -137,7 +138,8 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_policy_direct"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/AppButton.Outlined"
+                android:stateListAnimator="@animator/focus_scale"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -147,7 +149,8 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_policy_reject"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/AppButton.Outlined"
+                android:stateListAnimator="@animator/focus_scale"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -230,7 +233,8 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_delete"
-                style="@style/Widget.Material3.Button.TextButton"
+                style="@style/AppButton.Text"
+                android:stateListAnimator="@animator/focus_scale"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/delete"
@@ -239,13 +243,15 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_cancel"
-                style="@style/Widget.Material3.Button.TextButton"
+                style="@style/AppButton.Text"
+                android:stateListAnimator="@animator/focus_scale"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/cancel" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_confirm"
+                android:stateListAnimator="@animator/focus_scale"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:enabled="false"

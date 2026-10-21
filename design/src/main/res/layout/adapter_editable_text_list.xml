@@ -18,6 +18,7 @@
 
         <ImageView
             android:id="@+id/delete_view"
+            android:stateListAnimator="@animator/focus_scale"
             android:layout_width="@dimen/item_tailing_component_size"
             android:layout_height="@dimen/item_tailing_component_size"
             android:layout_alignParentEnd="true"

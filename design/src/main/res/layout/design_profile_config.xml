@@ -19,6 +19,13 @@
         android:background="@drawable/bg_home_canvas"
         android:paddingStart="@{self.surface.insets.start}"
         android:paddingEnd="@{self.surface.insets.end}">
+        <com.github.kr328.clash.design.view.ExpressiveBackdropView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:focusable="false"
+            android:clickable="false" />
+
 
         <TextView
             android:id="@+id/screen_title"
@@ -28,7 +35,7 @@
             android:paddingTop="@{self.surface.insets.top}"
             android:paddingBottom="12dp"
             android:text="@string/profile_menu_view_config"
-            android:textAppearance="@style/TextAppearance.App.TitleLarge"
+            android:textAppearance="@style/TextAppearance.App.HeadlineLarge"
             android:textColor="?attr/colorOnSurface"
             android:textStyle="bold" />
 
@@ -85,6 +92,7 @@
                 android:layout_gravity="end|center_vertical">
 
                 <ImageView
+                    android:stateListAnimator="@animator/focus_scale"
                     android:layout_width="@dimen/item_tailing_component_size"
                     android:layout_height="@dimen/item_tailing_component_size"
                     android:layout_marginStart="@dimen/item_tailing_margin"
@@ -97,6 +105,7 @@
                     android:src="@drawable/ic_baseline_content_copy" />
 
                 <ImageView
+                    android:stateListAnimator="@animator/focus_scale"
                     android:layout_width="@dimen/item_tailing_component_size"
                     android:layout_height="@dimen/item_tailing_component_size"
                     android:layout_marginStart="@dimen/item_tailing_margin"

@@ -5,6 +5,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_home_canvas">
+        <com.github.kr328.clash.design.view.ExpressiveBackdropView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:focusable="false"
+            android:clickable="false" />
+
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/dns_hosts_scroll"
@@ -49,7 +56,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 app:cardBackgroundColor="?attr/colorPrimaryContainer"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="24dp"
                 app:cardElevation="0dp">
 
                 <LinearLayout
@@ -145,7 +152,8 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/mode_off"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -154,7 +162,8 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/mode_redir"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -163,7 +172,8 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/mode_fakeip"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -203,7 +213,8 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/cache_default"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -212,7 +223,8 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/cache_lru"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -221,7 +233,8 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/cache_arc"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        style="@style/AppButton.Outlined"
+                        android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -335,6 +348,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_save"
+                    android:stateListAnimator="@animator/focus_scale"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
