@@ -7,5 +7,5 @@ internal fun lastSubscriptionFetchAt(profileDir: File): Long =
     File(profileDir, ProfileComposer.SUBSCRIPTION_FILE).takeIf { it.isFile }?.lastModified()
         ?: File(profileDir, "config.yaml").lastModified()
 
-internal fun activeProfileAfterDelete(active: UUID?, deleted: UUID, remaining: () -> List<UUID>): UUID? =
+internal inline fun activeProfileAfterDelete(active: UUID?, deleted: UUID, remaining: () -> List<UUID>): UUID? =
     if (active == deleted) remaining().firstOrNull { it != deleted } else active
