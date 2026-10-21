@@ -401,6 +401,10 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     suspend fun patchProfiles(profiles: List<Profile>) {
         withContext(Dispatchers.Main) {
             binding.hasProfiles = profiles.isNotEmpty()
+            if (profiles.isNotEmpty() && context.isTelevision()) {
+                binding.executePendingBindings()
+                focusPowerOrbIfIdle()
+            }
             val homeProfiles = profiles.filter { it.active }.ifEmpty { profiles.take(1) }
             activeProfileForQuickActions = profiles.firstOrNull { it.active } ?: profiles.firstOrNull()
             renderActiveProfileCard(activeProfileForQuickActions)
@@ -774,6 +778,8 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         if (context.isTelevision()) {
             binding.mainCompanionRow.visibility = View.VISIBLE
             binding.mainCompanionEmptyButton.visibility = View.VISIBLE
+            applyTvHomeLayout()
+            applyTvPageFocusMargins()
         }
 
         setupProfileLists()

@@ -215,9 +215,13 @@ internal fun MainDesign.renderMainTab(tab: MainTab) {
         // The ViewPager keeps off-screen tab pages attached + VISIBLE (offscreenPageLimit =
         // all), so without this their content stays focusable and the D-pad escapes into the
         // hidden tab ("ghost" focus on TV). Only the current tab's page accepts focus.
-        (pageForMainTab(it) as? ViewGroup)?.descendantFocusability =
+        val page = pageForMainTab(it)
+        (page as? ViewGroup)?.descendantFocusability =
             if (it == tab) ViewGroup.FOCUS_AFTER_DESCENDANTS
             else ViewGroup.FOCUS_BLOCK_DESCENDANTS
+        // The page itself too: a scroll-view page is focusable, so RIGHT from the edge of the
+        // current tab landed on the neighbouring (off-screen) page and focus vanished.
+        if (page is androidx.core.widget.NestedScrollView) page.isFocusable = it == tab
     }
     updateBreathAnimator(clashRunningState, tunnelStartingState)
 }
