@@ -1307,6 +1307,8 @@
     <string name="remote_actions_empty">ТВ не предлагает действий</string>
     <string name="remote_loading">Загрузка…</string>
     <string name="remote_forget">Забыть ТВ</string>
+    <string name="remote_other_devices">Другие устройства</string>
+    <string name="remote_control_settings">Настройки удалённого управления</string>
     <string name="remote_forget_message">Забыть %1$s? Телефон перестанет им управлять, а сопряжение на ТВ будет удалено.</string>
     <string name="remote_forgotten">%1$s забыт</string>
     <string name="remote_forgotten_offline">Забыт на этом телефоне. ТВ был недоступен — удалите сопряжение и на самом ТВ.</string>

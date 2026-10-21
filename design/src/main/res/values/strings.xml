@@ -1315,6 +1315,8 @@ Password: %4$s</string>
     <string name="remote_actions_empty">The TV offers no actions</string>
     <string name="remote_loading">Loading…</string>
     <string name="remote_forget">Forget TV</string>
+    <string name="remote_other_devices">Other devices</string>
+    <string name="remote_control_settings">Remote control settings</string>
     <string name="remote_forget_message">Forget %1$s? This phone stops controlling it and its pairing on the TV is removed.</string>
     <string name="remote_forgotten">%1$s forgotten</string>
     <string name="remote_forgotten_offline">Forgotten on this phone. The TV was unreachable, so also remove the pairing on the TV.</string>

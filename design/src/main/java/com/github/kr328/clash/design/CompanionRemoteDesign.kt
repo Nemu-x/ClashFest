@@ -66,6 +66,8 @@ class CompanionRemoteDesign(context: Context, initialName: String) : Design<Comp
         object Share : Request()
         data class Rename(val name: String) : Request()
         object Forget : Request()
+        object OpenDevices : Request()
+        object OpenRemoteSettings : Request()
     }
 
     private val binding = DesignCompanionRemoteBinding.inflate(context.layoutInflater, context.root, false)
@@ -574,11 +576,15 @@ class CompanionRemoteDesign(context: Context, initialName: String) : Design<Comp
             menu.add(0, MENU_SHARE, 0, R.string.companion_action_share)
             menu.add(0, MENU_RENAME, 1, R.string.companion_action_rename)
             menu.add(0, MENU_FORGET, 2, R.string.remote_forget)
+            menu.add(1, MENU_DEVICES, 3, R.string.remote_other_devices)
+            menu.add(1, MENU_REMOTE_SETTINGS, 4, R.string.remote_control_settings)
             setOnMenuItemClickListener { item ->
                 when (item.itemId) {
                     MENU_SHARE -> requests.trySend(Request.Share)
                     MENU_RENAME -> promptRename()
                     MENU_FORGET -> confirmForget()
+                    MENU_DEVICES -> requests.trySend(Request.OpenDevices)
+                    MENU_REMOTE_SETTINGS -> requests.trySend(Request.OpenRemoteSettings)
                 }
                 true
             }
@@ -619,6 +625,8 @@ class CompanionRemoteDesign(context: Context, initialName: String) : Design<Comp
         const val MENU_SHARE = 1
         const val MENU_RENAME = 2
         const val MENU_FORGET = 3
+        const val MENU_DEVICES = 4
+        const val MENU_REMOTE_SETTINGS = 5
 
         /** Plain rows, not a recycler: beyond this a phone screen is not the place to read them. */
         const val MAX_CONNECTION_ROWS = 200

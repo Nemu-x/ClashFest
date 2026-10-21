@@ -1237,6 +1237,8 @@
     <string name="remote_actions_empty">电视未提供操作</string>
     <string name="remote_loading">加载中…</string>
     <string name="remote_forget">忘记电视</string>
+    <string name="remote_other_devices">其他设备</string>
+    <string name="remote_control_settings">远程控制设置</string>
     <string name="remote_forget_message">忘记 %1$s？此手机将不再控制它，电视上的配对也会被移除。</string>
     <string name="remote_forgotten">已忘记 %1$s</string>
     <string name="remote_forgotten_offline">已在此手机上忘记。电视无法连接，请同时在电视上移除配对。</string>

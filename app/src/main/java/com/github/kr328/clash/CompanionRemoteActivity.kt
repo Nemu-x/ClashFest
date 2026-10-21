@@ -3,6 +3,7 @@ package com.github.kr328.clash
 import android.text.format.DateUtils
 import com.github.kr328.clash.common.log.Log
 import com.github.kr328.clash.companion.CompanionStore
+import com.github.kr328.clash.common.util.intent
 import com.github.kr328.clash.companion.controller.CompanionClient
 import com.github.kr328.clash.companion.controller.CompanionError
 import com.github.kr328.clash.companion.controller.CompanionEvent
@@ -441,6 +442,8 @@ class CompanionRemoteActivity : BaseActivity<CompanionRemoteDesign>() {
                 remote.showToast(R.string.companion_renamed, ToastDuration.Short)
             }
             Request.Forget -> launch { forget() }
+            Request.OpenDevices -> startActivity(CompanionControlActivity::class.intent)
+            Request.OpenRemoteSettings -> startActivity(CompanionActivity::class.intent)
         }
     }
 
