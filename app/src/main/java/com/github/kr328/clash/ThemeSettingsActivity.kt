@@ -33,8 +33,7 @@ class ThemeSettingsActivity : BaseActivity<ThemeSettingsDesign>() {
     }
 
     override suspend fun main() {
-        fun newDesign() = ThemeSettingsDesign(this, uiStore) { syncNightModeFromUiStore() }
-        var current = newDesign()
+        val current = ThemeSettingsDesign(this, uiStore) { syncNightModeFromUiStore() }
         setContentDesign(current)
 
         while (isActive) {
@@ -45,13 +44,9 @@ class ThemeSettingsActivity : BaseActivity<ThemeSettingsDesign>() {
                     when (request) {
                         ThemeSettingsDesign.Request.ReCreateOtherActivities -> {
                             staggerRecreate(
-                                ApplicationObserver.createdActivities.filter { it !is ThemeSettingsActivity },
+                                ApplicationObserver.createdActivities.toList(),
                                 softMain = true,
                             )
-                            val old = current
-                            current = newDesign()
-                            design = current
-                            old.disposeForReplace()
                         }
                         ThemeSettingsDesign.Request.ReCreateAllActivities -> {
                             // Font scale / reset — attachBaseContext must re-run, soft path can't.
@@ -61,5 +56,10 @@ class ThemeSettingsActivity : BaseActivity<ThemeSettingsDesign>() {
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        design?.dispose()
+        super.onDestroy()
     }
 }

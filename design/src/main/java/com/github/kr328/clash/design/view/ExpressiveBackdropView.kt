@@ -32,6 +32,12 @@ class ExpressiveBackdropView @JvmOverloads constructor(context: Context, attrs: 
     private val primary = context.resolveThemedColor(MaterialR.attr.colorPrimary)
     private val secondary = context.resolveThemedColor(MaterialR.attr.colorSecondary)
 
+    init {
+        if (com.github.kr328.clash.design.store.UiStore(context).homeBackgroundStyle ==
+            com.github.kr328.clash.design.model.HomeBackgroundStyle.MaterialYou
+        ) visibility = GONE
+    }
+
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         val band = 240f * resources.displayMetrics.density
         paint.shader = LinearGradient(0f, -band, 0f, band,

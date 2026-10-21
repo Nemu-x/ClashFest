@@ -305,7 +305,7 @@ abstract class BaseActivity<D : Design<*>> : AppCompatActivity(),
                     true,
                 )
             } else {
-                val accent = uiStore.customAccent
+                val accent = uiStore.customAccent?.takeIf { DynamicColors.isDynamicColorAvailable() }
                 if (accent != null) {
                     // User custom accent: harmonise a full M3 palette from the seed (same path as the
                     // operator brand). Takes precedence over preset palette / Material You; the operator

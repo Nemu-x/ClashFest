@@ -440,6 +440,10 @@
         <item name="colorSurfaceContainerLow">#F0F4FF</item>
         <item name="colorSurfaceContainer">#EAF0FF</item>
         <item name="colorSurfaceContainerHigh">#E1E8FA</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorOnSecondaryContainer">#171B34</item>
+        <item name="colorOnTertiary">#FFFFFF</item>
+        <item name="colorOnTertiaryContainer">#001F28</item>
     </style>
 
     <style name="ThemeOverlay_ClashFest_PaletteBlue_Dark">
@@ -451,6 +455,10 @@
         <item name="colorSecondaryContainer">#444A68</item>
         <item name="colorTertiary">#9AD0E1</item>
         <item name="colorTertiaryContainer">#144D5C</item>
+        <item name="colorOnSecondary">#2D324E</item>
+        <item name="colorOnSecondaryContainer">#E0E4FF</item>
+        <item name="colorOnTertiary">#003642</item>
+        <item name="colorOnTertiaryContainer">#BEEAF8</item>
     </style>
 
     <style name="ThemeOverlay_ClashFest_PaletteViolet_Light">
@@ -465,6 +473,10 @@
         <item name="colorSurfaceContainerLow">#F8F1FF</item>
         <item name="colorSurfaceContainer">#F0E9FA</item>
         <item name="colorSurfaceContainerHigh">#E9E1F3</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorOnSecondaryContainer">#221533</item>
+        <item name="colorOnTertiary">#FFFFFF</item>
+        <item name="colorOnTertiaryContainer">#321127</item>
     </style>
 
     <style name="ThemeOverlay_ClashFest_PaletteViolet_Dark">
@@ -476,6 +488,10 @@
         <item name="colorSecondaryContainer">#504260</item>
         <item name="colorTertiary">#F2B7CF</item>
         <item name="colorTertiaryContainer">#633B4F</item>
+        <item name="colorOnSecondary">#392B47</item>
+        <item name="colorOnSecondaryContainer">#ECDFFF</item>
+        <item name="colorOnTertiary">#49263D</item>
+        <item name="colorOnTertiaryContainer">#FFD8E8</item>
     </style>
 
     <style name="ThemeOverlay_ClashFest_PaletteRose_Light">
@@ -490,6 +506,10 @@
         <item name="colorSurfaceContainerLow">#FFF0F4</item>
         <item name="colorSurfaceContainer">#F9E9ED</item>
         <item name="colorSurfaceContainerHigh">#F2E1E6</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorOnSecondaryContainer">#2C151C</item>
+        <item name="colorOnTertiary">#FFFFFF</item>
+        <item name="colorOnTertiaryContainer">#2B1700</item>
     </style>
 
     <style name="ThemeOverlay_ClashFest_PaletteRose_Dark">
@@ -501,6 +521,10 @@
         <item name="colorSecondaryContainer">#5C3F48</item>
         <item name="colorTertiary">#F0BD91</item>
         <item name="colorTertiaryContainer">#60411F</item>
+        <item name="colorOnSecondary">#442A32</item>
+        <item name="colorOnSecondaryContainer">#FFD9E2</item>
+        <item name="colorOnTertiary">#442A0B</item>
+        <item name="colorOnTertiaryContainer">#FFDCC2</item>
     </style>
 
     <style name="ThemeOverlay_ClashFest_PaletteAmber_Light">
@@ -515,6 +539,10 @@
         <item name="colorSurfaceContainerLow">#FBF2DF</item>
         <item name="colorSurfaceContainer">#F2E9D6</item>
         <item name="colorSurfaceContainerHigh">#EAE1CF</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorOnSecondaryContainer">#281900</item>
+        <item name="colorOnTertiary">#FFFFFF</item>
+        <item name="colorOnTertiaryContainer">#121F03</item>
     </style>
 
     <style name="ThemeOverlay_ClashFest_PaletteAmber_Dark">
@@ -526,6 +554,10 @@
         <item name="colorSecondaryContainer">#574420</item>
         <item name="colorTertiary">#B9CE9F</item>
         <item name="colorTertiaryContainer">#3B4B26</item>
+        <item name="colorOnSecondary">#3E2D0C</item>
+        <item name="colorOnSecondaryContainer">#FCDFAF</item>
+        <item name="colorOnTertiary">#263514</item>
+        <item name="colorOnTertiaryContainer">#D5EABB</item>
     </style>
 
     <style name="ThemeOverlay_ClashFest_PaletteMint_Light">
@@ -540,6 +572,10 @@
         <item name="colorSurfaceContainerLow">#EDF8F4</item>
         <item name="colorSurfaceContainer">#E5F1ED</item>
         <item name="colorSurfaceContainerHigh">#DDE9E5</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorOnSecondaryContainer">#082018</item>
+        <item name="colorOnTertiary">#FFFFFF</item>
+        <item name="colorOnTertiaryContainer">#001F2A</item>
     </style>
 
     <style name="ThemeOverlay_ClashFest_PaletteMint_Dark">
@@ -551,6 +587,10 @@
         <item name="colorSecondaryContainer">#344C43</item>
         <item name="colorTertiary">#A6CDDE</item>
         <item name="colorTertiaryContainer">#254B5A</item>
+        <item name="colorOnSecondary">#1E352C</item>
+        <item name="colorOnSecondaryContainer">#CDE9DC</item>
+        <item name="colorOnTertiary">#0A3442</item>
+        <item name="colorOnTertiaryContainer">#C2E8FA</item>
     </style>
 
     <style name="ThemeOverlay_ClashFest_PaletteGraphite_Light">
@@ -565,6 +605,10 @@
         <item name="colorSurfaceContainerLow">#F0F3F7</item>
         <item name="colorSurfaceContainer">#EAEEF2</item>
         <item name="colorSurfaceContainerHigh">#E3E8ED</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorOnSecondaryContainer">#161C24</item>
+        <item name="colorOnTertiary">#FFFFFF</item>
+        <item name="colorOnTertiaryContainer">#29132D</item>
     </style>
 
     <style name="ThemeOverlay_ClashFest_PaletteGraphite_Dark">
@@ -576,6 +620,10 @@
         <item name="colorSecondaryContainer">#41474F</item>
         <item name="colorTertiary">#DDBCDC</item>
         <item name="colorTertiaryContainer">#57435A</item>
+        <item name="colorOnSecondary">#2B3139</item>
+        <item name="colorOnSecondaryContainer">#DDE3ED</item>
+        <item name="colorOnTertiary">#402D43</item>
+        <item name="colorOnTertiaryContainer">#FAD8FC</item>
     </style>
 
     <!-- SlothClash brand palette: warm gold accent (#C9A86C / #936B38) on a
@@ -608,6 +656,10 @@
         <item name="mainDashboardBackground">@drawable/bg_sloth_gradient_light</item>
         <item name="android:fontFamily">@font/nunito</item>
         <item name="fontFamily">@font/nunito</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorOnSecondaryContainer">#281E0D</item>
+        <item name="colorOnTertiary">#FFFFFF</item>
+        <item name="colorOnTertiaryContainer">#121F03</item>
     </style>
 
     <style name="ThemeOverlay_ClashFest_Sloth_Dark">
@@ -637,6 +689,10 @@
         <item name="mainDashboardBackground">@drawable/bg_sloth_gradient</item>
         <item name="android:fontFamily">@font/nunito</item>
         <item name="fontFamily">@font/nunito</item>
+        <item name="colorOnSecondary">#382F1C</item>
+        <item name="colorOnSecondaryContainer">#F0E0C6</item>
+        <item name="colorOnTertiary">#233516</item>
+        <item name="colorOnTertiaryContainer">#D7E9B8</item>
     </style>
 
     <!--

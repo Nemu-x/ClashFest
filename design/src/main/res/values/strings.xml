@@ -92,7 +92,7 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="nav_home">Home</string>
     <string name="nav_subscriptions">Profiles</string>
     <string name="nav_proxies">Proxies</string>
-    <string name="nav_routing">Routing</string>
+    <string name="nav_routing">Rules</string>
     <string name="nav_connections">Connections</string>
     <string name="main_activity_title">Activity</string>
     <string name="main_activity_summary">Live connections and diagnostics</string>
@@ -886,9 +886,9 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="app_language_zh">中文</string>
 
     <string name="home_background">Home background</string>
-    <string name="home_background_material_you">Material</string>
+    <string name="home_background_material_you">Calm</string>
     <string name="home_background_plain">Plain surface</string>
-    <string name="home_background_preview">Mikan</string>
+    <string name="home_background_preview">Animated</string>
 
     <string name="show_traffic">Show Traffic</string>
     <string name="show_traffic_summary">Auto refresh traffic in notification</string>
@@ -1438,4 +1438,10 @@ Password: %4$s</string>
     <string name="subscription_update_refused">The server refused the update. Check the subscription link.</string>
     <string name="subscription_update_key_error">The decryption key is missing or incorrect. Import the complete subscription link.</string>
     <string name="subscription_update_invalid_response">The server returned an invalid response. Your saved subscription is still available.</string>
+    <string name="theme_colors_wallpaper">Colors from your wallpaper are active. Choosing a palette turns them off.</string>
+    <string name="theme_colors_skin">Obsidian controls the colors and font. Choose a palette to leave this style.</string>
+    <string name="theme_colors_brand">Your operator controls the accent. Your palette is saved for unbranded subscriptions.</string>
+    <string name="theme_colors_custom">Your custom accent is active.</string>
+    <string name="theme_colors_preset">Palette: %1$s</string>
+    <string name="theme_custom_accent_saved">Custom accent · %1$s</string>
 </resources>

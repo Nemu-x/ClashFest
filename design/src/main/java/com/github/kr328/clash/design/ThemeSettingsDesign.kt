@@ -1,14 +1,20 @@
 package com.github.kr328.clash.design
 
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
+import android.view.ContextThemeWrapper
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.GridLayout
-import androidx.appcompat.app.AppCompatActivity
+import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.core.graphics.ColorUtils
+import com.github.kr328.clash.design.ui.showCustomAccentDialog
+import com.github.kr328.clash.design.branding.BrandThemeApplier
 import com.github.kr328.clash.design.databinding.DesignThemeSettingsBinding
 import com.github.kr328.clash.design.model.DarkMode
 import com.github.kr328.clash.design.model.HomeBackgroundStyle
@@ -29,7 +35,7 @@ class ThemeSettingsDesign(
     private val syncNightMode: () -> Unit,
 ) : Design<ThemeSettingsDesign.Request>(context) {
     enum class Request {
-        /** Reinflate Theme screen + stagger-recreate other activities (no Activity.recreate for Theme). */
+        /** Recreate themed screens, using MainActivity's existing soft refresh. */
         ReCreateOtherActivities,
         /** Full staggered recreate including Theme (font scale / reset need attachBaseContext). */
         ReCreateAllActivities,
@@ -42,6 +48,7 @@ class ThemeSettingsDesign(
         get() = binding.root
 
     private val paletteCards = mutableMapOf<ThemePalette, MaterialCardView>()
+    private val paletteColors = mutableMapOf<ThemePalette, IntArray>()
     private var customAccentCard: MaterialCardView? = null
     private var customAccentLabel: android.widget.TextView? = null
     private val recreateHandler = Handler(Looper.getMainLooper())
@@ -69,19 +76,13 @@ class ThemeSettingsDesign(
         setupReset()
     }
 
-    fun disposeForReplace() {
+    fun dispose() {
         recreateHandler.removeCallbacks(recreateRunnable)
         cancel()
     }
 
-    /**
-     * A non-day/night theme change (palette, Material You, true-black, text scale, home background):
-     * recreate EVERY activity including this one, so the whole app re-themes from a clean inflate.
-     * We no longer applyStyle onto the already-drawn tree — that live merge left a mixed
-     * half-dark/half-light state. Day/night is handled by [syncNightMode] (AppCompat recreates).
-     */
-    private fun recreateAll() {
-        pendingRecreateIncludesHost = true
+    private fun recreateAll(full: Boolean = false) {
+        pendingRecreateIncludesHost = pendingRecreateIncludesHost || full
         recreateHandler.removeCallbacks(recreateRunnable)
         recreateHandler.postDelayed(recreateRunnable, 240L)
     }
@@ -122,13 +123,22 @@ class ThemeSettingsDesign(
         binding.dynamicColorSwitch.isChecked = uiStore.dynamicColors
         binding.dynamicColorSwitch.setOnCheckedChangeListener { _, checked ->
             uiStore.dynamicColors = checked
+            if (checked) {
+                uiStore.customAccent = null
+                if (slothActive) {
+                    uiStore.homeBackgroundStyle = HomeBackgroundStyle.Preview
+                    binding.homeBackgroundGroup.check(R.id.home_background_preview)
+                }
+            }
             updatePaletteEnabled()
+            updatePaletteSelection()
             recreateAll()
         }
     }
 
     private fun setupPalettes() {
         ThemePalette.values().forEach { palette ->
+            paletteColors[palette] = previewColors(palette)
             val card = createPaletteCard(palette)
             paletteCards[palette] = card
             binding.themePaletteGrid.addView(card)
@@ -141,7 +151,7 @@ class ThemeSettingsDesign(
 
     private fun createPaletteCard(palette: ThemePalette): MaterialCardView {
         val margin = dp(6)
-        val size = dp(76)
+        val size = dp(104)
         val params = GridLayout.LayoutParams().apply {
             width = 0
             height = size
@@ -154,25 +164,30 @@ class ThemeSettingsDesign(
             radius = dp(18).toFloat()
             cardElevation = 0f
             strokeWidth = dp(1)
-            setCardBackgroundColor(context.resolvePaletteBackground(palette))
+            setCardBackgroundColor(paletteColors.getValue(palette)[2])
             strokeColor = context.resolvePaletteStroke(palette, palette == uiStore.themePalette)
             isClickable = true
             isFocusable = true
             contentDescription = context.getString(palette.labelRes)
 
-            addView(FrameLayout(context).apply {
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER
                 layoutParams = FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
                     FrameLayout.LayoutParams.MATCH_PARENT,
                 )
                 addView(ThemePaletteView(context).apply {
-                    colors = palette.previewColors
-                    checked = palette == uiStore.themePalette
-                    layoutParams = FrameLayout.LayoutParams(
-                        dp(54),
-                        dp(54),
-                        Gravity.CENTER,
-                    )
+                    colors = paletteColors.getValue(palette)
+                    layoutParams = LinearLayout.LayoutParams(dp(40), dp(40))
+                })
+                addView(TextView(context).apply {
+                    setText(palette.labelRes)
+                    setTextAppearance(R.style.TextAppearance_App_LabelMedium)
+                    setTextColor(context.resolveThemedColor(com.google.android.material.R.attr.colorOnSurface))
+                    gravity = Gravity.CENTER
+                    setPadding(dp(4), dp(8), dp(4), 0)
+                    importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
                 })
             })
 
@@ -198,12 +213,14 @@ class ThemeSettingsDesign(
 
     private fun updatePaletteSelection() {
         // A custom accent overrides presets, so no preset reads as selected while one is set.
-        val presetActive = uiStore.customAccent == null
+        val presetActive = !customAccentActive && !slothActive &&
+            !wallpaperActive && !brandOwnsColors
         paletteCards.forEach { (palette, card) ->
             val checked = presetActive && palette == uiStore.themePalette
             card.strokeWidth = dp(if (checked) 2 else 1)
             card.strokeColor = context.resolvePaletteStroke(palette, checked)
-            ((card.getChildAt(0) as? FrameLayout)?.getChildAt(0) as? ThemePaletteView)?.checked = checked
+            card.isSelected = checked
+            ((card.getChildAt(0) as? LinearLayout)?.getChildAt(0) as? ThemePaletteView)?.checked = checked
         }
         updateCustomAccentCard()
     }
@@ -211,11 +228,37 @@ class ThemeSettingsDesign(
     private fun updatePaletteEnabled() {
         // Sloth skin and dynamic colors both own the palette, so dim the grid
         // to signal it has no effect while either is active.
-        val overridden = uiStore.dynamicColors || slothActive
+        val overridden = wallpaperActive || slothActive || brandOwnsColors
         paletteCards.values.forEach {
             it.isEnabled = true
-            it.alpha = if (overridden) 0.64f else 1.0f
+            it.alpha = if (overridden) 0.8f else 1.0f
         }
+        binding.paletteStatus.text = when {
+            brandOwnsColors -> context.getString(R.string.theme_colors_brand)
+            slothActive -> context.getString(R.string.theme_colors_skin)
+            customAccentActive -> context.getString(R.string.theme_colors_custom)
+            wallpaperActive -> context.getString(R.string.theme_colors_wallpaper)
+            else -> context.getString(R.string.theme_colors_preset, context.getString(uiStore.themePalette.labelRes))
+        }
+        binding.trueBlackSwitch.isEnabled = !slothActive
+        for (i in 0 until binding.fontWeightGroup.childCount) {
+            binding.fontWeightGroup.getChildAt(i).isEnabled = !slothActive
+        }
+    }
+
+    private val wallpaperActive: Boolean
+        get() = uiStore.dynamicColors && uiStore.customAccent == null &&
+            com.google.android.material.color.DynamicColors.isDynamicColorAvailable()
+
+    private val customAccentActive: Boolean
+        get() = uiStore.customAccent != null &&
+            com.google.android.material.color.DynamicColors.isDynamicColorAvailable()
+
+    private val brandOwnsColors: Boolean by lazy {
+        val uuid = com.github.kr328.clash.service.store.ServiceStore(context).activeProfile
+        val brand = com.github.kr328.clash.service.branding.BrandStore(context)
+        uuid != null && brand.isActiveFor(uuid) &&
+            BrandThemeApplier.applicableAccent(brand.manifestFor(uuid).accentColor).isNotEmpty()
     }
 
     // --- Custom accent: a "+" tile appended to the palette grid. Tapping it lets the user pick any
@@ -223,7 +266,7 @@ class ThemeSettingsDesign(
     //     Overrides preset palettes / Material You; the operator brand still wins. ---
     private fun createCustomAccentCard(): MaterialCardView {
         val margin = dp(6)
-        val size = dp(76)
+        val size = dp(104)
         return MaterialCardView(context).apply {
             layoutParams = GridLayout.LayoutParams().apply {
                 width = 0
@@ -237,6 +280,7 @@ class ThemeSettingsDesign(
             isClickable = true
             isFocusable = true
             contentDescription = context.getString(R.string.theme_custom_accent_pick)
+            visibility = if (com.google.android.material.color.DynamicColors.isDynamicColorAvailable()) View.VISIBLE else View.GONE
             addView(
                 android.widget.TextView(context).apply {
                     customAccentLabel = this
@@ -249,14 +293,14 @@ class ThemeSettingsDesign(
                     )
                 },
             )
-            setOnClickListener { showCustomAccentDialog() }
+            setOnClickListener { context.showCustomAccentDialog(uiStore.customAccent, ::selectAccent) }
         }
     }
 
     private fun updateCustomAccentCard() {
         val card = customAccentCard ?: return
         val accent = uiStore.customAccent
-        if (accent != null) {
+        if (accent != null && !slothActive && !brandOwnsColors && !wallpaperActive) {
             // Filled with the chosen color + a selection ring; a check reads on top for contrast.
             card.setCardBackgroundColor(accent)
             card.strokeWidth = dp(2)
@@ -265,6 +309,8 @@ class ThemeSettingsDesign(
                 text = "✓"
                 setTextColor(onColorFor(accent))
             }
+            card.isSelected = true
+            card.contentDescription = context.getString(R.string.theme_custom_accent_saved, String.format("#%06X", accent and 0xFFFFFF))
         } else {
             card.setCardBackgroundColor(context.resolveThemedColor(com.google.android.material.R.attr.colorSurfaceContainerHighest))
             card.strokeWidth = dp(1)
@@ -273,13 +319,14 @@ class ThemeSettingsDesign(
                 text = "+"
                 setTextColor(context.resolveThemedColor(com.google.android.material.R.attr.colorOnSurfaceVariant))
             }
+            card.isSelected = false
+            card.contentDescription = context.getString(R.string.theme_custom_accent_pick)
         }
     }
 
     /** Black or white, whichever contrasts better on [bg]. */
     private fun onColorFor(bg: Int): Int {
-        val luminance = (0.299 * Color.red(bg) + 0.587 * Color.green(bg) + 0.114 * Color.blue(bg)) / 255.0
-        return if (luminance > 0.6) Color.BLACK else Color.WHITE
+        return if (ColorUtils.calculateContrast(Color.BLACK, bg) >= ColorUtils.calculateContrast(Color.WHITE, bg)) Color.BLACK else Color.WHITE
     }
 
     private fun selectAccent(color: Int) {
@@ -296,93 +343,6 @@ class ThemeSettingsDesign(
         updatePaletteSelection()
         updatePaletteEnabled()
         recreateAll()
-    }
-
-    private fun showCustomAccentDialog() {
-        val hsv = FloatArray(3)
-        Color.colorToHSV(uiStore.customAccent ?: 0xFFFFA021.toInt(), hsv)
-
-        val svView = com.github.kr328.clash.design.view.SaturationValueView(context).apply {
-            layoutParams = android.widget.LinearLayout.LayoutParams(MATCH, dp(200))
-            setColor(hsv[0], hsv[1], hsv[2])
-        }
-        val hueView = com.github.kr328.clash.design.view.HueBarView(context).apply {
-            layoutParams = android.widget.LinearLayout.LayoutParams(MATCH, dp(26)).apply { topMargin = dp(16) }
-            hue = hsv[0]
-        }
-        val previewBg = android.graphics.drawable.GradientDrawable().apply { cornerRadius = dp(10).toFloat() }
-        val preview = View(context).apply {
-            layoutParams = android.widget.LinearLayout.LayoutParams(dp(44), dp(44))
-            background = previewBg
-        }
-        // Tap-to-edit hex field: dragging the square/bar rewrites it; typing a valid #RRGGBB drives the
-        // square/bar back. A guard flag breaks the drag<->text feedback loop.
-        val hexEdit = android.widget.EditText(context).apply {
-            layoutParams = android.widget.LinearLayout.LayoutParams(0, WRAP, 1f).apply { marginStart = dp(14) }
-            textSize = 18f
-            setTextColor(context.resolveThemedColor(com.google.android.material.R.attr.colorOnSurface))
-            setSingleLine()
-            imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
-            filters = arrayOf(android.text.InputFilter.LengthFilter(7))
-        }
-
-        var syncingFromViews = false
-        fun currentColor(): Int =
-            Color.HSVToColor(floatArrayOf(hueView.hue, svView.saturation, svView.value)) or (0xFF shl 24)
-        fun refresh() {
-            val c = currentColor()
-            previewBg.setColor(c)
-            syncingFromViews = true
-            hexEdit.setText(String.format("#%06X", 0xFFFFFF and c))
-            syncingFromViews = false
-        }
-        svView.onChanged = { _, _ -> refresh() }
-        hueView.onChanged = { h -> svView.hue = h; refresh() }
-        hexEdit.addTextChangedListener(object : android.text.TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: android.text.Editable?) {
-                if (syncingFromViews) return
-                val raw = s?.toString()?.trim().orEmpty()
-                val normalized = if (raw.startsWith("#")) raw else "#$raw"
-                if (normalized.length != 7) return
-                val parsed = runCatching { Color.parseColor(normalized) }.getOrNull() ?: return
-                val hsvOut = FloatArray(3)
-                Color.colorToHSV(parsed, hsvOut)
-                hueView.hue = hsvOut[0]
-                svView.setColor(hsvOut[0], hsvOut[1], hsvOut[2])
-                previewBg.setColor(parsed or (0xFF shl 24))
-            }
-        })
-        refresh()
-
-        val previewRow = android.widget.LinearLayout(context).apply {
-            orientation = android.widget.LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            layoutParams = android.widget.LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(18) }
-            addView(preview)
-            addView(hexEdit)
-        }
-        val content = android.widget.LinearLayout(context).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(dp(22), dp(8), dp(22), 0)
-            addView(svView)
-            addView(hueView)
-            addView(previewRow)
-        }
-
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(context)
-            .setTitle(R.string.theme_custom_accent_dialog_title)
-            .setView(content)
-            .setPositiveButton(android.R.string.ok) { _, _ -> selectAccent(currentColor()) }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
-    }
-
-    private companion object {
-        const val MATCH = android.widget.LinearLayout.LayoutParams.MATCH_PARENT
-        const val WRAP = android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
     }
 
     private fun setupTrueBlack() {
@@ -410,7 +370,7 @@ class ThemeSettingsDesign(
                 R.id.text_scale_extra -> ThemeTextScale.ExtraLarge
                 else -> ThemeTextScale.Default
             }
-            recreateAll()
+            recreateAll(full = true)
         }
     }
 
@@ -451,6 +411,7 @@ class ThemeSettingsDesign(
                 else -> HomeBackgroundStyle.Preview
             }
             updatePaletteEnabled()
+            updatePaletteSelection()
             recreateAll()
         }
     }
@@ -461,16 +422,17 @@ class ThemeSettingsDesign(
     private fun setupReset() {
         binding.resetThemeButton.setOnClickListener {
             uiStore.darkMode = DarkMode.Auto
-            uiStore.dynamicColors = true
+            uiStore.dynamicColors = false
             uiStore.themePalette = ThemePalette.Clash
             uiStore.customAccent = null
             uiStore.trueBlack = false
             uiStore.themeTextScale = ThemeTextScale.Default
+            uiStore.themeFontWeight = ThemeFontWeight.Default
             uiStore.homeBackgroundStyle = HomeBackgroundStyle.Preview
             // Reset also changes day/night (-> Auto), so sync night mode; recreateAll re-themes the
             // rest and re-runs attachBaseContext for the text-scale change.
             syncNightMode()
-            recreateAll()
+            recreateAll(full = true)
         }
     }
 
@@ -485,22 +447,19 @@ class ThemeSettingsDesign(
             ThemePalette.Graphite -> R.string.theme_palette_graphite
         }
 
-    private val ThemePalette.previewColors: IntArray
-        get() = when (this) {
-            ThemePalette.Clash -> intArrayOf(0xFFFFA021.toInt(), 0xFFFFE3BD.toInt(), 0xFFFAF8F5.toInt(), 0xFF715A42.toInt())
-            ThemePalette.Blue -> intArrayOf(0xFF2563EB.toInt(), 0xFFD9E2FF.toInt(), 0xFFF0F4FF.toInt(), 0xFF2F6878.toInt())
-            ThemePalette.Violet -> intArrayOf(0xFF7C3AED.toInt(), 0xFFEADDFF.toInt(), 0xFFF8F1FF.toInt(), 0xFF85536D.toInt())
-            ThemePalette.Rose -> intArrayOf(0xFFC0265A.toInt(), 0xFFFFD9E2.toInt(), 0xFFFFF0F4.toInt(), 0xFF7D5735.toInt())
-            ThemePalette.Amber -> intArrayOf(0xFF8A5A00.toInt(), 0xFFFFDFA3.toInt(), 0xFFFBF2DF.toInt(), 0xFF52643B.toInt())
-            ThemePalette.Mint -> intArrayOf(0xFF00856F.toInt(), 0xFFA8F2DF.toInt(), 0xFFEDF8F4.toInt(), 0xFF3E6373.toInt())
-            ThemePalette.Graphite -> intArrayOf(0xFF54616F.toInt(), 0xFFD8E5F5.toInt(), 0xFFF0F3F7.toInt(), 0xFF705C73.toInt())
-        }
-
-    private fun Context.resolvePaletteBackground(palette: ThemePalette): Int {
-        return palette.previewColors[2]
+    private fun previewColors(palette: ThemePalette): IntArray {
+        val night = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
+        val preview = ContextThemeWrapper(context, if (night) R.style.AppThemeDark else R.style.AppThemeLight)
+        BrandThemeApplier.paletteOverlay(palette, night)?.let { preview.theme.applyStyle(it, true) }
+        if (night && uiStore.trueBlack) preview.theme.applyStyle(R.style.ThemeOverlay_ClashFest_TrueBlack, true)
+        return intArrayOf(preview.resolveThemedColor(com.google.android.material.R.attr.colorPrimary),
+            preview.resolveThemedColor(com.google.android.material.R.attr.colorPrimaryContainer),
+            preview.resolveThemedColor(com.google.android.material.R.attr.colorSurfaceContainerLow),
+            preview.resolveThemedColor(com.google.android.material.R.attr.colorSecondaryContainer))
     }
 
     private fun Context.resolvePaletteStroke(palette: ThemePalette, checked: Boolean): Int {
-        return if (checked) palette.previewColors[0] else Color.argb(70, 255, 255, 255)
+        return if (checked) paletteColors.getValue(palette)[0]
+            else resolveThemedColor(com.google.android.material.R.attr.colorOutlineVariant)
     }
 }

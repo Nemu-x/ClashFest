@@ -157,7 +157,7 @@ object BrandThemeApplier {
             ""
         }
         val brandSeed = if (brandHex.isNotEmpty()) runCatching { Color.parseColor(brandHex) }.getOrNull() else null
-        val customSeed = if (!sloth) uiStore.customAccent else null
+        val customSeed = if (!sloth && DynamicColors.isDynamicColorAvailable()) uiStore.customAccent else null
         val seed = brandSeed ?: customSeed
 
         // Overlays that sit UNDER the harmonised seed palette (or stand alone without one).

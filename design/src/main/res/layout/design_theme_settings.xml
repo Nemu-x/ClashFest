@@ -46,7 +46,7 @@
                 <com.google.android.material.button.MaterialButtonToggleGroup
                     android:id="@+id/theme_mode_group"
                     android:layout_width="match_parent"
-                    android:layout_height="52dp"
+                    android:layout_height="wrap_content"
                     app:selectionRequired="true"
                     app:singleSelection="true">
 
@@ -55,36 +55,39 @@
                         style="@style/AppButton.Outlined"
                         android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
-                        android:layout_height="match_parent"
+                        android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/theme_auto"
                         android:textAllCaps="false"
-                        app:icon="@drawable/ic_baseline_sync"
-                        app:iconGravity="textStart" />
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="8dp"
+                        android:textAppearance="@style/TextAppearance.App.LabelMedium" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/theme_mode_light"
                         style="@style/AppButton.Outlined"
                         android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
-                        android:layout_height="match_parent"
+                        android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/theme_light"
                         android:textAllCaps="false"
-                        app:icon="@drawable/ic_baseline_brightness_4"
-                        app:iconGravity="textStart" />
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="8dp"
+                        android:textAppearance="@style/TextAppearance.App.LabelMedium" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/theme_mode_dark"
                         style="@style/AppButton.Outlined"
                         android:stateListAnimator="@animator/focus_scale"
                         android:layout_width="0dp"
-                        android:layout_height="match_parent"
+                        android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/theme_dark"
                         android:textAllCaps="false"
-                        app:icon="@drawable/ic_baseline_brightness_4"
-                        app:iconGravity="textStart" />
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="8dp"
+                        android:textAppearance="@style/TextAppearance.App.LabelMedium" />
                 </com.google.android.material.button.MaterialButtonToggleGroup>
 
                 <LinearLayout
@@ -113,12 +116,20 @@
                         android:textColor="?attr/colorOnSurface" />
                 </LinearLayout>
 
+                <TextView
+                    android:id="@+id/palette_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textAppearance="@style/TextAppearance.App.BodySmall"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
+
                 <GridLayout
                     android:id="@+id/theme_palette_grid"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:columnCount="4"
+                    android:columnCount="2"
                     android:useDefaultMargins="false" />
 
                 <LinearLayout
@@ -140,6 +151,7 @@
 
                     <com.google.android.material.switchmaterial.SwitchMaterial
                         android:id="@+id/true_black_switch"
+                        android:contentDescription="@string/theme_true_black"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
                 </LinearLayout>
@@ -177,7 +189,10 @@
                         android:layout_height="match_parent"
                         android:layout_weight="1"
                         android:text="@string/theme_text_small"
-                        android:textAllCaps="false" />
+                        android:textAllCaps="false"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="4dp"
+                        android:textAppearance="@style/TextAppearance.App.LabelMedium" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/text_scale_default"
@@ -187,7 +202,10 @@
                         android:layout_height="match_parent"
                         android:layout_weight="1"
                         android:text="@string/theme_text_default"
-                        android:textAllCaps="false" />
+                        android:textAllCaps="false"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="4dp"
+                        android:textAppearance="@style/TextAppearance.App.LabelMedium" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/text_scale_large"
@@ -197,7 +215,10 @@
                         android:layout_height="match_parent"
                         android:layout_weight="1"
                         android:text="@string/theme_text_large"
-                        android:textAllCaps="false" />
+                        android:textAllCaps="false"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="4dp"
+                        android:textAppearance="@style/TextAppearance.App.LabelMedium" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/text_scale_extra"
@@ -207,7 +228,10 @@
                         android:layout_height="match_parent"
                         android:layout_weight="1"
                         android:text="@string/theme_text_extra"
-                        android:textAllCaps="false" />
+                        android:textAllCaps="false"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="4dp"
+                        android:textAppearance="@style/TextAppearance.App.LabelMedium" />
                 </com.google.android.material.button.MaterialButtonToggleGroup>
 
                 <TextView
@@ -222,18 +246,19 @@
                 <com.google.android.material.button.MaterialButtonToggleGroup
                     android:id="@+id/font_weight_group"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
+                    android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     app:selectionRequired="true"
+                    android:orientation="vertical"
                     app:singleSelection="true">
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/font_weight_default"
                         style="@style/AppButton.Outlined"
                         android:stateListAnimator="@animator/focus_scale"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
                         android:text="@string/theme_font_weight_default"
                         android:textAllCaps="false" />
 
@@ -241,9 +266,9 @@
                         android:id="@+id/font_weight_medium"
                         style="@style/AppButton.Outlined"
                         android:stateListAnimator="@animator/focus_scale"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
                         android:text="@string/theme_font_weight_medium"
                         android:textAllCaps="false" />
 
@@ -251,9 +276,9 @@
                         android:id="@+id/font_weight_semibold"
                         style="@style/AppButton.Outlined"
                         android:stateListAnimator="@animator/focus_scale"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
                         android:text="@string/theme_font_weight_semibold"
                         android:textAllCaps="false" />
 
@@ -261,9 +286,9 @@
                         android:id="@+id/font_weight_bold"
                         style="@style/AppButton.Outlined"
                         android:stateListAnimator="@animator/focus_scale"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
                         android:text="@string/theme_font_weight_bold"
                         android:textAllCaps="false" />
                 </com.google.android.material.button.MaterialButtonToggleGroup>
@@ -280,18 +305,19 @@
                 <com.google.android.material.button.MaterialButtonToggleGroup
                     android:id="@+id/home_background_group"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
+                    android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     app:selectionRequired="true"
+                    android:orientation="vertical"
                     app:singleSelection="true">
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/home_background_material"
                         style="@style/AppButton.Outlined"
                         android:stateListAnimator="@animator/focus_scale"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
                         android:text="@string/home_background_material_you"
                         android:textAllCaps="false" />
 
@@ -299,9 +325,9 @@
                         android:id="@+id/home_background_preview"
                         style="@style/AppButton.Outlined"
                         android:stateListAnimator="@animator/focus_scale"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
                         android:text="@string/home_background_preview"
                         android:textAllCaps="false" />
 
@@ -309,9 +335,9 @@
                         android:id="@+id/home_background_sloth"
                         style="@style/AppButton.Outlined"
                         android:stateListAnimator="@animator/focus_scale"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
                         android:text="@string/home_background_sloth"
                         android:textAllCaps="false" />
                 </com.google.android.material.button.MaterialButtonToggleGroup>

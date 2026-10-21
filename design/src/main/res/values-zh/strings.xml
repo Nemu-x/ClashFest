@@ -94,7 +94,7 @@
     <string name="home_proxy">代理</string>
     <string name="recently">近期</string>
     <string name="route_system_traffic">自动路由系统流量</string>
-    <string name="nav_routing">路由</string>
+    <string name="nav_routing">规则</string>
     <string name="routing_via_vpn_service">通过 VpnService 自动路由所有系统流量</string>
     <string name="rule_mode">规则模式</string>
     <string name="running">运行中</string>
@@ -899,9 +899,9 @@
     <string name="expires_on">到期 %1$s</string>
     <string name="external_controller">外部控制器</string>
     <string name="home_background">主页背景</string>
-    <string name="home_background_material_you">Material</string>
+    <string name="home_background_material_you">静态</string>
     <string name="home_background_plain">纯色背景</string>
-    <string name="home_background_preview">Mikan</string>
+    <string name="home_background_preview">动态</string>
     <string name="home_clipboard">剪贴板</string>
     <string name="home_qr">二维码</string>
     <string name="keep_connections_on_old_proxy">切换后保留旧代理上的连接</string>
@@ -1358,4 +1358,10 @@
     <string name="subscription_update_refused">服务器拒绝更新，请检查订阅链接。</string>
     <string name="subscription_update_key_error">解密密钥缺失或不正确，请导入完整的订阅链接。</string>
     <string name="subscription_update_invalid_response">服务器返回了无效响应，已保存的订阅仍然可用。</string>
+    <string name="theme_colors_wallpaper">正在使用壁纸颜色。选择配色方案将关闭壁纸颜色。</string>
+    <string name="theme_colors_skin">黑曜石样式控制颜色和字体。选择配色方案将退出此样式。</string>
+    <string name="theme_colors_brand">强调色由运营商设置。所选配色将用于无运营商品牌的订阅。</string>
+    <string name="theme_colors_custom">正在使用自定义强调色。</string>
+    <string name="theme_colors_preset">配色：%1$s</string>
+    <string name="theme_custom_accent_saved">自定义强调色 · %1$s</string>
 </resources>

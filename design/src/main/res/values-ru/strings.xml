@@ -180,7 +180,7 @@
     <string name="nav_home">Главная</string>
     <string name="nav_subscriptions">Подписки</string>
     <string name="nav_proxies">Прокси</string>
-    <string name="nav_routing">Маршрутизация</string>
+    <string name="nav_routing">Правила</string>
     <string name="nav_connections">Соединения</string>
     <string name="main_activity_title">Активность</string>
     <string name="main_activity_summary">Живые соединения и диагностика</string>
@@ -768,9 +768,9 @@
     <string name="app_language_zh">中文</string>
 
     <string name="home_background">Фон главного экрана</string>
-    <string name="home_background_material_you">Material</string>
+    <string name="home_background_material_you">Спокойный</string>
     <string name="home_background_plain">Чистая поверхность</string>
-    <string name="home_background_preview">Mikan</string>
+    <string name="home_background_preview">Живой</string>
 
     <string name="show_traffic">Показывать трафик</string>
     <string name="show_traffic_summary">Автоматически обновлять счётчик трафика в уведомлении</string>
@@ -1429,4 +1429,10 @@
     <string name="subscription_update_refused">Сервер отклонил обновление. Проверьте ссылку подписки.</string>
     <string name="subscription_update_key_error">Ключ расшифровки отсутствует или неверен. Импортируйте полную ссылку подписки.</string>
     <string name="subscription_update_invalid_response">Сервер вернул некорректный ответ. Сохранённая подписка остаётся доступной.</string>
+    <string name="theme_colors_wallpaper">Активны цвета обоев. Выбор палитры отключит их.</string>
+    <string name="theme_colors_skin">Обсидиан задаёт цвета и шрифт. Выбор палитры выключит этот стиль.</string>
+    <string name="theme_colors_brand">Акцент задан оператором. Выбранная палитра сохранится для подписок без оформления оператора.</string>
+    <string name="theme_colors_custom">Активен ваш цвет акцента.</string>
+    <string name="theme_colors_preset">Палитра: %1$s</string>
+    <string name="theme_custom_accent_saved">Свой акцент · %1$s</string>
 </resources>
