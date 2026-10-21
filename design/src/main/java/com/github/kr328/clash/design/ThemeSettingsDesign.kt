@@ -183,7 +183,7 @@ class ThemeSettingsDesign(
                 })
                 addView(TextView(context).apply {
                     setText(palette.labelRes)
-                    setTextAppearance(R.style.TextAppearance_App_LabelMedium)
+                    androidx.core.widget.TextViewCompat.setTextAppearance(this, R.style.TextAppearance_App_LabelMedium)
                     setTextColor(context.resolveThemedColor(com.google.android.material.R.attr.colorOnSurface))
                     gravity = Gravity.CENTER
                     setPadding(dp(4), dp(8), dp(4), 0)
