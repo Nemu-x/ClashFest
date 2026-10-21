@@ -88,9 +88,9 @@
     <dimen name="main_bottom_nav_bottom_margin">12dp</dimen>
     <dimen name="main_bottom_nav_corner_radius">32dp</dimen>
     <dimen name="main_bottom_nav_elevation">0dp</dimen>
-    <dimen name="main_bottom_nav_reserved_space">108dp</dimen>
-    <dimen name="main_bottom_nav_min_height">76dp</dimen>
-    <dimen name="main_bottom_nav_item_min_height">68dp</dimen>
+    <dimen name="main_bottom_nav_reserved_space">96dp</dimen>
+    <dimen name="main_bottom_nav_min_height">64dp</dimen>
+    <dimen name="main_bottom_nav_item_min_height">56dp</dimen>
     <dimen name="main_bottom_nav_content_gap">32dp</dimen>
     <dimen name="main_logo_size">50dp</dimen>
     <dimen name="main_top_banner_height">90dp</dimen>

@@ -2,49 +2,44 @@ package com.github.kr328.clash.design.motion
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class LiquidNavigationMotionTest {
-    @Test fun bothEdgesStartAndFinishAtTheActualTabBounds() {
-        for (leading in listOf(false, true)) {
-            assertEquals(0f, liquidNavigationProgress(-1f, leading))
-            assertEquals(0f, liquidNavigationProgress(0f, leading))
-            assertEquals(1f, liquidNavigationProgress(1f, leading))
-            assertEquals(1f, liquidNavigationProgress(2f, leading))
+    private val labels = listOf(49f, 58f, 51f, 64f)
+
+    @Test fun theCapsuleSettlesWithoutOvershootingOrReversing() {
+        assertEquals(0f, liquidNavigationProgress(-1f))
+        assertEquals(1f, liquidNavigationProgress(2f))
+        val samples = (0..1000).map { liquidNavigationProgress(it / 1000f) }
+        assertTrue(samples.zipWithNext().all { (a, b) -> b >= a })
+    }
+
+    @Test fun everyLabelFitsWithFullTouchTargetsOnNarrowFourTabScreens() {
+        for (selected in labels.indices) {
+            val widths = requireNotNull(navigationWidths(280f, labels, selected, 48f, 56f))
+            assertEquals(280f, widths.sum(), 0.01f)
+            assertTrue(widths.all { it >= 48f })
+            assertTrue(widths[selected] >= labels[selected] + 56f)
         }
     }
 
-    @Test fun theFrontPullsAheadAndTheTailCatchesUp() {
-        assertTrue(liquidNavigationProgress(0.4f, true) > liquidNavigationProgress(0.4f, false))
-        for (leading in listOf(false, true)) {
-            val samples = (0..1000).map { liquidNavigationProgress(it / 1000f, leading) }
-            assertTrue(samples.zipWithNext().all { (a, b) -> b >= a })
-            assertTrue(samples.all { it.isFinite() && it in 0f..1f })
-        }
+    @Test fun fiveTabsAndLargerTextUseTheFullWidthCaptionWhenNeeded() {
+        assertNull(navigationWidths(280f, labels + 59f, 2, 48f, 56f))
+        assertNull(navigationWidths(280f, labels.map { it * 1.6f }, 2, 48f, 56f))
+        assertTrue(navigationWidths(320f, labels + 59f, 2, 48f, 56f) != null)
     }
 
-    @Test fun longJumpsInEitherDirectionNeverInvertTheConnectedShape() {
-        for (forward in listOf(false, true)) {
-            val fromLeft = if (forward) 0f else 300f
-            val fromRight = if (forward) 80f else 360f
-            val toLeft = if (forward) 300f else 0f
-            val toRight = if (forward) 360f else 80f
-            for (i in 0..1000) {
-                val t = i / 1000f
-                val left = fromLeft + (toLeft - fromLeft) * liquidNavigationProgress(t, !forward)
-                val right = fromRight + (toRight - fromRight) * liquidNavigationProgress(t, forward)
-                assertTrue(right - left >= 59.99f)
-                assertTrue(left >= 0f && right <= 360f)
-            }
-        }
-    }
-
-    @Test fun theNeckRemainsConnectedAndSettlesWithoutAnIdleLoop() {
-        for (initial in listOf(0f, 0.3f, 0.45f)) {
-            val samples = (0..1000).map { liquidNavigationPinch(it / 1000f, initial, 0.38f) }
-            assertEquals(initial, samples.first())
-            assertEquals(0f, samples.last())
-            assertTrue(samples.all { it.isFinite() && it in 0f..0.45f })
+    @Test fun interruptedTransitionsPreserveWidthsAndTouchTargets() {
+        val from = requireNotNull(navigationWidths(328f, labels, 0, 48f, 56f))
+        val to = requireNotNull(navigationWidths(328f, labels, 3, 48f, 56f))
+        val interrupted = from.zip(to) { a, b -> a + (b - a) * liquidNavigationProgress(.35f) }
+        val next = requireNotNull(navigationWidths(328f, labels, 1, 48f, 56f))
+        for (step in 0..100) {
+            val p = liquidNavigationProgress(step / 100f)
+            val widths = interrupted.zip(next) { a, b -> a + (b - a) * p }
+            assertEquals(328f, widths.sum(), .01f)
+            assertTrue(widths.all { it >= 48f })
         }
     }
 }

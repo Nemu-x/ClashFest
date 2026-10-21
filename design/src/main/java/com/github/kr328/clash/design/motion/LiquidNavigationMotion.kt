@@ -1,17 +1,19 @@
 package com.github.kr328.clash.design.motion
 
-import kotlin.math.sin
+import kotlin.math.exp
 
-internal fun liquidNavigationProgress(fraction: Float, leading: Boolean): Float {
-    val delay = if (leading) 0f else 0.16f
-    val duration = if (leading) 0.72f else 0.84f
-    val t = ((fraction - delay) / duration).coerceIn(0f, 1f)
-    return t * t * (3f - 2f * t)
+internal fun liquidNavigationProgress(fraction: Float): Float {
+    val t = fraction.coerceIn(0f, 1f)
+    return ((1f - (1f + 8f * t) * exp(-8f * t)) / (1f - 9f * exp(-8f))).coerceIn(0f, 1f)
 }
 
-internal fun liquidNavigationPinch(fraction: Float, initial: Float, strength: Float): Float {
-    val t = fraction.coerceIn(0f, 1f)
-    if (t == 0f) return initial.coerceIn(0f, 0.45f)
-    if (t == 1f) return 0f
-    return (initial * (1f - t) + strength * sin(Math.PI * t).toFloat()).coerceIn(0f, 0.45f)
+/** Null uses a shared full-width caption instead of shrinking text or touch targets. */
+internal fun navigationWidths(
+    available: Float, labels: List<Float>, selected: Int, minimum: Float, iconSpace: Float,
+): List<Float>? {
+    if (labels.isEmpty() || selected !in labels.indices) return null
+    if (labels.max() + iconSpace + minimum * (labels.size - 1) > available) return null
+    val active = labels[selected] + iconSpace
+    val inactive = (available - active) / (labels.size - 1).coerceAtLeast(1)
+    return labels.indices.map { if (it == selected) active else inactive }
 }

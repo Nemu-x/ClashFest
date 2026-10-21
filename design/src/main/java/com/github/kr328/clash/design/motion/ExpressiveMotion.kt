@@ -4,35 +4,12 @@ import android.animation.TimeInterpolator
 import android.animation.ValueAnimator
 import android.os.Build
 import android.view.View
-import android.view.ViewGroup
-import android.widget.ImageView
 import kotlin.math.abs
 
 internal val expressiveSpatial = TimeInterpolator { expressiveSpringProgress(it) }
 
 internal fun motionEnabled(): Boolean =
     Build.VERSION.SDK_INT < Build.VERSION_CODES.O || ValueAnimator.areAnimatorsEnabled()
-
-internal fun animateNavigationItem(view: View, selected: Boolean, animate: Boolean) {
-    view.isSelected = selected
-    (view as? ViewGroup)?.let { group ->
-        for (i in 0 until group.childCount) {
-            val child = group.getChildAt(i)
-            child.animate().cancel()
-            val scale = if (child is ImageView && selected) 1.12f else 1f
-            val y = if (child is ImageView && selected) -2f * view.resources.displayMetrics.density else 0f
-            child.alpha = 1f
-            if (animate && motionEnabled()) {
-                child.animate().scaleX(scale).scaleY(scale).translationY(y)
-                    .setDuration(420L).setInterpolator(expressiveSpatial).start()
-            } else {
-                child.scaleX = scale
-                child.scaleY = scale
-                child.translationY = y
-            }
-        }
-    }
-}
 
 internal fun transformExpressivePage(page: View, position: Float) {
     val distance = abs(position).coerceAtMost(1f)

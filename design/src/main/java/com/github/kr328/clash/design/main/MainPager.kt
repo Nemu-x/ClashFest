@@ -12,7 +12,6 @@ import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.branding.BrandHolder
 import com.github.kr328.clash.design.databinding.DesignMainBinding
 import com.github.kr328.clash.design.model.AppLanguage
-import com.github.kr328.clash.design.motion.animateNavigationItem
 import com.github.kr328.clash.design.motion.transformExpressivePage
 import com.github.kr328.clash.design.store.UiStore
 import com.github.kr328.clash.design.util.resolveThemedColor
@@ -245,7 +244,7 @@ internal class MainPager(
         val animate = renderedTab != null && renderedTab != tab
         binding.mainBottomNavItems.selectItem(navForMainTab(tab), animate)
         MainTab.values().forEach {
-            animateNavigationItem(navForMainTab(it), it == tab, animate)
+            navForMainTab(it).isSelected = it == tab
             // The ViewPager keeps off-screen tab pages attached + VISIBLE (offscreenPageLimit =
             // all), so without this their content stays focusable and the D-pad escapes into the
             // hidden tab ("ghost" focus on TV). Only the current tab's page accepts focus.
