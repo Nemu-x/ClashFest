@@ -812,7 +812,9 @@ internal class ProxyPickerSheet(private val adapter: ProfileAdapter) {
             } else {
                 R.layout.adapter_home_proxy_node
             }
-            return ProxyNodeViewHolder(parent.context.layoutInflater.inflate(layout, parent, false))
+            val view = parent.context.layoutInflater.inflate(layout, parent, false)
+            if (viewType == PICKER_VIEW_NODE && parent.context.isTelevision()) inlineNodeRowMeta(view)
+            return ProxyNodeViewHolder(view)
         }
 
         override fun onBindViewHolder(holder: ProxyNodeViewHolder, position: Int) {
@@ -1048,11 +1050,16 @@ internal class ProxyPickerSheet(private val adapter: ProfileAdapter) {
      * TV side panel tweaks: room at the top where the phone sheet has its drag handle, and the group
      * segments wrap onto several lines within the panel width so every group is visible (the track
      * is no longer a sideways scroller, so it must not take D-pad focus itself).
+     *
+     * The header is also packed tighter than the phone sheet's so the node list gets most of the
+     * 540dp height: the "tested" note joins the title line instead of taking a line of its own, and
+     * the tool row and the gaps between blocks are a little smaller.
      */
     private fun prepareTvPanel(sheet: BottomSheetProxyGroupsBinding) {
         val root = sheet.root
         val density = root.resources.displayMetrics.density
-        root.setPadding(root.paddingLeft, (20 * density).toInt(), root.paddingRight, (16 * density).toInt())
+        fun px(dp: Int) = (dp * density).toInt()
+        root.setPadding(root.paddingLeft, px(14), root.paddingRight, px(10))
         val scroller = sheet.proxySheetGroupScroll
         scroller.isFocusable = false
         scroller.isHorizontalFadingEdgeEnabled = false
@@ -1062,6 +1069,80 @@ internal class ProxyPickerSheet(private val adapter: ProfileAdapter) {
                 v.post { sheet.proxySheetGroupSegments.flowWidth = width }
             }
         }
+        sheet.proxySheetGroupSegments.minimumHeight = 0
+        (scroller.layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin = px(8)
+
+        // "Not tested yet" / "Tested 12s ago": into the title line, before the connection status.
+        (sheet.proxySheetTestedDot.parent as? ViewGroup)?.let { tested ->
+            (tested.parent as? ViewGroup)?.removeView(tested)
+            val pill = sheet.proxySheetSubPill
+            pill.addView(
+                tested,
+                pill.indexOfChild(sheet.proxySheetSubStatusDot),
+                android.widget.LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply { marginStart = px(12) },
+            )
+        }
+
+        // Tool row: 40dp controls (from 44dp) and a smaller gap above it.
+        (sheet.proxySheetSortButton.parent as? ViewGroup)?.let { tools ->
+            (tools.layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin = px(8)
+            for (i in 0 until tools.childCount) {
+                val child = tools.getChildAt(i)
+                child.layoutParams = child.layoutParams.apply {
+                    height = px(40)
+                    if (width > 0) width = px(40)
+                }
+            }
+        }
+        sheet.proxySheetPingButton.layoutParams = sheet.proxySheetPingButton.layoutParams.apply {
+            width = px(40)
+            height = px(40)
+        }
+
+        // Node list: a smaller gap above it and slimmer inner padding.
+        (sheet.proxySheetNodesList.parent as? View)?.let { surface ->
+            (surface.layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin = px(8)
+        }
+        sheet.proxySheetNodesList.setPadding(
+            sheet.proxySheetNodesList.paddingLeft, px(4),
+            sheet.proxySheetNodesList.paddingRight, px(4),
+        )
+    }
+
+    /**
+     * TV node row on one line: the protocol chips (and subtitle) sit right after the name instead of
+     * on a second line, so a row is ~48dp and the panel shows far more nodes at the same type size.
+     */
+    private fun inlineNodeRowMeta(row: View) {
+        val title = row.findViewById<TextView>(R.id.proxy_title) ?: return
+        val firstLine = title.parent as? android.widget.LinearLayout ?: return
+        val capsule = row.findViewById<View>(R.id.proxy_proto_capsule) ?: return
+        val meta = capsule.parent as? android.widget.LinearLayout ?: return
+        if (meta.parent === firstLine) return
+        val density = row.resources.displayMetrics.density
+        (meta.parent as? ViewGroup)?.removeView(meta)
+        firstLine.isBaselineAligned = false
+        firstLine.gravity = android.view.Gravity.CENTER_VERTICAL
+        firstLine.addView(
+            meta,
+            firstLine.indexOfChild(title) + 1,
+            android.widget.LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { marginStart = (10 * density).toInt() },
+        )
+        // The subtitle was a weighted 0dp filler on its own line; here it sizes to its text.
+        row.findViewById<View>(R.id.proxy_subtitle)?.let { subtitle ->
+            subtitle.layoutParams = (subtitle.layoutParams as android.widget.LinearLayout.LayoutParams).apply {
+                width = ViewGroup.LayoutParams.WRAP_CONTENT
+                weight = 0f
+            }
+        }
+        // A long name gives way to the chips rather than pushing them out of the row.
+        title.maxWidth = (170 * density).toInt()
     }
 
     private fun scrollProxyPickerToSelected(

@@ -9,7 +9,9 @@ import com.github.kr328.clash.design.R
  * For screens that lay themselves out edge to edge (their own window-inset handling, not the
  * surface insets that [landscape] caps): on a TV, centre them in the same content width the other
  * screens use (surface_landscape_min_width) instead of stretching rows across the whole set with a
- * phone gutter at the overscan edge. No-op off TV.
+ * phone gutter at the overscan edge. The screen's own background (the page canvas) is repeated on
+ * the full-width frame behind it, so the margins read as more of the same page rather than as
+ * dark bands with a hard edge. No-op off TV.
  */
 fun View.capContentWidthOnTv() {
     if (!context.isTelevision()) return
@@ -19,5 +21,7 @@ fun View.capContentWidthOnTv() {
         val width = resources.displayMetrics.widthPixels
         val side = ((width - cap) / 2).coerceAtLeast(0)
         frame.setPaddingRelative(side, frame.paddingTop, side, frame.paddingBottom)
+        // Both are centred and share the height, so a canvas gradient lines up pixel for pixel.
+        view.background?.constantState?.newDrawable(resources, context.theme)?.let { frame.background = it }
     }
 }

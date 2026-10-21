@@ -12,6 +12,7 @@ import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.os.Build
 import android.view.View
+import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.view.Window
 import android.view.animation.DecelerateInterpolator
@@ -108,6 +109,7 @@ private class FocusHalo(private val root: View) {
             drawable.invalidateSelf()
             return
         }
+        unclipAncestors(next)
         if (!measure(next, to)) return
         toRadii = radiiOf(next, to)
         if (visible && !shown.isEmpty) {
@@ -120,6 +122,27 @@ private class FocusHalo(private val root: View) {
             shownRadii = toRadii.copyOf()
             visible = true
             drawable.invalidateSelf()
+        }
+    }
+
+    /**
+     * Buttons grow a little on focus (focus_scale). Where a button sits at the edge of its row, the
+     * row (or its padding) clipped the grown body flat and the ring with it. Let the layouts between the control and
+     * its scrolling container draw it whole; the scrolling container itself (a list, a page) keeps
+     * clipping, so rows still never paint outside their list.
+     */
+    private fun unclipAncestors(view: View) {
+        if (view.stateListAnimator == null) return
+        var parent = view.parent
+        while (parent is ViewGroup && parent !== root) {
+            if (parent is RecyclerView || parent is ScrollView || parent is NestedScrollView ||
+                parent is HorizontalScrollView
+            ) {
+                return
+            }
+            if (parent.clipChildren) parent.clipChildren = false
+            if (parent.clipToPadding) parent.clipToPadding = false
+            parent = parent.parent
         }
     }
 

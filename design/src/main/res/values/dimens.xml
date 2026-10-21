@@ -14,6 +14,7 @@
     <!-- Proxy picker node row (adapter_home_proxy_node); TV overrides in values-television. -->
     <dimen name="proxy_node_row_min_height">56dp</dimen>
     <dimen name="proxy_node_row_padding_vertical">9dp</dimen>
+    <dimen name="proxy_group_segment_min_height">34dp</dimen>
 
     <!--  Toolbar  -->
     <dimen name="main_toolbar_padding_horizontal">10dp</dimen>

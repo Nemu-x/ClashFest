@@ -7,6 +7,7 @@ import com.google.android.material.R as MaterialR
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.github.kr328.clash.common.log.Log
+import com.github.kr328.clash.design.util.isTelevision
 import com.github.kr328.clash.design.util.resolveThemedColor
 import com.github.kr328.clash.design.MainDesign.MainTab
 
@@ -210,6 +211,7 @@ internal fun MainDesign.selectMainTab(tab: MainTab) {
 }
 
 internal fun MainDesign.renderMainTab(tab: MainTab) {
+    val tv = context.isTelevision()
     MainTab.values().forEach {
         navForMainTab(it).isSelected = it == tab
         // The ViewPager keeps off-screen tab pages attached + VISIBLE (offscreenPageLimit =
@@ -221,7 +223,7 @@ internal fun MainDesign.renderMainTab(tab: MainTab) {
             else ViewGroup.FOCUS_BLOCK_DESCENDANTS
         // The page itself too: a scroll-view page is focusable, so RIGHT from the edge of the
         // current tab landed on the neighbouring (off-screen) page and focus vanished.
-        if (page is androidx.core.widget.NestedScrollView) page.isFocusable = it == tab
+        if (tv && page is androidx.core.widget.NestedScrollView) page.isFocusable = it == tab
     }
     updateBreathAnimator(clashRunningState, tunnelStartingState)
 }

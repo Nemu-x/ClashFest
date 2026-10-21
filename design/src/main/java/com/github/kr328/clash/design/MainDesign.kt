@@ -817,6 +817,13 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     }
 
     private fun applyHomeBackgroundStyle() {
+        if (context.isTelevision()) {
+            // TV: every tab page paints bg_home_canvas inside the centred content column and the
+            // root only shows in the side margins; the same (centred) canvas there makes the column
+            // edge disappear instead of leaving darker bands.
+            binding.root.setBackgroundResource(R.drawable.bg_home_canvas)
+            return
+        }
         when (uiStore.homeBackgroundStyle) {
             HomeBackgroundStyle.MaterialYou -> binding.root.setBackgroundColor(
                 context.resolveThemedColor(com.google.android.material.R.attr.colorSurface),

@@ -63,12 +63,19 @@ internal fun MainDesign.applyTvHomeLayout() {
     // DOWN from the orb goes to the bottom nav (the default search slid into the card's last row).
     // (The page's NestedScrollView resolves DOWN inside itself, so nextFocusDownId to a view outside
     // it is ignored; the key is taken here before the scroll view sees it.)
+    // UP from the orb goes to the mode toggle (the nearest-by-geometry search picked the card's
+    // top row instead), and DOWN from the card's last row to the Home tab it belongs to.
     binding.mainPowerCard.setOnKeyListener { _, keyCode, event ->
-        if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && event.action == KeyEvent.ACTION_DOWN) {
-            binding.mainNavHome.requestFocus()
-        } else {
-            false
+        if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+        when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_DOWN -> binding.mainNavHome.requestFocus()
+            KeyEvent.KEYCODE_DPAD_UP -> binding.mainModeRule.isShown && binding.mainModeRule.requestFocus()
+            else -> false
         }
+    }
+    binding.mainActiveNodeRow.setOnKeyListener { _, keyCode, event ->
+        keyCode == KeyEvent.KEYCODE_DPAD_DOWN && event.action == KeyEvent.ACTION_DOWN &&
+            binding.mainNavHome.requestFocus()
     }
     // RIGHT from the card's right edge stays put instead of jumping up to the "+" button. The
     // profile row's own action buttons sit inside it, so they are linked explicitly both ways.

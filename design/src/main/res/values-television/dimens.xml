@@ -5,7 +5,9 @@
          while keeping a ~30dp overscan-safe margin on each side. -->
     <dimen name="surface_landscape_min_width">900dp</dimen>
 
-    <!-- Node rows read from the sofa: a little taller than on the phone. -->
-    <dimen name="proxy_node_row_min_height">60dp</dimen>
-    <dimen name="proxy_node_row_padding_vertical">10dp</dimen>
+    <!-- Node rows in the TV side panel are one line (name + protocol chips, see
+         ProxyPickerSheet.inlineNodeRowMeta), so they can be compact and still read from the sofa. -->
+    <dimen name="proxy_node_row_min_height">46dp</dimen>
+    <dimen name="proxy_node_row_padding_vertical">5dp</dimen>
+    <dimen name="proxy_group_segment_min_height">30dp</dimen>
 </resources>
