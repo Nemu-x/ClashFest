@@ -225,7 +225,32 @@ internal fun MainDesign.renderMainTab(tab: MainTab) {
         // current tab landed on the neighbouring (off-screen) page and focus vanished.
         if (tv && page is androidx.core.widget.NestedScrollView) page.isFocusable = it == tab
     }
+    if (tv) binding.root.post { keepFocusOnCurrentTab(tab) }
     updateBreathAnimator(clashRunningState, tunnelStartingState)
+}
+
+/**
+ * A tab opened from page content (Home's "Active profile" row) left focus in the page that is now
+ * hidden and blocked, or on the pager itself: no ring, and the D-pad went nowhere. Unless focus is
+ * already on the nav or inside the new page, hand it to the new page's first control (or its tab).
+ */
+private fun MainDesign.keepFocusOnCurrentTab(tab: MainTab) {
+    val root = binding.root
+    if (root.isInTouchMode || !root.hasWindowFocus()) return
+    val page = pageForMainTab(tab)
+    val navs = MainTab.values().map { navForMainTab(it) }
+    val focused = root.findFocus()
+    if (focused != null && focused !== page && focused !is androidx.recyclerview.widget.RecyclerView) {
+        var v: View? = focused
+        while (v != null) {
+            if (v === page || v in navs) return
+            v = v.parent as? View
+        }
+    }
+    val first = (page as? ViewGroup)?.let {
+        android.view.FocusFinder.getInstance().findNextFocus(it, null, View.FOCUS_DOWN)
+    }
+    if (first?.requestFocus() != true) navForMainTab(tab).requestFocus()
 }
 
 private fun MainDesign.pageForMainTab(tab: MainTab) = when (tab) {

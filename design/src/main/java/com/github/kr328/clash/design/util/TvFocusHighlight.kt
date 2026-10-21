@@ -11,6 +11,7 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.os.Build
+import android.view.FocusFinder
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
@@ -110,13 +111,26 @@ private class FocusHalo(private val root: View) {
      * hold it by then and are left alone.
      */
     private fun focusFirstIfNone() {
-        if (focusPosted || root.isInTouchMode || !root.hasWindowFocus() || root.findFocus() != null) return
+        if (focusPosted || root.isInTouchMode || !root.hasWindowFocus() || !nothingFocused()) return
         focusPosted = true
         root.post {
             focusPosted = false
-            if (root.isInTouchMode || !root.hasWindowFocus() || root.findFocus() != null) return@post
+            if (root.isInTouchMode || !root.hasWindowFocus() || !nothingFocused()) return@post
+            val focused = root.findFocus()
+            if (focused is ViewGroup) {
+                FocusFinder.getInstance().findNextFocus(focused, null, View.FOCUS_DOWN)?.let {
+                    if (it.requestFocus()) return@post
+                }
+            }
             root.requestFocus(View.FOCUS_DOWN)
         }
+    }
+
+    /** Nothing, or only a scrolling container that has controls of its own (no ring, no place). */
+    private fun nothingFocused(): Boolean {
+        val focused = root.findFocus() ?: return true
+        val container = focused is RecyclerView || focused is ScrollView || focused is NestedScrollView
+        return container && FocusFinder.getInstance().findNextFocus(focused as ViewGroup, null, View.FOCUS_DOWN) != null
     }
 
     private var focusPosted = false

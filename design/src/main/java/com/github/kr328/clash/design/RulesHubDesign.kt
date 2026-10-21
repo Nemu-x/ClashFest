@@ -146,6 +146,16 @@ class RulesHubDesign(context: Context) : Design<RulesHubDesign.Request>(context)
         recycler.adapter = adapter
         recycler.setHasFixedSize(false)
         adapter.attachItemTouchHelper(recycler)
+        if (floatingSaveBar) {
+            // TV: coming back UP to the header (search, filters) left the list half-scrolled, the
+            // title off screen and the focused field's ring cut at the top edge. Show it whole.
+            recycler.viewTreeObserver.addOnGlobalFocusChangeListener { _, newFocus ->
+                val item = newFocus?.let { recycler.findContainingItemView(it) } ?: return@addOnGlobalFocusChangeListener
+                if (recycler.getChildAdapterPosition(item) == 0) {
+                    (recycler.layoutManager as LinearLayoutManager).scrollToPositionWithOffset(0, 0)
+                }
+            }
+        }
 
         btnSave.setOnClickListener { requests.trySend(Request.Save) }
     }
