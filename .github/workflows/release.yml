@@ -91,8 +91,9 @@ jobs:
 
       - name: Build Alpha Release APK
         run: |
-          ./gradlew :design:testAlphaReleaseUnitTest --tests com.github.kr328.clash.design.motion.LiquidNavigationMotionTest assembleAlphaRelease
+          ./gradlew :design:testAlphaReleaseUnitTest --tests com.github.kr328.clash.design.motion.LiquidNavigationMotionTest --tests com.github.kr328.clash.design.ThemePaletteResourcesTest assembleAlphaRelease
           grep '<testsuite ' design/build/test-results/testAlphaReleaseUnitTest/TEST-com.github.kr328.clash.design.motion.LiquidNavigationMotionTest.xml
+          grep '<testsuite ' design/build/test-results/testAlphaReleaseUnitTest/TEST-com.github.kr328.clash.design.ThemePaletteResourcesTest.xml
 
       - name: Remove Android signing files
         if: always()
