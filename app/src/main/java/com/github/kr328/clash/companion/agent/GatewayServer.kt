@@ -515,6 +515,10 @@ class GatewayServer(
     private fun parseBody(session: IHTTPSession, maxBytes: Long): JsonObject? {
         if (!isAcceptedContentLength(session.headers["content-length"], maxBytes)) return null
         return try {
+            // §3.4: request bodies are UTF-8 canonical JSON. NanoHTTPD decodes postData with the
+            // Content-Type charset and falls back to US-ASCII, which turned emoji and Cyrillic group
+            // and node names into U+FFFD for any controller that sends plain "application/json".
+            runCatching { session.headers["content-type"] = "application/json; charset=utf-8" }
             val files = HashMap<String, String>()
             session.parseBody(files)
             val data = files["postData"] ?: return null

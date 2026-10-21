@@ -112,4 +112,30 @@ class GatewayKeepAliveTest {
         }
         return buf.toString(Charsets.UTF_8.name())
     }
+
+    // A body sent as plain "application/json" (no charset), as the Go reference controller does,
+    // must still reach the hook as UTF-8: group and node names are usually emoji and Cyrillic.
+    @Test
+    fun bodyWithoutCharsetIsDecodedAsUtf8() {
+        val hooks = FakeHooks()
+        val server = gateway(hooks)
+        server.start(NanoHTTPD.SOCKET_READ_TIMEOUT, true)
+        try {
+            Socket("127.0.0.1", server.listeningPort).use { socket ->
+                socket.soTimeout = 10_000
+                val group = "🌐 Сервер по умолчанию"
+                val node = "🇫🇮 Finland"
+                socket.getOutputStream().apply {
+                    write(post("/v1/proxies/select", """{"group":"$group","node":"$node"}""").toByteArray(Charsets.UTF_8))
+                    flush()
+                }
+                val reply = BufferedInputStream(socket.getInputStream()).readReply()
+                assertEquals(404, reply.code)
+                assertTrue(hooks.calls.contains("select:$group/$node"), hooks.calls.toString())
+                assertTrue(reply.body.contains(group), reply.body)
+            }
+        } finally {
+            server.stop()
+        }
+    }
 }
