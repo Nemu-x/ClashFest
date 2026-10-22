@@ -11,12 +11,15 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.os.Build
+import android.text.InputType
 import android.view.FocusFinder
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.view.Window
 import android.view.animation.DecelerateInterpolator
+import android.widget.AutoCompleteTextView
 import android.widget.HorizontalScrollView
 import android.widget.ScrollView
 import androidx.core.graphics.ColorUtils
@@ -89,6 +92,7 @@ private class FocusHalo(private val root: View) {
         val observer = root.viewTreeObserver
         observer.addOnGlobalFocusChangeListener { oldFocus, newFocus ->
             if (newFocus is RecyclerView && redirectFromList(newFocus, oldFocus)) return@addOnGlobalFocusChangeListener
+            if (newFocus is AutoCompleteTextView) openDropdownOnCenter(newFocus)
             retarget(newFocus)
         }
         observer.addOnPreDrawListener(
@@ -138,6 +142,26 @@ private class FocusHalo(private val root: View) {
         list.isFocusable = false
         emptiedLists[list] = Unit
         return true
+    }
+
+    /**
+     * A Material exposed dropdown (a read-only AutoCompleteTextView: App Routing's and
+     * Connections' filters, the profile's User-Agent) opens on touch only, so with a remote it
+     * took focus but could never be changed. CENTER on one now opens its list.
+     */
+    private fun openDropdownOnCenter(view: AutoCompleteTextView) {
+        if (view.inputType != InputType.TYPE_NULL || view.getTag(R.id.tv_dropdown_center) == true) return
+        view.setTag(R.id.tv_dropdown_center, true)
+        view.setOnKeyListener { v, keyCode, event ->
+            val select = keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+            val dropdown = v as AutoCompleteTextView
+            // While the list is open, CENTER picks the highlighted item (the view's own handling).
+            if (!select || dropdown.isPopupShowing) return@setOnKeyListener false
+            if (event.action == KeyEvent.ACTION_UP && dropdown.isEnabled && dropdown.adapter != null) {
+                dropdown.showDropDown()
+            }
+            true
+        }
     }
 
     private fun restoreListFocusability() {
