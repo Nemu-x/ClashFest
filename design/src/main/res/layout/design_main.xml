@@ -1552,7 +1552,7 @@
                             android:background="@drawable/bg_flag_circle"
                             android:padding="10dp"
                             android:contentDescription="@string/access_control_packages"
-                            android:src="@drawable/ic_baseline_route"
+                            android:src="@drawable/ic_baseline_subscriptions"
                             app:tint="?attr/colorPrimary" />
 
                         <LinearLayout
