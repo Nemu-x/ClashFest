@@ -47,6 +47,7 @@ class CompanionTvDesign(
     private val address: TextView = root.findViewById(R.id.companion_tv_address)
     private val enableRow: View = root.findViewById(R.id.companion_tv_enable_row)
     private val enableSwitch: MaterialSwitch = root.findViewById(R.id.companion_tv_enable_switch)
+    private val pin: View = root.findViewById(R.id.companion_tv_pin)
     private val pairingsEmpty: View = root.findViewById(R.id.companion_tv_pairings_empty)
     private val pairings: LinearLayout = root.findViewById(R.id.companion_tv_pairings)
 
@@ -64,11 +65,8 @@ class CompanionTvDesign(
             enableSwitch.isChecked = !enableSwitch.isChecked
             onAgentToggle(enableSwitch.isChecked)
         }
-        root.findViewById<View>(R.id.companion_tv_pin).setOnClickListener {
+        pin.setOnClickListener {
             requests.trySend(CompanionDesign.Request.ShowPin)
-        }
-        root.findViewById<View>(R.id.companion_tv_devices).setOnClickListener {
-            requests.trySend(CompanionDesign.Request.OpenControl)
         }
         // DOWN from the wide toggle row lands on the first button under it, not whichever one the
         // geometric search finds nearer the row's centre.
@@ -79,6 +77,8 @@ class CompanionTvDesign(
 
     fun setAgentEnabled(enabled: Boolean) {
         enableSwitch.isChecked = enabled
+        // Still a D-pad stop while off (a click explains why), but it reads as unavailable.
+        pin.alpha = if (enabled) 1f else 0.5f
     }
 
     fun setQr(state: QrState) {

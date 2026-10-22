@@ -149,15 +149,6 @@
                     android:layout_height="wrap_content"
                     android:text="@string/companion_show_pin_title"
                     app:icon="@drawable/ic_baseline_bolt" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/companion_tv_devices"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
-                    android:text="@string/companion_devices_title"
-                    app:icon="@drawable/ic_baseline_swap_horiz" />
             </LinearLayout>
 
             <TextView

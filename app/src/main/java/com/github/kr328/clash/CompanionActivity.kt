@@ -93,8 +93,14 @@ class CompanionActivity : BaseActivity<Design<CompanionDesign.Request>>() {
         }
     }
 
-    /** TV: the token behind the QR on screen, issued once per visit and replaced once it is used. */
-    private var tvToken: String? = null
+    /**
+     * TV: the token behind the QR on screen, replaced once it is used or revoked. It outlives the
+     * visit (process-wide) so reopening the screen shows the same unused token instead of minting
+     * a new one each time and leaving the old ones in [PairingStore].
+     */
+    private var tvToken: String?
+        get() = sharedTvToken
+        set(value) { sharedTvToken = value }
     private var tvQrKey: String? = null
 
     /**
@@ -112,7 +118,8 @@ class CompanionActivity : BaseActivity<Design<CompanionDesign.Request>>() {
         val pairings = pairingStore.list()
         // The QR's token was scanned and used: the next phone gets a fresh one.
         val used = tvToken?.let(Ids::tokenHash)?.let { hash ->
-            pairings.any { it.tokenHash == hash && (it.controllerId != null || it.label != null) }
+            pairings.none { it.tokenHash == hash } ||
+                pairings.any { it.tokenHash == hash && (it.controllerId != null || it.label != null) }
         } == true
         if (used) tvToken = null
 
@@ -357,4 +364,9 @@ class CompanionActivity : BaseActivity<Design<CompanionDesign.Request>>() {
                 design?.showToast(R.string.companion_unreachable, ToastDuration.Long)
             }
         }
+
+    private companion object {
+        @Volatile
+        var sharedTvToken: String? = null
+    }
 }
