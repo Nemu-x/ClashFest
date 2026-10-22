@@ -2,9 +2,11 @@ package com.github.kr328.clash.design.adapter
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.drawable.GradientDrawable
 import android.view.View
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import com.github.kr328.clash.design.util.isTelevision
 import com.github.kr328.clash.core.model.Proxy
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.service.model.ProxyTransportInfo
@@ -128,7 +130,20 @@ internal fun applyDelayStyle(
     capsule.setBackgroundResource(0)
     dot.visibility = View.GONE
     text.setTextColor(color)
-    text.backgroundTintList = ColorStateList.valueOf((color and 0x00FFFFFF) or (0x26 shl 24)) // ~15%
+    val soft = (color and 0x00FFFFFF) or (0x26 shl 24) // ~15%
+    if (context.isTelevision()) {
+        // TV: the focus fill is drawn over the focused row, and the see-through grey pill under it
+        // went muddy. A hairline of the pill's own colour keeps its shape crisp on any row tint.
+        val density = context.resources.displayMetrics.density
+        text.backgroundTintList = null
+        text.background = GradientDrawable().apply {
+            cornerRadius = 999f * density
+            setColor(soft)
+            setStroke((1 * density).toInt().coerceAtLeast(1), (color and 0x00FFFFFF) or (0x80 shl 24))
+        }
+    } else {
+        text.backgroundTintList = ColorStateList.valueOf(soft)
+    }
 }
 
 internal fun formatDelay(delayMs: Int): String =

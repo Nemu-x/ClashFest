@@ -11,6 +11,11 @@
     <!-- Surface -->
     <dimen name="surface_landscape_min_width">500dp</dimen>
 
+    <!-- Proxy picker node row (adapter_home_proxy_node); TV overrides in values-television. -->
+    <dimen name="proxy_node_row_min_height">56dp</dimen>
+    <dimen name="proxy_node_row_padding_vertical">9dp</dimen>
+    <dimen name="proxy_group_segment_min_height">34dp</dimen>
+
     <!--  Toolbar  -->
     <dimen name="main_toolbar_padding_horizontal">10dp</dimen>
     <dimen name="toolbar_height">42dp</dimen>
@@ -89,6 +94,12 @@
     <dimen name="main_bottom_nav_corner_radius">28dp</dimen>
     <dimen name="main_bottom_nav_elevation">8dp</dimen>
     <dimen name="main_bottom_nav_reserved_space">104dp</dimen>
+    <!-- TV only (MainDesignTv): the bottom nav as a left rail, and the empty Home's buttons. -->
+    <dimen name="tv_nav_rail_width">104dp</dimen>
+    <dimen name="tv_nav_rail_item_height">64dp</dimen>
+    <dimen name="tv_nav_rail_gap">12dp</dimen>
+    <dimen name="tv_empty_button_width">280dp</dimen>
+    <dimen name="tv_empty_button_height">64dp</dimen>
     <dimen name="main_logo_size">50dp</dimen>
     <dimen name="main_top_banner_height">90dp</dimen>
     <dimen name="profile_action_slot">40dp</dimen>
@@ -127,6 +138,11 @@
     <!-- About Design -->
     <dimen name="about_icon_size">50dp</dimen>
     <dimen name="about_text_margin">15dp</dimen>
+
+    <!-- Rules hub "add your first rule" row and section headers: full-bleed on phones, inset to the column on TV -->
+    <dimen name="rules_hub_empty_margin_horizontal">0dp</dimen>
+    <!-- Section header text inset; on TV the header row itself is inset by the margin above. -->
+    <dimen name="rules_hub_section_padding_horizontal">16dp</dimen>
 
     <!-- Logcat Design -->
     <dimen name="logcat_padding_vertical">12dp</dimen>

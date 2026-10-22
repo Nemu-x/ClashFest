@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- TV: a 1080p panel is ~960x540dp. Landscape.kt caps content at max(height, this), which
+         left a 540dp phone column in the middle of the TV; let content use most of the width
+         while keeping a ~30dp overscan-safe margin on each side. -->
+    <dimen name="surface_landscape_min_width">900dp</dimen>
+
+    <!-- Node rows in the TV side panel are one line (name + protocol chips, see
+         ProxyPickerSheet.inlineNodeRowMeta), so they can be compact and still read from the sofa. -->
+    <dimen name="proxy_node_row_min_height">46dp</dimen>
+    <dimen name="proxy_node_row_padding_vertical">5dp</dimen>
+    <dimen name="proxy_group_segment_min_height">30dp</dimen>
+
+    <!-- Keeps the empty-state focus ring inside the 16dp content column, like the rule rows. -->
+    <dimen name="rules_hub_empty_margin_horizontal">16dp</dimen>
+    <!-- Section headers share that inset (one ring width down the column); their text keeps a
+         small inner gap from the ring instead of a second 16dp. -->
+    <dimen name="rules_hub_section_padding_horizontal">8dp</dimen>
+
+    <!-- The nav is a rail on the left on TV (MainDesignTv.applyTvNavigationRail), so the tab pages
+         no longer reserve room for a bar along the bottom. -->
+    <dimen name="main_bottom_nav_reserved_space">16dp</dimen>
+</resources>

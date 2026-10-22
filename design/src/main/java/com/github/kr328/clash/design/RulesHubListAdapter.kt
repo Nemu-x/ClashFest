@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.github.kr328.clash.design.util.format
+import com.github.kr328.clash.design.util.isTelevision
 import com.github.kr328.clash.service.model.RuleItem
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.ChipGroup
@@ -87,6 +88,7 @@ class RulesHubListAdapter(
             VT_SECTION -> SectionHolder(inflater.inflate(R.layout.item_rules_hub_section, parent, false))
             VT_MANUAL -> ManualHolder(inflater.inflate(R.layout.item_rules_hub_row_manual, parent, false))
             VT_PROVIDER_RULE -> ProviderRuleHolder(inflater.inflate(R.layout.item_rules_hub_row_provider, parent, false))
+                .also(::focusRowOnTv)
             VT_PROVIDER_DEF -> ProviderDefHolder(inflater.inflate(R.layout.item_rules_hub_provider_def, parent, false))
             VT_ADD -> AddHolder(inflater.inflate(R.layout.item_rules_hub_add_action, parent, false))
             VT_EMPTY -> EmptyManualHolder(inflater.inflate(R.layout.item_rules_hub_empty_manual, parent, false))
@@ -194,6 +196,38 @@ class RulesHubListAdapter(
         val showRestore = rule.deleted && rule.isRestorable
         holder.restore.visibility = if (showRestore) View.VISIBLE else View.GONE
         holder.restore.setOnClickListener { callbacks.onRestoreRule(rule.id) }
+    }
+
+    /**
+     * TV: the small switch at the far right of a subscription rule lost every D-pad search to the
+     * full-width section header, so the rule could not be toggled. The whole row takes focus (the
+     * ring covers it, like the other rows) and CENTER toggles the switch, or restores a deleted rule.
+     */
+    private fun focusRowOnTv(holder: ProviderRuleHolder) {
+        if (!holder.itemView.context.isTelevision()) return
+        holder.enabled.isFocusable = false
+        holder.restore.isFocusable = false
+        holder.itemView.isFocusable = true
+        // Inset the row to the column the other rows and headers use, so its ring lines up with
+        // theirs; the index and switch keep their place inside it.
+        val inset = (16 * holder.itemView.resources.displayMetrics.density).toInt()
+        (holder.itemView.layoutParams as? ViewGroup.MarginLayoutParams)?.apply {
+            marginStart = inset
+            marginEnd = inset
+        }
+        (holder.index.layoutParams as ViewGroup.MarginLayoutParams).marginStart -= inset
+        holder.itemView.setPaddingRelative(
+            holder.itemView.paddingStart,
+            holder.itemView.paddingTop,
+            (holder.itemView.paddingEnd - inset / 2).coerceAtLeast(0),
+            holder.itemView.paddingBottom,
+        )
+        holder.itemView.setOnClickListener {
+            when {
+                holder.enabled.isEnabled -> holder.enabled.toggle()
+                holder.restore.visibility == View.VISIBLE -> holder.restore.performClick()
+            }
+        }
     }
 
     private fun bindProviderDef(holder: ProviderDefHolder, item: RulesHubListItem.ProviderDef) {

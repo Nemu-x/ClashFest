@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  TV: focus is drawn once for the whole window by TvFocusHighlight (accent ring + tint that
+  follows the D-pad), so the per-view ring stays transparent here to avoid a double outline.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@android:color/transparent" />
+</shape>

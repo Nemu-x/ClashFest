@@ -21,6 +21,7 @@ import com.github.kr328.clash.design.ui.Surface
 import com.github.kr328.clash.design.util.getPixels
 import com.github.kr328.clash.design.util.resolveThemedResourceId
 import com.github.kr328.clash.design.util.setOnInsertsChangedListener
+import com.github.kr328.clash.design.util.TvFocusHighlight
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 
@@ -107,6 +108,7 @@ class AppBottomSheetDialog(
             isSystemBarsTranslucentCompat = true
             isAllowForceDarkCompat = false
             navigationBarColor = surfaceTv.data
+            TvFocusHighlight.install(this)
         }
 
         // On-device measurement showed the dialog's root `container` applies the bottom

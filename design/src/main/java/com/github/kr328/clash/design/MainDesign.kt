@@ -401,6 +401,10 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     suspend fun patchProfiles(profiles: List<Profile>) {
         withContext(Dispatchers.Main) {
             binding.hasProfiles = profiles.isNotEmpty()
+            if (profiles.isNotEmpty() && context.isTelevision()) {
+                binding.executePendingBindings()
+                focusPowerOrbIfIdle()
+            }
             val homeProfiles = profiles.filter { it.active }.ifEmpty { profiles.take(1) }
             activeProfileForQuickActions = profiles.firstOrNull { it.active } ?: profiles.firstOrNull()
             renderActiveProfileCard(activeProfileForQuickActions)
@@ -732,6 +736,9 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     }
 
     internal var touchSlopTweakApplied: Boolean = false
+
+    /** TV: the control each tab's content last had, so RIGHT from the nav rail returns to it. */
+    internal val tvContentFocus = HashMap<MainTab, java.lang.ref.WeakReference<View>>()
     /**
      * Toggle the in-header update indicator. MainActivity polls
      * [AppUpdateChecker.isUpdateAvailable] from onResume and from background
@@ -743,6 +750,20 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
 
     /** Switch to the Profiles tab (the in-app profile manager) instead of opening a separate screen. */
     fun openProfilesTab() = selectMainTab(MainTab.Profiles)
+
+    /**
+     * TV BACK on a tab other than Home goes to Home first (the nav is the only way between tabs
+     * there, so BACK leaving the app from Settings was a surprise); BACK on Home exits as before.
+     * Returns false when BACK should take its default path. Phones never call this.
+     */
+    fun handleTvBack(): Boolean {
+        if (!context.isTelevision()) return false
+        val tab = currentTab ?: return false
+        if (tab == MainTab.Home || MainTab.Home !in activeTabs) return false
+        selectMainTab(MainTab.Home)
+        focusNavItem(MainTab.Home)
+        return true
+    }
 
     /** The logical tab currently shown — captured by MainActivity before a soft recreate (D5). */
     val currentTab: MainTab?
@@ -766,6 +787,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         binding.tunnelStarting = false
         binding.hasProfiles = false
         applyHomeBackgroundStyle()
+        if (context.isTelevision()) applyTvNavigationRail()
         setupMainPager()
 
         // Surface the remote-control quick entry on the TV home (deep settings nav with a D-pad
@@ -774,6 +796,10 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         if (context.isTelevision()) {
             binding.mainCompanionRow.visibility = View.VISIBLE
             binding.mainCompanionEmptyButton.visibility = View.VISIBLE
+            applyTvHomeLayout()
+            applyTvEmptyState()
+            applyTvPageFocusMargins()
+            applyTvProfilesHeader()
         }
 
         setupProfileLists()
@@ -811,6 +837,13 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     }
 
     private fun applyHomeBackgroundStyle() {
+        if (context.isTelevision()) {
+            // TV: every tab page paints bg_home_canvas inside the centred content column and the
+            // root only shows in the side margins; the same (centred) canvas there makes the column
+            // edge disappear instead of leaving darker bands.
+            binding.root.setBackgroundResource(R.drawable.bg_home_canvas)
+            return
+        }
         when (uiStore.homeBackgroundStyle) {
             HomeBackgroundStyle.MaterialYou -> binding.root.setBackgroundColor(
                 context.resolveThemedColor(com.google.android.material.R.attr.colorSurface),

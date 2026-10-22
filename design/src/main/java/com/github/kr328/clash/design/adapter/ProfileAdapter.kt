@@ -56,6 +56,9 @@ class ProfileAdapter(
         private set
     internal var activeProfileUuid: UUID? = null
         private set
+
+    /** Makes [profile] the active one (the host's activate request, same as tapping its card). */
+    internal fun activateProfile(profile: Profile) = onClicked(profile)
     internal var clashRunning: Boolean = false
         private set
     internal var tunnelMode: TunnelState.Mode? = null

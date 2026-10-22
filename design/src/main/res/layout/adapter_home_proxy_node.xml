@@ -10,11 +10,11 @@
     android:clickable="true"
     android:focusable="true"
     android:gravity="center_vertical"
-    android:minHeight="56dp"
+    android:minHeight="@dimen/proxy_node_row_min_height"
     android:orientation="horizontal"
     android:paddingStart="14dp"
     android:paddingEnd="14dp"
-    android:paddingVertical="9dp">
+    android:paddingVertical="@dimen/proxy_node_row_padding_vertical">
 
     <!-- Selection is now shown by the accent outline (bg_proxy_node_row) + check, so the left
          rail is retired. Kept as a 0-width view because selection tracking reads its visibility. -->

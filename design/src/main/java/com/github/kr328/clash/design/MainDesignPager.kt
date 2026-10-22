@@ -7,6 +7,7 @@ import com.google.android.material.R as MaterialR
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.github.kr328.clash.common.log.Log
+import com.github.kr328.clash.design.util.isTelevision
 import com.github.kr328.clash.design.util.resolveThemedColor
 import com.github.kr328.clash.design.MainDesign.MainTab
 
@@ -17,6 +18,12 @@ import com.github.kr328.clash.design.MainDesign.MainTab
 
 internal class StaticPageAdapter(
     private val pages: List<View>,
+    /**
+     * TV: where LEFT goes once nothing in the page is left of the focused control (the nav rail).
+     * The pager's RecyclerView otherwise answers it by trying to scroll to the neighbouring page,
+     * whose content is blocked, and keeps focus where it is.
+     */
+    private val leftExit: (() -> View?)? = null,
 ) : RecyclerView.Adapter<StaticPageAdapter.Holder>() {
     class Holder(val container: FrameLayout) : RecyclerView.ViewHolder(container)
 
@@ -26,7 +33,15 @@ internal class StaticPageAdapter(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
-        val container = FrameLayout(parent.context).apply {
+        val exit = leftExit
+        val container = object : FrameLayout(parent.context) {
+            override fun focusSearch(focused: View?, direction: Int): View? {
+                if (exit == null || direction != View.FOCUS_LEFT) return super.focusSearch(focused, direction)
+                return android.view.FocusFinder.getInstance().findNextFocus(this, focused, direction)
+                    ?: exit()
+                    ?: super.focusSearch(focused, direction)
+            }
+        }.apply {
             layoutParams = RecyclerView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -160,7 +175,12 @@ private fun MainDesign.attachPagerAdapter() {
         (page.parent as? ViewGroup)?.removeView(page)
     }
     pages.forEach { it.visibility = View.VISIBLE }
-    binding.mainPager.adapter = StaticPageAdapter(pages)
+    val leftExit: (() -> View?)? = if (context.isTelevision()) {
+        { currentTab?.let { navForMainTab(it) } }
+    } else {
+        null
+    }
+    binding.mainPager.adapter = StaticPageAdapter(pages, leftExit)
     binding.mainPager.offscreenPageLimit = pages.lastIndex.coerceAtLeast(1)
 }
 
@@ -210,19 +230,52 @@ internal fun MainDesign.selectMainTab(tab: MainTab) {
 }
 
 internal fun MainDesign.renderMainTab(tab: MainTab) {
+    val tv = context.isTelevision()
     MainTab.values().forEach {
         navForMainTab(it).isSelected = it == tab
         // The ViewPager keeps off-screen tab pages attached + VISIBLE (offscreenPageLimit =
         // all), so without this their content stays focusable and the D-pad escapes into the
         // hidden tab ("ghost" focus on TV). Only the current tab's page accepts focus.
-        (pageForMainTab(it) as? ViewGroup)?.descendantFocusability =
+        val page = pageForMainTab(it)
+        (page as? ViewGroup)?.descendantFocusability =
             if (it == tab) ViewGroup.FOCUS_AFTER_DESCENDANTS
             else ViewGroup.FOCUS_BLOCK_DESCENDANTS
+        // The page itself too: a scroll-view page is focusable, so RIGHT from the edge of the
+        // current tab landed on the neighbouring (off-screen) page and focus vanished.
+        if (tv && page is androidx.core.widget.NestedScrollView) page.isFocusable = it == tab
+    }
+    if (tv) {
+        updateRailFocusability(tab)
+        binding.root.post { keepFocusOnCurrentTab(tab) }
     }
     updateBreathAnimator(clashRunningState, tunnelStartingState)
 }
 
-private fun MainDesign.pageForMainTab(tab: MainTab) = when (tab) {
+/**
+ * A tab opened from page content (Home's "Active profile" row) left focus in the page that is now
+ * hidden and blocked, or on the pager itself: no ring, and the D-pad went nowhere. Unless focus is
+ * already on the nav or inside the new page, hand it to the new page's first control (or its tab).
+ */
+private fun MainDesign.keepFocusOnCurrentTab(tab: MainTab) {
+    val root = binding.root
+    if (root.isInTouchMode || !root.hasWindowFocus()) return
+    val page = pageForMainTab(tab)
+    val navs = MainTab.values().map { navForMainTab(it) }
+    val focused = root.findFocus()
+    if (focused != null && focused !== page && focused !is androidx.recyclerview.widget.RecyclerView) {
+        var v: View? = focused
+        while (v != null) {
+            if (v === page || v in navs) return
+            v = v.parent as? View
+        }
+    }
+    val first = (page as? ViewGroup)?.let {
+        android.view.FocusFinder.getInstance().findNextFocus(it, null, View.FOCUS_DOWN)
+    }
+    if (first?.requestFocus() != true) navForMainTab(tab).requestFocus()
+}
+
+internal fun MainDesign.pageForMainTab(tab: MainTab) = when (tab) {
     MainTab.Home -> binding.mainHomePage
     MainTab.Profiles -> binding.mainProfilesPage
     MainTab.Routing -> binding.mainRoutingPage
@@ -230,7 +283,7 @@ private fun MainDesign.pageForMainTab(tab: MainTab) = when (tab) {
     MainTab.Settings -> binding.mainSettingsPage
 }
 
-private fun MainDesign.navForMainTab(tab: MainTab): View = when (tab) {
+internal fun MainDesign.navForMainTab(tab: MainTab): View = when (tab) {
     MainTab.Home -> binding.mainNavHome
     MainTab.Profiles -> binding.mainNavProfiles
     MainTab.Routing -> binding.mainNavRouting
@@ -246,9 +299,20 @@ private fun MainDesign.navForMainTab(tab: MainTab): View = when (tab) {
  */
 private fun MainDesign.wireBottomNavFocus() {
     val visible = activeTabs.map { navForMainTab(it) }
+    if (context.isTelevision()) {
+        wireRailFocus(visible)
+        return
+    }
     visible.forEachIndexed { i, view ->
         view.nextFocusLeftId = visible[(i - 1).coerceAtLeast(0)].id
         view.nextFocusRightId = visible[(i + 1).coerceAtMost(visible.lastIndex)].id
         view.nextFocusDownId = view.id
     }
+}
+
+/** Focus [tab]'s nav item, even while the TV rail is only offering the current tab's item. */
+internal fun MainDesign.focusNavItem(tab: MainTab): Boolean {
+    val nav = navForMainTab(tab)
+    nav.isFocusable = true
+    return nav.requestFocus()
 }

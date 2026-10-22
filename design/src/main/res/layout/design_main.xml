@@ -513,7 +513,7 @@
                             android:layout_height="40dp"
                             android:background="@drawable/bg_flag_circle"
                             android:padding="9dp"
-                            android:src="@drawable/ic_baseline_stack"
+                            android:src="@drawable/ic_baseline_tv"
                             app:tint="?attr/colorPrimary"
                             tools:ignore="ContentDescription" />
 
@@ -1040,7 +1040,7 @@
                 </LinearLayout>
         </LinearLayout>
 
-        <androidx.core.widget.NestedScrollView
+        <com.github.kr328.clash.design.view.FocusInsetNestedScrollView
             android:id="@+id/main_routing_page"
             android:background="@drawable/bg_home_canvas"
             android:layout_width="match_parent"
@@ -1241,9 +1241,9 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
-        </androidx.core.widget.NestedScrollView>
+        </com.github.kr328.clash.design.view.FocusInsetNestedScrollView>
 
-        <androidx.core.widget.NestedScrollView
+        <com.github.kr328.clash.design.view.FocusInsetNestedScrollView
             android:id="@+id/main_operator_page"
             android:background="@drawable/bg_home_canvas"
             android:layout_width="match_parent"
@@ -1378,9 +1378,9 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
-        </androidx.core.widget.NestedScrollView>
+        </com.github.kr328.clash.design.view.FocusInsetNestedScrollView>
 
-        <androidx.core.widget.NestedScrollView
+        <com.github.kr328.clash.design.view.FocusInsetNestedScrollView
             android:id="@+id/main_settings_page"
             android:background="@drawable/bg_home_canvas"
             android:layout_width="match_parent"
@@ -1744,7 +1744,7 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
-        </androidx.core.widget.NestedScrollView>
+        </com.github.kr328.clash.design.view.FocusInsetNestedScrollView>
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/main_bottom_nav_card"
