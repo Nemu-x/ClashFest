@@ -83,6 +83,9 @@ internal class MainSubscriptionMeta(private val activity: MainActivity) {
                 withContext(Dispatchers.Main) {
                     renderAnnouncementFromStore(design)
                     hintTunStackChange(design)
+                    // The sync may have just stored a brand (the dashboard fetch that applies it
+                    // ran before it); show it now instead of on the next refresh.
+                    applyActiveBrand()
                 }
             }
         }
@@ -145,11 +148,14 @@ internal class MainSubscriptionMeta(private val activity: MainActivity) {
         val headersFresh = java.io.File(profileDir, com.github.kr328.clash.service.util.FetchHeadersFile.FILE_NAME)
             .takeIf { it.isFile }
             ?.let { System.currentTimeMillis() - it.lastModified() < cooldown * 1000L } == true
-        val allowCachedHeaders =
-            !url.substringBefore('#').startsWith("http://", ignoreCase = true) ||
-                uiStore.subscriptionMetadataAllowInsecureHttp
+        val plainHttp = url.substringBefore('#').startsWith("http://", ignoreCase = true)
+        val allowCachedHeaders = !plainHttp || uiStore.subscriptionMetadataAllowInsecureHttp
 
-        val fromSnapshot = headersFile != null && headersFresh && allowCachedHeaders
+        // A plain-http panel can never be probed live: the app permits no cleartext traffic
+        // (network_security_config), so HttpURLConnection fails and the opted-in sync only ever
+        // saw an empty manifest. The Go fetch is not bound by that policy and its snapshot is the
+        // last real response, so an opted-in http subscription always reads it, fresh or not.
+        val fromSnapshot = headersFile != null && allowCachedHeaders && (headersFresh || plainHttp)
         val (meta, brandManifest) = if (fromSnapshot) {
             com.github.kr328.clash.common.util.SubscriptionMetadataFetcher
                 .parseHeaders { key -> headersFile.get(key) } to
