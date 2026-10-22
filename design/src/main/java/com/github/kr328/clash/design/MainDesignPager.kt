@@ -149,10 +149,9 @@ private fun MainDesign.requestInitialHomeFocus() {
  * Preserves: registered OnPageChangeCallback, current logical tab when possible,
  * the touch-slop tweak (we don't re-run it).
  */
-internal fun MainDesign.rebuildMainPagerForTabs() {
-    // Snapshot the tab the user is currently on so we can stay there
-    // (or fall back to Home if it's no longer in the set).
-    val currentLogical = mainTabForPagerPosition(binding.mainPager.currentItem)
+internal fun MainDesign.rebuildMainPagerForTabs(currentLogical: MainTab?) {
+    // Stay on the tab the user was on (the caller reads it before [activeTabs] changes), or fall
+    // back to Home if it's no longer in the set.
     attachPagerAdapter()
 
     MainTab.values().forEach { tab ->

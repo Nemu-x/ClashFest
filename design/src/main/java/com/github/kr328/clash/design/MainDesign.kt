@@ -713,8 +713,11 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             else -> DEFAULT_TABS
         }
         if (desired == activeTabs) return
+        // The tab shown now, read against the old set: the same pager position is another tab
+        // once the set changes (Settings, third of Home/Profiles/Settings, would become Routing).
+        val shown = if (pagerInitialised) currentTab else null
         activeTabs = desired
-        if (pagerInitialised) rebuildMainPagerForTabs()
+        if (pagerInitialised) rebuildMainPagerForTabs(shown)
     }
 
     /**
