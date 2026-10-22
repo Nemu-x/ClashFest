@@ -22,6 +22,7 @@ import com.github.kr328.clash.design.util.getPixels
 import com.github.kr328.clash.design.util.resolveThemedResourceId
 import com.github.kr328.clash.design.util.setOnInsertsChangedListener
 import com.github.kr328.clash.design.util.TvFocusHighlight
+import com.github.kr328.clash.design.util.isTelevision
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 
@@ -109,6 +110,15 @@ class AppBottomSheetDialog(
             isAllowForceDarkCompat = false
             navigationBarColor = surfaceTv.data
             TvFocusHighlight.install(this)
+            // TV: a sheet that opens on a text field (quick edit) popped the on-screen keyboard
+            // over itself, hiding the fields under it and Save. The field still opens the keyboard
+            // on CENTER, when the user means to type.
+            if (context.isTelevision()) {
+                setSoftInputMode(
+                    (attributes.softInputMode and WindowManager.LayoutParams.SOFT_INPUT_MASK_STATE.inv()) or
+                        WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN,
+                )
+            }
         }
 
         // On-device measurement showed the dialog's root `container` applies the bottom
