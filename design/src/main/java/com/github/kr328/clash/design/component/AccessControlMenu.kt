@@ -8,6 +8,7 @@ import com.github.kr328.clash.design.AccessControlDesign.Request
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.model.AppInfoSort
 import com.github.kr328.clash.design.store.UiStore
+import com.github.kr328.clash.design.util.isTelevision
 import kotlinx.coroutines.channels.Channel
 
 class AccessControlMenu(
@@ -94,6 +95,8 @@ class AccessControlMenu(
 
         menu.menu.findItem(R.id.system_apps).isChecked = !uiStore.accessControlSystemApp
         menu.menu.findItem(R.id.reverse).isChecked = uiStore.accessControlReverse
+        // TV: import/export go through the clipboard, which a TV lacks.
+        if (context.isTelevision()) menu.menu.findItem(R.id.external).isVisible = false
 
         menu.setOnMenuItemClickListener(this)
     }

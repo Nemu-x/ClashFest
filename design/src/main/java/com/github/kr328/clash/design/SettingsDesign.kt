@@ -47,12 +47,14 @@ class SettingsDesign(context: Context) : Design<SettingsDesign.Request>(context)
      * App settings reflects here without leaving and re-entering Advanced.
      */
     fun applyExperimentalVisibility() {
+        // TV: these are YAML editors, offered only with "Advanced tools on TV" on.
+        val tools = !context.isTelevision() || ui.tvAdvancedTools
         binding.cardDnsHosts.visibility =
-            if (ui.dnsHostsEnabled) View.VISIBLE else View.GONE
+            if (tools && ui.dnsHostsEnabled) View.VISIBLE else View.GONE
         binding.cardTunnels.visibility =
-            if (ui.tunnelsEnabled) View.VISIBLE else View.GONE
+            if (tools && ui.tunnelsEnabled) View.VISIBLE else View.GONE
         binding.cardOverride.visibility =
-            if (ui.expertEnabled) View.VISIBLE else View.GONE
+            if (tools && ui.expertEnabled) View.VISIBLE else View.GONE
     }
 
     fun request(request: Request) {

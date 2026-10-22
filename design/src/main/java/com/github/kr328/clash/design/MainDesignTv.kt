@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import android.widget.LinearLayout
 import com.github.kr328.clash.design.MainDesign.MainTab
 import com.github.kr328.clash.design.adapter.dp
+import com.github.kr328.clash.design.util.isTelevision
 import com.github.kr328.clash.design.util.tvFocusRingInside
 import java.lang.ref.WeakReference
 
@@ -363,4 +364,37 @@ internal fun MainDesign.focusPowerOrbIfIdle() {
         (focused is RecyclerView || focused === binding.mainHomePage || focused === binding.mainPager)
     if (!idle) return
     binding.mainPowerCard.post { binding.mainPowerCard.requestFocus() }
+}
+
+/**
+ * A TV is for "connect, pick a node, watch": the rule editors, proxy chain and config tools (all
+ * typing and YAML) stay hidden until "Advanced tools on TV" is switched on. Phones never hide them.
+ */
+internal fun MainDesign.tvHidesAdvancedTools(): Boolean =
+    context.isTelevision() && !uiStore.tvAdvancedTools
+
+/**
+ * TV Settings tab: the "Advanced tools on TV" switch, and an "App Routing" entry for when the
+ * Routing tab is gone (without the advanced tools App Routing was all it still offered). Switching
+ * brings the Routing tab back on the rail at once.
+ */
+internal fun MainDesign.applyTvSettingsEntries() {
+    // Schemes & HWID has no copy buttons on a TV (no clipboard), so its summary doesn't promise them.
+    binding.mainSettingsIdentitySummary.setText(R.string.main_open_subscription_identity_summary_tv)
+    val toolsCard = binding.mainSettingsTvToolsCard
+    toolsCard.visibility = View.VISIBLE
+    toolsCard.setOnClickListener {
+        uiStore.tvAdvancedTools = !uiStore.tvAdvancedTools
+        reconcileTabsForBrand()
+        renderTvSettingsEntries()
+        // Rebuilding the pager detaches the page under the focus; keep it on the switch.
+        toolsCard.post { toolsCard.requestFocus() }
+    }
+    renderTvSettingsEntries()
+}
+
+internal fun MainDesign.renderTvSettingsEntries() {
+    binding.mainSettingsTvToolsSwitch.isChecked = uiStore.tvAdvancedTools
+    binding.mainSettingsAppRoutingCard.visibility =
+        if (MainTab.Routing in activeTabs) View.GONE else View.VISIBLE
 }

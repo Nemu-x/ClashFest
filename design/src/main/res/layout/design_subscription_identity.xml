@@ -78,6 +78,7 @@
                             android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                         <com.github.kr328.clash.design.view.ActionLabel
+                            android:id="@+id/copy_hwid"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
@@ -131,6 +132,7 @@
                             android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
 
                         <com.github.kr328.clash.design.view.ActionLabel
+                            android:id="@+id/copy_schemes"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
@@ -184,6 +186,7 @@
                             android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
 
                         <com.github.kr328.clash.design.view.ActionLabel
+                            android:id="@+id/copy_hwid_diagnostics"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
