@@ -6,6 +6,7 @@ import android.util.AttributeSet
 import android.widget.ScrollView
 import androidx.annotation.AttrRes
 import androidx.annotation.StyleRes
+import com.github.kr328.clash.design.util.isTelevision
 
 class ObservableScrollView @JvmOverloads constructor(
     context: Context,
@@ -38,6 +39,19 @@ class ObservableScrollView @JvmOverloads constructor(
      * this set, the band counts as off-screen. 0 (the default) is exactly ScrollView.
      */
     var topFocusInset: Int = 0
+
+    /**
+     * TV: room kept between the D-pad-focused control and the screen's top and bottom edges
+     * (ScrollView parked the next row flush against the bottom edge, inside the overscan, as on
+     * the Theme screen). ScrollView reserves the vertical fading-edge length on both sides when it
+     * brings a focused child on screen; with fading edges off this hands it a margin instead,
+     * without drawing any fade.
+     */
+    private val focusEdgeMargin: Int =
+        if (context.isTelevision()) (24 * resources.displayMetrics.density).toInt() else 0
+
+    override fun getVerticalFadingEdgeLength(): Int =
+        if (isVerticalFadingEdgeEnabled) super.getVerticalFadingEdgeLength() else focusEdgeMargin
 
     override fun computeScrollDeltaToGetChildRectOnScreen(rect: Rect): Int {
         val delta = super.computeScrollDeltaToGetChildRectOnScreen(rect)
