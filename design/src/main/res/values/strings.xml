@@ -1231,6 +1231,9 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="companion_show_pin_summary">Pair a PC (e.g. SlothClash) by entering a code</string>
     <string name="companion_pin_dialog_message">Enter this PIN on the other device (valid 60s)</string>
     <string name="companion_starting">Starting remote control… try again in a moment</string>
+    <string name="companion_tv_steps">On your phone, open ClashFest and tap + → %1$s → %2$s, then point the camera at this code.</string>
+    <string name="companion_tv_qr_off">Turn on remote control to show the pairing code</string>
+    <string name="companion_tv_qr_starting">Starting remote control…</string>
     <string name="main_node_title">Node</string>
     <string name="main_node_choose">Choose node</string>
     <string name="rule_mode_short">Rule</string>

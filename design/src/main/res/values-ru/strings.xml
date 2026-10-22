@@ -1225,6 +1225,9 @@
     <string name="companion_show_pin_summary">Сопрягите ПК (например SlothClash) вводом кода</string>
     <string name="companion_pin_dialog_message">Введите этот PIN на другом устройстве (действует 60с)</string>
     <string name="companion_starting">Запускаю удалённое управление… повтори через секунду</string>
+    <string name="companion_tv_steps">На телефоне откройте ClashFest и нажмите + → %1$s → %2$s, затем наведите камеру на этот код.</string>
+    <string name="companion_tv_qr_off">Включите удалённое управление, чтобы показать код сопряжения</string>
+    <string name="companion_tv_qr_starting">Запуск удалённого управления…</string>
     <string name="main_node_title">Нода</string>
     <string name="main_node_choose">Выбрать ноду</string>
     <string name="rule_mode_short">Правила</string>
