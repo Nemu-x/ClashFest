@@ -1263,4 +1263,7 @@
     <string name="remote_action_update_geo">更新地理数据库</string>
     <string name="remote_action_restart_core">重启内核</string>
     <string name="remote_action_healthcheck_all">检查所有节点</string>
+    <string name="tv_advanced_tools_title">电视高级工具</string>
+    <string name="tv_advanced_tools_summary">显示规则编辑器、代理链和配置工具</string>
+    <string name="main_open_subscription_identity_summary_tv">HWID、clashfest:// 方案与诊断</string>
 </resources>

@@ -1333,4 +1333,7 @@
     <string name="remote_action_update_geo">Обновить гео-базы</string>
     <string name="remote_action_restart_core">Перезапустить ядро</string>
     <string name="remote_action_healthcheck_all">Проверить все узлы</string>
+    <string name="tv_advanced_tools_title">Расширенные инструменты на ТВ</string>
+    <string name="tv_advanced_tools_summary">Показать редакторы правил, цепочку прокси и инструменты конфига</string>
+    <string name="main_open_subscription_identity_summary_tv">HWID, схема clashfest:// и диагностика</string>
 </resources>

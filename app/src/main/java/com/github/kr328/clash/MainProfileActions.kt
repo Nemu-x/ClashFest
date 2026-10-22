@@ -4,6 +4,7 @@ import android.content.ClipboardManager
 import android.graphics.Typeface
 import android.net.Uri
 import android.view.View
+import android.view.ViewGroup
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,6 +18,7 @@ import com.github.kr328.clash.design.MainDesign
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.dialog.AppBottomSheetDialog
 import com.github.kr328.clash.design.ui.ToastDuration
+import com.github.kr328.clash.design.util.advancedToolsShown
 import com.github.kr328.clash.design.util.isTelevision
 import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.remote.FilesClient
@@ -67,6 +69,18 @@ internal class MainProfileActions(private val activity: MainActivity) {
         view.findViewById<View>(R.id.opt_file).setOnClickListener {
             dialog.dismiss()
             activity.launch { importFromFile(design) }
+        }
+        // TV: no camera to scan with and no clipboard to paste from; add by URL or file instead.
+        if (activity.isTelevision()) {
+            view.findViewById<View>(R.id.opt_clipboard).visibility = View.GONE
+            view.findViewById<View>(R.id.opt_qr).visibility = View.GONE
+            // "By URL" is the first row now: it takes the gap under the summary the clipboard had.
+            view.findViewById<View>(R.id.opt_url).let { url ->
+                (url.layoutParams as? ViewGroup.MarginLayoutParams)?.let {
+                    it.topMargin = (16 * url.resources.displayMetrics.density).toInt()
+                    url.layoutParams = it
+                }
+            }
         }
         // Companion "control a TV" entry — phones only; on TV it lives on the home screen.
         view.findViewById<View>(R.id.opt_companion).also { row ->
@@ -136,6 +150,15 @@ internal class MainProfileActions(private val activity: MainActivity) {
         m.findItem(R.id.profile_menu_subscription_sources).isVisible = profile.imported
         m.findItem(R.id.profile_menu_rules).isVisible = profile.imported
         m.findItem(R.id.profile_menu_duplicate).isVisible = profile.imported
+        // TV: the editors (rules, sources, raw config, config script) only with the advanced tools.
+        if (!activity.advancedToolsShown()) {
+            listOf(
+                R.id.profile_menu_subscription_sources,
+                R.id.profile_menu_rules,
+                R.id.profile_menu_view_config,
+                R.id.profile_menu_config_script,
+            ).forEach { m.findItem(it).isVisible = false }
+        }
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.profile_menu_set_active -> {

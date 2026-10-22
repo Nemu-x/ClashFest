@@ -697,7 +697,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
      * Operator takes Routing's slot. The original brand commit (3e8fb36a) honoured Hide-Routing
      * alone; the same-day palette refactor accidentally gated it behind the Operator tab.
      */
-    private fun reconcileTabsForBrand() {
+    internal fun reconcileTabsForBrand() {
         val brand = brandHolder.manifest
         val showTab = brand.showOperatorTab == true
         val hideRouting = brand.hideRouting == true
@@ -711,13 +711,14 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             )
             hideRouting -> listOf(MainTab.Home, MainTab.Profiles, MainTab.Settings)
             else -> DEFAULT_TABS
-        }
+        }.let { if (tvHidesAdvancedTools()) it - MainTab.Routing else it }
         if (desired == activeTabs) return
         // The tab shown now, read against the old set: the same pager position is another tab
         // once the set changes (Settings, third of Home/Profiles/Settings, would become Routing).
         val shown = if (pagerInitialised) currentTab else null
         activeTabs = desired
         if (pagerInitialised) rebuildMainPagerForTabs(shown)
+        if (context.isTelevision()) renderTvSettingsEntries()
     }
 
     /**
@@ -793,7 +794,12 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         binding.tunnelStarting = false
         binding.hasProfiles = false
         applyHomeBackgroundStyle()
-        if (context.isTelevision()) applyTvNavigationRail()
+        if (context.isTelevision()) {
+            applyTvNavigationRail()
+            // Settle the TV tab set (no Routing without the advanced tools) before the pager is
+            // built, so the rail doesn't show Routing for a moment and then drop it.
+            reconcileTabsForBrand()
+        }
         setupMainPager()
 
         // Surface the remote-control quick entry on the TV home (deep settings nav with a D-pad
@@ -806,6 +812,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             applyTvEmptyState()
             applyTvPageFocusMargins()
             applyTvProfilesHeader()
+            applyTvSettingsEntries()
         }
 
         setupProfileLists()

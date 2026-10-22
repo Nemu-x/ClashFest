@@ -1341,4 +1341,7 @@ Password: %4$s</string>
     <string name="remote_action_update_geo">Update geo databases</string>
     <string name="remote_action_restart_core">Restart core</string>
     <string name="remote_action_healthcheck_all">Check all nodes</string>
+    <string name="tv_advanced_tools_title">Advanced tools on TV</string>
+    <string name="tv_advanced_tools_summary">Show rule editors, proxy chain and config tools</string>
+    <string name="main_open_subscription_identity_summary_tv">HWID, clashfest:// scheme and diagnostics</string>
 </resources>
