@@ -87,7 +87,10 @@ private class FocusHalo(private val root: View) {
         }
         drawable.setBounds(0, 0, root.width, root.height)
         val observer = root.viewTreeObserver
-        observer.addOnGlobalFocusChangeListener { _, newFocus -> retarget(newFocus) }
+        observer.addOnGlobalFocusChangeListener { oldFocus, newFocus ->
+            if (newFocus is RecyclerView && redirectFromList(newFocus, oldFocus)) return@addOnGlobalFocusChangeListener
+            retarget(newFocus)
+        }
         observer.addOnPreDrawListener(
             ViewTreeObserver.OnPreDrawListener {
                 follow()
@@ -99,8 +102,54 @@ private class FocusHalo(private val root: View) {
             drawable.invalidateSelf()
             if (hasFocus) focusFirstIfNone()
         }
-        observer.addOnGlobalLayoutListener { focusFirstIfNone() }
+        observer.addOnGlobalLayoutListener {
+            restoreListFocusability()
+            focusFirstIfNone()
+        }
         root.findFocus()?.let(::retarget)
+    }
+
+    /** Empty lists [redirectFromList] took out of the focus order, until they have rows again. */
+    private val emptiedLists = java.util.WeakHashMap<RecyclerView, Unit>()
+
+    /**
+     * A list is not a place of its own on TV. One with rows hands focus to a row (the list itself
+     * takes it when the focused row is rebound or removed). An empty one (the logs history before
+     * anything is saved, Connections with none open, a filter that matches nothing) leaves the
+     * focus order, so DOWN onto it no longer parks an invisible focus there: focus goes back to
+     * where it came from. A list that opted in as a stop ([R.id.tv_focus_stop_scroller]) is left
+     * alone.
+     */
+    private fun redirectFromList(list: RecyclerView, from: View?): Boolean {
+        if (list.getTag(R.id.tv_focus_stop_scroller) == true) return false
+        // Only a move from a control the user is on. Focus handed to a list because its holder
+        // vanished (Home's empty state giving way at startup) is left to the screen's own logic.
+        if (from == null || from === list || !from.isAttachedToWindow || !from.isShown) return false
+        // The main pager's own list: its pages place focus themselves.
+        if (list.parent is androidx.viewpager2.widget.ViewPager2) return false
+        val count = list.adapter?.itemCount ?: 0
+        if (count > 0) {
+            val row = FocusFinder.getInstance().findNextFocus(list, null, View.FOCUS_DOWN) ?: return false
+            return row.requestFocus()
+        }
+        // Back first, then out of the order: dropping focusability of the focused list would
+        // clear focus to the window's first control instead.
+        if (!from.requestFocus()) return false
+        list.isFocusable = false
+        emptiedLists[list] = Unit
+        return true
+    }
+
+    private fun restoreListFocusability() {
+        if (emptiedLists.isEmpty()) return
+        val iterator = emptiedLists.keys.iterator()
+        while (iterator.hasNext()) {
+            val list = iterator.next()
+            if ((list.adapter?.itemCount ?: 0) > 0) {
+                list.isFocusable = true
+                iterator.remove()
+            }
+        }
     }
 
     /**
