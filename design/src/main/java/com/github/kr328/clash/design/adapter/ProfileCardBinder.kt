@@ -344,7 +344,7 @@ internal class ProfileCardBinder(private val adapter: ProfileAdapter) {
             val r = list.getChildAt(i)
             r.isSelected = false
             r.findViewById<View>(R.id.selected_bar)?.visibility = View.INVISIBLE
-            r.findViewById<View>(R.id.selected_check)?.visibility = View.GONE
+            r.findViewById<View>(R.id.selected_check)?.showSelectedCheck(false)
         }
         target.isSelected = true
         target.findViewById<View>(R.id.selected_bar).visibility = View.VISIBLE

@@ -10,13 +10,17 @@ import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.RippleDrawable
 import android.os.Build
+import android.text.InputType
 import android.view.FocusFinder
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.view.Window
 import android.view.animation.DecelerateInterpolator
+import android.widget.AutoCompleteTextView
 import android.widget.HorizontalScrollView
 import android.widget.ScrollView
 import androidx.core.graphics.ColorUtils
@@ -44,6 +48,14 @@ object TvFocusHighlight {
         if (decor.getTag(R.id.tv_focus_halo) != null) return
         decor.setTag(R.id.tv_focus_halo, FocusHalo(decor))
     }
+}
+
+/**
+ * The focus ring of this view is drawn just inside its bounds instead of around them: for rows
+ * that fill a card edge to edge, where the usual outside ring crossed the card's own outline.
+ */
+fun View.tvFocusRingInside() {
+    setTag(R.id.tv_focus_inside, true)
 }
 
 private class FocusHalo(private val root: View) {
@@ -87,7 +99,11 @@ private class FocusHalo(private val root: View) {
         }
         drawable.setBounds(0, 0, root.width, root.height)
         val observer = root.viewTreeObserver
-        observer.addOnGlobalFocusChangeListener { _, newFocus -> retarget(newFocus) }
+        observer.addOnGlobalFocusChangeListener { oldFocus, newFocus ->
+            if (newFocus is RecyclerView && redirectFromList(newFocus, oldFocus)) return@addOnGlobalFocusChangeListener
+            if (newFocus is AutoCompleteTextView) openDropdownOnCenter(newFocus)
+            retarget(newFocus)
+        }
         observer.addOnPreDrawListener(
             ViewTreeObserver.OnPreDrawListener {
                 follow()
@@ -99,8 +115,74 @@ private class FocusHalo(private val root: View) {
             drawable.invalidateSelf()
             if (hasFocus) focusFirstIfNone()
         }
-        observer.addOnGlobalLayoutListener { focusFirstIfNone() }
+        observer.addOnGlobalLayoutListener {
+            restoreListFocusability()
+            focusFirstIfNone()
+        }
         root.findFocus()?.let(::retarget)
+    }
+
+    /** Empty lists [redirectFromList] took out of the focus order, until they have rows again. */
+    private val emptiedLists = java.util.WeakHashMap<RecyclerView, Unit>()
+
+    /**
+     * A list is not a place of its own on TV. One with rows hands focus to a row (the list itself
+     * takes it when the focused row is rebound or removed). An empty one (the logs history before
+     * anything is saved, Connections with none open, a filter that matches nothing) leaves the
+     * focus order, so DOWN onto it no longer parks an invisible focus there: focus goes back to
+     * where it came from. A list that opted in as a stop ([R.id.tv_focus_stop_scroller]) is left
+     * alone.
+     */
+    private fun redirectFromList(list: RecyclerView, from: View?): Boolean {
+        if (list.getTag(R.id.tv_focus_stop_scroller) == true) return false
+        // Only a move from a control the user is on. Focus handed to a list because its holder
+        // vanished (Home's empty state giving way at startup) is left to the screen's own logic.
+        if (from == null || from === list || !from.isAttachedToWindow || !from.isShown) return false
+        // The main pager's own list: its pages place focus themselves.
+        if (list.parent is androidx.viewpager2.widget.ViewPager2) return false
+        val count = list.adapter?.itemCount ?: 0
+        if (count > 0) {
+            val row = FocusFinder.getInstance().findNextFocus(list, null, View.FOCUS_DOWN) ?: return false
+            return row.requestFocus()
+        }
+        // Back first, then out of the order: dropping focusability of the focused list would
+        // clear focus to the window's first control instead.
+        if (!from.requestFocus()) return false
+        list.isFocusable = false
+        emptiedLists[list] = Unit
+        return true
+    }
+
+    /**
+     * A Material exposed dropdown (a read-only AutoCompleteTextView: App Routing's and
+     * Connections' filters, the profile's User-Agent) opens on touch only, so with a remote it
+     * took focus but could never be changed. CENTER on one now opens its list.
+     */
+    private fun openDropdownOnCenter(view: AutoCompleteTextView) {
+        if (view.inputType != InputType.TYPE_NULL || view.getTag(R.id.tv_dropdown_center) == true) return
+        view.setTag(R.id.tv_dropdown_center, true)
+        view.setOnKeyListener { v, keyCode, event ->
+            val select = keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+            val dropdown = v as AutoCompleteTextView
+            // While the list is open, CENTER picks the highlighted item (the view's own handling).
+            if (!select || dropdown.isPopupShowing) return@setOnKeyListener false
+            if (event.action == KeyEvent.ACTION_UP && dropdown.isEnabled && dropdown.adapter != null) {
+                dropdown.showDropDown()
+            }
+            true
+        }
+    }
+
+    private fun restoreListFocusability() {
+        if (emptiedLists.isEmpty()) return
+        val iterator = emptiedLists.keys.iterator()
+        while (iterator.hasNext()) {
+            val list = iterator.next()
+            if ((list.adapter?.itemCount ?: 0) > 0) {
+                list.isFocusable = true
+                iterator.remove()
+            }
+        }
     }
 
     /**
@@ -146,6 +228,10 @@ private class FocusHalo(private val root: View) {
         }
         unclipAncestors(next)
         keepWideButtonsUnscaled(next)
+        fitBorderlessRipple(next)
+        // A text field's end icon (a dropdown's arrow) fills the box's height: the ring around it
+        // crossed the field's own outline.
+        if (next.id == com.google.android.material.R.id.text_input_end_icon) next.tvFocusRingInside()
         if (!measure(next, to)) return
         toRadii = radiiOf(next, to)
         if (visible && !shown.isEmpty) {
@@ -248,13 +334,41 @@ private class FocusHalo(private val root: View) {
         val sx = view.scaleX
         val sy = view.scaleY
         val body = visibleBody(view)
+        // Inside: the ring's outer edge sits [insideMargin] within the view; outside: [gap] around it.
+        val grow = if (isInside(view)) -(stroke + insideMargin) else gap
         out.set(
-            left + body.left * sx - gap,
-            top + body.top * sy - gap,
-            left + body.right * sx + gap,
-            top + body.bottom * sy + gap,
+            left + body.left * sx - grow,
+            top + body.top * sy - grow,
+            left + body.right * sx + grow,
+            top + body.bottom * sy + grow,
         )
         return true
+    }
+
+    private val insideMargin = 2f * density
+
+    private fun isInside(view: View) = view.getTag(R.id.tv_focus_inside) == true
+
+    /**
+     * A borderless ripple on an icon button (sort, overflow, a field's end icon) paints its focused
+     * highlight as a disc wider than the view, which showed as a grey halo around the ring. Keep
+     * the disc within the view, and give the ring the same round shape. (Wide views with one, such
+     * as tabs, keep theirs.)
+     */
+    private fun fitBorderlessRipple(view: View) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || !isBorderlessIcon(view)) return
+        val ripple = view.background as RippleDrawable
+        val radius = minOf(view.width, view.height) / 2
+        if (ripple.radius != radius) ripple.radius = radius
+    }
+
+    /** A roughly square view with a borderless ripple: an icon button. */
+    private fun isBorderlessIcon(view: View): Boolean {
+        val ripple = view.background as? RippleDrawable ?: return false
+        if (ripple.numberOfLayers != 0 || view.width == 0 || view.height == 0) return false
+        val w = view.width.toFloat()
+        val h = view.height.toFloat()
+        return maxOf(w, h) <= minOf(w, h) * 1.25f
     }
 
     private val body = Rect()
@@ -277,14 +391,17 @@ private class FocusHalo(private val root: View) {
     }
 
     private fun radiiOf(view: View, rect: RectF): FloatArray {
-        val w = rect.width() - 2 * gap
-        val h = rect.height() - 2 * gap
+        // [rect] is the body grown by [gap] (or shrunk, for a ring inside); the corners follow it.
+        val grow = if (isInside(view)) -(stroke + insideMargin) else gap
+        val w = rect.width() - 2 * grow
+        val h = rect.height() - 2 * grow
         val max = minOf(w, h) / 2f
-        val corners = shapeCorners(view, w, h) ?: outlineRadius(view)?.let { r -> FloatArray(4) { r } }
+        val corners = (if (isBorderlessIcon(view)) FloatArray(4) { max } else null)
+            ?: shapeCorners(view, w, h) ?: outlineRadius(view)?.let { r -> FloatArray(4) { r } }
             ?: FloatArray(4) { fallbackRadius }
         val out = FloatArray(8)
         for (i in 0 until 4) {
-            val r = (corners[i].coerceIn(0f, max) + gap)
+            val r = (corners[i].coerceIn(0f, max) + grow).coerceAtLeast(0f)
             out[i * 2] = r
             out[i * 2 + 1] = r
         }

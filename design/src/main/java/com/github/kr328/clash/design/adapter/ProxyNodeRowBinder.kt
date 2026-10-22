@@ -6,9 +6,23 @@ import androidx.core.content.ContextCompat
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.util.FlagDrawableLoader
 import com.github.kr328.clash.design.util.FlagParser
+import com.github.kr328.clash.design.util.isTelevision
+import com.github.kr328.clash.design.util.tvFocusRingInside
 import com.github.kr328.clash.core.model.Proxy
 import com.github.kr328.clash.service.model.Profile
 import com.github.kr328.clash.service.model.ProxyTransportInfo
+
+/**
+ * The selected row's check mark. On TV an unselected row keeps the check's room (invisible), so the
+ * latency pills line up down the list instead of the selected row's sitting further left.
+ */
+internal fun View.showSelectedCheck(selected: Boolean) {
+    visibility = when {
+        selected -> View.VISIBLE
+        context.isTelevision() -> View.INVISIBLE
+        else -> View.GONE
+    }
+}
 
 /**
  * Binds one proxy-node row view (flag, name, protocol chips, latency capsule, selection
@@ -32,7 +46,7 @@ internal class ProxyNodeRowBinder(private val adapter: ProfileAdapter) {
         val selected = pickerRow.selected
         row.isSelected = selected
         row.findViewById<View>(R.id.selected_bar)?.visibility = if (selected) View.VISIBLE else View.INVISIBLE
-        row.findViewById<View>(R.id.selected_check)?.visibility = if (selected) View.VISIBLE else View.GONE
+        row.findViewById<View>(R.id.selected_check)?.showSelectedCheck(selected)
     }
 
     /**
@@ -77,8 +91,7 @@ internal class ProxyNodeRowBinder(private val adapter: ProfileAdapter) {
         row.isSelected = selected
         row.findViewById<View>(R.id.selected_bar).visibility =
             if (selected) View.VISIBLE else View.INVISIBLE
-        row.findViewById<View>(R.id.selected_check).visibility =
-            if (selected) View.VISIBLE else View.GONE
+        row.findViewById<View>(R.id.selected_check).showSelectedCheck(selected)
         val mainHit = row.findViewById<View>(R.id.proxy_row_main_hit)
         val tryPickNode: () -> Boolean = {
             val canPickLive = adapter.clashRunning && adapter.selection.useEngineFor(profile)
@@ -132,6 +145,9 @@ internal fun bindNodeRowAppearance(
     transportFor: () -> ProxyTransportInfo?,
 ) {
     val context = row.context
+    // TV: rows sit 2dp apart, so a ring around the focused row ran into the selected row's outline
+    // next to it; it goes inside the row instead.
+    row.tvFocusRingInside()
     val flag = FlagParser.parse(title)
     val cleanTitle = flag?.let {
         title.removePrefix(it.emoji)

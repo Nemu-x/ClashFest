@@ -11,10 +11,15 @@ import com.github.kr328.clash.companion.controller.CompanionClient
 import com.github.kr328.clash.companion.controller.CompanionError
 import com.github.kr328.clash.companion.controller.ControllerStore
 import com.github.kr328.clash.companion.protocol.PairingPayload
+import com.github.kr328.clash.companion.protocol.Ids
 import com.github.kr328.clash.companion.ui.CompanionDesign
+import com.github.kr328.clash.companion.ui.CompanionTvDesign
 import com.github.kr328.clash.common.util.intent
+import com.github.kr328.clash.design.Design
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.ui.ToastDuration
+import com.github.kr328.clash.design.util.TvFocusHighlight
+import com.github.kr328.clash.design.util.isTelevision
 import com.github.kr328.clash.design.util.resolveThemedColor
 import com.github.kr328.clash.service.model.Profile
 import com.github.kr328.clash.service.store.ServiceStore
@@ -23,19 +28,25 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.github.kr328.clash.qr.QrScanResult
 import com.github.kr328.clash.qr.ScanQrCode
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
 
-class CompanionActivity : BaseActivity<CompanionDesign>() {
+class CompanionActivity : BaseActivity<Design<CompanionDesign.Request>>() {
     private val store by lazy { CompanionStore(this) }
     private val pairingStore by lazy { PairingStore(this) }
 
     private val scanLauncher = registerForActivityResult(ScanQrCode(), ::onScanResult)
 
     override suspend fun main() {
-        val design = CompanionDesign(this, store, ::onAgentToggle)
+        val tv = if (isTelevision()) {
+            CompanionTvDesign(this, store.displayName, ::onTvAgentToggle, ::confirmTvUnpair)
+        } else {
+            null
+        }
+        val design = tv ?: CompanionDesign(this, store, ::onAgentToggle)
         setContentDesign(design)
 
         // The toggle persists ON across restarts, but the service doesn't auto-survive a process
@@ -43,6 +54,7 @@ class CompanionActivity : BaseActivity<CompanionDesign>() {
         if (store.agentEnabled && !CompanionAgent.isReady()) {
             CompanionGatewayService.start(this)
         }
+        tv?.let { launch { keepTvScreenCurrent(it) } }
 
         while (isActive) {
             val request = design.requests.receive()
@@ -78,6 +90,92 @@ class CompanionActivity : BaseActivity<CompanionDesign>() {
             CompanionGatewayService.start(this)
         } else {
             CompanionGatewayService.stop(this)
+        }
+    }
+
+    /**
+     * TV: the token behind the QR on screen, replaced once it is used or revoked. It outlives the
+     * visit (process-wide) so reopening the screen shows the same unused token instead of minting
+     * a new one each time and leaving the old ones in [PairingStore].
+     */
+    private var tvToken: String?
+        get() = sharedTvToken
+        set(value) { sharedTvToken = value }
+    private var tvQrKey: String? = null
+
+    /**
+     * TV: the QR, the toggle and the paired list follow the gateway while the screen is open (it
+     * takes a moment to start, and a phone pairing from the sofa should show up without leaving).
+     */
+    private suspend fun keepTvScreenCurrent(tv: CompanionTvDesign) {
+        while (isActive) {
+            refreshTv(tv)
+            delay(1_500)
+        }
+    }
+
+    private fun refreshTv(tv: CompanionTvDesign) {
+        val pairings = pairingStore.list()
+        // The QR's token was scanned and used: the next phone gets a fresh one.
+        val used = tvToken?.let(Ids::tokenHash)?.let { hash ->
+            pairings.none { it.tokenHash == hash } ||
+                pairings.any { it.tokenHash == hash && (it.controllerId != null || it.label != null) }
+        } == true
+        if (used) tvToken = null
+
+        tv.setAgentEnabled(store.agentEnabled)
+        tvQrState(tv)?.let(tv::setQr)
+
+        // A token nobody has used yet (a QR shown but never scanned) is not a controller.
+        val df = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+        tv.setPairings(
+            pairings.filter { it.controllerId != null || it.label != null }.map {
+                CompanionTvDesign.Paired(
+                    tokenHash = it.tokenHash,
+                    label = it.label ?: getString(R.string.companion_pairing_unnamed),
+                    pairedAt = df.format(Date(it.pairedAt)),
+                )
+            },
+        )
+    }
+
+    /** The QR to show, or null when what is on screen is still right. */
+    private fun tvQrState(tv: CompanionTvDesign): CompanionTvDesign.QrState? {
+        if (!store.agentEnabled) return tvQrOnce("off") { CompanionTvDesign.QrState.Off }
+        if (!CompanionAgent.isReady()) return tvQrOnce("starting") { CompanionTvDesign.QrState.Starting }
+        val ip = CompanionAgent.lanAddress() ?: return tvQrOnce("offline") { CompanionTvDesign.QrState.NoNetwork }
+        val token = tvToken ?: pairingStore.issueToken().also { tvToken = it }
+        val port = CompanionAgent.port
+        return tvQrOnce("$ip:$port:${Ids.tokenHash(token)}") {
+            val payload = PairingPayload(
+                ip = ip,
+                port = port,
+                id = store.deviceId,
+                fp = CompanionAgent.fingerprint!!,
+                token = token,
+                name = store.displayName,
+                app = CompanionStore.APP_ID,
+            ).toUri()
+            // A full quiet zone (4 modules) inside the white card: phones lock on from the sofa.
+            CompanionTvDesign.QrState.Ready(QrCode.encode(payload, tv.qrSizePx, margin = 4), "$ip:$port")
+        }
+    }
+
+    private inline fun tvQrOnce(key: String, state: () -> CompanionTvDesign.QrState): CompanionTvDesign.QrState? {
+        if (key == tvQrKey) return null
+        tvQrKey = key
+        return state()
+    }
+
+    private fun onTvAgentToggle(enabled: Boolean) {
+        store.agentEnabled = enabled
+        onAgentToggle(enabled)
+        (design as? CompanionTvDesign)?.let(::refreshTv)
+    }
+
+    private fun confirmTvUnpair(item: CompanionTvDesign.Paired) {
+        confirmRevoke(item.tokenHash, item.label) {
+            (design as? CompanionTvDesign)?.let(::refreshTv)
         }
     }
 
@@ -165,6 +263,7 @@ class CompanionActivity : BaseActivity<CompanionDesign>() {
             .setView(container)
             .setPositiveButton(android.R.string.ok, null)
             .show()
+            .window?.let(TvFocusHighlight::install)
     }
 
     private fun showPairingsDialog() {
@@ -187,16 +286,19 @@ class CompanionActivity : BaseActivity<CompanionDesign>() {
             .show()
     }
 
-    private fun confirmRevoke(tokenHash: String, label: String) {
+    private fun confirmRevoke(tokenHash: String, label: String, onRevoked: () -> Unit = {}) {
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.companion_revoke_title)
             .setMessage(getString(R.string.companion_revoke_message, label))
             .setPositiveButton(R.string.companion_revoke_confirm) { _, _ ->
                 pairingStore.revoke(tokenHash)
+                onRevoked()
                 launch { design?.showToast(R.string.companion_revoked, ToastDuration.Short) }
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+            // TV: the ring on the dialog's buttons, and focus on one from the start.
+            .window?.let(TvFocusHighlight::install)
     }
 
     private fun onScanResult(result: QrScanResult) {
@@ -262,4 +364,9 @@ class CompanionActivity : BaseActivity<CompanionDesign>() {
                 design?.showToast(R.string.companion_unreachable, ToastDuration.Long)
             }
         }
+
+    private companion object {
+        @Volatile
+        var sharedTvToken: String? = null
+    }
 }

@@ -16,3 +16,10 @@ fun Context.isTelevision(): Boolean {
     return packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK) ||
         packageManager.hasSystemFeature("android.hardware.type.television")
 }
+
+/**
+ * Whether the editing tools (rule editors, proxy chain, config script / raw config, YAML editors)
+ * are offered: always on a phone; on a TV only once "Advanced tools on TV" is switched on.
+ */
+fun Context.advancedToolsShown(): Boolean =
+    !isTelevision() || com.github.kr328.clash.design.store.UiStore(this).tvAdvancedTools

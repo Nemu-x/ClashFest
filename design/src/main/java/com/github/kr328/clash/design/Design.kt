@@ -1,8 +1,12 @@
 package com.github.kr328.clash.design
 
 import android.content.Context
+import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import com.github.kr328.clash.design.ui.Surface
 import com.github.kr328.clash.design.ui.ToastDuration
 import com.github.kr328.clash.design.util.currentWindowInsetsSnapshot
@@ -47,11 +51,36 @@ abstract class Design<R>(val context: Context) :
                 // lift the snackbar to mid-screen.
                 if (!context.isTelevision()) {
                     root.findViewById<View>(R.id.main_bottom_nav_card)?.let { anchorView = it }
+                } else {
+                    placeOnTv()
                 }
                 styleAsMaterial3()
                 configure()
             }.show()
         }
+    }
+
+    /**
+     * TV: the snackbar stretched across the whole set, under the nav rail, and sat 8dp off the
+     * bottom edge, inside the overscan. It is a capped card centred over the content instead (right
+     * of the rail on the main screen), kept the overscan-safe margin above the bottom edge.
+     */
+    private fun Snackbar.placeOnTv() {
+        val res = context.resources
+        val lp = view.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        val railSpace = (root.findViewById<View>(R.id.main_pager)?.layoutParams as? ViewGroup.MarginLayoutParams)
+            ?.marginStart ?: 0
+        val side = (24 * res.displayMetrics.density).toInt()
+        lp.width = (640 * res.displayMetrics.density).toInt()
+        lp.marginStart = railSpace + side
+        lp.marginEnd = side
+        lp.bottomMargin = res.getDimensionPixelSize(R.dimen.tv_focus_edge_margin)
+        val gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+        when (lp) {
+            is CoordinatorLayout.LayoutParams -> lp.gravity = gravity
+            is FrameLayout.LayoutParams -> lp.gravity = gravity
+        }
+        view.layoutParams = lp
     }
 
     /**

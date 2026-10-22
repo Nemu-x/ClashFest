@@ -902,6 +902,7 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="deny_selected_apps">Bypass</string>
     <string name="deny_selected_apps_description">Selected apps bypass the VPN</string>
     <string name="app_routing_counter">%1$d / %2$d selected</string>
+    <string name="app_routing_empty">No apps match the current filters. Clear the search or change the filters in the ⋮ menu.</string>
     <string name="app_routing_selected">Selected</string>
     <string name="app_routing_not_selected">Not selected</string>
     <string name="app_routing_filter_ru">ru.*</string>
@@ -1231,6 +1232,9 @@ Presets only change <b>where</b> files are downloaded from (CDN / host). It is s
     <string name="companion_show_pin_summary">Pair a PC (e.g. SlothClash) by entering a code</string>
     <string name="companion_pin_dialog_message">Enter this PIN on the other device (valid 60s)</string>
     <string name="companion_starting">Starting remote control… try again in a moment</string>
+    <string name="companion_tv_steps">On your phone, open ClashFest and tap + → %1$s → %2$s, then point the camera at this code.</string>
+    <string name="companion_tv_qr_off">Turn on remote control to show the pairing code</string>
+    <string name="companion_tv_qr_starting">Starting remote control…</string>
     <string name="main_node_title">Node</string>
     <string name="main_node_choose">Choose node</string>
     <string name="rule_mode_short">Rule</string>
@@ -1338,4 +1342,7 @@ Password: %4$s</string>
     <string name="remote_action_update_geo">Update geo databases</string>
     <string name="remote_action_restart_core">Restart core</string>
     <string name="remote_action_healthcheck_all">Check all nodes</string>
+    <string name="tv_advanced_tools_title">Advanced tools on TV</string>
+    <string name="tv_advanced_tools_summary">Show rule editors, proxy chain and config tools</string>
+    <string name="main_open_subscription_identity_summary_tv">HWID, clashfest:// scheme and diagnostics</string>
 </resources>

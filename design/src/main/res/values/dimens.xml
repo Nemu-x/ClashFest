@@ -100,6 +100,11 @@
     <dimen name="tv_nav_rail_gap">12dp</dimen>
     <dimen name="tv_empty_button_width">280dp</dimen>
     <dimen name="tv_empty_button_height">64dp</dimen>
+    <!-- TV only: room kept between the D-pad-focused row and the screen's top/bottom edge, so its
+         ring (5dp outside the row) stays out of the outer 5% a TV may overscan. -->
+    <dimen name="tv_focus_edge_margin">34dp</dimen>
+    <!-- TV remote-control screen (CompanionTvDesign): the pairing QR, readable from across the room. -->
+    <dimen name="companion_tv_qr_size">400dp</dimen>
     <dimen name="main_logo_size">50dp</dimen>
     <dimen name="main_top_banner_height">90dp</dimen>
     <dimen name="profile_action_slot">40dp</dimen>
@@ -143,6 +148,11 @@
     <dimen name="rules_hub_empty_margin_horizontal">0dp</dimen>
     <!-- Section header text inset; on TV the header row itself is inset by the margin above. -->
     <dimen name="rules_hub_section_padding_horizontal">16dp</dimen>
+    <!-- Section header vertical padding / gap above it, and the room under the empty-state row. -->
+    <dimen name="rules_hub_section_padding_top">16dp</dimen>
+    <dimen name="rules_hub_section_padding_bottom">6dp</dimen>
+    <dimen name="rules_hub_section_margin_top">0dp</dimen>
+    <dimen name="rules_hub_empty_margin_bottom">0dp</dimen>
 
     <!-- Logcat Design -->
     <dimen name="logcat_padding_vertical">12dp</dimen>

@@ -784,6 +784,7 @@
     <string name="deny_selected_apps">В обход</string>
     <string name="deny_selected_apps_description">Выбранные приложения обходят VPN</string>
     <string name="app_routing_counter">Выбрано: %1$d / %2$d</string>
+    <string name="app_routing_empty">Нет приложений под текущие фильтры. Очистите поиск или измените фильтры в меню ⋮.</string>
     <string name="app_routing_selected">Выбрано</string>
     <string name="app_routing_not_selected">Не выбрано</string>
 
@@ -1225,6 +1226,9 @@
     <string name="companion_show_pin_summary">Сопрягите ПК (например SlothClash) вводом кода</string>
     <string name="companion_pin_dialog_message">Введите этот PIN на другом устройстве (действует 60с)</string>
     <string name="companion_starting">Запускаю удалённое управление… повтори через секунду</string>
+    <string name="companion_tv_steps">На телефоне откройте ClashFest и нажмите + → %1$s → %2$s, затем наведите камеру на этот код.</string>
+    <string name="companion_tv_qr_off">Включите удалённое управление, чтобы показать код сопряжения</string>
+    <string name="companion_tv_qr_starting">Запуск удалённого управления…</string>
     <string name="main_node_title">Нода</string>
     <string name="main_node_choose">Выбрать ноду</string>
     <string name="rule_mode_short">Правила</string>
@@ -1330,4 +1334,7 @@
     <string name="remote_action_update_geo">Обновить гео-базы</string>
     <string name="remote_action_restart_core">Перезапустить ядро</string>
     <string name="remote_action_healthcheck_all">Проверить все узлы</string>
+    <string name="tv_advanced_tools_title">Расширенные инструменты на ТВ</string>
+    <string name="tv_advanced_tools_summary">Показать редакторы правил, цепочку прокси и инструменты конфига</string>
+    <string name="main_open_subscription_identity_summary_tv">HWID, схема clashfest:// и диагностика</string>
 </resources>

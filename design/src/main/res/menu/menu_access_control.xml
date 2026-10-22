@@ -46,7 +46,9 @@
         </menu>
     </item>
 
-    <item android:title="@string/external">
+    <item
+        android:id="@+id/external"
+        android:title="@string/external">
         <menu>
             <item
                 android:id="@+id/import_from_clipboard"

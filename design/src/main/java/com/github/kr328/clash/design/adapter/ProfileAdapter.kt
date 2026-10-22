@@ -12,6 +12,7 @@ import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.util.FlagParser
 import com.github.kr328.clash.design.databinding.AdapterProfileBinding
 import com.github.kr328.clash.design.model.ProfilePageState
+import com.github.kr328.clash.design.util.isTelevision
 import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.common.branding.BrandManifest
 import com.github.kr328.clash.service.model.Profile
@@ -638,10 +639,18 @@ class ProfileAdapter(
         proxyPicker.showProxySheet(context, profile)
     }
 
+    /** Overrides the card's side margins (the layout's 20dp) when set, e.g. for a grid. */
+    var cardMarginHorizontal: Int? = null
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
-        return Holder(
-            AdapterProfileBinding.inflate(parent.context.layoutInflater, parent, false)
-        )
+        val binding = AdapterProfileBinding.inflate(parent.context.layoutInflater, parent, false)
+        cardMarginHorizontal?.let { margin ->
+            (binding.root.layoutParams as? ViewGroup.MarginLayoutParams)?.let {
+                it.marginStart = margin
+                it.marginEnd = margin
+            }
+        }
+        return Holder(binding)
     }
 
     override fun onBindViewHolder(holder: Holder, position: Int) {
@@ -665,6 +674,7 @@ class ProfileAdapter(
         binding.menuView.visibility = if (compactHomeCard) View.GONE else View.VISIBLE
         binding.menuView.isClickable = !compactHomeCard
         binding.menuView.isFocusable = !compactHomeCard
+        if (!compactHomeCard && context.isTelevision()) wireTvProfileCardFocus(binding)
         val hasSupport = !announcementSupportUrl.isNullOrBlank() && current.imported && current.uuid == activeProfileUuid
         binding.supportSlot.visibility = if (!compactHomeCard && hasSupport) View.VISIBLE else View.GONE
         binding.supportView.setOnClickListener {

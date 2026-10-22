@@ -134,6 +134,15 @@ class UiStore(context: Context) {
         defaultValue = false,
     )
 
+    /**
+     * TV only: bring back the rule editors, proxy chain and config tools that a TV hides by
+     * default (typing and editing YAML with a remote is painful). Phones ignore it.
+     */
+    var tvAdvancedTools: Boolean by store.boolean(
+        key = "tv_advanced_tools",
+        defaultValue = false,
+    )
+
     var proxyExcludeNotSelectable by store.boolean(
         key = "proxy_exclude_not_selectable",
         defaultValue = false,

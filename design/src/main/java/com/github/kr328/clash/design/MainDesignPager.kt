@@ -149,10 +149,9 @@ private fun MainDesign.requestInitialHomeFocus() {
  * Preserves: registered OnPageChangeCallback, current logical tab when possible,
  * the touch-slop tweak (we don't re-run it).
  */
-internal fun MainDesign.rebuildMainPagerForTabs() {
-    // Snapshot the tab the user is currently on so we can stay there
-    // (or fall back to Home if it's no longer in the set).
-    val currentLogical = mainTabForPagerPosition(binding.mainPager.currentItem)
+internal fun MainDesign.rebuildMainPagerForTabs(currentLogical: MainTab?) {
+    // Stay on the tab the user was on (the caller reads it before [activeTabs] changes), or fall
+    // back to Home if it's no longer in the set.
     attachPagerAdapter()
 
     MainTab.values().forEach { tab ->
@@ -269,10 +268,10 @@ private fun MainDesign.keepFocusOnCurrentTab(tab: MainTab) {
             v = v.parent as? View
         }
     }
-    val first = (page as? ViewGroup)?.let {
-        android.view.FocusFinder.getInstance().findNextFocus(it, null, View.FOCUS_DOWN)
-    }
-    if (first?.requestFocus() != true) navForMainTab(tab).requestFocus()
+    // The same place RIGHT from the rail goes (the tab's last control, Home's power orb), not the
+    // page's first control in reading order: on Home that was the header's "+" whenever the pager
+    // was rebuilt under the focus (a brand adding or dropping the Operator tab).
+    if (!focusCurrentTabContent()) navForMainTab(tab).requestFocus()
 }
 
 internal fun MainDesign.pageForMainTab(tab: MainTab) = when (tab) {

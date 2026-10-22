@@ -9,6 +9,7 @@ import com.github.kr328.clash.design.model.AppLanguage
 import com.github.kr328.clash.design.model.Behavior
 import com.github.kr328.clash.design.preference.*
 import com.github.kr328.clash.design.store.UiStore
+import com.github.kr328.clash.design.util.isTelevision
 import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.design.util.root
 import com.github.kr328.clash.service.store.ServiceStore
@@ -36,6 +37,9 @@ class AppSettingsDesign(
         binding.surface = surface
         binding.header.screenTitle.text = (context as? Activity)?.title?.toString().orEmpty()
 
+        // TV: the experimental/expert switches only gate editors, which stay hidden there
+        // without "Advanced tools on TV", so the switches go with them.
+        val tools = !context.isTelevision() || uiStore.tvAdvancedTools
         val screen = preferenceScreen(context) {
             category(R.string.behavior)
 
@@ -99,21 +103,27 @@ class AppSettingsDesign(
                 icon = R.drawable.ic_baseline_language,
                 title = R.string.dns_hosts_experimental_title,
                 summary = R.string.dns_hosts_experimental_summary,
-            )
+            ) {
+                visible = tools
+            }
 
             switch(
                 value = uiStore::tunnelsEnabled,
                 icon = R.drawable.ic_baseline_swap_horiz,
                 title = R.string.tunnels_experimental_title,
                 summary = R.string.tunnels_experimental_summary,
-            )
+            ) {
+                visible = tools
+            }
 
             switch(
                 value = uiStore::expertEnabled,
                 icon = R.drawable.ic_baseline_bolt,
                 title = R.string.expert_features_title,
                 summary = R.string.expert_features_summary,
-            )
+            ) {
+                visible = tools
+            }
 
             category(R.string.service)
 

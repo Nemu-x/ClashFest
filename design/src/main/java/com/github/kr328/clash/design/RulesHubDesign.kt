@@ -131,6 +131,10 @@ class RulesHubDesign(context: Context) : Design<RulesHubDesign.Request>(context)
             // a section's expand control. (The old `88` was raw px, ~30dp.)
             saveBar.post {
                 val below = (saveBar.layoutParams as ViewGroup.MarginLayoutParams).bottomMargin
+                if (floatingSaveBar) {
+                    fitTvListAboveSaveBar()
+                    return@post
+                }
                 recycler.setPadding(
                     recycler.paddingLeft,
                     0,
@@ -158,6 +162,27 @@ class RulesHubDesign(context: Context) : Design<RulesHubDesign.Request>(context)
         }
 
         btnSave.setOnClickListener { requests.trySend(Request.Save) }
+        if (floatingSaveBar) {
+            saveBar.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+                if (bottom - top != oldBottom - oldTop) fitTvListAboveSaveBar()
+            }
+        }
+    }
+
+    /**
+     * TV: the list ends above the floating bar instead of scrolling under it, so no rows show
+     * through the margin between the bar and the screen edge. The last row keeps 16dp above the
+     * bar, clear of its focus ring.
+     */
+    private fun fitTvListAboveSaveBar() {
+        val below = (saveBar.layoutParams as ViewGroup.MarginLayoutParams).bottomMargin
+        val lp = recycler.layoutParams as ViewGroup.MarginLayoutParams
+        val margin = saveBar.height + below
+        val pad = (16 * context.resources.displayMetrics.density).toInt()
+        if (lp.bottomMargin == margin && recycler.paddingBottom == pad && recycler.paddingTop == 0) return
+        lp.bottomMargin = margin
+        recycler.layoutParams = lp
+        recycler.setPadding(recycler.paddingLeft, 0, recycler.paddingRight, pad)
     }
 
     fun showNoProfile() {
@@ -246,17 +271,16 @@ class RulesHubDesign(context: Context) : Design<RulesHubDesign.Request>(context)
         renderList()
     }
 
-    // TV: disabling the focused Save button pushes focus up to the search field; hand it back
-    // once the save finishes so closing the preview lands on Save rules again.
-    private var refocusSave = false
-
     fun setSaveBusy(busy: Boolean) {
-        if (floatingSaveBar && busy && btnSave.isFocused) refocusSave = true
-        btnSave.isEnabled = !busy
-        if (!busy && refocusSave) {
-            refocusSave = false
-            btnSave.requestFocus()
+        if (floatingSaveBar) {
+            // TV: a disabled Save button handed its focus to the search field at the top, which
+            // scrolled the list back to the start. It keeps focus instead and ignores CENTER while
+            // the save runs, so closing the preview lands on Save rules where the user left it.
+            btnSave.isClickable = !busy
+            btnSave.alpha = if (busy) 0.5f else 1f
+            return
         }
+        btnSave.isEnabled = !busy
     }
 
     fun showStatus(message: String?, isError: Boolean) {

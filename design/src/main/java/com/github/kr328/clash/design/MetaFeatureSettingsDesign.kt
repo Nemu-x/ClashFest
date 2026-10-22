@@ -74,23 +74,26 @@ class MetaFeatureSettingsDesign(
         )
 
         val screen = preferenceScreen(context) {
-            category(R.string.age_key_category)
+            // TV: the key helper hands its keys over through the clipboard, which a TV lacks.
+            if (!context.isTelevision()) {
+                category(R.string.age_key_category)
 
-            clickable(
-                title = R.string.age_key_type_x25519,
-                summary = R.string.age_key_generate_summary,
-            ) {
-                clicked {
-                    requestAgeKeyHelper(hybrid = false)
+                clickable(
+                    title = R.string.age_key_type_x25519,
+                    summary = R.string.age_key_generate_summary,
+                ) {
+                    clicked {
+                        requestAgeKeyHelper(hybrid = false)
+                    }
                 }
-            }
 
-            clickable(
-                title = R.string.age_key_type_hybrid,
-                summary = R.string.age_key_generate_summary,
-            ) {
-                clicked {
-                    requestAgeKeyHelper(hybrid = true)
+                clickable(
+                    title = R.string.age_key_type_hybrid,
+                    summary = R.string.age_key_generate_summary,
+                ) {
+                    clicked {
+                        requestAgeKeyHelper(hybrid = true)
+                    }
                 }
             }
 

@@ -8,18 +8,22 @@ import com.google.zxing.MultiFormatWriter
 
 /** Renders a string (the canonical pairing URI) as a QR-code bitmap. */
 object QrCode {
-    fun encode(text: String, size: Int): Bitmap {
+    /** [margin] is the quiet zone in modules (the QR spec asks for 4; the phone dialog uses 1). */
+    fun encode(text: String, size: Int, margin: Int = 1): Bitmap {
         val hints = mapOf(
-            EncodeHintType.MARGIN to 1,
+            EncodeHintType.MARGIN to margin,
             EncodeHintType.CHARACTER_SET to "UTF-8",
         )
         val matrix = MultiFormatWriter().encode(text, BarcodeFormat.QR_CODE, size, size, hints)
-        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        for (x in 0 until size) {
-            for (y in 0 until size) {
-                bmp.setPixel(x, y, if (matrix[x, y]) Color.BLACK else Color.WHITE)
+        val pixels = IntArray(size * size)
+        for (y in 0 until size) {
+            val row = y * size
+            for (x in 0 until size) {
+                pixels[row + x] = if (matrix[x, y]) Color.BLACK else Color.WHITE
             }
         }
-        return bmp
+        return Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).apply {
+            setPixels(pixels, 0, size, 0, 0, size, size)
+        }
     }
 }

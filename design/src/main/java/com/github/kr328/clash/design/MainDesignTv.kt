@@ -12,6 +12,8 @@ import androidx.recyclerview.widget.RecyclerView
 import android.widget.LinearLayout
 import com.github.kr328.clash.design.MainDesign.MainTab
 import com.github.kr328.clash.design.adapter.dp
+import com.github.kr328.clash.design.util.isTelevision
+import com.github.kr328.clash.design.util.tvFocusRingInside
 import java.lang.ref.WeakReference
 
 /*
@@ -57,6 +59,15 @@ internal fun MainDesign.applyTvHomeLayout() {
             topMargin = 0
         }
     }
+
+    // The rows fill the card edge to edge, so their focus ring goes inside them (outside, it
+    // crossed the card's outline on the left).
+    listOf(
+        binding.mainCompanionRow,
+        binding.mainRoutingRow,
+        binding.mainActiveProfileRow,
+        binding.mainActiveNodeRow,
+    ).forEach { it.tvFocusRingInside() }
 
     // D-pad: LEFT from any card row (or the Rule half of the mode toggle) goes back to the orb.
     listOf(
@@ -126,6 +137,11 @@ internal fun MainDesign.applyTvPageFocusMargins() {
         page.bottomFocusInset = bottomSpace
         page.focusDownExit = { page.findFocus() }
     }
+    // The Operator page has no title row above its card, which put the card against the top edge
+    // (inside the TV overscan) while the other tabs start lower; line it up with their content.
+    (binding.mainOperatorPage.getChildAt(0) as? ViewGroup)?.let {
+        it.setPadding(it.paddingLeft, context.dp(28), it.paddingRight, it.paddingBottom)
+    }
 }
 
 private fun MainDesign.focusAnnouncementOrStay(): Boolean {
@@ -179,13 +195,43 @@ internal fun MainDesign.applyTvNavigationRail() {
         if (newFocus != null && !isRailItem(newFocus) && isInside(newFocus, pageForMainTab(tab))) {
             tvContentFocus[tab] = WeakReference(newFocus)
         }
+        scheduleRailTabSwitch(newFocus)
         updateRailFocusability(tab)
     }
 }
 
+/** How long focus has to rest on a rail item before its tab opens (fast UP/DOWN skips past). */
+private const val RAIL_SETTLE_MS = 300L
+
 /**
- * Rail D-pad: UP/DOWN walk the visible items (the ends stay put), LEFT stays put, RIGHT goes back
- * into the current tab's content, to the control it last had.
+ * Google TV style: resting on a rail item opens its tab, so the content beside the rail always
+ * belongs to the highlighted item. The switch waits for focus to settle, so walking the rail
+ * quickly doesn't page through every tab on the way.
+ */
+private fun MainDesign.scheduleRailTabSwitch(focused: View?) {
+    tvRailSwitch?.let(binding.root::removeCallbacks)
+    tvRailSwitch = null
+    val tab = focused?.let(::railTabOf) ?: return
+    if (tab == currentTab) return
+    val switch = Runnable {
+        tvRailSwitch = null
+        if (binding.root.findFocus() === focused && currentTab != tab) selectMainTab(tab)
+    }
+    tvRailSwitch = switch
+    binding.root.postDelayed(switch, RAIL_SETTLE_MS)
+}
+
+/** RIGHT before the settle delay ran: open the focused item's tab at once, then enter it. */
+private fun MainDesign.openRailTabNow(item: View) {
+    tvRailSwitch?.let(binding.root::removeCallbacks)
+    tvRailSwitch = null
+    val tab = railTabOf(item) ?: return
+    if (tab != currentTab) selectTab(tab)
+}
+
+/**
+ * Rail D-pad: UP/DOWN walk the visible items (the ends stay put) and open the item's tab once focus
+ * rests on it, LEFT stays put, RIGHT goes into that tab's content, to the control it last had.
  */
 internal fun MainDesign.wireRailFocus(visible: List<View>) {
     visible.forEachIndexed { i, view ->
@@ -195,7 +241,10 @@ internal fun MainDesign.wireRailFocus(visible: List<View>) {
         view.nextFocusRightId = view.id
         view.setOnKeyListener { _, keyCode, event ->
             if (keyCode != KeyEvent.KEYCODE_DPAD_RIGHT) return@setOnKeyListener false
-            if (event.action == KeyEvent.ACTION_DOWN) focusCurrentTabContent()
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                openRailTabNow(view)
+                focusCurrentTabContent()
+            }
             true
         }
     }
@@ -216,7 +265,7 @@ internal fun MainDesign.updateRailFocusability(current: MainTab) {
     }
 }
 
-private fun MainDesign.focusCurrentTabContent(): Boolean {
+internal fun MainDesign.focusCurrentTabContent(): Boolean {
     val tab = currentTab ?: return false
     val page = pageForMainTab(tab)
     tvContentFocus[tab]?.get()
@@ -234,8 +283,10 @@ private fun MainDesign.focusCurrentTabContent(): Boolean {
     return FocusFinder.getInstance().findNextFocus(group, null, View.FOCUS_DOWN)?.requestFocus() == true
 }
 
-private fun MainDesign.isRailItem(view: View): Boolean =
-    MainTab.values().any { navForMainTab(it) === view }
+private fun MainDesign.isRailItem(view: View): Boolean = railTabOf(view) != null
+
+private fun MainDesign.railTabOf(view: View): MainTab? =
+    MainTab.values().firstOrNull { navForMainTab(it) === view }
 
 private fun isInside(view: View, ancestor: View): Boolean {
     var v: View? = view
@@ -313,4 +364,37 @@ internal fun MainDesign.focusPowerOrbIfIdle() {
         (focused is RecyclerView || focused === binding.mainHomePage || focused === binding.mainPager)
     if (!idle) return
     binding.mainPowerCard.post { binding.mainPowerCard.requestFocus() }
+}
+
+/**
+ * A TV is for "connect, pick a node, watch": the rule editors, proxy chain and config tools (all
+ * typing and YAML) stay hidden until "Advanced tools on TV" is switched on. Phones never hide them.
+ */
+internal fun MainDesign.tvHidesAdvancedTools(): Boolean =
+    context.isTelevision() && !uiStore.tvAdvancedTools
+
+/**
+ * TV Settings tab: the "Advanced tools on TV" switch, and an "App Routing" entry for when the
+ * Routing tab is gone (without the advanced tools App Routing was all it still offered). Switching
+ * brings the Routing tab back on the rail at once.
+ */
+internal fun MainDesign.applyTvSettingsEntries() {
+    // Schemes & HWID has no copy buttons on a TV (no clipboard), so its summary doesn't promise them.
+    binding.mainSettingsIdentitySummary.setText(R.string.main_open_subscription_identity_summary_tv)
+    val toolsCard = binding.mainSettingsTvToolsCard
+    toolsCard.visibility = View.VISIBLE
+    toolsCard.setOnClickListener {
+        uiStore.tvAdvancedTools = !uiStore.tvAdvancedTools
+        reconcileTabsForBrand()
+        renderTvSettingsEntries()
+        // Rebuilding the pager detaches the page under the focus; keep it on the switch.
+        toolsCard.post { toolsCard.requestFocus() }
+    }
+    renderTvSettingsEntries()
+}
+
+internal fun MainDesign.renderTvSettingsEntries() {
+    binding.mainSettingsTvToolsSwitch.isChecked = uiStore.tvAdvancedTools
+    binding.mainSettingsAppRoutingCard.visibility =
+        if (MainTab.Routing in activeTabs) View.GONE else View.VISIBLE
 }

@@ -298,7 +298,7 @@ internal class RemoteProxyPickerSheet(
         }
         row.isSelected = item.selected
         row.findViewById<View>(R.id.selected_bar).visibility = if (item.selected) View.VISIBLE else View.INVISIBLE
-        row.findViewById<View>(R.id.selected_check).visibility = if (item.selected) View.VISIBLE else View.GONE
+        row.findViewById<View>(R.id.selected_check).showSelectedCheck(item.selected)
         val hit = row.findViewById<View>(R.id.proxy_row_main_hit)
         hit.setOnLongClickListener(null)
         if (item.selectable) {

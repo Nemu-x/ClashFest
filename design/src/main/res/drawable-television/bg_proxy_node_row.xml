@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   TV variant of the node row: selection look only (fill + thin accent outline). The focus ring
-  comes from TvFocusHighlight, so the 3dp focused stroke of the phone/keyboard variant is dropped.
+  comes from TvFocusHighlight, so the 3dp focused stroke of the phone/keyboard variant is dropped,
+  and on the focused selected row the ring takes the outline's place (the two lines doubled up).
 -->
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
     android:color="?attr/colorControlHighlight">
@@ -13,6 +14,12 @@
     </item>
     <item>
         <selector>
+            <item android:state_focused="true" android:state_selected="true">
+                <shape android:shape="rectangle">
+                    <solid android:color="?attr/colorSurfaceContainerHigh" />
+                    <corners android:radius="14dp" />
+                </shape>
+            </item>
             <item android:state_selected="true">
                 <shape android:shape="rectangle">
                     <solid android:color="?attr/colorSurfaceContainerHigh" />

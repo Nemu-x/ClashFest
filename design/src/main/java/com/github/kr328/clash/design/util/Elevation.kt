@@ -56,4 +56,11 @@ fun ObservableScrollView.bindAppBarElevation(activityBar: ActivityBarLayout) {
     addOnScrollChangedListener { view, _, _, _, _ ->
         controller.elevated = !view.isTop
     }
+
+    // TV: keep the D-pad-focused control clear of the bar floating over the content.
+    if (context.isTelevision()) {
+        activityBar.addOnLayoutChangeListener { bar, _, _, _, _, _, _, _, _ ->
+            topFocusInset = bar.height
+        }
+    }
 }

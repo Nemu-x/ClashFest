@@ -43,6 +43,13 @@ fun Context.showYamlPreviewDialog(
     }
     tabs.addTab(tabs.newTab().setText(R.string.yaml_preview_tab_generated))
     tabs.addTab(tabs.newTab().setText(R.string.yaml_preview_tab_diff))
+    if (tv) {
+        // The ends of the tab row stay put: RIGHT from Diff jumped down to the buttons.
+        val tabViews = (0 until tabs.tabCount).mapNotNull { tabs.getTabAt(it)?.view }
+        tabViews.forEach { if (it.id == View.NO_ID) it.id = View.generateViewId() }
+        tabViews.firstOrNull()?.let { it.nextFocusLeftId = it.id }
+        tabViews.lastOrNull()?.let { it.nextFocusRightId = it.id }
+    }
     tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
         override fun onTabSelected(tab: TabLayout.Tab) {
             text.text = if (tab.position == 0) preview.proposedYaml else preview.diff

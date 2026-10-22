@@ -9,6 +9,7 @@ import com.github.kr328.clash.core.model.FetchStatus
 import com.github.kr328.clash.design.databinding.DesignPropertiesBinding
 import com.github.kr328.clash.design.dialog.ModelProgressBarConfigure
 import com.github.kr328.clash.design.dialog.withModelProgressBar
+import com.github.kr328.clash.design.util.advancedToolsShown
 import com.github.kr328.clash.design.util.applyFrom
 import com.github.kr328.clash.design.util.bindAppBarElevation
 import com.github.kr328.clash.design.util.layoutInflater
@@ -174,6 +175,9 @@ class PropertiesDesign(context: Context) : Design<PropertiesDesign.Request>(cont
         binding.activityBarLayout.applyFrom(context)
 
         binding.scrollRoot.bindAppBarElevation(binding.activityBarLayout)
+        // TV: subscription sources and the file browser are editors, offered only with the
+        // advanced tools on.
+        if (!context.advancedToolsShown()) binding.cardConfiguration.visibility = View.GONE
         binding.editUserAgentPreset.setAdapter(
             ArrayAdapter(
                 context,
