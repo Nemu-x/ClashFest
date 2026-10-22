@@ -3,6 +3,7 @@ package com.github.kr328.clash
 import android.Manifest.permission.INTERNET
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
@@ -235,6 +236,10 @@ class AccessControlActivity : BaseActivity<AccessControlDesign>() {
 
             val pm = packageManager
             val packages = pm.getInstalledPackages(PackageManager.GET_PERMISSIONS)
+            // Preinstalled apps the user opens from the launcher (Gemini, Chrome, YouTube, Gmail…)
+            // carry FLAG_SYSTEM even after a Play update, so hiding every system package hid them
+            // too. Only system packages without a launcher entry count as "system" here.
+            val launchable = launcherPackages(pm)
 
             packages.asSequence()
                 .filter {
@@ -247,7 +252,7 @@ class AccessControlActivity : BaseActivity<AccessControlDesign>() {
                     it.requestedPermissions?.contains(INTERNET) == true || it.applicationInfo!!.uid < android.os.Process.FIRST_APPLICATION_UID
                 }
                 .filter {
-                    systemApp || !it.isSystemApp
+                    systemApp || !it.isSystemApp || it.packageName in launchable
                 }
                 .map {
                     it.toAppInfo(pm)
@@ -255,6 +260,16 @@ class AccessControlActivity : BaseActivity<AccessControlDesign>() {
                 .sortedWith(comparator)
                 .toList()
         }
+
+    private fun launcherPackages(pm: PackageManager): Set<String> {
+        val categories = listOf(Intent.CATEGORY_LAUNCHER, Intent.CATEGORY_LEANBACK_LAUNCHER)
+        return categories.flatMapTo(HashSet()) { category ->
+            runCatching {
+                pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(category), 0)
+                    .map { it.activityInfo.packageName }
+            }.getOrDefault(emptyList())
+        }
+    }
 
     private val PackageInfo.isSystemApp: Boolean
         get() {
