@@ -7,6 +7,7 @@ import com.github.kr328.clash.design.ui.Surface
 import com.github.kr328.clash.design.ui.ToastDuration
 import com.github.kr328.clash.design.util.currentWindowInsetsSnapshot
 import com.github.kr328.clash.design.util.hostActivity
+import com.github.kr328.clash.design.util.isTelevision
 import com.github.kr328.clash.design.util.resolveThemedColor
 import com.github.kr328.clash.design.util.setOnInsertsChangedListener
 import com.google.android.material.snackbar.Snackbar
@@ -42,7 +43,11 @@ abstract class Design<R>(val context: Context) :
                 ToastDuration.Indefinite -> Snackbar.LENGTH_INDEFINITE
             }
             Snackbar.make(root, message, len).apply {
-                root.findViewById<View>(R.id.main_bottom_nav_card)?.let { anchorView = it }
+                // Above the bottom nav on phones; on TV the nav is a rail on the left, which would
+                // lift the snackbar to mid-screen.
+                if (!context.isTelevision()) {
+                    root.findViewById<View>(R.id.main_bottom_nav_card)?.let { anchorView = it }
+                }
                 styleAsMaterial3()
                 configure()
             }.show()

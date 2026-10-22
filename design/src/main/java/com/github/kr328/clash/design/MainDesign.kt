@@ -736,6 +736,9 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     }
 
     internal var touchSlopTweakApplied: Boolean = false
+
+    /** TV: the control each tab's content last had, so RIGHT from the nav rail returns to it. */
+    internal val tvContentFocus = HashMap<MainTab, java.lang.ref.WeakReference<View>>()
     /**
      * Toggle the in-header update indicator. MainActivity polls
      * [AppUpdateChecker.isUpdateAvailable] from onResume and from background
@@ -758,7 +761,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         val tab = currentTab ?: return false
         if (tab == MainTab.Home || MainTab.Home !in activeTabs) return false
         selectMainTab(MainTab.Home)
-        binding.mainNavHome.requestFocus()
+        focusNavItem(MainTab.Home)
         return true
     }
 
@@ -784,6 +787,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         binding.tunnelStarting = false
         binding.hasProfiles = false
         applyHomeBackgroundStyle()
+        if (context.isTelevision()) applyTvNavigationRail()
         setupMainPager()
 
         // Surface the remote-control quick entry on the TV home (deep settings nav with a D-pad
@@ -793,6 +797,7 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
             binding.mainCompanionRow.visibility = View.VISIBLE
             binding.mainCompanionEmptyButton.visibility = View.VISIBLE
             applyTvHomeLayout()
+            applyTvEmptyState()
             applyTvPageFocusMargins()
             applyTvProfilesHeader()
         }

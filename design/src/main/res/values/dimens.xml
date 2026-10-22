@@ -94,6 +94,12 @@
     <dimen name="main_bottom_nav_corner_radius">28dp</dimen>
     <dimen name="main_bottom_nav_elevation">8dp</dimen>
     <dimen name="main_bottom_nav_reserved_space">104dp</dimen>
+    <!-- TV only (MainDesignTv): the bottom nav as a left rail, and the empty Home's buttons. -->
+    <dimen name="tv_nav_rail_width">104dp</dimen>
+    <dimen name="tv_nav_rail_item_height">64dp</dimen>
+    <dimen name="tv_nav_rail_gap">12dp</dimen>
+    <dimen name="tv_empty_button_width">280dp</dimen>
+    <dimen name="tv_empty_button_height">64dp</dimen>
     <dimen name="main_logo_size">50dp</dimen>
     <dimen name="main_top_banner_height">90dp</dimen>
     <dimen name="profile_action_slot">40dp</dimen>
