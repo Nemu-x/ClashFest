@@ -20,6 +20,20 @@
             layout="@layout/common_recycler_list"
             app:insets="@{self.surface.insets}" />
 
+        <!-- TV only (AccessControlDesign.refreshCounter): the filters hide every app. -->
+        <TextView
+            android:id="@+id/empty_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:paddingHorizontal="48dp"
+            android:paddingTop="120dp"
+            android:text="@string/app_routing_empty"
+            android:textAppearance="@style/TextAppearance.App.BodyLarge"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone" />
+
         <com.github.kr328.clash.design.view.ActivityBarLayout
             android:id="@+id/activity_bar_layout"
             android:layout_width="match_parent"

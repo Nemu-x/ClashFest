@@ -784,6 +784,7 @@
     <string name="deny_selected_apps">В обход</string>
     <string name="deny_selected_apps_description">Выбранные приложения обходят VPN</string>
     <string name="app_routing_counter">Выбрано: %1$d / %2$d</string>
+    <string name="app_routing_empty">Нет приложений под текущие фильтры. Очистите поиск или измените фильтры в меню ⋮.</string>
     <string name="app_routing_selected">Выбрано</string>
     <string name="app_routing_not_selected">Не выбрано</string>
 

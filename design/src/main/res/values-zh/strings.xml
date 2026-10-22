@@ -159,6 +159,7 @@
     <string name="allow_selected_apps">仅所选应用</string>
     <string name="deny_selected_apps">除所选外</string>
     <string name="app_routing_counter">已选择：%1$d / %2$d</string>
+    <string name="app_routing_empty">没有符合当前筛选条件的应用。请清除搜索或在 ⋮ 菜单中更改筛选。</string>
     <string name="app_routing_selected">已选择</string>
     <string name="app_routing_not_selected">未选择</string>
     <string name="no_profile_selected">没有选择配置文件</string>
