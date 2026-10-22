@@ -12,6 +12,7 @@ import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.util.FlagParser
 import com.github.kr328.clash.design.databinding.AdapterProfileBinding
 import com.github.kr328.clash.design.model.ProfilePageState
+import com.github.kr328.clash.design.util.isTelevision
 import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.common.branding.BrandManifest
 import com.github.kr328.clash.service.model.Profile
@@ -665,6 +666,7 @@ class ProfileAdapter(
         binding.menuView.visibility = if (compactHomeCard) View.GONE else View.VISIBLE
         binding.menuView.isClickable = !compactHomeCard
         binding.menuView.isFocusable = !compactHomeCard
+        if (!compactHomeCard && context.isTelevision()) wireTvProfileCardFocus(binding)
         val hasSupport = !announcementSupportUrl.isNullOrBlank() && current.imported && current.uuid == activeProfileUuid
         binding.supportSlot.visibility = if (!compactHomeCard && hasSupport) View.VISIBLE else View.GONE
         binding.supportView.setOnClickListener {
