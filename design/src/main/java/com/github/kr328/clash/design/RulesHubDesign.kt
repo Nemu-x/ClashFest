@@ -246,8 +246,17 @@ class RulesHubDesign(context: Context) : Design<RulesHubDesign.Request>(context)
         renderList()
     }
 
+    // TV: disabling the focused Save button pushes focus up to the search field; hand it back
+    // once the save finishes so closing the preview lands on Save rules again.
+    private var refocusSave = false
+
     fun setSaveBusy(busy: Boolean) {
+        if (floatingSaveBar && busy && btnSave.isFocused) refocusSave = true
         btnSave.isEnabled = !busy
+        if (!busy && refocusSave) {
+            refocusSave = false
+            btnSave.requestFocus()
+        }
     }
 
     fun showStatus(message: String?, isError: Boolean) {

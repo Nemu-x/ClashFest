@@ -9,6 +9,8 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.content.getSystemService
 import com.github.kr328.clash.design.R
+import com.github.kr328.clash.design.util.TvFocusHighlight
+import com.github.kr328.clash.design.util.isTelevision
 import com.github.kr328.clash.service.model.YamlPreview
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
@@ -17,6 +19,7 @@ fun Context.showYamlPreviewDialog(
     preview: YamlPreview,
     onApply: () -> Unit,
 ) {
+    val tv = isTelevision()
     val padH = dpToPx(24)
     val padTop = dpToPx(4)
     val textPadTop = dpToPx(8)
@@ -33,7 +36,8 @@ fun Context.showYamlPreviewDialog(
     val text = TextView(this).apply {
         typeface = android.graphics.Typeface.MONOSPACE
         textSize = 12f
-        setTextIsSelectable(true)
+        // On TV a selectable TextView moves its cursor with the D-pad and never lets focus out.
+        if (tv) isFocusable = false else setTextIsSelectable(true)
         text = preview.proposedYaml
         setPadding(0, textPadTop, 0, 0)
     }
@@ -49,6 +53,7 @@ fun Context.showYamlPreviewDialog(
     })
     val scroll = ScrollView(this).apply {
         addView(text)
+        if (tv) isFocusable = true
     }
     container.addView(status)
     container.addView(tabs)
@@ -68,6 +73,12 @@ fun Context.showYamlPreviewDialog(
         .setNeutralButton(R.string.yaml_preview_copy, null)
         .create()
     dialog.setOnShowListener {
+        if (tv) {
+            dialog.window?.let(TvFocusHighlight::install)
+            val positive = dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE)
+            val initial = if (preview.valid) positive else dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)
+            initial?.post { initial.requestFocus() }
+        }
         dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).apply {
             isEnabled = preview.valid
             setOnClickListener {
