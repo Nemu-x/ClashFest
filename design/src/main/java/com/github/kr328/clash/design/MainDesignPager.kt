@@ -269,10 +269,10 @@ private fun MainDesign.keepFocusOnCurrentTab(tab: MainTab) {
             v = v.parent as? View
         }
     }
-    val first = (page as? ViewGroup)?.let {
-        android.view.FocusFinder.getInstance().findNextFocus(it, null, View.FOCUS_DOWN)
-    }
-    if (first?.requestFocus() != true) navForMainTab(tab).requestFocus()
+    // The same place RIGHT from the rail goes (the tab's last control, Home's power orb), not the
+    // page's first control in reading order: on Home that was the header's "+" whenever the pager
+    // was rebuilt under the focus (a brand adding or dropping the Operator tab).
+    if (!focusCurrentTabContent()) navForMainTab(tab).requestFocus()
 }
 
 internal fun MainDesign.pageForMainTab(tab: MainTab) = when (tab) {

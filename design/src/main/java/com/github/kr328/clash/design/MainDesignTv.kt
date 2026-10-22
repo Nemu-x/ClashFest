@@ -126,6 +126,11 @@ internal fun MainDesign.applyTvPageFocusMargins() {
         page.bottomFocusInset = bottomSpace
         page.focusDownExit = { page.findFocus() }
     }
+    // The Operator page has no title row above its card, which put the card against the top edge
+    // (inside the TV overscan) while the other tabs start lower; line it up with their content.
+    (binding.mainOperatorPage.getChildAt(0) as? ViewGroup)?.let {
+        it.setPadding(it.paddingLeft, context.dp(28), it.paddingRight, it.paddingBottom)
+    }
 }
 
 private fun MainDesign.focusAnnouncementOrStay(): Boolean {
@@ -249,7 +254,7 @@ internal fun MainDesign.updateRailFocusability(current: MainTab) {
     }
 }
 
-private fun MainDesign.focusCurrentTabContent(): Boolean {
+internal fun MainDesign.focusCurrentTabContent(): Boolean {
     val tab = currentTab ?: return false
     val page = pageForMainTab(tab)
     tvContentFocus[tab]?.get()
