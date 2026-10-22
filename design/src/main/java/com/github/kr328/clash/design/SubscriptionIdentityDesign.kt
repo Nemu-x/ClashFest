@@ -10,6 +10,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import com.github.kr328.clash.design.databinding.DesignSubscriptionIdentityBinding
+import com.github.kr328.clash.design.util.isTelevision
 import com.github.kr328.clash.design.util.layoutInflater
 import com.github.kr328.clash.design.util.resolveThemedColor
 import com.github.kr328.clash.design.util.root
@@ -44,6 +45,12 @@ class SubscriptionIdentityDesign(context: Context) : Design<SubscriptionIdentity
         binding.self = this
         binding.header.screenTitle.text = context.getString(R.string.subscription_identity)
         renderDocsRows()
+        // TV: there is no clipboard to paste into, so the copy buttons go; the HWID and the
+        // diagnostics stay readable on screen (for a support chat on the phone).
+        if (context.isTelevision()) {
+            listOf(binding.copyHwid, binding.copySchemes, binding.copyHwidDiagnostics)
+                .forEach { it.visibility = View.GONE }
+        }
     }
 
     private fun renderDocsRows() {

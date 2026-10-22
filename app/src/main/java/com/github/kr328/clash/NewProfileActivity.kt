@@ -17,6 +17,7 @@ import com.github.kr328.clash.design.NewProfileDesign
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.model.ProfileProvider
 import com.github.kr328.clash.design.ui.ToastDuration
+import com.github.kr328.clash.design.util.isTelevision
 import com.github.kr328.clash.design.util.showExceptionToast
 import com.github.kr328.clash.remote.FilesClient
 import com.github.kr328.clash.service.model.Profile
@@ -200,10 +201,11 @@ class NewProfileActivity : BaseActivity<NewProfileDesign>() {
                 ProfileProvider.External(name.toString(), summary.toString(), icon, intent)
             }
 
-            listOf(
+            // TV: no camera, so no "Scan QR" provider.
+            listOfNotNull(
                 ProfileProvider.File(self),
                 ProfileProvider.Url(self),
-                ProfileProvider.QR(self)
+                ProfileProvider.QR(self).takeUnless { isTelevision() }
             ) + providers
         }
     }
