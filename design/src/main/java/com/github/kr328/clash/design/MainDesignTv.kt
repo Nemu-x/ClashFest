@@ -179,13 +179,43 @@ internal fun MainDesign.applyTvNavigationRail() {
         if (newFocus != null && !isRailItem(newFocus) && isInside(newFocus, pageForMainTab(tab))) {
             tvContentFocus[tab] = WeakReference(newFocus)
         }
+        scheduleRailTabSwitch(newFocus)
         updateRailFocusability(tab)
     }
 }
 
+/** How long focus has to rest on a rail item before its tab opens (fast UP/DOWN skips past). */
+private const val RAIL_SETTLE_MS = 300L
+
 /**
- * Rail D-pad: UP/DOWN walk the visible items (the ends stay put), LEFT stays put, RIGHT goes back
- * into the current tab's content, to the control it last had.
+ * Google TV style: resting on a rail item opens its tab, so the content beside the rail always
+ * belongs to the highlighted item. The switch waits for focus to settle, so walking the rail
+ * quickly doesn't page through every tab on the way.
+ */
+private fun MainDesign.scheduleRailTabSwitch(focused: View?) {
+    tvRailSwitch?.let(binding.root::removeCallbacks)
+    tvRailSwitch = null
+    val tab = focused?.let(::railTabOf) ?: return
+    if (tab == currentTab) return
+    val switch = Runnable {
+        tvRailSwitch = null
+        if (binding.root.findFocus() === focused && currentTab != tab) selectMainTab(tab)
+    }
+    tvRailSwitch = switch
+    binding.root.postDelayed(switch, RAIL_SETTLE_MS)
+}
+
+/** RIGHT before the settle delay ran: open the focused item's tab at once, then enter it. */
+private fun MainDesign.openRailTabNow(item: View) {
+    tvRailSwitch?.let(binding.root::removeCallbacks)
+    tvRailSwitch = null
+    val tab = railTabOf(item) ?: return
+    if (tab != currentTab) selectTab(tab)
+}
+
+/**
+ * Rail D-pad: UP/DOWN walk the visible items (the ends stay put) and open the item's tab once focus
+ * rests on it, LEFT stays put, RIGHT goes into that tab's content, to the control it last had.
  */
 internal fun MainDesign.wireRailFocus(visible: List<View>) {
     visible.forEachIndexed { i, view ->
@@ -195,7 +225,10 @@ internal fun MainDesign.wireRailFocus(visible: List<View>) {
         view.nextFocusRightId = view.id
         view.setOnKeyListener { _, keyCode, event ->
             if (keyCode != KeyEvent.KEYCODE_DPAD_RIGHT) return@setOnKeyListener false
-            if (event.action == KeyEvent.ACTION_DOWN) focusCurrentTabContent()
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                openRailTabNow(view)
+                focusCurrentTabContent()
+            }
             true
         }
     }
@@ -234,8 +267,10 @@ private fun MainDesign.focusCurrentTabContent(): Boolean {
     return FocusFinder.getInstance().findNextFocus(group, null, View.FOCUS_DOWN)?.requestFocus() == true
 }
 
-private fun MainDesign.isRailItem(view: View): Boolean =
-    MainTab.values().any { navForMainTab(it) === view }
+private fun MainDesign.isRailItem(view: View): Boolean = railTabOf(view) != null
+
+private fun MainDesign.railTabOf(view: View): MainTab? =
+    MainTab.values().firstOrNull { navForMainTab(it) === view }
 
 private fun isInside(view: View, ancestor: View): Boolean {
     var v: View? = view

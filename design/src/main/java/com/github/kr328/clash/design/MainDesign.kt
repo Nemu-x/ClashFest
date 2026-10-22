@@ -739,6 +739,9 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
 
     /** TV: the control each tab's content last had, so RIGHT from the nav rail returns to it. */
     internal val tvContentFocus = HashMap<MainTab, java.lang.ref.WeakReference<View>>()
+
+    /** TV: the pending tab switch for the rail item focus rests on (see scheduleRailTabSwitch). */
+    internal var tvRailSwitch: Runnable? = null
     /**
      * Toggle the in-header update indicator. MainActivity polls
      * [AppUpdateChecker.isUpdateAvailable] from onResume and from background
