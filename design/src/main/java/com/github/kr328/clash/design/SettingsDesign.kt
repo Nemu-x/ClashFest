@@ -33,7 +33,11 @@ class SettingsDesign(context: Context) : Design<SettingsDesign.Request>(context)
         binding.self = this
         binding.header.screenTitle.text = context.getString(R.string.main_advanced_settings)
         // TV: the same TV glyph as the Home "Remote control" row (this device is the TV here).
-        if (context.isTelevision()) binding.companionIcon.setImageResource(R.drawable.ic_baseline_tv)
+        if (context.isTelevision()) {
+            binding.companionIcon.setImageResource(R.drawable.ic_baseline_tv)
+            // On the TV this entry is the agent side: the same wording as the Home row.
+            binding.companionSummary.setText(R.string.companion_tv_home_summary)
+        }
         applyExperimentalVisibility()
     }
 

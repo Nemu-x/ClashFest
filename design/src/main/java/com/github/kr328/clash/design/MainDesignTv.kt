@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import android.widget.LinearLayout
 import com.github.kr328.clash.design.MainDesign.MainTab
 import com.github.kr328.clash.design.adapter.dp
+import com.github.kr328.clash.design.util.tvFocusRingInside
 import java.lang.ref.WeakReference
 
 /*
@@ -57,6 +58,15 @@ internal fun MainDesign.applyTvHomeLayout() {
             topMargin = 0
         }
     }
+
+    // The rows fill the card edge to edge, so their focus ring goes inside them (outside, it
+    // crossed the card's outline on the left).
+    listOf(
+        binding.mainCompanionRow,
+        binding.mainRoutingRow,
+        binding.mainActiveProfileRow,
+        binding.mainActiveNodeRow,
+    ).forEach { it.tvFocusRingInside() }
 
     // D-pad: LEFT from any card row (or the Rule half of the mode toggle) goes back to the orb.
     listOf(

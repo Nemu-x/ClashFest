@@ -9,6 +9,7 @@ import com.github.kr328.clash.design.util.applyLinearAdapter
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.service.model.Profile
 import com.github.kr328.clash.design.adapter.ProfileAdapter
+import com.github.kr328.clash.design.adapter.dp
 import androidx.recyclerview.widget.RecyclerView
 import com.github.kr328.clash.design.MainDesign.PingAllRequest
 
@@ -195,7 +196,13 @@ internal fun MainDesign.setupProfileLists() {
     binding.profilesTabList.also {
         it.applyLinearAdapter(context, tabProfileAdapter)
         // TV: the list is ~900dp wide there, so subscription cards sit two per row.
-        if (context.isTelevision()) it.layoutManager = GridLayoutManager(context, 2)
+        if (context.isTelevision()) {
+            it.layoutManager = GridLayoutManager(context, 2)
+            // The cards' outer edges line up with "Add subscription" / "Update" above (20dp from
+            // the page edge, 8dp apart): 16dp list padding + 4dp card margins on each side.
+            tabProfileAdapter.cardMarginHorizontal = context.dp(4)
+            it.setPaddingRelative(context.dp(16), it.paddingTop, context.dp(16), it.paddingBottom)
+        }
         it.itemAnimator = DefaultItemAnimator().apply {
             supportsChangeAnimations = false
             changeDuration = 0

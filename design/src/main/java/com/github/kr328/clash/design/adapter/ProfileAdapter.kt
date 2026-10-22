@@ -639,10 +639,18 @@ class ProfileAdapter(
         proxyPicker.showProxySheet(context, profile)
     }
 
+    /** Overrides the card's side margins (the layout's 20dp) when set, e.g. for a grid. */
+    var cardMarginHorizontal: Int? = null
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
-        return Holder(
-            AdapterProfileBinding.inflate(parent.context.layoutInflater, parent, false)
-        )
+        val binding = AdapterProfileBinding.inflate(parent.context.layoutInflater, parent, false)
+        cardMarginHorizontal?.let { margin ->
+            (binding.root.layoutParams as? ViewGroup.MarginLayoutParams)?.let {
+                it.marginStart = margin
+                it.marginEnd = margin
+            }
+        }
+        return Holder(binding)
     }
 
     override fun onBindViewHolder(holder: Holder, position: Int) {

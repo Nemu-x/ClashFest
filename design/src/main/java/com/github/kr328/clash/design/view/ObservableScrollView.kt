@@ -6,6 +6,7 @@ import android.util.AttributeSet
 import android.widget.ScrollView
 import androidx.annotation.AttrRes
 import androidx.annotation.StyleRes
+import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.util.isTelevision
 
 class ObservableScrollView @JvmOverloads constructor(
@@ -48,7 +49,7 @@ class ObservableScrollView @JvmOverloads constructor(
      * without drawing any fade.
      */
     private val focusEdgeMargin: Int =
-        if (context.isTelevision()) (24 * resources.displayMetrics.density).toInt() else 0
+        if (context.isTelevision()) resources.getDimensionPixelSize(R.dimen.tv_focus_edge_margin) else 0
 
     override fun getVerticalFadingEdgeLength(): Int =
         if (isVerticalFadingEdgeEnabled) super.getVerticalFadingEdgeLength() else focusEdgeMargin

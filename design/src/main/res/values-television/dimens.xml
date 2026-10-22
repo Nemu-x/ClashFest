@@ -16,8 +16,16 @@
     <!-- Section headers share that inset (one ring width down the column); their text keeps a
          small inner gap from the ring instead of a second 16dp. -->
     <dimen name="rules_hub_section_padding_horizontal">8dp</dimen>
+    <!-- The header's text sits in the middle of its focus ring (16dp over 6dp put it at the ring's
+         bottom); the space above moves outside the row. -->
+    <dimen name="rules_hub_section_padding_top">10dp</dimen>
+    <dimen name="rules_hub_section_padding_bottom">10dp</dimen>
+    <dimen name="rules_hub_section_margin_top">6dp</dimen>
+    <!-- Keeps the empty-state row's ring off the "Add rule" button right below it. -->
+    <dimen name="rules_hub_empty_margin_bottom">12dp</dimen>
 
     <!-- The nav is a rail on the left on TV (MainDesignTv.applyTvNavigationRail), so the tab pages
-         no longer reserve room for a bar along the bottom. -->
-    <dimen name="main_bottom_nav_reserved_space">16dp</dimen>
+         no longer reserve room for a bar along the bottom; only the overscan-safe margin under the
+         last row (tv_focus_edge_margin). -->
+    <dimen name="main_bottom_nav_reserved_space">@dimen/tv_focus_edge_margin</dimen>
 </resources>
