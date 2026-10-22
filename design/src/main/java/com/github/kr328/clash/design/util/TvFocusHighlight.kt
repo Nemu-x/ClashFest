@@ -222,8 +222,11 @@ private class FocusHalo(private val root: View) {
 
     private fun wantsHalo(view: View): Boolean {
         if (view is RecyclerView || view is ScrollView || view is NestedScrollView || view is HorizontalScrollView) {
-            // A scroller with no controls inside (e.g. a dialog's read-only text) is itself the stop.
-            return FocusFinder.getInstance().findNextFocus(view as ViewGroup, null, View.FOCUS_DOWN) == null
+            // A scroller is not a "place" to show - unless it opted in as the stop itself (a dialog's
+            // read-only text). Treating every control-less scroller as a stop put a screen-sized ring
+            // on empty lists, such as the logs history.
+            return view.getTag(R.id.tv_focus_stop_scroller) == true &&
+                FocusFinder.getInstance().findNextFocus(view as ViewGroup, null, View.FOCUS_DOWN) == null
         }
         // A focused full-screen container (a page that took focus itself) is not a "place" to show.
         // (A dialog can hand out its first focus before anything is laid out: no verdict on 0x0.)

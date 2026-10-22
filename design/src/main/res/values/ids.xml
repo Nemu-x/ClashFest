@@ -2,4 +2,5 @@
 <resources>
     <item name="close_button" type="id" />
     <item name="tv_focus_halo" type="id" />
+    <item name="tv_focus_stop_scroller" type="id" />
 </resources>

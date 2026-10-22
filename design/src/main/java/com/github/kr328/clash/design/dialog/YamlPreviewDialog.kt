@@ -53,7 +53,10 @@ fun Context.showYamlPreviewDialog(
     })
     val scroll = ScrollView(this).apply {
         addView(text)
-        if (tv) isFocusable = true
+        if (tv) {
+            isFocusable = true
+            setTag(R.id.tv_focus_stop_scroller, true)
+        }
     }
     container.addView(status)
     container.addView(tabs)
