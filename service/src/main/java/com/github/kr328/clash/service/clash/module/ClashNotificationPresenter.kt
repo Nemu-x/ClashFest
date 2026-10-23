@@ -4,13 +4,13 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import androidx.core.app.NotificationCompat
 import com.github.kr328.clash.common.compat.getColorCompat
 import com.github.kr328.clash.common.compat.pendingIntentFlags
 import com.github.kr328.clash.common.constants.Components
 import com.github.kr328.clash.common.constants.Intents
 import com.github.kr328.clash.common.log.Log
+import com.github.kr328.clash.common.util.decodeSampledBitmap
 import com.github.kr328.clash.core.Clash
 import com.github.kr328.clash.core.model.ProxySort
 import com.github.kr328.clash.core.model.TunnelState
@@ -185,7 +185,7 @@ class ClashNotificationPresenter(private val service: Service) {
         largeIcon = path
             ?.let(::File)
             ?.takeIf { it.isFile }
-            ?.let { file -> runCatching { BitmapFactory.decodeFile(file.path) }.getOrNull() }
+            ?.let { file -> runCatching { decodeSampledBitmap(file.path, BrandNotificationChrome.NOTIFICATION_ICON_MAX_PX) }.getOrNull() }
     }
 
     private companion object {
