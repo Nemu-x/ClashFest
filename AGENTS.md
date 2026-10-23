@@ -115,7 +115,7 @@ fastly.jsdelivr.net
 
 ## 8. Разрешения и системные API
 
-- Целевая Android API: 35, минимальная: 21.
+- Целевая Android API: 36, минимальная: 23 (минимум Material Components 1.14; Play-бандл собирается с `-Pclashfest.minSdk=24`).
 - Новые опасные permissions добавлять только если без них функция нереализуема, и обосновывать в коммите. Уже объявлены и ожидаемы: `QUERY_ALL_PACKAGES` (per-app routing), `REQUEST_INSTALL_PACKAGES` (self-update APK).
 - `BIND_VPN_SERVICE` уже есть. Не запрашивать root.
 
