@@ -4,6 +4,7 @@ import android.app.Dialog
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
@@ -108,7 +109,11 @@ class AppBottomSheetDialog(
         window!!.apply {
             isSystemBarsTranslucentCompat = true
             isAllowForceDarkCompat = false
-            navigationBarColor = surfaceTv.data
+            // Ignored (and deprecated) from Android 15, where the sheet draws edge-to-edge.
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                @Suppress("DEPRECATION")
+                navigationBarColor = surfaceTv.data
+            }
             TvFocusHighlight.install(this)
             // TV: a sheet that opens on a text field (quick edit) popped the on-screen keyboard
             // over itself, hiding the fields under it and Save. The field still opens the keyboard

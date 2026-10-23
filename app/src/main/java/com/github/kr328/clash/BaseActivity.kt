@@ -6,6 +6,7 @@ import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -125,6 +126,9 @@ abstract class BaseActivity<D : Design<*>> : AppCompatActivity(),
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Before applyDayNight: the window appearance it applies (bar icons, contrast scrim) must
+        // win over enableEdgeToEdge's system-derived defaults.
+        enableEdgeToEdge()
         applyDayNight()
         TvFocusHighlight.install(window)
 
@@ -337,8 +341,20 @@ abstract class BaseActivity<D : Design<*>> : AppCompatActivity(),
         window.isAllowForceDarkCompat = false
         window.isSystemBarsTranslucentCompat = true
 
-        window.statusBarColor = themed.resolveThemedColor(android.R.attr.statusBarColor)
-        window.navigationBarColor = themed.resolveThemedColor(android.R.attr.navigationBarColor)
+        // Bar colours are ignored from Android 15 (edge-to-edge is enforced) and the setters are
+        // deprecated there, so only older releases get them.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            @Suppress("DEPRECATION")
+            window.statusBarColor = themed.resolveThemedColor(android.R.attr.statusBarColor)
+            @Suppress("DEPRECATION")
+            window.navigationBarColor = themed.resolveThemedColor(android.R.attr.navigationBarColor)
+        }
+
+        // enableEdgeToEdge turns the 3-button nav scrim on; keep what the theme asks for.
+        if (Build.VERSION.SDK_INT >= 29) {
+            window.isNavigationBarContrastEnforced =
+                themed.resolveThemedBoolean(android.R.attr.enforceNavigationBarContrast)
+        }
 
         if (Build.VERSION.SDK_INT >= 23) {
             window.isLightStatusBarsCompat = themed.resolveThemedBoolean(android.R.attr.windowLightStatusBar)
