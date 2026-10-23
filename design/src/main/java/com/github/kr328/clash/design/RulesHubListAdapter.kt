@@ -345,14 +345,14 @@ class RulesHubListAdapter(
                         dX > 0 && viewHolder is ManualHolder -> {
                             bgColor = MaterialColors.getColor(
                                 itemView,
-                                com.google.android.material.R.attr.colorError,
+                                androidx.appcompat.R.attr.colorError,
                             )
                             iconRes = R.drawable.ic_baseline_delete
                         }
                         dX < 0 -> {
                             bgColor = MaterialColors.getColor(
                                 itemView,
-                                com.google.android.material.R.attr.colorPrimary,
+                                androidx.appcompat.R.attr.colorPrimary,
                             )
                             val rule = ruleAt(viewHolder.bindingAdapterPosition)
                             iconRes = if (rule?.enabled == true) {

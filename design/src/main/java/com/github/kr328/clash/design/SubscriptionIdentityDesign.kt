@@ -81,7 +81,7 @@ class SubscriptionIdentityDesign(context: Context) : Design<SubscriptionIdentity
             layoutParams = LinearLayout.LayoutParams(px(22), px(22)).apply { marginEnd = px(14) }
             setImageResource(link.iconRes)
             imageTintList = ColorStateList.valueOf(
-                context.resolveThemedColor(MaterialR.attr.colorPrimary)
+                context.resolveThemedColor(androidx.appcompat.R.attr.colorPrimary)
             )
         }
         row.addView(icon)

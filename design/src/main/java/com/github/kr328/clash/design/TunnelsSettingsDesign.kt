@@ -123,8 +123,8 @@ class TunnelsSettingsDesign(context: Context) : Design<TunnelsSettingsDesign.Req
         statusText.setTextColor(
             com.google.android.material.color.MaterialColors.getColor(
                 statusText,
-                if (isError) com.google.android.material.R.attr.colorError
-                else com.google.android.material.R.attr.colorPrimary,
+                if (isError) androidx.appcompat.R.attr.colorError
+                else androidx.appcompat.R.attr.colorPrimary,
             ),
         )
     }

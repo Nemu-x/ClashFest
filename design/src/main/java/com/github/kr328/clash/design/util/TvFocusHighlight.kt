@@ -444,7 +444,7 @@ private class FocusHalo(private val root: View) {
         override fun draw(canvas: Canvas) {
             val view = target ?: return
             if (!visible || !windowFocused || shown.isEmpty) return
-            val accent = MaterialColors.getColor(view, com.google.android.material.R.attr.colorPrimary)
+            val accent = MaterialColors.getColor(view, androidx.appcompat.R.attr.colorPrimary)
             ring.color = accent
             ring.strokeWidth = stroke
             fill.color = ColorUtils.setAlphaComponent(accent, 0x24)

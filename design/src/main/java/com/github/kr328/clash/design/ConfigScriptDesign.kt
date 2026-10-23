@@ -73,7 +73,7 @@ class ConfigScriptDesign(context: Context) : Design<ConfigScriptDesign.Request>(
     suspend fun showError(error: ConfigScriptError) = withContext(Dispatchers.Main) {
         binding.statusText.text = context.getString(messageFor(error))
         binding.statusText.setTextColor(
-            MaterialColors.getColor(binding.statusText, MaterialR.attr.colorError),
+            MaterialColors.getColor(binding.statusText, androidx.appcompat.R.attr.colorError),
         )
         binding.statusText.visibility = View.VISIBLE
     }

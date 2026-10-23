@@ -168,11 +168,11 @@ class ProxyChainDesign(
             ChainStatusKind.Progress ->
                 com.google.android.material.R.attr.colorOnSurfaceVariant
             ChainStatusKind.Success ->
-                com.google.android.material.R.attr.colorPrimary
+                androidx.appcompat.R.attr.colorPrimary
             ChainStatusKind.Warning ->
                 com.google.android.material.R.attr.colorSecondary
             ChainStatusKind.Error ->
-                com.google.android.material.R.attr.colorError
+                androidx.appcompat.R.attr.colorError
         }
         chainStatusText.setTextColor(resolveChainStatusColor(attr))
     }

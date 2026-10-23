@@ -338,8 +338,8 @@ class CompanionRemoteDesign(context: Context, initialName: String) : Design<Comp
         binding.remoteLink.text = context.getString(textRes)
         val tint = context.resolveThemedColor(
             when (link) {
-                RemoteLink.Live -> MaterialR.attr.colorPrimary
-                RemoteLink.Unreachable -> MaterialR.attr.colorError
+                RemoteLink.Live -> androidx.appcompat.R.attr.colorPrimary
+                RemoteLink.Unreachable -> androidx.appcompat.R.attr.colorError
                 else -> MaterialR.attr.colorOnSurfaceVariant
             },
         )
@@ -355,7 +355,7 @@ class CompanionRemoteDesign(context: Context, initialName: String) : Design<Comp
     private fun applyPower(on: Boolean) {
         running = on
         val button = binding.remotePower
-        val bg = context.resolveThemedColor(if (on) MaterialR.attr.colorPrimary else MaterialR.attr.colorSurfaceContainerHighest)
+        val bg = context.resolveThemedColor(if (on) androidx.appcompat.R.attr.colorPrimary else MaterialR.attr.colorSurfaceContainerHighest)
         val icon = context.resolveThemedColor(if (on) MaterialR.attr.colorOnPrimary else MaterialR.attr.colorOnSurfaceVariant)
         button.backgroundTintList = ColorStateList.valueOf(bg)
         button.iconTint = ColorStateList.valueOf(icon)
@@ -391,7 +391,7 @@ class CompanionRemoteDesign(context: Context, initialName: String) : Design<Comp
             val pad = (9 * context.resources.displayMetrics.density).toInt()
             image.setPadding(pad, pad, pad, pad)
             image.setImageResource(R.drawable.ic_baseline_language)
-            image.imageTintList = ColorStateList.valueOf(context.resolveThemedColor(MaterialR.attr.colorPrimary))
+            image.imageTintList = ColorStateList.valueOf(context.resolveThemedColor(androidx.appcompat.R.attr.colorPrimary))
             return
         }
         fun apply(sizePx: Int) {

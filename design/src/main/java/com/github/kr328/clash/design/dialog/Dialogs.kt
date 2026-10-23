@@ -77,7 +77,7 @@ class AppBottomSheetDialog(
     // Resolve the accent from the HOST (activity) context — the dialog's own theme falls back to
     // the base emerald, not the user's dynamic/brand accent.
     private val hostAccent: Int = MaterialColors.getColor(
-        context, com.google.android.material.R.attr.colorPrimary, Color.TRANSPARENT,
+        context, androidx.appcompat.R.attr.colorPrimary, Color.TRANSPARENT,
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
