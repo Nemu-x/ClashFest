@@ -2,8 +2,8 @@ package com.github.kr328.clash.service.branding
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Color
+import com.github.kr328.clash.common.util.decodeSampledBitmap
 import java.io.File
 import java.util.UUID
 
@@ -13,11 +13,14 @@ import java.util.UUID
  * notification and the profile-update result notifications.
  */
 object BrandNotificationChrome {
+    /** A notification large icon is 64dp: 256px at xxxhdpi. */
+    const val NOTIFICATION_ICON_MAX_PX = 256
+
     data class Chrome(val name: String?, val accentColor: Int?, val logoPath: String?) {
         fun logo(): Bitmap? = logoPath
             ?.let(::File)
             ?.takeIf { it.isFile }
-            ?.let { runCatching { BitmapFactory.decodeFile(it.path) }.getOrNull() }
+            ?.let { runCatching { decodeSampledBitmap(it.path, NOTIFICATION_ICON_MAX_PX) }.getOrNull() }
     }
 
     fun forProfile(context: Context, uuid: UUID?): Chrome {
