@@ -66,8 +66,8 @@ subprojects {
             }
 
             // clashfest.minSdk: Google Play's automatic protection (enforced on the listing) needs 24;
-            // the GitHub and F-Droid builds keep 21 for old phones and TV boxes.
-            minSdk = (findProperty("clashfest.minSdk") as? String)?.toInt() ?: 21
+            // the GitHub and F-Droid builds keep 23, the minimum of Material Components 1.14.
+            minSdk = (findProperty("clashfest.minSdk") as? String)?.toInt() ?: 23
             // 36: Google Play's current requirement. Android 16 behaviour that comes with it:
             // predictive back (no onBackPressed() overrides — use OnBackPressedDispatcher).
             targetSdk = 36

@@ -70,7 +70,7 @@ private fun MainDesign.bindMainNodeFlag(flag: ParsedFlag?) {
         image.setPadding(pad, pad, pad, pad)
         image.setImageResource(R.drawable.ic_baseline_language)
         image.imageTintList = ColorStateList.valueOf(
-            context.resolveThemedColor(MaterialR.attr.colorPrimary),
+            context.resolveThemedColor(androidx.appcompat.R.attr.colorPrimary),
         )
     }
 

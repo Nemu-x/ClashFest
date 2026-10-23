@@ -30,7 +30,7 @@ fun Context.showYamlPreviewDialog(
     val status = TextView(this).apply {
         visibility = if (preview.valid) View.GONE else View.VISIBLE
         text = preview.error ?: getString(R.string.yaml_preview_invalid)
-        setTextColor(resolveColor(com.google.android.material.R.attr.colorError))
+        setTextColor(resolveColor(androidx.appcompat.R.attr.colorError))
     }
     val tabs = TabLayout(this)
     val text = TextView(this).apply {

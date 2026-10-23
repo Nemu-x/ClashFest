@@ -32,7 +32,7 @@ class TvSidePanelDialog(
     context.resolveThemedResourceId(com.google.android.material.R.attr.bottomSheetDialogTheme),
 ) {
     private val hostAccent: Int = MaterialColors.getColor(
-        context, com.google.android.material.R.attr.colorPrimary, Color.TRANSPARENT,
+        context, androidx.appcompat.R.attr.colorPrimary, Color.TRANSPARENT,
     )
 
     init {

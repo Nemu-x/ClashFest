@@ -161,7 +161,7 @@ internal class RemoteProxyPickerSheet(
         )
         val tint = MaterialColors.getColor(
             sheet.root,
-            if (live) com.google.android.material.R.attr.colorPrimary else com.google.android.material.R.attr.colorOnSurfaceVariant,
+            if (live) androidx.appcompat.R.attr.colorPrimary else com.google.android.material.R.attr.colorOnSurfaceVariant,
         )
         sheet.proxySheetSubStatus.setTextColor(tint)
         sheet.proxySheetSubStatusDot.backgroundTintList = ColorStateList.valueOf(tint)

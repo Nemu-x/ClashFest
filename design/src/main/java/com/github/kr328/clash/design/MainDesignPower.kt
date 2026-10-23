@@ -42,7 +42,7 @@ internal fun MainDesign.applyPowerVisuals() {
     val starting = tunnelStartingState && !running
     val (bgAttr, iconAttr, elevationDp) = when {
         running -> Triple(
-            com.google.android.material.R.attr.colorPrimary,
+            androidx.appcompat.R.attr.colorPrimary,
             com.google.android.material.R.attr.colorOnPrimary,
             10f,
         )
@@ -65,7 +65,7 @@ internal fun MainDesign.applyPowerVisuals() {
     // dynamic-color harmoniser (which used to derive ALL surface tones
     // from the brand seed and tint the off-state), surface attrs stay at
     // their built-in neutral M3 values automatically — no workaround needed.
-    val accentBg = brandAccentColor() ?: context.resolveThemedColor(com.google.android.material.R.attr.colorPrimary)
+    val accentBg = brandAccentColor() ?: context.resolveThemedColor(androidx.appcompat.R.attr.colorPrimary)
     val bgColor = if (running) accentBg else context.resolveThemedColor(bgAttr)
     button.backgroundTintList = ColorStateList.valueOf(bgColor)
     button.iconTint = ColorStateList.valueOf(context.resolveThemedColor(iconAttr))

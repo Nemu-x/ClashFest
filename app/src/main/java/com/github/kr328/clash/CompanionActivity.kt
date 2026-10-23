@@ -243,7 +243,7 @@ class CompanionActivity : BaseActivity<Design<CompanionDesign.Request>>() {
                 letterSpacing = 0.4f // space the digits without spaces (keeps them on one line)
                 maxLines = 1
                 gravity = android.view.Gravity.CENTER
-                setTextColor(resolveThemedColor(com.google.android.material.R.attr.colorPrimary))
+                setTextColor(resolveThemedColor(androidx.appcompat.R.attr.colorPrimary))
                 setPadding(0, (density * 16).toInt(), 0, (density * 12).toInt())
             },
         )
