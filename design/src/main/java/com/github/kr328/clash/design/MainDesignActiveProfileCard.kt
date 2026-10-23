@@ -4,7 +4,6 @@ import android.content.res.ColorStateList
 import android.view.View
 import android.widget.ImageView
 import androidx.core.view.doOnLayout
-import com.google.android.material.R as MaterialR
 import com.github.kr328.clash.design.util.FlagDrawableLoader
 import com.github.kr328.clash.design.util.FlagParser
 import com.github.kr328.clash.design.util.ParsedFlag
