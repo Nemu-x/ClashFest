@@ -1,0 +1,2 @@
+New: control ClashFest on a TV from your phone (remote), a TV interface built for the remote, mihomo core 1.19.33 with a TLS security fix, experimental Citrus support (XDrive, chain groups and more).
+Fixes: deleting the active profile, garbled profile names, auto-update timing, preinstalled apps such as Gemini missing from App Routing, stale groups after an update, edge-to-edge on Android 15+.
