@@ -212,9 +212,11 @@ func catalogFor(caps lib.Capabilities) Catalog {
 	return c
 }
 
-// Presets is the catalog for this device.
+// Presets is the catalog for this device: what a socket of this process can
+// do (on Android the methods the library decides per socket are resolved by
+// a loopback probe).
 func Presets() Catalog {
-	return catalogFor(lib.PlatformCapabilities())
+	return catalogFor(effectiveCapabilities())
 }
 
 func (c Catalog) find(list []Preset, kind, id string) (Preset, error) {

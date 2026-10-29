@@ -31,6 +31,31 @@ class DesyncModelTest {
         assertTrue(caps.autoTtl.ipv6)
         assertEquals("no TTL", caps.unsupported["auto-ttl-ipv4"])
         assertEquals("v0.2.0", caps.libraryVersion)
+        assertTrue(caps.conditional.isEmpty())
+        assertNull(caps.probed)
+    }
+
+    @Test
+    fun capabilities_decode_conditional_and_probe() {
+        val caps = json.decodeFromString(
+            DesyncCapabilities.serializer(),
+            """{"os":"android","fakeTcp":false,"fakeUdp":true,"ttlControl":true,
+              |"disorder":{"supported":false,"mechanism":"","observed":false,"reliable":false},
+              |"oob":true,"ack":{"mechanism":"SIOCOUTQ","sent":false,"acked":true,"reliable":true},
+              |"autoTtl":{"mechanism":"IPV6_RECVHOPLIMIT/IPV6_2292PKTOPTIONS","ipv4":false,"ipv6":true},
+              |"unsupported":{"auto-ttl-ipv4":"no TTL","fake-tcp":"per socket","disorder":"per socket","split-wait-sent":"per socket"},
+              |"conditional":{"fake-tcp":"per socket","disorder":"per socket","split-wait-sent":"per socket"},
+              |"probed":{"fakeTcp":true,"disorder":{"supported":true,"mechanism":"TCP_INFO","observed":true,"reliable":true},
+              |"ack":{"mechanism":"SIOCOUTQ/TCP_INFO","sent":true,"acked":true,"reliable":true},
+              |"unsupported":{"auto-ttl-ipv4":"no TTL"},"error":""},
+              |"libraryVersion":"v0.2.1-0.20261029232908-673cbefddb80","static":true,"note":"static"}""".trimMargin(),
+        )
+        assertEquals(setOf("fake-tcp", "disorder", "split-wait-sent"), caps.conditional.keys)
+        val probed = caps.probed!!
+        assertTrue(probed.fakeTcp)
+        assertEquals("TCP_INFO", probed.disorder!!.mechanism)
+        assertTrue(probed.ack!!.sent)
+        assertEquals("", probed.error)
     }
 
     @Test

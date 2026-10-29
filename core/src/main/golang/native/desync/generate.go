@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"strings"
 
-	lib "github.com/Nemu-x/desync"
 	"gopkg.in/yaml.v3"
 
 	"cfa/native/snapshot"
@@ -86,7 +85,7 @@ type generatedProfile struct {
 // GenerateConfig builds the profile for the catalog of this device and checks
 // it with the engine's own parser (snapshot.ValidateBytes).
 func GenerateConfig(req Request) (string, error) {
-	return generateConfig(req, catalogFor(lib.PlatformCapabilities()))
+	return generateConfig(req, catalogFor(effectiveCapabilities()))
 }
 
 func generateConfig(req Request, catalog Catalog) (string, error) {
