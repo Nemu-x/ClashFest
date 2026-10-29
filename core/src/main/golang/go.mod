@@ -3,9 +3,11 @@ module cfa
 go 1.25
 
 require (
+	github.com/Nemu-x/desync v0.2.0
 	github.com/dlclark/regexp2 v1.12.0
 	github.com/metacubex/mihomo v1.19.33
 	golang.org/x/sync v0.11.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 replace github.com/metacubex/mihomo => ../../foss/golang/clash
@@ -153,7 +155,6 @@ require (
 	golang.org/x/tools v0.24.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 replace google.golang.org/protobuf => github.com/metacubex/protobuf-go v0.0.0-20260306035419-7ceee0674686
