@@ -32,7 +32,8 @@ modified while a build tree is set up; never commit the applied patches into the
 Tests that ship inside a patch run with the Go test task (`:core:goTestNativeSnapshot`, which runs
 `go test` on `component/tls`, `component/ca`, `component/sniffer`, `dns`, `tunnel`,
 `transport/openvpn`, `transport/xdrive`, `transport/vless/muxcool`, `adapter`, `adapter/outbound`,
-`adapter/outboundgroup` and `config` from the `cfa` module), against the patched tree. The `config` tests use testify, so `cfa`'s `go.sum` carries its checksums although
+`adapter/outboundgroup`, `config` and `hub/route` from the `cfa` module, plus the desync library's
+`presets` catalog), against the patched tree. The `config` tests use testify, so `cfa`'s `go.sum` carries its checksums although
 `go.mod` does not require it; `go mod tidy` may drop them again, and
 `go mod download github.com/stretchr/testify` in `core/src/main/golang` restores them. Engine-oracle tests for
 the config surface a patch adds live in `cfa/native/snapshot` (`core_patch_oracle_test.go`).
@@ -284,6 +285,63 @@ vanilla code path runs untouched unless an option is set. Ours on the idea of Ci
 (`DisableServeExpired` instead of Citrus' `ServeExpired` for that reason), with our own test.
 
 Upstream: none. Delete when mihomo has an equivalent.
+
+### 0015-0021 Desync (from SlothClash)
+
+`github.com/Nemu-x/desync` reshapes how the client's own first TLS ClientHello leaves its socket
+(TLS record and TCP write splits, low-TTL fakes, disorder, out-of-band byte, a low-TTL UDP burst). The
+seven patches are SlothClash's, copied byte for byte and renumbered: source Nemu-x/SlothClash branch
+`feat/desync-outbound-patch` (PR #116) at commit `675b36fb`, `core/patches/mihomo/`.
+
+| ClashFest | SlothClash | What |
+|---|---|---|
+| 0015 | 0017 `direct-desync` | optional `desync` mapping on a named `direct` outbound |
+| 0016 | 0018 `probe-error-details` | URL-test errors kept in controller responses and logged |
+| 0017 | 0019 `desync-dns-udp` | `dns-fallback` to the profile resolver, UDP burst with counters |
+| 0018 | 0020 `desync-auto-diagnostics` | authenticated UDP probe, activity counters (`hub/route`) |
+| 0019 | 0021 `desync-stable-udp-binding` | `udp.stable-binding` for Discord voice |
+| 0020 | 0022 `desync-profile-reserve` | reserve probes, `reject-quic` |
+| 0021 | 0023 `desync-outbound` | `type: desync`, the first-class outbound |
+
+The comments inside the code still say "SlothClash core patch 00NN" with SlothClash's numbers; the
+table maps them. The controller endpoints 0016/0018/0020 add to `hub/route` are compiled in but not
+reachable on Android (the external controller is stripped, `native/config/process.go`); their tests run
+in `goTestNativeSnapshot`. Status for the app comes through the bridge instead (below).
+
+`type: desync` is a DIRECT connection whose first TLS ClientHello is transformed; keys, units and the
+`desync` object of its JSON are Citrus' `type: desync` (getmikan/Citrus#172), plus SlothClash's
+`dns-fallback`, `reject-quic` and `udp.stable-binding`. What a device can do is decided by the library
+at config validation: an option the platform lacks fails the proxy instead of falling back to plain
+DIRECT. Kotlin decodes the adapter type as `Proxy.Type.Desync`; the feature token is `desync`
+(`cfa/native/features` references `outbound.NewDesync` and `C.Desync`).
+
+**Library version.** The patches pin `v0.1.0` in the submodule's `go.mod`; ClashFest builds with the
+version that `core/src/main/golang/go.mod` requires (currently **v0.2.0**, which adds the `presets`
+catalog the bridge serves; the `replace` of mihomo makes the main module's requirement win). To bump:
+edit that require line, then sync both modules with the `go list -mod=mod` commands of
+docs/core-update.md (step 3), which also update `core/src/foss/golang/go.mod` / `go.sum`; never
+`go mod tidy`. `Clash.desyncCapabilities().libraryVersion` reports the linked version at runtime.
+
+**Bridge** (`cfa/native/desync`, exports in `native/desync.go`, Kotlin models in
+`core/.../model/Desync.kt`):
+
+| Kotlin | Go export | Returns |
+|---|---|---|
+| `Clash.desyncCapabilities()` | `desyncCapabilities` | `desync.PlatformCapabilities()`; static per library version |
+| `Clash.desyncPresets()` | `desyncPresets` | the `presets` catalog usable here, options as the outbound's YAML keys |
+| `Clash.desyncServices()` | `desyncServices` | services a desync-only profile can route (`native/desync/services.go`) |
+| `Clash.queryDesyncStatus()`, `IClashManager.queryDesyncStatus()` | `queryDesyncStatus` | the `desync` object of every desync proxy of the running config |
+| `Clash.generateDesyncOnlyConfig(request)` | `generateDesyncOnlyConfig` | a profile: one desync proxy per service, `MATCH,DIRECT`, engine-validated |
+
+Upstream: none; mihomo has no desync outbound. Delete 0015-0020 when ClashFest generates only
+`type: desync` and SlothClash drops the named `direct.desync` outbounds; delete 0021 when mihomo
+carries an equivalent outbound (the bridge and `coreFeatures` then need the matching change).
+
+### 0022 Desync: loop test under CMFA
+
+`component/loopback` disables the loopback detector in CMFA builds, and ClashFest's Go tests compile
+with the `cmfa` tag, so 0021's `TestDesyncRejectsLoop` (written for desktop) skips there. Test-only.
+Delete when the test in 0021 handles CMFA itself.
 
 ## Citrus compatibility suite
 
