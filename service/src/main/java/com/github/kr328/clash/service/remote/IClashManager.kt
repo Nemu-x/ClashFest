@@ -55,4 +55,10 @@ interface IClashManager {
 
     /** `now` of every proxy group as a JSON object (group -> choice). Appended last: see above. */
     fun queryProxyGroupSelections(): String
+
+    /**
+     * Runtime state of the `type: desync` proxies of the loaded profile as JSON
+     * (`DesyncStatus`, decode with `DesyncStatus.serializer()`). Appended last: see above.
+     */
+    fun queryDesyncStatus(): String
 }

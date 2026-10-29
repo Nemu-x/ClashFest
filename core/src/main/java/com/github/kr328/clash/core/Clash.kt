@@ -358,6 +358,53 @@ object Clash {
             ?.filter { it.isNotEmpty() }
             ?: emptyList()
 
+    private val DesyncJson = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = false
+    }
+
+    /**
+     * What the desync library of the `type: desync` outbound (core patch 0021) implements
+     * on this device. Static for the linked library version: it says what is implemented,
+     * not what works on the current network. No engine state; any process.
+     */
+    fun desyncCapabilities(): DesyncCapabilities =
+        DesyncJson.decodeFromString(DesyncCapabilities.serializer(), checkNotNull(Bridge.nativeDesyncCapabilities()))
+
+    /** The desync strategy catalog filtered by [desyncCapabilities]. No engine state; any process. */
+    fun desyncPresets(): DesyncPresetCatalog =
+        DesyncJson.decodeFromString(DesyncPresetCatalog.serializer(), checkNotNull(Bridge.nativeDesyncPresets()))
+
+    /** Services [generateDesyncOnlyConfig] can route. No engine state; any process. */
+    fun desyncServices(): List<DesyncService> =
+        DesyncJson.decodeFromString(
+            ListSerializer(DesyncService.serializer()),
+            checkNotNull(Bridge.nativeDesyncServices()),
+        )
+
+    /**
+     * Runtime state of every `type: desync` proxy of the loaded profile (options, UDP
+     * counters, last fake TTL). Reads the running engine, so it answers only in the
+     * process that runs the core; the UI goes through `IClashManager.queryDesyncStatus`.
+     */
+    fun queryDesyncStatus(): DesyncStatus =
+        Bridge.nativeQueryDesyncStatus()
+            ?.let { DesyncJson.decodeFromString(DesyncStatus.serializer(), it) }
+            ?: DesyncStatus()
+
+    /**
+     * Builds a profile that routes the chosen services and domains through one `type: desync`
+     * proxy each and everything else DIRECT, validated by the engine
+     * ([validateProfileBytes]). No disk I/O, no network; any process.
+     */
+    fun generateDesyncOnlyConfig(request: DesyncConfigRequest): DesyncGeneratedConfig {
+        val raw = Bridge.nativeGenerateDesyncOnlyConfig(
+            DesyncJson.encodeToString(DesyncConfigRequest.serializer(), request),
+        ) ?: return DesyncGeneratedConfig(error = "native bridge returned nothing")
+        return runCatching { DesyncJson.decodeFromString(DesyncGeneratedConfig.serializer(), raw) }
+            .getOrElse { DesyncGeneratedConfig(error = "malformed bridge response") }
+    }
+
     fun genX25519KeyPair(): AgeKeyPair =
         Json.Default.decodeFromString(AgeKeyPair.serializer(), checkNotNull(Bridge.nativeGenX25519KeyPair()))
 

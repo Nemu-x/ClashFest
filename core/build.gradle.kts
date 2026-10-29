@@ -195,7 +195,7 @@ val goTestNativeSnapshot by tasks.registering(Exec::class) {
     commandLine(
         "go", "test", "-tags", "foss,with_gvisor,cmfa",
         "./native/snapshot/...", "./native/useragent/...", "./native/reality/...",
-        "./native/features/...",
+        "./native/features/...", "./native/desync/...",
         // Tests shipped inside the patch series run against the patched tree, so a
         // patch that applied but no longer does what it claims fails here. (Packages
         // only: anything after a flag that follows the package list goes to the test
@@ -212,6 +212,10 @@ val goTestNativeSnapshot by tasks.registering(Exec::class) {
         "github.com/metacubex/mihomo/adapter/outbound",
         "github.com/metacubex/mihomo/adapter/outboundgroup",
         "github.com/metacubex/mihomo/config",
+        "github.com/metacubex/mihomo/hub/route",
+        // The strategy catalog the desync bridge (native/desync) serves; pure Go. The
+        // library's socket-level tests stay in its own CI.
+        "github.com/Nemu-x/desync/presets",
     )
     dependsOn(applyCorePatches)
 
@@ -219,6 +223,7 @@ val goTestNativeSnapshot by tasks.registering(Exec::class) {
     inputs.dir("src/main/golang/native/useragent")
     inputs.dir("src/main/golang/native/reality")
     inputs.dir("src/main/golang/native/features")
+    inputs.dir("src/main/golang/native/desync")
     // Re-run against a bumped core too: the test exercises mihomo itself
     // (module `cfa`, `replace mihomo => ../../foss/golang/clash`).
     inputs.property("mihomoCommit", mihomoHead)
