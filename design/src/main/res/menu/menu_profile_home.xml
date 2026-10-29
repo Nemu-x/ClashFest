@@ -7,6 +7,9 @@
         android:id="@+id/profile_menu_edit"
         android:title="@string/edit" />
     <item
+        android:id="@+id/profile_menu_desync_settings"
+        android:title="@string/desync_settings" />
+    <item
         android:id="@+id/profile_menu_subscription_sources"
         android:title="@string/profile_menu_subscription_sources" />
     <item
