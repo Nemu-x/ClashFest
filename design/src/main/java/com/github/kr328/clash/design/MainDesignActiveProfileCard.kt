@@ -10,6 +10,7 @@ import com.github.kr328.clash.design.util.ParsedFlag
 import com.github.kr328.clash.design.util.resolveThemedColor
 import com.github.kr328.clash.design.util.toBytesString
 import com.github.kr328.clash.design.R
+import com.github.kr328.clash.core.model.TunnelState
 import com.github.kr328.clash.service.model.Profile
 
 /*
@@ -37,13 +38,31 @@ internal fun MainDesign.announcementHash(
 
 internal fun MainDesign.renderActiveProfileCard(profile: Profile?) {
     val p = profile
+    val desyncOnly = p?.isDesyncOnly == true
+    // Also when a Desync-only profile meets a Global mode set elsewhere (saved preference, paired
+    // controller): reconcile flips it back to Rule.
+    if (desyncOnly != activeProfileDesyncOnly || (desyncOnly && currentModeSegment == TunnelState.Mode.Global)) {
+        activeProfileDesyncOnly = desyncOnly
+        if (!desyncOnly) desyncStatusLine = null
+        reconcileGlobalModeForBrand()
+    }
     binding.mainActiveProfileValue.text = p?.name.orEmpty().ifBlank { context.getString(R.string.not_selected) }
-    binding.mainActiveProfileMeta.text = p?.let { "${profileMetaLabel(it)} • ${usageLabel(it)}" }.orEmpty()
+    binding.mainActiveProfileMeta.text = when {
+        p == null -> ""
+        desyncOnly -> context.getString(R.string.desync_only_badge)
+        else -> "${profileMetaLabel(p)} • ${usageLabel(p)}"
+    }
     binding.mainActiveProfileMeta.visibility = if (p != null) View.VISIBLE else View.GONE
-    val showUpdate = p?.imported == true && p.type != Profile.Type.File
+    // Desync only: "update" regenerates the profile from its settings.
+    val showUpdate = p?.imported == true && (p.type != Profile.Type.File || desyncOnly)
     binding.mainActiveProfileUpdate.visibility = if (showUpdate) View.VISIBLE else View.GONE
     val showSupport = !resolveSupportUrl().isNullOrBlank()
     binding.mainActiveProfileSupport.visibility = if (showSupport) View.VISIBLE else View.GONE
+    if (p != null && desyncOnly) {
+        renderDesyncStrategyRow(p)
+        return
+    }
+    binding.mainActiveNodeTitle.setText(R.string.main_node_title)
     // Redesign 1.0: Node row shows the active node as a circular flag icon (like the picker) +
     // the clean name, and opens the proxy picker for the active profile (loads groups first).
     val nodeName = p?.let { profileAdapter.activeNodeDisplayName(it) }
@@ -54,6 +73,23 @@ internal fun MainDesign.renderActiveProfileCard(profile: Profile?) {
     }
     binding.mainActiveNodeValue.text = cleanName ?: context.getString(R.string.main_node_choose)
     binding.mainActiveNodeRow.setOnClickListener { p?.let { openNodePicker(it) } }
+}
+
+/** Desync only: the node row shows the strategy and opens the profile's Desync settings. */
+private fun MainDesign.renderDesyncStrategyRow(profile: Profile) {
+    binding.mainActiveNodeTitle.setText(R.string.desync_strategy)
+    val image = binding.mainActiveNodeFlag
+    binding.mainActiveNodeFlagEmoji.visibility = View.GONE
+    image.visibility = View.VISIBLE
+    image.scaleType = ImageView.ScaleType.FIT_CENTER
+    val pad = (9 * context.resources.displayMetrics.density).toInt()
+    image.setPadding(pad, pad, pad, pad)
+    image.setImageResource(R.drawable.ic_baseline_bolt)
+    image.imageTintList = ColorStateList.valueOf(
+        context.resolveThemedColor(androidx.appcompat.R.attr.colorPrimary),
+    )
+    binding.mainActiveNodeValue.text = desyncStatusLine ?: context.getString(R.string.desync_settings_summary)
+    binding.mainActiveNodeRow.setOnClickListener { onOpenDesyncSettings?.invoke(profile) }
 }
 
 /** SVG → [ImageView.setImageBitmap] at the view's pixel width; emoji/globe fallbacks otherwise. */

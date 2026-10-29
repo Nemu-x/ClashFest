@@ -285,6 +285,27 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
      * its own title.
      */
     var onOpenBrandUrl: ((String) -> Unit)? = null
+
+    /** Home card "Strategy" row of a Desync-only profile (it has no node to pick). */
+    var onOpenDesyncSettings: ((Profile) -> Unit)? = null
+
+    /** The active profile is Desync only: no nodes, rule mode only (see [renderActiveProfileCard]). */
+    internal var activeProfileDesyncOnly: Boolean = false
+
+    /** Strategy + runtime line for a Desync-only active profile, set by the dashboard's status poll. */
+    internal var desyncStatusLine: String? = null
+
+    /** True while the Home card shows a Desync-only profile: the dashboard polls its status only then. */
+    val showsDesyncOnlyProfile: Boolean
+        get() = activeProfileDesyncOnly
+
+    suspend fun setDesyncStatusLine(line: String?) {
+        withContext(Dispatchers.Main) {
+            if (desyncStatusLine == line) return@withContext
+            desyncStatusLine = line
+            renderActiveProfileCard(activeProfileForQuickActions)
+        }
+    }
     var onOpenAbout: (() -> Unit)? = null
 
     suspend fun applyBrand(holder: com.github.kr328.clash.design.branding.BrandHolder) {
@@ -728,8 +749,10 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
      * Global mode without opting into the full visual brand. Every other X-Brand-* field still
      * requires branding to be explicitly enabled.
      */
-    private fun reconcileGlobalModeForBrand() {
-        val hideGlobal = brandHolder.manifest.hideGlobalMode == true
+    internal fun reconcileGlobalModeForBrand() {
+        // A Desync-only profile has no nodes for Global to send traffic to: same treatment as the
+        // operator policy (the service also keeps such a profile's session on rule).
+        val hideGlobal = brandHolder.manifest.hideGlobalMode == true || activeProfileDesyncOnly
         // Hide only the Global segment (not the whole Mode row) so "Mode: Rule" still reads clearly
         // and the card outline stays intact. The toggle group re-rounds the lone Rule button.
         binding.mainModeGlobal.visibility = if (hideGlobal) View.GONE else View.VISIBLE
