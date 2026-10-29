@@ -29,7 +29,15 @@ data class Profile(
     val pending: Boolean,
     /** age identity (AGE-SECRET-KEY-…) for age-encrypted subscriptions; null = plain. */
     val ageSecretKey: String? = null,
+    /**
+     * [DesyncProfileSettings] JSON of a "Desync only" profile (a [Type.File] profile whose
+     * config.yaml is generated from these settings, never fetched); null for every other profile.
+     */
+    val desyncSettings: String? = null,
 ) : Parcelable {
+    val isDesyncOnly: Boolean
+        get() = desyncSettings != null
+
     enum class Type {
         File, Url, External
     }
