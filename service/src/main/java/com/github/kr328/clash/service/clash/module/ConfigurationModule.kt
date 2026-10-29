@@ -4,6 +4,7 @@ import android.app.Service
 import com.github.kr328.clash.common.constants.Intents
 import com.github.kr328.clash.common.log.Log
 import com.github.kr328.clash.core.Clash
+import com.github.kr328.clash.core.model.TunnelState
 import com.github.kr328.clash.service.StatusProvider
 import com.github.kr328.clash.service.data.ImportedDao
 import com.github.kr328.clash.service.data.SelectionDao
@@ -132,7 +133,14 @@ class ConfigurationModule(service: Service) : Module<ConfigurationModule.LoadExc
                         seedGeoMirrors = store.seedDefaultGeoMirrors,
                         localProxy = localProxySettings(),
                     )
-                    if (hardened) {
+                    // Desync only: the profile has no nodes, so Global would push every app through
+                    // the first desync proxy. Its config says `mode: rule`; keep the session on it.
+                    val desyncPinned = active.desyncSettings != null &&
+                        sessionOverride.mode == TunnelState.Mode.Global
+                    if (desyncPinned) {
+                        sessionOverride.mode = TunnelState.Mode.Rule
+                    }
+                    if (hardened || desyncPinned) {
                         Clash.patchOverride(Clash.OverrideSlot.Session, sessionOverride)
                     }
                 }

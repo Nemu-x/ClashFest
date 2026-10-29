@@ -212,4 +212,19 @@ interface IProfileManager {
      * (or fallback to the primary).
      */
     suspend fun brandLogoPathFor(uuid: UUID, darkTheme: Boolean): String?
+
+    /**
+     * Creates a "Desync only" draft (a File profile generated from [settingsJson], a
+     * `DesyncProfileSettings` JSON). Commit it like any draft; nothing is fetched.
+     */
+    suspend fun createDesyncOnly(name: String, settingsJson: String): UUID
+
+    /** Dry-runs the generator for [settingsJson]: null when it yields a profile, else the reason. */
+    suspend fun checkDesyncSettings(settingsJson: String): String?
+
+    /**
+     * Stores new settings of a Desync-only profile and regenerates its config.yaml (a running core
+     * reloads it). Returns null on success, else the reason; nothing is stored when it fails.
+     */
+    suspend fun updateDesyncSettings(uuid: UUID, settingsJson: String): String?
 }

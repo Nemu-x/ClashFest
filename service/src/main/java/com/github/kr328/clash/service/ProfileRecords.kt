@@ -6,6 +6,7 @@ import com.github.kr328.clash.service.data.Imported
 import com.github.kr328.clash.service.data.ImportedDao
 import com.github.kr328.clash.service.data.Pending
 import com.github.kr328.clash.service.data.PendingDao
+import com.github.kr328.clash.service.model.DesyncProfileSettings
 import com.github.kr328.clash.service.model.Profile
 import com.github.kr328.clash.service.store.ServiceStore
 import com.github.kr328.clash.service.util.directoryLastModified
@@ -74,6 +75,41 @@ internal class ProfileRecords(
         return uuid
     }
 
+    /**
+     * A "Desync only" draft: a [Profile.Type.File] profile whose config.yaml [ProfileProcessor]
+     * generates from [settingsJson] on commit. The caller commits it like any other draft.
+     */
+    suspend fun createDesyncOnly(name: String, settingsJson: String): UUID {
+        val settings = DesyncProfileSettings.decode(settingsJson)
+            ?: throw IllegalArgumentException("malformed desync settings")
+        val uuid = generateProfileUUID()
+        profileOrderLock.withLock {
+            PendingDao().insert(
+                Pending(
+                    uuid = uuid,
+                    name = name,
+                    type = Profile.Type.File,
+                    source = "",
+                    interval = 0,
+                    upload = 0,
+                    total = 0,
+                    download = 0,
+                    expire = 0,
+                    profileOrder = nextProfileOrder(),
+                    desyncSettings = settings.encode(),
+                ),
+            )
+        }
+
+        context.pendingDir.resolve(uuid.toString()).apply {
+            deleteRecursively()
+            mkdirs()
+            resolve("providers").mkdir()
+        }
+
+        return uuid
+    }
+
     suspend fun clone(uuid: UUID): UUID {
         val newUUID = generateProfileUUID()
 
@@ -96,6 +132,7 @@ internal class ProfileRecords(
                 expire = imported.expire,
                 profileOrder = profileOrder,
                 ageSecretKey = imported.ageSecretKey,
+                desyncSettings = imported.desyncSettings,
             )
 
             PendingDao().insert(pending)
@@ -141,6 +178,7 @@ internal class ProfileRecords(
                     expire = 0,
                     profileOrder = imported.profileOrder,
                     ageSecretKey = ageSecretKey?.takeIf { it.isNotBlank() },
+                    desyncSettings = imported.desyncSettings,
                 )
             )
         } else {
@@ -212,6 +250,7 @@ internal class ProfileRecords(
             imported != null,
             pending != null,
             ageSecretKey = pending?.ageSecretKey ?: imported?.ageSecretKey,
+            desyncSettings = pending?.desyncSettings ?: imported?.desyncSettings,
         )
     }
 

@@ -23,6 +23,7 @@ import com.github.kr328.clash.service.util.OperatorPolicyHeaders
 import com.github.kr328.clash.service.util.ConfigComposer
 import com.github.kr328.clash.service.util.ConfigScriptException
 import com.github.kr328.clash.service.util.ConfigScriptPolicy
+import com.github.kr328.clash.service.util.DesyncProfileConfig
 import com.github.kr328.clash.service.util.GeoDataSources
 import com.github.kr328.clash.service.util.ProfileComposer
 import com.github.kr328.clash.service.util.RawConfigEdit
@@ -70,7 +71,14 @@ object ProfileProcessor {
 
                 // A hand-edited config.yaml (Browse files → external editor) on a File profile:
                 // decided on raw bytes, before the sanitizers below rewrite the processing copy.
-                val rawEdited = snapshot.type == Profile.Type.File && RawConfigEdit.isEdited(
+                val desyncOnly = snapshot.desyncSettings != null
+                // Desync only: config.yaml is generated from the stored settings (never fetched, never
+                // hand-edited), before the engine check below validates it like any File profile.
+                if (desyncOnly) {
+                    DesyncProfileConfig.writeTo(context.processingDir, snapshot.desyncSettings)
+                }
+
+                val rawEdited = !desyncOnly && snapshot.type == Profile.Type.File && RawConfigEdit.isEdited(
                     imported = File(context.importedDir, "${snapshot.uuid}/config.yaml"),
                     candidate = File(context.processingDir, "config.yaml"),
                 )
@@ -187,6 +195,7 @@ object ProfileProcessor {
                                 old?.createdAt ?: System.currentTimeMillis(),
                                 old?.profileOrder ?: snapshot.profileOrder,
                                 ageSecretKey = snapshot.ageSecretKey,
+                                desyncSettings = snapshot.desyncSettings,
                             )
                             if (old != null) {
                                 ImportedDao().update(new)
@@ -214,6 +223,7 @@ object ProfileProcessor {
                                 old?.createdAt ?: System.currentTimeMillis(),
                                 old?.profileOrder ?: snapshot.profileOrder,
                                 ageSecretKey = snapshot.ageSecretKey,
+                                desyncSettings = snapshot.desyncSettings,
                             )
                             if (old != null) {
                                 ImportedDao().update(new)
@@ -287,7 +297,19 @@ object ProfileProcessor {
                 var effectiveUserAgentOverride = userAgentOverride
                 // age: same as apply() — key first, the Go fetch decrypts on disk.
                 Clash.setAgeSecretKey(snapshot.ageSecretKey?.takeIf { it.isNotBlank() })
-                try {
+                if (snapshot.desyncSettings != null) {
+                    // Desync only: "update" regenerates the base from the stored settings; the
+                    // overlay below composes the user layer onto it like onto a fetched body.
+                    DesyncProfileConfig.writeTo(context.processingDir, snapshot.desyncSettings)
+                    Clash.fetchAndValid(context.processingDir, "", false, false, "{}") {
+                        try {
+                            cb?.updateStatus(it)
+                        } catch (e: Exception) {
+                            cb = null
+                            Log.w("Report fetch status callback failed", e)
+                        }
+                    }.await()
+                } else try {
                     Clash.fetchAndValid(
                         context.processingDir,
                         snapshot.source,
