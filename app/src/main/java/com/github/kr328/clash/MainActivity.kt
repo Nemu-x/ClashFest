@@ -184,6 +184,9 @@ class MainActivity : BaseActivity<MainDesign>() {
         updates.refreshUpdateBadge(design)
 
         design.onOpenBrandUrl = { url -> subscriptionMeta.openExternalUrl(url) }
+        design.onOpenDesyncSettings = { profile ->
+            startActivity(DesyncSettingsActivity.settingsIntent(profile.uuid))
+        }
 
         val tickerInteractive = ticker(TimeUnit.SECONDS.toMillis(2))
         // Bumped from 8s -> 30s. While the screen is off (or activity is in background),
@@ -191,6 +194,8 @@ class MainActivity : BaseActivity<MainDesign>() {
         // roughly accurate when the user comes back.
         val tickerIdle = ticker(TimeUnit.SECONDS.toMillis(30))
         val profileTicker = ticker(TimeUnit.MINUTES.toMillis(2))
+        // Desync-only status on the Home card: polled only while Home is on screen (below).
+        val desyncTicker = ticker(TimeUnit.SECONDS.toMillis(5))
         val refreshRequests = kotlinx.coroutines.channels.Channel<Unit>(kotlinx.coroutines.channels.Channel.CONFLATED)
         val proxyDetailRequests =
             kotlinx.coroutines.channels.Channel<Pair<Profile, String>>(kotlinx.coroutines.channels.Channel.CONFLATED)
@@ -648,6 +653,15 @@ class MainActivity : BaseActivity<MainDesign>() {
                     val trafficTicker = if (interactive) tickerInteractive else tickerIdle
                     trafficTicker.onReceive {
                         launch { with(dashboard) { design.fetchTraffic() } }
+                    }
+                }
+
+                if (clashRunning && activityStarted && design.showsDesyncOnlyProfile &&
+                    design.currentTab == MainDesign.MainTab.Home &&
+                    getSystemService<PowerManager>()?.isInteractive != false
+                ) {
+                    desyncTicker.onReceive {
+                        launch { with(dashboard) { design.fetchDesyncStatus() } }
                     }
                 }
 

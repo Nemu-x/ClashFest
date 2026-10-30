@@ -10,6 +10,8 @@ dependencies {
     implementation(project(":service"))
 
     implementation(libs.kotlin.coroutine)
+    // Desync presets carry their options as a JsonObject (core model); the picker classifies them by key.
+    implementation(libs.kotlin.serialization.json)
     implementation(libs.androidx.core)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.activity)

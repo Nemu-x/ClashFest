@@ -70,6 +70,17 @@ internal class MainProfileActions(private val activity: MainActivity) {
             dialog.dismiss()
             activity.launch { importFromFile(design) }
         }
+        view.findViewById<View>(R.id.opt_desync).setOnClickListener {
+            dialog.dismiss()
+            activity.launch {
+                // The setup screen creates, commits and activates the profile itself.
+                activity.startActivityForResult(
+                    ActivityResultContracts.StartActivityForResult(),
+                    DesyncSettingsActivity.setupIntent(),
+                )
+                with(dashboard) { design.fetch() }
+            }
+        }
         // TV: no camera to scan with and no clipboard to paste from; add by URL or file instead.
         if (activity.isTelevision()) {
             view.findViewById<View>(R.id.opt_clipboard).visibility = View.GONE
@@ -147,7 +158,8 @@ internal class MainProfileActions(private val activity: MainActivity) {
         val m = popup.menu
         m.findItem(R.id.profile_menu_set_active).isVisible =
             profile.imported && !profile.active
-        m.findItem(R.id.profile_menu_subscription_sources).isVisible = profile.imported
+        m.findItem(R.id.profile_menu_subscription_sources).isVisible = profile.imported && !profile.isDesyncOnly
+        m.findItem(R.id.profile_menu_desync_settings).isVisible = profile.imported && profile.isDesyncOnly
         m.findItem(R.id.profile_menu_rules).isVisible = profile.imported
         m.findItem(R.id.profile_menu_duplicate).isVisible = profile.imported
         // TV: the editors (rules, sources, raw config, config script) only with the advanced tools.
@@ -183,6 +195,10 @@ internal class MainProfileActions(private val activity: MainActivity) {
                     if (profile.imported) {
                         activity.startActivity(ProxyProvidersEditorActivity::class.intent.setUUID(profile.uuid))
                     }
+                    true
+                }
+                R.id.profile_menu_desync_settings -> {
+                    activity.startActivity(DesyncSettingsActivity.settingsIntent(profile.uuid))
                     true
                 }
                 R.id.profile_menu_rules -> {

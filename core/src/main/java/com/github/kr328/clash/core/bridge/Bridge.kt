@@ -83,6 +83,11 @@ object Bridge {
     external fun nativeSubscribeLogcat(callback: LogcatInterface)
     external fun nativeCoreVersion(): String
     external fun nativeCoreFeatures(): String?
+    external fun nativeDesyncCapabilities(): String?
+    external fun nativeDesyncPresets(): String?
+    external fun nativeDesyncServices(): String?
+    external fun nativeQueryDesyncStatus(): String?
+    external fun nativeGenerateDesyncOnlyConfig(request: String): String?
 
     private external fun nativeInit(home: String, versionName: String, sdkVersion: Int, debug: Boolean)
 

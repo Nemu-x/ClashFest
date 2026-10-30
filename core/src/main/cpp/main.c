@@ -426,6 +426,69 @@ Java_com_github_kr328_clash_core_bridge_Bridge_nativeCoreFeatures(JNIEnv *env, j
 }
 
 JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeDesyncCapabilities(JNIEnv *env, jobject thiz) {
+    TRACE_METHOD();
+
+    scoped_string response = desyncCapabilities();
+
+    if (response == NULL)
+        return NULL;
+
+    return new_string(response);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeDesyncPresets(JNIEnv *env, jobject thiz) {
+    TRACE_METHOD();
+
+    scoped_string response = desyncPresets();
+
+    if (response == NULL)
+        return NULL;
+
+    return new_string(response);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeDesyncServices(JNIEnv *env, jobject thiz) {
+    TRACE_METHOD();
+
+    scoped_string response = desyncServices();
+
+    if (response == NULL)
+        return NULL;
+
+    return new_string(response);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeQueryDesyncStatus(JNIEnv *env, jobject thiz) {
+    TRACE_METHOD();
+
+    scoped_string response = queryDesyncStatus();
+
+    if (response == NULL)
+        return NULL;
+
+    return new_string(response);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeGenerateDesyncOnlyConfig(JNIEnv *env, jobject thiz,
+                                                                              jstring request) {
+    TRACE_METHOD();
+
+    scoped_string _request = get_string(request);
+
+    scoped_string response = generateDesyncOnlyConfig(_request);
+
+    if (response == NULL)
+        return NULL;
+
+    return new_string(response);
+}
+
+JNIEXPORT jstring JNICALL
 Java_com_github_kr328_clash_core_bridge_Bridge_nativeGenHybridKeyPair(JNIEnv *env, jobject thiz) {
     TRACE_METHOD();
 

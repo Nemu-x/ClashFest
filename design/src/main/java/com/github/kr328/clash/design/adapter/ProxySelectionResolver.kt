@@ -220,6 +220,7 @@ internal class ProxySelectionResolver(private val adapter: ProfileAdapter) {
         "zerotier" -> Proxy.Type.ZeroTier
         "easytier" -> Proxy.Type.EasyTier
         "gost-relay" -> Proxy.Type.GostRelay
+        "desync" -> Proxy.Type.Desync // core patch 0021
         "direct" -> Proxy.Type.Direct
         "reject" -> Proxy.Type.Reject
         "dns" -> Proxy.Type.Dns

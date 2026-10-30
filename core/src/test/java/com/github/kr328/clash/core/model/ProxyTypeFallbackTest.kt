@@ -28,6 +28,7 @@ class ProxyTypeFallbackTest {
         assertEquals(Proxy.Type.OpenVPN, decodeProxy("OpenVPN").type)
         assertEquals(Proxy.Type.Tailscale, decodeProxy("Tailscale").type)
         assertEquals(Proxy.Type.GostRelay, decodeProxy("GostRelay").type)
+        assertEquals(Proxy.Type.Desync, decodeProxy("Desync").type)
     }
 
     @Test

@@ -5,6 +5,7 @@ go 1.25
 require cfa v0.0.0
 
 require (
+	github.com/Nemu-x/desync v0.2.1-0.20261029232908-673cbefddb80 // indirect
 	github.com/RyuaNerin/go-krypto v1.3.0 // indirect
 	github.com/Yawning/aez v0.0.0-20211027044916-e49e68abd344 // indirect
 	github.com/ajg/form v1.7.1 // indirect

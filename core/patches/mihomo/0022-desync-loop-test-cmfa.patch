@@ -1,0 +1,23 @@
+diff --git a/adapter/outbound/desync_test.go b/adapter/outbound/desync_test.go
+--- a/adapter/outbound/desync_test.go
++++ b/adapter/outbound/desync_test.go
+@@ -23,6 +23,7 @@
+ 	"github.com/metacubex/mihomo/component/loopback"
+ 	"github.com/metacubex/mihomo/component/resolver"
+ 	C "github.com/metacubex/mihomo/constant"
++	"github.com/metacubex/mihomo/constant/features"
+ 
+ 	"github.com/Nemu-x/desync"
+ 	"github.com/metacubex/sing/common"
+@@ -437,6 +438,11 @@
+ // Like DIRECT, the outbound refuses a connection that is its own coming
+ // back through a listener.
+ func TestDesyncRejectsLoop(t *testing.T) {
++	// ClashFest core patch 0022: component/loopback turns the detector off in
++	// CMFA builds, which is what ClashFest's Go tests compile.
++	if features.CMFA {
++		t.Skip("the loopback detector is disabled in CMFA builds")
++	}
+ 	d := newTestDesync(t, DesyncOption{TLSRec: "1+s"})
+ 	ln, err := net.Listen("tcp", "127.0.0.1:0")
+ 	require.NoError(t, err)

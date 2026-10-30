@@ -55,6 +55,15 @@ class ClashManager(private val context: Context) : IClashManager,
         return Json.encodeToString(Clash.queryGroupSelections())
     }
 
+    override fun queryDesyncStatus(): String {
+        return Json.encodeToString(DesyncStatus.serializer(), Clash.queryDesyncStatus())
+    }
+
+    override fun queryDesyncCatalog(): String {
+        val catalog = DesyncCatalog(Clash.desyncServices(), Clash.desyncPresets(), Clash.desyncCapabilities())
+        return Json.encodeToString(DesyncCatalog.serializer(), catalog)
+    }
+
     override fun queryProxyGroup(name: String, proxySort: ProxySort): ProxyGroup {
         return Clash.queryGroup(name, proxySort)
     }

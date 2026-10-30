@@ -54,6 +54,7 @@ data class Proxy(
         ZeroTier(false),
         EasyTier(false),
         GostRelay(false),
+        Desync(false), // core patch 0021
 
 
         Relay(true),

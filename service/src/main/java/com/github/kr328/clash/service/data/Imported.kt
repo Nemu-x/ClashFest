@@ -22,4 +22,6 @@ data class Imported(
     @ColumnInfo(name = "profileOrder") val profileOrder: Long = createdAt,
     /** age identity (AGE-SECRET-KEY-…) used to decrypt an age-encrypted subscription; null = plain. */
     @ColumnInfo(name = "ageSecretKey") val ageSecretKey: String? = null,
+    /** [com.github.kr328.clash.service.model.DesyncProfileSettings] JSON of a Desync-only profile; null = ordinary. */
+    @ColumnInfo(name = "desyncSettings") val desyncSettings: String? = null,
 )

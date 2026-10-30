@@ -76,7 +76,7 @@ internal fun protocolFamilyColor(typeName: String): Int = when (typeName.lowerca
         R.color.proto_shadowsocks
     "http", "gostrelay" -> R.color.proto_http
     "wireguard", "trusttunnel", "tailscale", "zerotier", "easytier", "openvpn" -> R.color.proto_wireguard
-    "direct" -> R.color.proto_tcp
+    "direct", "desync" -> R.color.proto_tcp
     else -> R.color.proto_default
 }
 
