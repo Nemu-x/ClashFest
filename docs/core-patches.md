@@ -322,8 +322,11 @@ DIRECT. Kotlin decodes the adapter type as `Proxy.Type.Desync`; the feature toke
 published). It carries the `presets` catalog the bridge serves (v0.2.0) and the Android fix: apps may
 not read `SIOCOUTQNSD`, so `split-wait: sent`, `disorder` and `fake` read unsent bytes from `TCP_INFO`
 (Linux 4.6+) and are decided per socket. `PlatformCapabilities()` lists them in `Conditional`; the
-outbound (0021) accepts them and logs once per proxy that they are verified per connection, and a socket
-without the field fails its connection before anything is sent. ClashFest builds with the version that
+outbound (0021) accepts them and notes that they are verified per connection, and a socket
+without the field fails its connection before anything is sent. That note and the auto-ttl notes are
+logged once per process for each distinct text (`sync.Map`, `TestDesyncNoteLogsOnce`): the config is
+parsed on every load, validation and snapshot, and an automatic desync-only profile has dozens of
+desync proxies. ClashFest builds with the version that
 `core/src/main/golang/go.mod` requires (the `replace` of mihomo makes the main module's requirement
 win). To bump:
 edit that require line, then sync both modules with the `go list -mod=mod` commands of
@@ -378,6 +381,28 @@ against Xray 24.12.31 to 26.10.29.
 
 Upstream: MetaCubeX/mihomo#3319 (closed: no unreleased utls). Delete when mihomo moves to a utls
 release whose `firefox` / `safari` parrots carry the hybrid share.
+
+### 0024 Transfer test: GET /proxies/{name}/transfer
+
+The delay test (`adapter.URLTest`) is a HEAD over HTTP/1.1 and passes once the response headers
+arrive. Some networks let a TLS connection through and then freeze it after the first tens of
+kilobytes: Discord on Beeline completes the desync handshake and stops after ~16 KB, while `/delay`
+stays green. The transfer test sends GET with ALPN `h2,http/1.1` and `Accept-Encoding: identity`,
+verifies the certificate against the system roots, follows no redirect, and reads the body.
+
+Query: `url` (https only), `timeout` (1-60000 ms), `expected` (status filter, as for `/delay`),
+`min-bytes` (default 0), `max-bytes` (1-1048576, default 1048576), `stall` (100 ms to the timeout,
+default 3000). It passes when `max-bytes` arrived, or the body ended after at least `min-bytes`, with
+no pause longer than `stall`. Success: `{"delay","elapsed","bytes","status","protocol"}`. A stall or
+a short body is 503 `{"message","bytes"}`, the deadline 504. Tests: `hub/route/proxy_transfer_test.go`
+(HTTP/2, freeze after 16 KB, short body, status, deadline, parameters).
+
+The same file is SlothClash's 0025 (the comment in `proxy_transfer.go` names that number); our
+0016/0018/0020 equal its 0018/0020/0022, so it applies unchanged. A freeze tied to the server's IP
+(Cloudflare) defeats every strategy; the test then reports "not working" instead of a false
+"working".
+
+Upstream: none. Delete when the clients no longer need transfer-level probes.
 
 ## Citrus compatibility suite
 
