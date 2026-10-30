@@ -17,15 +17,19 @@ type Service struct {
 	// candidate: an HTTPS URL of the service, so a candidate passes only
 	// when the TLS handshake gets through the filter.
 	TestURL string `json:"testUrl"`
+	// TransferURL is a page of the service large enough to show a connection
+	// that freezes after the first tens of kilobytes (transfer.go); empty
+	// uses TestURL. Not sent to the UI.
+	TransferURL string `json:"-"`
 }
 
 var services = []Service{
-	{ID: "youtube", Name: "YouTube", TestURL: "https://www.youtube.com/generate_204", Domains: []string{
+	{ID: "youtube", Name: "YouTube", TestURL: "https://www.youtube.com/generate_204", TransferURL: "https://www.youtube.com/", Domains: []string{
 		"youtube.com", "youtu.be", "yt.be", "youtube-nocookie.com", "youtubekids.com",
 		"googlevideo.com", "ytimg.com", "ggpht.com",
 		"youtubei.googleapis.com", "youtube.googleapis.com", "yt3.googleusercontent.com",
 	}},
-	{ID: "discord", Name: "Discord", TestURL: "https://discord.com/api/v9/gateway", Domains: []string{
+	{ID: "discord", Name: "Discord", TestURL: "https://discord.com/api/v9/gateway", TransferURL: "https://discord.com/login", Domains: []string{
 		"discord.com", "discord.gg", "discord.media", "discord.co", "discord.dev", "discord.new",
 		"discord.gift", "discordapp.com", "discordapp.net", "discordcdn.com", "discordstatus.com", "dis.gd",
 	}},

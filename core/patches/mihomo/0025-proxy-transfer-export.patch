@@ -1,0 +1,28 @@
+diff --git a/hub/route/proxy_transfer_export.go b/hub/route/proxy_transfer_export.go
+new file mode 100644
+index 00000000..35d97af6
+--- /dev/null
++++ b/hub/route/proxy_transfer_export.go
+@@ -0,0 +1,22 @@
++package route
++
++// ClashFest core patch 0025: the transfer test of 0024 for in-process callers.
++// The Android bridge serves no external controller, so it checks the strategy
++// a desync route picked through this instead of GET /proxies/{name}/transfer.
++//
++// Remove together with 0024.
++
++import (
++	"context"
++	"net/url"
++	"time"
++
++	C "github.com/metacubex/mihomo/constant"
++)
++
++// ProxyTransfer runs one transfer test through p, any status accepted, and
++// returns how many body bytes arrived.
++func ProxyTransfer(ctx context.Context, p C.Proxy, target *url.URL, minBytes, maxBytes int64, stall time.Duration) (int64, error) {
++	out, err := proxyTransfer(ctx, p, target, nil, minBytes, maxBytes, stall)
++	return out.Bytes, err
++}

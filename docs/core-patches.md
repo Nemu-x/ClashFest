@@ -404,6 +404,20 @@ The same file is SlothClash's 0025 (the comment in `proxy_transfer.go` names tha
 
 Upstream: none. Delete when the clients no longer need transfer-level probes.
 
+### 0025 Transfer test for in-process callers
+
+ClashFest only. `route.ProxyTransfer` exposes 0024's test (any status accepted, returns the body
+bytes) to the bridge, which serves no external controller. `cfa/native/desync/transfer.go` uses it
+for automatic strategy selection: the candidate a route's fallback group picked by the delay test
+is also fetched with the transfer test (the service's large page, `discord.com/login` and
+`www.youtube.com/` with `min-bytes` 32768, else the group's test URL; `max-bytes` 65536, `stall`
+2000 ms). If it freezes, the other live candidates are tried in group order and the first that
+passes is pinned in the group; when none passes the route reports `working: false` and the Home
+card says the service needs a VPN. Checks run in the background when the status is read and are
+reused for 10 minutes (the groups' interval).
+
+Upstream: none. Delete with 0024.
+
 ## Citrus compatibility suite
 
 Panels that build configs for Citrus (getmikan/Citrus, a mihomo fork) may ship keys vanilla mihomo

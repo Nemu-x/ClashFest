@@ -33,9 +33,13 @@ type RouteStatus struct {
 	Now string `json:"now"`
 	// Checked: every candidate has been checked with the group's URL.
 	Checked bool `json:"checked"`
-	// Working: some candidate passed its last check. Checked && !Working
-	// means no strategy gets through: the service needs a VPN here.
+	// Working: some candidate passed its last check, and the transfer check
+	// (transfer.go) found none freezing. Checked && !Working means no
+	// strategy gets through: the service needs a VPN here.
 	Working bool `json:"working"`
+
+	testURL string   // the group's delay-test URL
+	alive   []string // candidates that passed it, in group order
 }
 
 // Status lists the desync proxies of the running configuration.
@@ -89,6 +93,7 @@ func collectStatus(proxies map[string]C.Proxy, providers map[string]P.ProxyProvi
 	}
 	for _, p := range proxies {
 		if r, ok := routeOf(p, proxies); ok {
+			applyTransfer(p, &r, proxies)
 			out.Routes = append(out.Routes, r)
 		}
 	}
@@ -127,7 +132,7 @@ func routeOf(p C.Proxy, proxies map[string]C.Proxy) (RouteStatus, bool) {
 	if json.Unmarshal(raw, &group) != nil || len(group.All) == 0 {
 		return RouteStatus{}, false
 	}
-	r := RouteStatus{Name: p.Name(), Now: group.Now, Checked: true}
+	r := RouteStatus{Name: p.Name(), Now: group.Now, Checked: true, testURL: group.TestURL}
 	for _, name := range group.All {
 		m := proxies[name]
 		if m == nil || m.Type() != C.Desync {
@@ -137,6 +142,7 @@ func routeOf(p C.Proxy, proxies map[string]C.Proxy) (RouteStatus, bool) {
 			r.Checked = false
 		} else if m.AliveForTestUrl(group.TestURL) {
 			r.Working = true
+			r.alive = append(r.alive, name)
 		}
 	}
 	return r, true
