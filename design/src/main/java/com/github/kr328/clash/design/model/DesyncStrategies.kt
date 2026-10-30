@@ -1,5 +1,6 @@
 package com.github.kr328.clash.design.model
 
+import com.github.kr328.clash.core.model.DesyncCapabilities
 import com.github.kr328.clash.core.model.DesyncPreset
 import com.github.kr328.clash.core.model.DesyncPresetCatalog
 import com.github.kr328.clash.core.model.DesyncService
@@ -141,5 +142,65 @@ sealed class DesyncRuntimeSummary {
             status == null || status.proxies.isEmpty() -> NotLoaded
             else -> Active(status.routes.size.takeIf { it > 0 } ?: status.proxies.size)
         }
+    }
+}
+
+/**
+ * One method of the "What this device can do" section. [Checked]: the library decides it per socket
+ * and the loopback probe of the service process confirmed it; [PerConnection]: decided per socket and
+ * no probe answered, so each connection checks it. [reason] is the library's (technical) text.
+ */
+data class DesyncMethodLine(val key: String, val state: State, val reason: String? = null) {
+    enum class State { Available, Checked, PerConnection, Unavailable }
+}
+
+object DesyncDeviceMethods {
+    /** Methods the section names, in display order (keys as the library reports them). */
+    val keys = listOf("ttl", "fake-tcp", "fake-udp", "disorder", "split-wait-sent", "oob", "auto-ttl-ipv4", "auto-ttl-ipv6")
+
+    fun of(caps: DesyncCapabilities): List<DesyncMethodLine> {
+        val probe = caps.probed?.takeIf { it.error.isBlank() }
+        val lines = keys.map { key ->
+            if (key in caps.conditional) {
+                val probed = when (key) {
+                    "fake-tcp" -> probe?.fakeTcp
+                    "disorder" -> probe?.disorder?.supported
+                    "split-wait-sent" -> probe?.ack?.sent
+                    else -> null
+                }
+                when (probed) {
+                    true -> DesyncMethodLine(key, DesyncMethodLine.State.Checked)
+                    false -> DesyncMethodLine(
+                        key,
+                        DesyncMethodLine.State.Unavailable,
+                        probe?.unsupported?.get(key) ?: caps.conditional[key],
+                    )
+                    null -> DesyncMethodLine(key, DesyncMethodLine.State.PerConnection)
+                }
+            } else {
+                val reason = caps.unsupported[key]?.takeIf { it.isNotBlank() }
+                if (supported(caps, key) && reason == null) {
+                    DesyncMethodLine(key, DesyncMethodLine.State.Available)
+                } else {
+                    DesyncMethodLine(key, DesyncMethodLine.State.Unavailable, reason)
+                }
+            }
+        }
+        // Methods a newer library reports that this app has no name for yet.
+        val extra = caps.unsupported.filterKeys { it !in keys && it !in caps.conditional }
+            .map { (key, reason) -> DesyncMethodLine(key, DesyncMethodLine.State.Unavailable, reason) }
+        return lines + extra
+    }
+
+    private fun supported(caps: DesyncCapabilities, key: String): Boolean = when (key) {
+        "ttl" -> caps.ttlControl
+        "fake-tcp" -> caps.fakeTcp
+        "fake-udp" -> caps.fakeUdp
+        "disorder" -> caps.disorder.supported
+        "split-wait-sent" -> caps.ack.sent
+        "oob" -> caps.oob
+        "auto-ttl-ipv4" -> caps.autoTtl.ipv4
+        "auto-ttl-ipv6" -> caps.autoTtl.ipv6
+        else -> false
     }
 }

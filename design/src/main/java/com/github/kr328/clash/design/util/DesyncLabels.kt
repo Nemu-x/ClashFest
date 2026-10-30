@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.annotation.StringRes
 import com.github.kr328.clash.core.model.DesyncCapabilities
 import com.github.kr328.clash.design.R
+import com.github.kr328.clash.design.model.DesyncDeviceMethods
+import com.github.kr328.clash.design.model.DesyncMethodLine
 import com.github.kr328.clash.design.model.DesyncStrategyEntry
 import com.github.kr328.clash.design.model.DesyncStrategyKind
 
@@ -32,33 +34,41 @@ object DesyncLabels {
         "${entry.preset.name}: ${entry.preset.description}"
 
     /**
-     * One line per method the library reports on, with the library's reason for a missing one.
-     * Capabilities are static per library version, so the wording says "available", never "works".
+     * One line per method (see [DesyncDeviceMethods]): available, checked on this phone, checked on
+     * each connection, or not available with a reason in plain words where the app knows one.
      */
-    fun capabilityLines(context: Context, caps: DesyncCapabilities): List<String> {
-        val methods = listOf(
-            Triple(R.string.desync_method_ttl, caps.ttlControl, "ttl"),
-            Triple(R.string.desync_method_fake_tcp, caps.fakeTcp, "fake-tcp"),
-            Triple(R.string.desync_method_fake_udp, caps.fakeUdp, "fake-udp"),
-            Triple(R.string.desync_method_disorder, caps.disorder.supported, "disorder"),
-            Triple(R.string.desync_method_oob, caps.oob, "oob"),
-            Triple(R.string.desync_method_auto_ttl_ipv4, caps.autoTtl.ipv4, "auto-ttl-ipv4"),
-            Triple(R.string.desync_method_auto_ttl_ipv6, caps.autoTtl.ipv6, "auto-ttl-ipv6"),
-        )
-        val known = methods.map { it.third }.toSet()
-        val lines = methods.map { (title, supported, key) ->
-            val name = context.getString(title)
-            val reason = caps.unsupported[key]?.takeIf { it.isNotBlank() }
-            when {
-                supported && reason == null -> context.getString(R.string.desync_method_available, name)
-                reason != null -> context.getString(R.string.desync_method_unavailable, name, reason)
-                else -> context.getString(R.string.desync_method_unavailable_plain, name)
+    fun capabilityLines(context: Context, caps: DesyncCapabilities): List<String> =
+        DesyncDeviceMethods.of(caps).map { line ->
+            val name = methodTitle(line.key)?.let(context::getString) ?: line.key
+            when (line.state) {
+                DesyncMethodLine.State.Available -> context.getString(R.string.desync_method_available, name)
+                DesyncMethodLine.State.Checked -> context.getString(R.string.desync_method_available_checked, name)
+                DesyncMethodLine.State.PerConnection -> context.getString(R.string.desync_method_per_connection, name)
+                DesyncMethodLine.State.Unavailable -> {
+                    val reason = when {
+                        line.key in caps.conditional -> context.getString(R.string.desync_reason_unsent_bytes)
+                        line.key == "auto-ttl-ipv4" -> context.getString(R.string.desync_reason_auto_ttl_ipv4)
+                        else -> line.reason
+                    }
+                    if (reason.isNullOrBlank()) {
+                        context.getString(R.string.desync_method_unavailable_plain, name)
+                    } else {
+                        context.getString(R.string.desync_method_unavailable, name, reason)
+                    }
+                }
             }
         }
-        // Methods a newer library reports that this app has no name for yet: shown as the library names them.
-        val extra = caps.unsupported.filterKeys { it !in known }.map { (key, reason) ->
-            context.getString(R.string.desync_method_unavailable, key, reason)
-        }
-        return lines + extra
+
+    @StringRes
+    private fun methodTitle(key: String): Int? = when (key) {
+        "ttl" -> R.string.desync_method_ttl
+        "fake-tcp" -> R.string.desync_method_fake_tcp
+        "fake-udp" -> R.string.desync_method_fake_udp
+        "disorder" -> R.string.desync_method_disorder
+        "split-wait-sent" -> R.string.desync_method_split_wait
+        "oob" -> R.string.desync_method_oob
+        "auto-ttl-ipv4" -> R.string.desync_method_auto_ttl_ipv4
+        "auto-ttl-ipv6" -> R.string.desync_method_auto_ttl_ipv6
+        else -> null
     }
 }

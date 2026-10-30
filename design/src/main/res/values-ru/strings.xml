@@ -1373,7 +1373,7 @@
     <string name="desync_udp">Звонки и QUIC (UDP)</string>
     <string name="desync_udp_off">Выкл.: блокировать QUIC, чтобы приложения перешли на TCP (рекомендуется)</string>
     <string name="desync_device">Что умеет это устройство</string>
-    <string name="desync_device_intro">Что библиотека Desync в этой версии приложения реализует на этом устройстве. Список не меняется в пределах версии приложения: это не проверка вашей сети, и метод, отмеченный как доступный, всё равно может блокироваться у вас.</string>
+    <string name="desync_device_intro">Что библиотека Desync умеет на этом телефоне. Помеченное как проверенное испытано на соединении этого приложения, остальное следует из Android и версии приложения. «Доступно» не значит, что способ пройдёт в вашей сети.</string>
     <string name="desync_method_ttl">Управление временем жизни пакета (TTL)</string>
     <string name="desync_method_fake_tcp">TCP-пакеты-приманки</string>
     <string name="desync_method_fake_udp">UDP-пакеты-приманки</string>
@@ -1381,9 +1381,14 @@
     <string name="desync_method_oob">Внеполосный байт</string>
     <string name="desync_method_auto_ttl_ipv4">Автоматическое время жизни приманки (IPv4)</string>
     <string name="desync_method_auto_ttl_ipv6">Автоматическое время жизни приманки (IPv6)</string>
+    <string name="desync_method_split_wait">Ожидание, пока кусок уйдёт в сеть</string>
     <string name="desync_method_available">%1$s: доступно</string>
     <string name="desync_method_unavailable">%1$s: недоступно (%2$s)</string>
     <string name="desync_method_unavailable_plain">%1$s: недоступно</string>
+    <string name="desync_method_available_checked">%1$s: доступно (проверено на этом телефоне)</string>
+    <string name="desync_method_per_connection">%1$s: проверяется на каждом соединении</string>
+    <string name="desync_reason_unsent_bytes">телефон не даёт приложениям видеть неотправленные данные соединения</string>
+    <string name="desync_reason_auto_ttl_ipv4">Android не сообщает приложениям время жизни входящих IPv4-пакетов</string>
     <string name="desync_library_version">Библиотека Desync %1$s</string>
     <string name="desync_skipped_count">Стратегий, недоступных на этом устройстве: %1$d</string>
     <string name="desync_status_active">%1$s · работает на %2$d маршрутах</string>
