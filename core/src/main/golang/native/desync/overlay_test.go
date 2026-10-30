@@ -87,6 +87,10 @@ func TestComposeOverlayKeepsTheSubscription(t *testing.T) {
 	if n := strings.Count(out, "dns-fallback: true"); n != 8 {
 		t.Errorf("dns-fallback on %d candidates, want 8", n)
 	}
+	// IPv4 only, so a block-page AAAA alone counts as empty and falls back.
+	if n := strings.Count(out, "ip-version: ipv4"); n != 8 {
+		t.Errorf("ip-version ipv4 on %d candidates, want 8", n)
+	}
 
 	// DNS as fetched.
 	var doc struct {

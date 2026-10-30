@@ -130,7 +130,10 @@ func composeOverlay(base []byte, req Request, catalog Catalog) (string, error) {
 			// desync is for; its own resolver (DoH, routed by its rules) is
 			// not. DNS itself is not changed.
 			opts.DNSFallback = true
-			node, err := nodeOf(generatedProxy{Name: name, Type: "desync", Options: opts})
+			// Such a network may also answer with a block-page AAAA and no A
+			// (Beeline: 2001:4188:2:600:10:10:34:36). IPv4 only, that answer
+			// is empty and falls back too.
+			node, err := nodeOf(generatedProxy{Name: name, Type: "desync", IPVersion: "ipv4", Options: opts})
 			if err != nil {
 				return "", err
 			}

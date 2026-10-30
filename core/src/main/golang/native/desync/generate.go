@@ -107,9 +107,10 @@ func normalizeDomain(s string) (string, error) {
 }
 
 type generatedProxy struct {
-	Name    string `yaml:"name"`
-	Type    string `yaml:"type"`
-	Options `yaml:",inline"`
+	Name      string `yaml:"name"`
+	Type      string `yaml:"type"`
+	IPVersion string `yaml:"ip-version,omitempty"`
+	Options   `yaml:",inline"`
 }
 
 type generatedGroup struct {
