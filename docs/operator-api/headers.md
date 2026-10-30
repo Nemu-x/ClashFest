@@ -422,6 +422,22 @@ X-Network-Stack: system
 X-Bypass-Preset: ru
 ```
 
+### `X-Desync`
+
+| | |
+|---|---|
+| Type | `allow` \| `on` \| `deny` |
+| Status | **v1** |
+| Needs `X-Branding-Enabled`? | **No**: operator policy, applies unbranded. |
+| Applied to | **Desync for services** on this subscription (profile menu → "Desync for services"): the chosen services (YouTube, Discord, …) go directly with desync, a reshaped TLS ClientHello, when it works on the user's network, and through the subscription as before when it does not. The client checks each service in the background and switches by itself. |
+| Default | Header absent = `allow`: off until the user turns it on. |
+| Notes | `on` turns it on with the default services (YouTube, Discord) until the user turns it off. `deny` keeps it off whatever the user stored; the settings screen says so. The subscription's DNS, groups and rules are not changed: the overlay adds its own proxies, hidden groups and rules first, and excludes its proxies from `include-all` groups, so a url-test group never picks a direct connection. The value is re-read on every update; a withdrawn header returns to `allow`. Stored per profile (`subscriptionDesyncPolicyFor(uuid)`), cleared on profile delete. |
+
+**Example (offer desync by default, users can turn it off):**
+```
+X-Desync: on
+```
+
 ### `x-hwid-active` / `x-hwid-not-supported` / `x-hwid-max-devices-reached` / `x-hwid-limit` (existing)
 
 | | |

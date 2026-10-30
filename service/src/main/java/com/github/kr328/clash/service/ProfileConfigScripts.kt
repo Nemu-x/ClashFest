@@ -10,6 +10,7 @@ import com.github.kr328.clash.service.store.ServiceStore
 import com.github.kr328.clash.service.model.ConfigScriptFailure
 import com.github.kr328.clash.service.model.ConfigScriptState
 import com.github.kr328.clash.service.util.ConfigScriptPolicy
+import com.github.kr328.clash.service.util.DesyncOverlayPolicy
 import com.github.kr328.clash.service.util.UserScript
 import com.github.kr328.clash.service.util.ProfileOverlay
 import com.github.kr328.clash.service.util.UserLayerStore
@@ -96,6 +97,7 @@ internal class ProfileConfigScripts(
                     scriptRunner = ConfigScriptPolicy.runnerFor(
                         context, uuid, ImportedDao().queryByUUID(uuid)?.name.orEmpty(),
                     ),
+                    desyncRunner = DesyncOverlayPolicy.runnerFor(context, uuid),
                 )
             }.onFailure { Log.w("ConfigScript: overlay refresh failed for $uuid", it) }
             context.sendProfileChanged(uuid)

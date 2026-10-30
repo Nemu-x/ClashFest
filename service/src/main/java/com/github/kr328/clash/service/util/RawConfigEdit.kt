@@ -32,9 +32,9 @@ object RawConfigEdit {
         return !imported.readBytes().contentEquals(candidate.readBytes())
     }
 
-    /** The layer to keep after a hand edit: content sections gone, script kept. */
-    fun layerAfterRawEdit(layer: UserLayer): UserLayer = UserLayer(script = layer.script)
+    /** The layer to keep after a hand edit: content sections gone, script and desync kept. */
+    fun layerAfterRawEdit(layer: UserLayer): UserLayer = UserLayer(script = layer.script, desync = layer.desync)
 
-    /** True when [layer] carries content the in-app editors own (script excluded). */
-    fun hasContentEdits(layer: UserLayer): Boolean = !layer.copy(script = null).isEmpty()
+    /** True when [layer] carries content the in-app editors own (script and desync excluded). */
+    fun hasContentEdits(layer: UserLayer): Boolean = !layer.copy(script = null, desync = null).isEmpty()
 }

@@ -327,6 +327,21 @@ class ServiceStore(context: Context) {
         }.apply()
     }
 
+    /**
+     * Per-profile operator policy for desync on top of the subscription from the `X-Desync`
+     * header (`allow` / `on` / `deny`); null when the operator didn't send it. See
+     * [com.github.kr328.clash.service.util.DesyncOverlayPolicy].
+     */
+    fun subscriptionDesyncPolicyFor(uuid: UUID): String? =
+        rawPrefs.getString("subscription_desync_policy_$uuid", null)
+
+    fun setSubscriptionDesyncPolicyFor(uuid: UUID, value: String?) {
+        rawPrefs.edit().also { e ->
+            if (value.isNullOrBlank()) e.remove("subscription_desync_policy_$uuid")
+            else e.putString("subscription_desync_policy_$uuid", value)
+        }.apply()
+    }
+
     /** Drops every per-profile operator policy on profile delete. */
     fun clearSubscriptionPoliciesFor(uuid: UUID) {
         rawPrefs.edit()
@@ -334,6 +349,7 @@ class ServiceStore(context: Context) {
             .remove("subscription_network_stack_$uuid")
             .remove("subscription_bypass_preset_$uuid")
             .remove("subscription_bypass_preset_offered_$uuid")
+            .remove("subscription_desync_policy_$uuid")
             .apply()
     }
 

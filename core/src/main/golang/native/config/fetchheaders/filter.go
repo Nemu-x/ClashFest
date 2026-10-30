@@ -20,6 +20,7 @@ var allowlist = map[string]struct{}{
 	// and the policy only ever landed on a live GET.
 	"x-network-stack": {}, "network-stack": {}, "x-networkstack": {}, "x-networkstack-enabled": {},
 	"x-bypass-preset": {}, "bypass-preset": {}, "bypass_preset": {},
+	"x-desync": {},
 	"x-branding-enabled": {},
 	"x-brand-name":       {}, "x-brand-tagline": {}, "x-brand-logo-url": {}, "x-brand-logo-light-url": {},
 	"x-brand-accent-color": {}, "x-brand-website-url": {}, "x-brand-support-url": {},

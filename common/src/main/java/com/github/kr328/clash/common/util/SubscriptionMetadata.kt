@@ -47,6 +47,12 @@ data class SubscriptionMetadata(
      * tunnel, which must stay a user decision. null = header absent.
      */
     val bypassPreset: String? = null,
+    /**
+     * Operator policy for desync on top of the subscription, from `X-Desync`: `allow` (the user
+     * may turn it on), `on` (on unless the user turns it off) or `deny` (never, the setting is
+     * hidden). null = header absent, which behaves as `allow`. An unrecognised value maps to null.
+     */
+    val desyncPolicy: String? = null,
 ) {
     fun isEmpty(): Boolean =
         supportUrl == null &&
@@ -61,7 +67,8 @@ data class SubscriptionMetadata(
             hwidMaxDevicesReached == null &&
             hwidLimit == null &&
             networkStack == null &&
-            bypassPreset == null
+            bypassPreset == null &&
+            desyncPolicy == null
 }
 
 object SubscriptionMetadataFetcher {
@@ -212,6 +219,7 @@ object SubscriptionMetadataFetcher {
                 "bypass_preset",
             ),
         )
+        val desyncPolicy = parseDesyncPolicy(header("X-Desync", "x-desync"))
         val hwidActive = parseBooleanHeader(header("x-hwid-active", "X-HWID-ACTIVE"))
         val hwidNotSupported = parseBooleanHeader(header("x-hwid-not-supported", "X-HWID-NOT-SUPPORTED"))
         val hwidMaxDevicesReached = parseBooleanHeader(
@@ -233,8 +241,13 @@ object SubscriptionMetadataFetcher {
             hwidLimit = hwidLimit,
             networkStack = networkStack,
             bypassPreset = bypassPreset,
+            desyncPolicy = desyncPolicy,
         )
     }
+
+    /** `X-Desync` value → `allow` / `on` / `deny`, null when absent or unrecognised. */
+    private fun parseDesyncPolicy(raw: String?): String? =
+        raw?.trim()?.lowercase()?.takeIf { it == "allow" || it == "on" || it == "deny" }
 
     /**
      * `X-Bypass-Preset` value → lowercase preset id token (or the `none` sentinel), null when

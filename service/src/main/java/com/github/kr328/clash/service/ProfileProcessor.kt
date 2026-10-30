@@ -23,6 +23,7 @@ import com.github.kr328.clash.service.util.OperatorPolicyHeaders
 import com.github.kr328.clash.service.util.ConfigComposer
 import com.github.kr328.clash.service.util.ConfigScriptException
 import com.github.kr328.clash.service.util.ConfigScriptPolicy
+import com.github.kr328.clash.service.util.DesyncOverlayPolicy
 import com.github.kr328.clash.service.util.DesyncProfileConfig
 import com.github.kr328.clash.service.util.GeoDataSources
 import com.github.kr328.clash.service.util.ProfileComposer
@@ -373,6 +374,7 @@ object ProfileProcessor {
                             fetchedText, capturedLayer, geoUrls, serviceStore.proxyHardeningMode,
                             realityCompat = serviceStore.realityComposeRewrite,
                             scriptRunner = ConfigScriptPolicy.runnerFor(context, snapshot.uuid, snapshot.name),
+                            desyncRunner = DesyncOverlayPolicy.runnerFor(context, snapshot.uuid),
                         )
                     } catch (e: ConfigScriptException) {
                         Log.w("User script failed (${e.error.code}) for ${snapshot.uuid}; updating without it: ${e.message}")
@@ -381,6 +383,7 @@ object ProfileProcessor {
                             fetchedText, capturedLayer.copy(script = null), geoUrls,
                             serviceStore.proxyHardeningMode,
                             realityCompat = serviceStore.realityComposeRewrite,
+                            desyncRunner = DesyncOverlayPolicy.runnerFor(context, snapshot.uuid),
                         )
                     }
                     // Runtime engine gate (§config-engine-gate): NEVER apply a config the engine
