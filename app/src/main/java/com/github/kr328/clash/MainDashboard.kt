@@ -308,10 +308,14 @@ internal class MainDashboard(private val activity: MainActivity) {
             desyncJson.decodeFromString(DesyncCatalog.serializer(), withClash { queryDesyncCatalog() }).presets
         }.getOrNull()?.also { desyncCatalog = it }
         val settings = DesyncProfileSettings.decode(active.desyncSettings) ?: DesyncProfileSettings()
-        val name = DesyncLabels.strategyName(
-            context,
-            catalog?.let { DesyncStrategies.effectiveTcp(it, settings.strategyPresetId) },
-        )
+        val name = if (settings.strategyPresetId.isBlank() && (catalog?.autoTcp?.size ?: 0) >= 2) {
+            context.getString(R.string.desync_strategy_automatic_short)
+        } else {
+            DesyncLabels.strategyName(
+                context,
+                catalog?.let { DesyncStrategies.effectiveTcp(it, settings.strategyPresetId) },
+            )
+        }
         val status = if (running) {
             runCatching {
                 desyncJson.decodeFromString(DesyncStatus.serializer(), withClash { queryDesyncStatus() })

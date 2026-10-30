@@ -163,12 +163,15 @@ type SkippedPreset struct {
 // for, each list in the library's suggested order of trying (rank).
 type Catalog struct {
 	CatalogVersion string `json:"catalogVersion"`
-	// DefaultTCP is the ID GenerateConfig uses without a strategyPresetId:
-	// the first TCP preset.
-	DefaultTCP string          `json:"defaultTcp"`
-	TCP        []Preset        `json:"tcp"`
-	UDP        []Preset        `json:"udp"`
-	Skipped    []SkippedPreset `json:"skipped"`
+	// DefaultTCP is the first TCP preset: what GenerateConfig uses without a
+	// strategyPresetId when automatic selection has fewer than two candidates.
+	DefaultTCP string `json:"defaultTcp"`
+	// AutoTCP are the IDs automatic selection tries, in order (see
+	// AutoCandidates); fewer than two means automatic is DefaultTCP alone.
+	AutoTCP []string        `json:"autoTcp"`
+	TCP     []Preset        `json:"tcp"`
+	UDP     []Preset        `json:"udp"`
+	Skipped []SkippedPreset `json:"skipped"`
 }
 
 // catalogFor builds the catalog for caps. The baseline (no transformation) is
@@ -208,6 +211,10 @@ func catalogFor(caps lib.Capabilities) Catalog {
 	c.CatalogVersion = presets.CatalogVersion(ids)
 	if len(c.TCP) > 0 {
 		c.DefaultTCP = c.TCP[0].ID
+	}
+	c.AutoTCP = []string{}
+	for _, p := range autoCandidates(c) {
+		c.AutoTCP = append(c.AutoTCP, p.ID)
 	}
 	return c
 }

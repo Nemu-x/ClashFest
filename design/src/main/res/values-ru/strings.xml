@@ -1358,6 +1358,8 @@
     <string name="desync_strategy_intro">Как изменяется первое сообщение соединения. Сети блокируют по-разному, поэтому стратегия, которая работает в одной сети, может не работать в другой. Если сервис не открывается, попробуйте другую. Подбирать стратегию автоматически приложение пока не умеет.</string>
     <string name="desync_strategy_automatic">Автоматически (рекомендуется)</string>
     <string name="desync_strategy_automatic_summary">Первый выбор библиотеки для этого устройства: %1$s</string>
+    <string name="desync_strategy_automatic_multi_summary">Пробует %1$d стратегии для каждого сервиса и оставляет ту, что проходит. Проверяет при загрузке профиля и раз в 10 минут, пока сервисом пользуются.</string>
+    <string name="desync_strategy_automatic_short">Автоматически</string>
     <string name="desync_strategy_variant">%1$s, вариант %2$d</string>
     <string name="desync_strategy_unknown">Неизвестная стратегия</string>
     <string name="desync_kind_record_split">Разделить TLS-запись</string>

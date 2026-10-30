@@ -132,8 +132,8 @@ class DesyncSettingsDesign(
         renderSelection()
     }
 
-    // TODO(desync calibration): a "Find a working strategy" row goes here once the app can probe
-    //  presets on the current network; until then "Automatic" is the catalog's defaultTcp.
+    // "Automatic" is a fallback group per route over catalog.autoTcp, checked by the engine; with
+    // fewer than two candidates on this device it is the catalog's defaultTcp.
     private fun PreferenceScreen.strategySection(form: DesyncSettingsForm, catalog: DesyncPresetCatalog) {
         category(R.string.desync_strategy)
         tips(R.string.desync_strategy_intro)
@@ -141,10 +141,14 @@ class DesyncSettingsDesign(
         val default = DesyncStrategies.entryFor(catalog, catalog.defaultTcp)
         strategyRows += "" to row(
             title = context.getString(R.string.desync_strategy_automatic),
-            summary = context.getString(
-                R.string.desync_strategy_automatic_summary,
-                DesyncLabels.strategyName(context, default),
-            ),
+            summary = if (catalog.autoTcp.size >= 2) {
+                context.getString(R.string.desync_strategy_automatic_multi_summary, catalog.autoTcp.size)
+            } else {
+                context.getString(
+                    R.string.desync_strategy_automatic_summary,
+                    DesyncLabels.strategyName(context, default),
+                )
+            },
         ) {
             form.strategyPresetId = ""
             renderSelection()

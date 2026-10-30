@@ -3,6 +3,7 @@ package com.github.kr328.clash.design.model
 import com.github.kr328.clash.core.model.DesyncPreset
 import com.github.kr328.clash.core.model.DesyncPresetCatalog
 import com.github.kr328.clash.core.model.DesyncProxyStatus
+import com.github.kr328.clash.core.model.DesyncRouteStatus
 import com.github.kr328.clash.core.model.DesyncService
 import com.github.kr328.clash.core.model.DesyncStatus
 import com.github.kr328.clash.service.model.DesyncProfileSettings
@@ -159,5 +160,12 @@ class DesyncStrategiesTest {
         assertEquals(DesyncRuntimeSummary.NotLoaded, DesyncRuntimeSummary.of(true, null))
         assertEquals(DesyncRuntimeSummary.NotLoaded, DesyncRuntimeSummary.of(true, DesyncStatus()))
         assertEquals(DesyncRuntimeSummary.Active(2), DesyncRuntimeSummary.of(true, loaded))
+
+        // Automatic selection: four candidates behind one route; the routes are what count.
+        val auto = DesyncStatus(
+            proxies = List(4) { DesyncProxyStatus(name = "desync-youtube~c$it", desync = JsonObject(emptyMap())) },
+            routes = listOf(DesyncRouteStatus(name = "desync-youtube", now = "desync-youtube~c0")),
+        )
+        assertEquals(DesyncRuntimeSummary.Active(1), DesyncRuntimeSummary.of(true, auto))
     }
 }

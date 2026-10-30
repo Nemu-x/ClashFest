@@ -25,9 +25,18 @@ type ProxyStatus struct {
 	UDPDiagnostics json.RawMessage `json:"udpDiagnostics,omitempty"`
 }
 
+// RouteStatus is a fallback group whose members are all desync proxies, as
+// automatic strategy selection generates one per route.
+type RouteStatus struct {
+	Name string `json:"name"`
+	// Now is the candidate the group uses.
+	Now string `json:"now"`
+}
+
 // Status lists the desync proxies of the running configuration.
 type Status struct {
 	Proxies []ProxyStatus `json:"proxies"`
+	Routes  []RouteStatus `json:"routes"`
 }
 
 // QueryStatus reads the loaded configuration: top-level proxies and those of
@@ -37,7 +46,7 @@ func QueryStatus() Status {
 }
 
 func collectStatus(proxies map[string]C.Proxy, providers map[string]P.ProxyProvider) Status {
-	out := Status{Proxies: []ProxyStatus{}}
+	out := Status{Proxies: []ProxyStatus{}, Routes: []RouteStatus{}}
 	seen := map[[2]string]bool{}
 	add := func(p C.Proxy, providerName string) {
 		if p == nil || p.Type() != C.Desync {
@@ -73,6 +82,12 @@ func collectStatus(proxies map[string]C.Proxy, providers map[string]P.ProxyProvi
 	for _, p := range proxies {
 		add(p, "")
 	}
+	for _, p := range proxies {
+		if r, ok := routeOf(p, proxies); ok {
+			out.Routes = append(out.Routes, r)
+		}
+	}
+	sort.Slice(out.Routes, func(i, j int) bool { return out.Routes[i].Name < out.Routes[j].Name })
 	for name, pd := range providers {
 		if name == provider.ReservedName || pd == nil {
 			continue
@@ -89,4 +104,27 @@ func collectStatus(proxies map[string]C.Proxy, providers map[string]P.ProxyProvi
 		return a.Name < b.Name
 	})
 	return out
+}
+
+func routeOf(p C.Proxy, proxies map[string]C.Proxy) (RouteStatus, bool) {
+	if p == nil || p.Type() != C.Fallback {
+		return RouteStatus{}, false
+	}
+	raw, err := p.MarshalJSON()
+	if err != nil {
+		return RouteStatus{}, false
+	}
+	var group struct {
+		Now string   `json:"now"`
+		All []string `json:"all"`
+	}
+	if json.Unmarshal(raw, &group) != nil || len(group.All) == 0 {
+		return RouteStatus{}, false
+	}
+	for _, name := range group.All {
+		if m := proxies[name]; m == nil || m.Type() != C.Desync {
+			return RouteStatus{}, false
+		}
+	}
+	return RouteStatus{Name: p.Name(), Now: group.Now}, true
 }
