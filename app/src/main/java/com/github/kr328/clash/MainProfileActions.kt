@@ -159,7 +159,10 @@ internal class MainProfileActions(private val activity: MainActivity) {
         m.findItem(R.id.profile_menu_set_active).isVisible =
             profile.imported && !profile.active
         m.findItem(R.id.profile_menu_subscription_sources).isVisible = profile.imported && !profile.isDesyncOnly
-        m.findItem(R.id.profile_menu_desync_settings).isVisible = profile.imported && profile.isDesyncOnly
+        m.findItem(R.id.profile_menu_desync_settings).apply {
+            isVisible = profile.imported
+            setTitle(if (profile.isDesyncOnly) R.string.desync_settings else R.string.desync_overlay_title)
+        }
         m.findItem(R.id.profile_menu_rules).isVisible = profile.imported
         m.findItem(R.id.profile_menu_duplicate).isVisible = profile.imported
         // TV: the editors (rules, sources, raw config, config script) only with the advanced tools.

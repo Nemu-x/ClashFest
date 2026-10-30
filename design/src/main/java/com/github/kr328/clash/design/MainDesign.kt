@@ -295,9 +295,23 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
     /** Strategy + runtime line for a Desync-only active profile, set by the dashboard's status poll. */
     internal var desyncStatusLine: String? = null
 
-    /** True while the Home card shows a Desync-only profile: the dashboard polls its status only then. */
-    val showsDesyncOnlyProfile: Boolean
-        get() = activeProfileDesyncOnly
+    /**
+     * True while the Home card shows desync state (a Desync-only profile, or a subscription with
+     * desync on top): the dashboard polls the status only then.
+     */
+    val showsDesyncStatus: Boolean
+        get() = activeProfileDesyncOnly || desyncOverlayLine != null
+
+    /** Subscription profile with desync on top: which services go direct, on the profile meta line. */
+    internal var desyncOverlayLine: String? = null
+
+    suspend fun setDesyncOverlayLine(line: String?) {
+        withContext(Dispatchers.Main) {
+            if (desyncOverlayLine == line) return@withContext
+            desyncOverlayLine = line
+            renderActiveProfileCard(activeProfileForQuickActions)
+        }
+    }
 
     suspend fun setDesyncStatusLine(line: String?) {
         withContext(Dispatchers.Main) {
