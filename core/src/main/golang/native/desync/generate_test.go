@@ -2,6 +2,7 @@ package desync
 
 import (
 	"encoding/json"
+	"net/netip"
 	"strings"
 	"testing"
 
@@ -235,6 +236,15 @@ func TestGenerateConfigSniffer(t *testing.T) {
 	s := cfg.Sniffer
 	if s == nil || !s.Enable || !s.ParsePureIp || len(s.Sniffers) != 2 {
 		t.Fatalf("sniffer = %+v", s)
+	}
+	fake, real := netip.MustParseAddr("28.0.0.24"), netip.MustParseAddr("157.240.0.1")
+	skipsFake, skipsReal := false, false
+	for _, m := range s.SkipDstAddress {
+		skipsFake = skipsFake || m.MatchIp(fake)
+		skipsReal = skipsReal || m.MatchIp(real)
+	}
+	if !skipsFake || skipsReal {
+		t.Errorf("skip-dst-address: fake ip skipped %v, real ip skipped %v", skipsFake, skipsReal)
 	}
 	for _, typ := range []snifferType.Type{snifferType.TLS, snifferType.QUIC} {
 		c, ok := s.Sniffers[typ]

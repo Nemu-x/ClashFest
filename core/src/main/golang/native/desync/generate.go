@@ -139,12 +139,15 @@ type generatedDNS struct {
 // generatedSniffer reads the server name of TLS and QUIC connections an app
 // opens to a bare IP (no DNS through the core, as Meta's apps do), so that
 // the domain rules - and reject-quic - apply to them too. The destination
-// stays the address the app chose.
+// stays the address the app chose. The fake-ip range is skipped: a fake IP
+// the core has no name for (an app reusing an answer of an earlier session)
+// would otherwise be dialed as an address; dropped, the app asks DNS again.
 type generatedSniffer struct {
-	Enable       bool                           `yaml:"enable"`
-	OverrideDest bool                           `yaml:"override-destination"`
-	ParsePureIP  bool                           `yaml:"parse-pure-ip"`
-	Sniff        map[string]generatedSniffPorts `yaml:"sniff"`
+	Enable         bool                           `yaml:"enable"`
+	OverrideDest   bool                           `yaml:"override-destination"`
+	ParsePureIP    bool                           `yaml:"parse-pure-ip"`
+	SkipDstAddress []string                       `yaml:"skip-dst-address"`
+	Sniff          map[string]generatedSniffPorts `yaml:"sniff"`
 }
 
 type generatedSniffPorts struct {
@@ -256,8 +259,9 @@ func generateConfig(req Request, catalog Catalog) (string, error) {
 		FakeIPFilter: fakeipdefaults.Filter(),
 		NameServer:   []string{"system://"},
 	}, Sniffer: generatedSniffer{
-		Enable:      true,
-		ParsePureIP: true,
+		Enable:         true,
+		ParsePureIP:    true,
+		SkipDstAddress: []string{fakeipdefaults.Range},
 		Sniff: map[string]generatedSniffPorts{
 			"TLS":  {Ports: []int{443}},
 			"QUIC": {Ports: []int{443}},
