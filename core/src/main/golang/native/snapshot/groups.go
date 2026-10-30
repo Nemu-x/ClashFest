@@ -52,7 +52,7 @@ func ResolvedGroupsJSON(data []byte) string {
 		}
 	}
 
-	cfg, err := config.ParseRawConfig(rawCfg)
+	cfg, err := parseReadOnly(rawCfg)
 	if err != nil {
 		return ""
 	}
