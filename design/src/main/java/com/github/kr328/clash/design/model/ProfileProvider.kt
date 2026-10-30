@@ -35,6 +35,16 @@ sealed class ProfileProvider {
         override val icon: Drawable?
             get() = context.getDrawableCompat(R.drawable.baseline_qr_code_scanner)
     }
+    /** A "Desync only" profile: no subscription, generated from a few settings. */
+    class Desync(private val context: Context) : ProfileProvider() {
+        override val name: String
+            get() = context.getString(R.string.desync_only_title)
+        override val summary: String
+            get() = context.getString(R.string.desync_only_summary)
+        override val icon: Drawable?
+            get() = context.getDrawableCompat(R.drawable.ic_baseline_bolt)
+    }
+
     class External(
         override val name: String,
         override val summary: String,

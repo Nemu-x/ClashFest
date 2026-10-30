@@ -55,7 +55,14 @@ class NewProfileActivity : BaseActivity<NewProfileDesign>() {
                     when (it) {
                         is NewProfileDesign.Request.Create -> {
                             val p = it.provider
-                            if (p is ProfileProvider.File) {
+                            if (p is ProfileProvider.Desync) {
+                                // Setup screen: creates, commits and activates the profile itself.
+                                val r = startActivityForResult(
+                                    ActivityResultContracts.StartActivityForResult(),
+                                    DesyncSettingsActivity.setupIntent(),
+                                )
+                                if (r.resultCode == Activity.RESULT_OK) finish()
+                            } else if (p is ProfileProvider.File) {
                                 // Direct: pick a file, create a File profile and
                                 // import its content straight into config.yaml.
                                 createProfileFromFile()
@@ -205,7 +212,8 @@ class NewProfileActivity : BaseActivity<NewProfileDesign>() {
             listOfNotNull(
                 ProfileProvider.File(self),
                 ProfileProvider.Url(self),
-                ProfileProvider.QR(self).takeUnless { isTelevision() }
+                ProfileProvider.QR(self).takeUnless { isTelevision() },
+                ProfileProvider.Desync(self),
             ) + providers
         }
     }

@@ -366,16 +366,16 @@ object Clash {
     /**
      * What the desync library of the `type: desync` outbound (core patch 0021) implements
      * on this device. Static for the linked library version: it says what is implemented,
-     * not what works on the current network. No engine state; any process.
+     * not what works on the current network. Service process only: see IClashManager.queryDesyncCatalog.
      */
     fun desyncCapabilities(): DesyncCapabilities =
         DesyncJson.decodeFromString(DesyncCapabilities.serializer(), checkNotNull(Bridge.nativeDesyncCapabilities()))
 
-    /** The desync strategy catalog filtered by [desyncCapabilities]. No engine state; any process. */
+    /** The desync strategy catalog filtered by [desyncCapabilities]. Service process only: see IClashManager.queryDesyncCatalog. */
     fun desyncPresets(): DesyncPresetCatalog =
         DesyncJson.decodeFromString(DesyncPresetCatalog.serializer(), checkNotNull(Bridge.nativeDesyncPresets()))
 
-    /** Services [generateDesyncOnlyConfig] can route. No engine state; any process. */
+    /** Services [generateDesyncOnlyConfig] can route. Service process only: see IClashManager.queryDesyncCatalog. */
     fun desyncServices(): List<DesyncService> =
         DesyncJson.decodeFromString(
             ListSerializer(DesyncService.serializer()),
@@ -395,7 +395,7 @@ object Clash {
     /**
      * Builds a profile that routes the chosen services and domains through one `type: desync`
      * proxy each and everything else DIRECT, validated by the engine
-     * ([validateProfileBytes]). No disk I/O, no network; any process.
+     * ([validateProfileBytes]). No disk I/O, no network; service process only (see IClashManager.queryDesyncCatalog).
      */
     fun generateDesyncOnlyConfig(request: DesyncConfigRequest): DesyncGeneratedConfig {
         val raw = Bridge.nativeGenerateDesyncOnlyConfig(

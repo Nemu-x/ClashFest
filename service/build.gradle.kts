@@ -26,6 +26,8 @@ dependencies {
     testImplementation(kotlin("test"))
     // Real org.json for JVM unit tests (android.jar's is stubbed under isReturnDefaultValues).
     testImplementation("org.json:json:20240303")
+    // JVM SQLite for the Room migration test (DatabaseMigrationTest); the version room-compiler already pulls in.
+    testImplementation("org.xerial:sqlite-jdbc:3.36.0")
 }
 
 android {

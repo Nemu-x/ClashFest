@@ -9,11 +9,17 @@ import com.github.kr328.clash.core.model.Proxy
 import com.github.kr328.clash.core.model.TunnelState
 import com.github.kr328.clash.core.util.trafficDownload
 import com.github.kr328.clash.core.util.trafficUpload
+import com.github.kr328.clash.core.model.DesyncCatalog
+import com.github.kr328.clash.core.model.DesyncStatus
 import com.github.kr328.clash.design.MainDesign
+import com.github.kr328.clash.design.model.DesyncRuntimeSummary
+import com.github.kr328.clash.design.model.DesyncStrategies
+import com.github.kr328.clash.design.util.DesyncLabels
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.ui.ToastDuration
 import com.github.kr328.clash.design.util.showExceptionToast
 import com.github.kr328.clash.remote.Remote
+import com.github.kr328.clash.service.model.DesyncProfileSettings
 import com.github.kr328.clash.service.model.Profile
 import com.github.kr328.clash.service.store.ServiceStore
 import com.github.kr328.clash.util.TunnelModeApplier
@@ -25,6 +31,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -175,6 +182,7 @@ internal class MainDashboard(private val activity: MainActivity) {
         val profiles = withProfile { queryAll() }
         setProfileName(active?.name ?: status.currentProfile)
         patchProfiles(profiles)
+        fetchDesyncStatus(active, running)
         activity.subscriptionMeta.applyActiveBrand()
 
         val proxyNames = if (running) {
@@ -274,6 +282,61 @@ internal class MainDashboard(private val activity: MainActivity) {
             }
             delay(200L)
         }
+    }
+
+    /** Strategy presets are static per library version: read once per dashboard. */
+    private var desyncCatalog: DesyncCatalog? = null
+    private val desyncJson = Json { ignoreUnknownKeys = true }
+
+    /**
+     * Home card line of a Desync-only active profile: the strategy it runs (its own preset, or the
+     * catalog default when automatic) and, while connected, whether the core has its desync proxies
+     * loaded (`queryDesyncStatus`). Called on every dashboard refresh and by the Home-visible ticker.
+     */
+    internal suspend fun MainDesign.fetchDesyncStatus(
+        profile: Profile? = null,
+        running: Boolean = clashRunning,
+    ) {
+        val active = profile ?: withProfile { queryActive() }
+        if (active == null || !active.isDesyncOnly) {
+            setDesyncStatusLine(null)
+            return
+        }
+        // From the service, never Clash.desyncPresets() here: see IClashManager.queryDesyncCatalog.
+        val full = desyncCatalog ?: runCatching {
+            desyncJson.decodeFromString(DesyncCatalog.serializer(), withClash { queryDesyncCatalog() })
+        }.getOrNull()?.also { desyncCatalog = it }
+        val catalog = full?.presets
+        val settings = DesyncProfileSettings.decode(active.desyncSettings) ?: DesyncProfileSettings()
+        val name = if (settings.strategyPresetId.isBlank() && (catalog?.autoTcp?.size ?: 0) >= 2) {
+            context.getString(R.string.desync_strategy_automatic_short)
+        } else {
+            DesyncLabels.strategyName(
+                context,
+                catalog?.let { DesyncStrategies.effectiveTcp(it, settings.strategyPresetId) },
+            )
+        }
+        val status = if (running) {
+            runCatching {
+                desyncJson.decodeFromString(DesyncStatus.serializer(), withClash { queryDesyncStatus() })
+            }.getOrNull()
+        } else {
+            null
+        }
+        val line = when (val summary = DesyncRuntimeSummary.of(running, status)) {
+            DesyncRuntimeSummary.Stopped -> name
+            DesyncRuntimeSummary.NotLoaded -> context.getString(R.string.desync_status_not_loaded, name)
+            is DesyncRuntimeSummary.Active -> if (summary.needsVpn.isEmpty()) {
+                context.getString(R.string.desync_status_active, name, summary.routes)
+            } else {
+                val services = summary.needsVpn.joinToString(", ") { route ->
+                    full?.services?.firstOrNull { "desync-${it.id}" == route }?.name
+                        ?: if (route == "desync-custom") context.getString(R.string.desync_custom_domains) else route
+                }
+                context.getString(R.string.desync_status_active_needs_vpn, name, summary.routes, services)
+            }
+        }
+        setDesyncStatusLine(line)
     }
 
     internal suspend fun MainDesign.fetchTraffic() {

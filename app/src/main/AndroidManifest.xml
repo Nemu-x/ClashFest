@@ -168,6 +168,11 @@
             android:exported="false"
             android:label="@string/dns_hosts_title" />
         <activity
+            android:name=".DesyncSettingsActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/desync_settings" />
+        <activity
             android:name=".TunnelsSettingsActivity"
             android:configChanges="uiMode"
             android:exported="false"

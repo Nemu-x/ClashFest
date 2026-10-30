@@ -40,7 +40,8 @@ class FilesActivity : BaseActivity<FilesDesign>() {
         val client = FilesClient(this)
         val stack = Stack<String>()
 
-        design.configurationEditable = profile.type != Profile.Type.Url
+        // Desync only: config.yaml is regenerated from the profile's settings, so a hand edit would be lost.
+        design.configurationEditable = profile.type != Profile.Type.Url && !profile.isDesyncOnly
         design.fetch(client, stack, root)
 
         setContentDesign(design)

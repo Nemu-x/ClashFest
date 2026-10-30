@@ -8,6 +8,7 @@ import com.github.kr328.clash.service.data.ImportedDao
 import com.github.kr328.clash.service.data.PendingDao
 import com.github.kr328.clash.service.data.Selection
 import com.github.kr328.clash.service.data.SelectionDao
+import com.github.kr328.clash.service.model.DesyncProfileSettings
 import com.github.kr328.clash.service.model.Profile
 import com.github.kr328.clash.service.branding.BrandRefresh
 import com.github.kr328.clash.service.branding.BrandStore
@@ -19,6 +20,7 @@ import com.github.kr328.clash.service.store.ServiceStore
 import com.github.kr328.clash.service.model.ConfigScriptFailure
 import com.github.kr328.clash.service.model.ConfigScriptState
 import com.github.kr328.clash.service.util.PreviewResourceLimits
+import com.github.kr328.clash.service.util.DesyncProfileConfig
 import com.github.kr328.clash.service.util.UserLayerStore
 import com.github.kr328.clash.service.util.RawConfigEdit
 import com.github.kr328.clash.service.util.importedDir
@@ -124,7 +126,8 @@ class ProfileManager(private val context: Context) : IProfileManager,
         }
         try {
             val imported = ImportedDao().queryByUUID(uuid) ?: return
-            if (imported.type != Profile.Type.Url) return
+            // Url: fetch. Desync only: regenerate from the stored settings. Other File: nothing to do.
+            if (imported.type != Profile.Type.Url && imported.desyncSettings == null) return
 
             // Direct invocation so the suspend point holds the lock for the
             // FULL fetch+verify duration. The previous implementation called
@@ -492,6 +495,32 @@ class ProfileManager(private val context: Context) : IProfileManager,
         // apply without branding, so surface the manifest when it carries policy too — otherwise the
         // UI never sees the flag and the restriction silently does nothing.
         if (store.isActiveFor(uuid) || manifest.hasPolicy()) manifest.toJson() else null
+    }
+
+    override suspend fun createDesyncOnly(name: String, settingsJson: String): UUID =
+        records.createDesyncOnly(name, settingsJson)
+
+    override suspend fun checkDesyncSettings(settingsJson: String): String? = withContext(Dispatchers.IO) {
+        val settings = DesyncProfileSettings.decode(settingsJson) ?: return@withContext "malformed desync settings"
+        DesyncProfileConfig.check(settings)
+    }
+
+    override suspend fun updateDesyncSettings(uuid: UUID, settingsJson: String): String? {
+        val settings = DesyncProfileSettings.decode(settingsJson) ?: return "malformed desync settings"
+        val error = withContext(Dispatchers.IO) { DesyncProfileConfig.check(settings) }
+        if (error != null) return error
+        val encoded = settings.encode()
+        withContext(Dispatchers.IO) {
+            val imported = ImportedDao().queryByUUID(uuid)
+                ?: throw IllegalArgumentException("profile $uuid not found")
+            require(imported.desyncSettings != null) { "profile $uuid is not a desync-only profile" }
+            ImportedDao().update(imported.copy(desyncSettings = encoded))
+            PendingDao().queryByUUID(uuid)?.let { PendingDao().update(it.copy(desyncSettings = encoded)) }
+        }
+        // Regenerate + compose + engine gate (serialized with other updates by the processor's
+        // lock, not skipped like a duplicate tap); announces the change, so a running core reloads it.
+        ProfileProcessor.update(context, uuid, null)
+        return null
     }
 
     override suspend fun brandLogoPathFor(uuid: UUID, darkTheme: Boolean): String? = withContext(Dispatchers.IO) {

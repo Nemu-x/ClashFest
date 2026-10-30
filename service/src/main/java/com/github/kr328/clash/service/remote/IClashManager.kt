@@ -61,4 +61,13 @@ interface IClashManager {
      * (`DesyncStatus`, decode with `DesyncStatus.serializer()`). Appended last: see above.
      */
     fun queryDesyncStatus(): String
+
+    /**
+     * `DesyncCatalog` as JSON: services, strategy catalog and capabilities of the process that runs
+     * the desync proxies. The UI must ask here instead of calling the bridge itself: loading the
+     * bridge applies the default config, which opens the engine's cache file (an exclusive bbolt
+     * lock), and a UI process that holds it first leaves the core without fake-ip mappings.
+     * Appended last: see above.
+     */
+    fun queryDesyncCatalog(): String
 }
