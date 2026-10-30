@@ -14,6 +14,7 @@ import (
 	"cfa/native/app"
 	"cfa/native/config"
 	"cfa/native/delegate"
+	"cfa/native/desync"
 	"cfa/native/tunnel"
 
 	"github.com/metacubex/mihomo/log"
@@ -47,6 +48,7 @@ func reset() {
 	// otherwise keep the tunnel (and, on teardown, the Android VpnService / system VPN key) alive for
 	// their full timeout — 10-30s after the tunnel is already logically down. See CancelHealthChecks.
 	tunnel.CancelHealthChecks()
+	desync.StopOverlayRouting()
 	config.LoadDefault()
 	tunnel.ResetStatistic()
 	tunnel.CloseAllConnections()

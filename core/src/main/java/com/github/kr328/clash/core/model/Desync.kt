@@ -147,6 +147,8 @@ data class DesyncRouteStatus(
     /** Every candidate has been checked; with ![working], no strategy gets through (needs a VPN). */
     val checked: Boolean = false,
     val working: Boolean = false,
+    /** A route of desync on top of a subscription: not [working] means it goes the subscription's way. */
+    val overlay: Boolean = false,
 )
 
 @Serializable

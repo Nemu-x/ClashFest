@@ -405,6 +405,21 @@ object Clash {
             .getOrElse { DesyncGeneratedConfig(error = "malformed bridge response") }
     }
 
+    /**
+     * Adds the desync routes of [request] to the subscription config [base] (desync on top of a
+     * subscription): candidates, a hidden select group per route and the routes' rules first; DNS
+     * and the subscription's own routing untouched. Validated by the engine. Which member a route
+     * uses is decided by the core once the config loads. No disk I/O, no network; service process only.
+     */
+    fun composeDesyncOverlay(base: String, request: DesyncConfigRequest): DesyncGeneratedConfig {
+        val raw = Bridge.nativeComposeDesyncOverlay(
+            base,
+            DesyncJson.encodeToString(DesyncConfigRequest.serializer(), request),
+        ) ?: return DesyncGeneratedConfig(error = "native bridge returned nothing")
+        return runCatching { DesyncJson.decodeFromString(DesyncGeneratedConfig.serializer(), raw) }
+            .getOrElse { DesyncGeneratedConfig(error = "malformed bridge response") }
+    }
+
     fun genX25519KeyPair(): AgeKeyPair =
         Json.Default.decodeFromString(AgeKeyPair.serializer(), checkNotNull(Bridge.nativeGenX25519KeyPair()))
 
