@@ -54,3 +54,13 @@ func generateDesyncOnlyConfig(request C.c_string) *C.char {
 	defer guard("generateDesyncOnlyConfig")()
 	return C.CString(desync.GenerateConfigJSON(C.GoString(request)))
 }
+
+// composeDesyncOverlay adds the desync routes of a JSON desync.Request to a
+// subscription config and returns a JSON desync.Result: the engine-validated
+// YAML or the reason there is none (desync/overlay.go).
+//
+//export composeDesyncOverlay
+func composeDesyncOverlay(base, request C.c_string) *C.char {
+	defer guard("composeDesyncOverlay")()
+	return C.CString(desync.ComposeOverlayJSON(C.GoString(base), C.GoString(request)))
+}

@@ -88,6 +88,7 @@ object Bridge {
     external fun nativeDesyncServices(): String?
     external fun nativeQueryDesyncStatus(): String?
     external fun nativeGenerateDesyncOnlyConfig(request: String): String?
+    external fun nativeComposeDesyncOverlay(base: String, request: String): String?
 
     private external fun nativeInit(home: String, versionName: String, sdkVersion: Int, debug: Boolean)
 

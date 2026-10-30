@@ -22,6 +22,20 @@ fun interface ConfigScriptRunner {
 }
 
 /**
+ * Adds desync on top of the subscription (`Clash.composeDesyncOverlay`). Injected like
+ * [ConfigScriptRunner]: the composer stays pure, and [DesyncOverlayPolicy] decides, per profile,
+ * whether the overlay applies at all.
+ */
+fun interface DesyncOverlayRunner {
+    /** @return [yaml] with the overlay of [overlay], or null to compose without it */
+    fun apply(yaml: String, overlay: DesyncOverlay?): String?
+
+    companion object {
+        val Disabled = DesyncOverlayRunner { _, _ -> null }
+    }
+}
+
+/**
  * A user script failed. Deliberately thrown rather than swallowed: what to do about it is a
  * call-site decision (an explicit save should surface the error; a background subscription
  * refresh should keep the last good config), and only the call site knows which it is.
@@ -45,6 +59,9 @@ class ConfigScriptException(
  *  - replay-intent: user rules + rule-providers ([RuleMapper.mergeStateIntoConfig])
  *  - whole-block replace: `dns`/`hosts` ([DnsHostsYamlEdit]) and `tunnels` ([TunnelsYamlEdit])
  *  - map union: user proxy-providers ([ProxyProvidersYamlEdit])
+ *  - desync overlay ([DesyncOverlayRunner]): candidates and hidden groups added, the routes' rules
+ *    prepended; it runs before the user's rules are prepended, so a rule the user wrote by hand
+ *    still comes first, then desync, then the subscription's own rules
  *
  * Hardening runs **last**, on the fully composed config, so user-added listeners/DNS cannot slip
  * past the loopback/TUN safety filter (P0).
@@ -61,6 +78,7 @@ object ConfigComposer {
      * @param hardeningMode strict/compat/off — applied to the composed result
      * @param scriptRunner  runs [UserLayer.script]; defaults to a no-op so existing callers and
      *                      the JVM tests keep working without an engine
+     * @param desyncRunner  adds [UserLayer.desync]; a no-op by default for the same reason
      */
     fun compose(
         fetchedYaml: String,
@@ -69,8 +87,11 @@ object ConfigComposer {
         hardeningMode: ProxyHardeningMode,
         scriptRunner: ConfigScriptRunner = ConfigScriptRunner.Disabled,
         realityCompat: Boolean = false,
+        desyncRunner: DesyncOverlayRunner = DesyncOverlayRunner.Disabled,
     ): String {
         var doc = fetchedYaml
+
+        desyncRunner.apply(doc, layer.desync)?.let { doc = it }
 
         if (layer.rules.rules.isNotEmpty() || layer.rules.providers.isNotEmpty()) {
             // Additive (prepend rules + union providers) — NOT mergeStateIntoConfig, which replaces

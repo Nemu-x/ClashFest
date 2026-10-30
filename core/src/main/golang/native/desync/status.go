@@ -3,7 +3,9 @@ package desync
 import (
 	"encoding/json"
 	"sort"
+	"strings"
 
+	"github.com/metacubex/mihomo/adapter/outboundgroup"
 	"github.com/metacubex/mihomo/adapter/provider"
 	C "github.com/metacubex/mihomo/constant"
 	P "github.com/metacubex/mihomo/constant/provider"
@@ -37,9 +39,41 @@ type RouteStatus struct {
 	// (transfer.go) found none freezing. Checked && !Working means no
 	// strategy gets through: the service needs a VPN here.
 	Working bool `json:"working"`
+	// Overlay: a route of the desync overlay on a subscription, where a
+	// route that is not Working goes the subscription's way (through the
+	// VPN) rather than nowhere.
+	Overlay bool `json:"overlay,omitempty"`
 
 	testURL string   // the group's delay-test URL
 	alive   []string // candidates that passed it, in group order
+}
+
+// overlayRouteStatus reports an overlay group (overlay.go): Checked once its
+// first check ran, Working while it uses a desync candidate (otherwise the
+// service goes the subscription's way).
+func overlayRouteStatus(p C.Proxy) (RouteStatus, bool) {
+	if p == nil || p.Type() != C.Selector || !strings.HasPrefix(p.Name(), "desync-") {
+		return RouteStatus{}, false
+	}
+	g, ok := p.Adapter().(*outboundgroup.Selector)
+	if !ok {
+		return RouteStatus{}, false
+	}
+	desync := false
+	for _, m := range g.Proxies() {
+		if m.Type() == C.Desync && strings.HasPrefix(m.Name(), p.Name()+"~") {
+			desync = true
+			break
+		}
+	}
+	if !desync {
+		return RouteStatus{}, false
+	}
+	r := RouteStatus{Name: p.Name(), Now: g.Now(), Overlay: true}
+	if v, ok := overlayVerdicts.Load(p.Name()); ok {
+		r.Checked, r.Working = true, v.(overlayVerdict).desync
+	}
+	return r, true
 }
 
 // Status lists the desync proxies of the running configuration.
@@ -94,6 +128,8 @@ func collectStatus(proxies map[string]C.Proxy, providers map[string]P.ProxyProvi
 	for _, p := range proxies {
 		if r, ok := routeOf(p, proxies); ok {
 			applyTransfer(p, &r, proxies)
+			out.Routes = append(out.Routes, r)
+		} else if r, ok := overlayRouteStatus(p); ok {
 			out.Routes = append(out.Routes, r)
 		}
 	}

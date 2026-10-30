@@ -184,6 +184,10 @@ internal class MainSubscriptionMeta(private val activity: MainActivity) {
             meta.networkStack?.let {
                 ServiceStore(activity).setSubscriptionNetworkStackFor(active.uuid, it)
             }
+            // Operator desync policy (X-Desync), applied when the profile is composed.
+            meta.desyncPolicy?.let {
+                ServiceStore(activity).setSubscriptionDesyncPolicyFor(active.uuid, it)
+            }
             // Operator bypass-preset recommendation (X-Bypass-Preset). Stored only — the offer
             // dialog rides the pre-start bypass prompt; `none` withdraws the recommendation.
             meta.bypassPreset?.let {

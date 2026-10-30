@@ -11,7 +11,9 @@ import com.github.kr328.clash.design.DesyncSettingsDesign
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.model.DesyncSettingsForm
 import com.github.kr328.clash.design.ui.ToastDuration
+import com.github.kr328.clash.service.model.DesyncOverlayState
 import com.github.kr328.clash.service.model.DesyncProfileSettings
+import com.github.kr328.clash.service.util.DesyncOverlay
 import com.github.kr328.clash.util.commitProfileWithProgress
 import com.github.kr328.clash.util.withClash
 import com.github.kr328.clash.util.withProfile
@@ -27,16 +29,33 @@ import java.util.UUID
  * Desync-only profiles. Without a UUID: the setup screen of a new profile (services, custom
  * domains, Create), which creates, commits and activates it and returns RESULT_OK. With the UUID of
  * a Desync-only profile: its settings (adds the strategy picker and the device capabilities); Save
- * regenerates the profile, and a running core reloads it.
+ * regenerates the profile, and a running core reloads it. With the UUID of a subscription profile:
+ * desync on top of that subscription (an on/off switch, then the same settings); Save stores it in
+ * the profile's user layer and re-composes it.
  */
 class DesyncSettingsActivity : BaseActivity<DesyncSettingsDesign>() {
     override suspend fun main() {
         val uuid = intent.uuid
         val profile = uuid?.let { withProfile { queryByUUID(it) } }
-        if (uuid != null && profile?.isDesyncOnly != true) return finish()
+        if (uuid != null && profile == null) return finish()
 
-        val mode = if (uuid == null) DesyncSettingsDesign.Mode.Setup else DesyncSettingsDesign.Mode.Edit
-        title = getString(if (uuid == null) R.string.desync_only_title else R.string.desync_settings)
+        val mode = when {
+            uuid == null -> DesyncSettingsDesign.Mode.Setup
+            profile?.isDesyncOnly == true -> DesyncSettingsDesign.Mode.Edit
+            else -> DesyncSettingsDesign.Mode.Overlay
+        }
+        title = getString(
+            when (mode) {
+                DesyncSettingsDesign.Mode.Setup -> R.string.desync_only_title
+                DesyncSettingsDesign.Mode.Edit -> R.string.desync_settings
+                DesyncSettingsDesign.Mode.Overlay -> R.string.desync_overlay_title
+            },
+        )
+        val overlayState = if (mode == DesyncSettingsDesign.Mode.Overlay && uuid != null) {
+            DesyncOverlayState.decode(withProfile { readDesyncOverlay(uuid) }) ?: DesyncOverlayState()
+        } else {
+            null
+        }
 
         val design = DesyncSettingsDesign(this, mode)
         setContentDesign(design)
@@ -53,9 +72,16 @@ class DesyncSettingsActivity : BaseActivity<DesyncSettingsDesign>() {
             design.showMessage(getString(R.string.desync_unavailable, reason))
             design.setBusy(true)
         } else {
-            val stored = DesyncProfileSettings.decode(profile?.desyncSettings) ?: DesyncProfileSettings()
+            val stored = overlayState?.overlay?.settings
+                ?: DesyncProfileSettings.decode(profile?.desyncSettings)
+                ?: DesyncProfileSettings()
             val form = DesyncSettingsForm.from(stored, catalogs.services, catalogs.presets)
+            overlayState?.let { design.overlayEnabled = it.active }
             design.bind(form, catalogs.services, catalogs.presets, catalogs.capabilities)
+            if (overlayState?.operator == "deny") {
+                design.showMessage(R.string.desync_overlay_denied)
+                design.setBusy(true)
+            }
         }
 
         while (isActive) {
@@ -66,7 +92,11 @@ class DesyncSettingsActivity : BaseActivity<DesyncSettingsDesign>() {
                         DesyncSettingsDesign.Request.Submit -> {
                             val form = design.form ?: return@onReceive
                             if (catalogs == null) return@onReceive
-                            if (uuid == null) create(design, form) else save(design, uuid, form)
+                            when {
+                                uuid == null -> create(design, form)
+                                mode == DesyncSettingsDesign.Mode.Overlay -> saveOverlay(design, uuid, form)
+                                else -> save(design, uuid, form)
+                            }
                         }
                     }
                 }
@@ -122,6 +152,26 @@ class DesyncSettingsActivity : BaseActivity<DesyncSettingsDesign>() {
         }
     }
 
+    private suspend fun saveOverlay(design: DesyncSettingsDesign, uuid: UUID, form: DesyncSettingsForm) {
+        if (design.overlayEnabled && form.isEmpty) {
+            design.showMessage(R.string.desync_nothing_selected)
+            return
+        }
+        val overlay = DesyncOverlay(enabled = design.overlayEnabled, settings = form.toSettings())
+        design.setBusy(true)
+        try {
+            val error = withProfile { writeDesyncOverlay(uuid, DesyncOverlayState.encodeOverlay(overlay)) }
+            if (error != null) {
+                showFailure(error)
+            } else {
+                design.showMessage(null)
+                design.showToast(R.string.desync_saved, ToastDuration.Short)
+            }
+        } finally {
+            design.setBusy(false)
+        }
+    }
+
     private suspend fun showFailure(reason: String) {
         design?.showMessage(reason)
         withContext(Dispatchers.Main) {
@@ -137,7 +187,7 @@ class DesyncSettingsActivity : BaseActivity<DesyncSettingsDesign>() {
         /** The setup screen of a new Desync-only profile. */
         fun setupIntent(): Intent = DesyncSettingsActivity::class.intent
 
-        /** The settings of the Desync-only profile [uuid]. */
+        /** The settings of the Desync-only profile [uuid], or desync on top of the subscription [uuid]. */
         fun settingsIntent(uuid: UUID): Intent = DesyncSettingsActivity::class.intent.setUUID(uuid)
     }
 }

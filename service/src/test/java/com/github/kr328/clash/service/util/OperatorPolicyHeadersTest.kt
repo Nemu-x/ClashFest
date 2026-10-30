@@ -35,6 +35,14 @@ class OperatorPolicyHeadersTest {
     }
 
     @Test
+    fun reads_the_desync_policy() {
+        assertEquals("deny", OperatorPolicyHeaders.policyOf(snapshot("""{"x-desync":"Deny"}""")).desync)
+        assertEquals("on", OperatorPolicyHeaders.policyOf(snapshot("""{"x-desync":"on"}""")).desync)
+        assertNull(OperatorPolicyHeaders.policyOf(snapshot("""{"x-desync":"maybe"}""")).desync)
+        assertNull(OperatorPolicyHeaders.policyOf(snapshot("""{}""")).desync)
+    }
+
+    @Test
     fun auto_stack_is_kept_as_explicit_unlock() {
         assertEquals("auto", OperatorPolicyHeaders.policyOf(snapshot("""{"x-network-stack":"auto"}""")).networkStack)
     }

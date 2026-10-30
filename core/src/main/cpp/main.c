@@ -489,6 +489,22 @@ Java_com_github_kr328_clash_core_bridge_Bridge_nativeGenerateDesyncOnlyConfig(JN
 }
 
 JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeComposeDesyncOverlay(JNIEnv *env, jobject thiz,
+                                                                          jstring base, jstring request) {
+    TRACE_METHOD();
+
+    scoped_string _base = get_string(base);
+    scoped_string _request = get_string(request);
+
+    scoped_string response = composeDesyncOverlay(_base, _request);
+
+    if (response == NULL)
+        return NULL;
+
+    return new_string(response);
+}
+
+JNIEXPORT jstring JNICALL
 Java_com_github_kr328_clash_core_bridge_Bridge_nativeGenHybridKeyPair(JNIEnv *env, jobject thiz) {
     TRACE_METHOD();
 

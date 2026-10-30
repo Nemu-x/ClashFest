@@ -58,6 +58,7 @@ class ProfileManager(private val context: Context) : IProfileManager,
     )
     private val proxyEditor = ProfileProxyEditor(context, userLayerStore, layerSync, previews)
     private val configScripts = ProfileConfigScripts(context, store, userLayerStore)
+    private val desyncOverlay = ProfileDesyncOverlay(context, store, userLayerStore)
     private val records = ProfileRecords(context, store)
     private val subscriptionHeaders = SubscriptionHeaderSync(context)
 
@@ -522,6 +523,11 @@ class ProfileManager(private val context: Context) : IProfileManager,
         ProfileProcessor.update(context, uuid, null)
         return null
     }
+
+    override suspend fun readDesyncOverlay(uuid: UUID): String = desyncOverlay.read(uuid)
+
+    override suspend fun writeDesyncOverlay(uuid: UUID, overlayJson: String): String? =
+        desyncOverlay.write(uuid, overlayJson)
 
     override suspend fun brandLogoPathFor(uuid: UUID, darkTheme: Boolean): String? = withContext(Dispatchers.IO) {
         val store = BrandStore(context)

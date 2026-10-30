@@ -656,7 +656,7 @@ class MainActivity : BaseActivity<MainDesign>() {
                     }
                 }
 
-                if (clashRunning && activityStarted && design.showsDesyncOnlyProfile &&
+                if (clashRunning && activityStarted && design.showsDesyncStatus &&
                     design.currentTab == MainDesign.MainTab.Home &&
                     getSystemService<PowerManager>()?.isInteractive != false
                 ) {

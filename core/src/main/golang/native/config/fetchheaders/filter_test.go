@@ -36,11 +36,13 @@ func TestFilterPersistsOperatorPolicyHeaders(t *testing.T) {
 	got := Filter(map[string][]string{
 		"X-Network-Stack": {"gvisor"},
 		"X-Bypass-Preset": {"ru"},
+		"X-Desync":        {"deny"},
 	})
 
 	want := map[string]string{
 		"x-network-stack": "gvisor",
 		"x-bypass-preset": "ru",
+		"x-desync":        "deny",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("policy headers not persisted: %#v", got)

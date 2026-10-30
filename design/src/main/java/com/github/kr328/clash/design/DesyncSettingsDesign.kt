@@ -34,13 +34,14 @@ import com.google.android.material.color.MaterialColors
  * Desync-only profile screen. [Mode.Setup] (new profile): what desync is, services, custom domains,
  * Create. [Mode.Edit] (an existing profile): services, custom domains, the TCP strategy grouped by
  * kind with "Automatic" first, the optional UDP decoy, and what the library implements on this
- * device. Edits stay in the [DesyncSettingsForm] until Create / Save.
+ * device. [Mode.Overlay] (a subscription profile): desync on top of the subscription, an on/off
+ * switch above the same sections as Edit. Edits stay in the [DesyncSettingsForm] until Create / Save.
  */
 class DesyncSettingsDesign(
     context: Context,
     private val mode: Mode,
 ) : Design<DesyncSettingsDesign.Request>(context) {
-    enum class Mode { Setup, Edit }
+    enum class Mode { Setup, Edit, Overlay }
 
     enum class Request { Submit }
 
@@ -71,6 +72,9 @@ class DesyncSettingsDesign(
     var form: DesyncSettingsForm? = null
         private set
 
+    /** [Mode.Overlay]: whether desync on top of the subscription is on. */
+    var overlayEnabled: Boolean = false
+
     init {
         binding.surface = surface
         binding.header.screenTitle.text = (context as? Activity)?.title?.toString().orEmpty()
@@ -93,6 +97,13 @@ class DesyncSettingsDesign(
             if (mode == Mode.Setup) {
                 tips(R.string.desync_setup_intro)
             }
+            if (mode == Mode.Overlay) {
+                tips(R.string.desync_overlay_intro)
+                val enabled = Toggle({ overlayEnabled }, { overlayEnabled = it })
+                switch(value = enabled::value) {
+                    title = context.getString(R.string.desync_overlay_enable)
+                }
+            }
 
             category(R.string.desync_services)
             services.forEach { service ->
@@ -110,12 +121,12 @@ class DesyncSettingsDesign(
                 placeholder = R.string.desync_custom_domains_placeholder,
             )
 
-            if (mode == Mode.Edit && catalog != null) {
+            if (mode != Mode.Setup && catalog != null) {
                 strategySection(form, catalog)
                 udpSection(form, catalog)
             }
 
-            if (mode == Mode.Edit && capabilities != null) {
+            if (mode != Mode.Setup && capabilities != null) {
                 deviceSection(capabilities, catalog)
             }
         }

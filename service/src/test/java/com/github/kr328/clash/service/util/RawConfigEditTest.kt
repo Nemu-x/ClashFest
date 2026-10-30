@@ -58,4 +58,12 @@ class RawConfigEditTest {
         // without a script the result is an empty layer, which the store deletes on save
         assertTrue(RawConfigEdit.layerAfterRawEdit(layer.copy(script = null)).isEmpty())
     }
+
+    @Test fun layer_after_raw_edit_keeps_desync_on_top() {
+        // Desync is composed on top of whatever the base is; it is not content folded into the text.
+        val desync = DesyncOverlay(settings = com.github.kr328.clash.service.model.DesyncProfileSettings(services = listOf("youtube")))
+        val layer = UserLayer(desync = desync)
+        assertFalse(RawConfigEdit.hasContentEdits(layer))
+        assertEquals(desync, RawConfigEdit.layerAfterRawEdit(layer).desync)
+    }
 }

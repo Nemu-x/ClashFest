@@ -50,7 +50,7 @@ internal fun MainDesign.renderActiveProfileCard(profile: Profile?) {
     binding.mainActiveProfileMeta.text = when {
         p == null -> ""
         desyncOnly -> context.getString(R.string.desync_only_badge)
-        else -> "${profileMetaLabel(p)} • ${usageLabel(p)}"
+        else -> listOfNotNull("${profileMetaLabel(p)} • ${usageLabel(p)}", desyncOverlayLine).joinToString("\n")
     }
     binding.mainActiveProfileMeta.visibility = if (p != null) View.VISIBLE else View.GONE
     // Desync only: "update" regenerates the profile from its settings.

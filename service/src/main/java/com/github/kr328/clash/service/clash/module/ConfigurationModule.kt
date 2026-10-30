@@ -11,6 +11,7 @@ import com.github.kr328.clash.service.data.SelectionDao
 import com.github.kr328.clash.service.store.ServiceStore
 import com.github.kr328.clash.service.util.GeoUrlSanitizer
 import com.github.kr328.clash.service.util.ConfigScriptPolicy
+import com.github.kr328.clash.service.util.DesyncOverlayPolicy
 import com.github.kr328.clash.service.util.ProfileOverlay
 import com.github.kr328.clash.service.util.ProxyDialerYamlEdit
 import com.github.kr328.clash.service.util.ProxyGroupsYamlEdit
@@ -176,6 +177,7 @@ class ConfigurationModule(service: Service) : Module<ConfigurationModule.LoadExc
                     ProfileOverlay.refreshFromStore(
                         profileDir, active.uuid, service.importedDir, store,
                         scriptRunner = ConfigScriptPolicy.runnerFor(service, active.uuid, active.name),
+                        desyncRunner = DesyncOverlayPolicy.runnerFor(service, active.uuid),
                     )
                     if (backup != null) {
                         val newErr = Clash.validateProfileBytes(configFile.readText())

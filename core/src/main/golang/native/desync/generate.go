@@ -107,9 +107,10 @@ func normalizeDomain(s string) (string, error) {
 }
 
 type generatedProxy struct {
-	Name    string `yaml:"name"`
-	Type    string `yaml:"type"`
-	Options `yaml:",inline"`
+	Name      string `yaml:"name"`
+	Type      string `yaml:"type"`
+	IPVersion string `yaml:"ip-version,omitempty"`
+	Options   `yaml:",inline"`
 }
 
 type generatedGroup struct {
@@ -169,27 +170,38 @@ func GenerateConfig(req Request) (string, error) {
 	return generateConfig(req, catalogFor(effectiveCapabilities()))
 }
 
-func generateConfig(req Request, catalog Catalog) (string, error) {
-	type route struct {
-		proxy   string
-		domains []string
-		testURL string
-	}
-	var routes []route
+// serviceRoute is one destination of the request: a service or the custom domains.
+type serviceRoute struct {
+	proxy   string
+	domains []string
+	testURL string
+}
+
+// plan is what a request resolves to on a catalog: its routes, the TCP
+// presets each route gets (more than one: automatic selection) and the
+// options of a proxy for a preset.
+type plan struct {
+	routes    []serviceRoute
+	tcps      []Preset
+	optionsOf func(Preset) Options
+}
+
+func planFor(req Request, catalog Catalog) (plan, error) {
+	var routes []serviceRoute
 	seenService := map[string]bool{}
 	for _, id := range req.Services {
 		s, ok := serviceByID(id)
 		if !ok {
-			return "", fmt.Errorf("unknown service %q", id)
+			return plan{}, fmt.Errorf("unknown service %q", id)
 		}
 		if seenService[id] {
 			continue
 		}
 		seenService[id] = true
-		routes = append(routes, route{ProxyName(s.ID), s.Domains, s.TestURL})
+		routes = append(routes, serviceRoute{ProxyName(s.ID), s.Domains, s.TestURL})
 	}
 	if len(req.CustomDomains) > maxCustomDomains {
-		return "", fmt.Errorf("at most %d custom domains", maxCustomDomains)
+		return plan{}, fmt.Errorf("at most %d custom domains", maxCustomDomains)
 	}
 	var custom []string
 	seenDomain := map[string]bool{}
@@ -199,7 +211,7 @@ func generateConfig(req Request, catalog Catalog) (string, error) {
 		}
 		d, err := normalizeDomain(raw)
 		if err != nil {
-			return "", err
+			return plan{}, err
 		}
 		if !seenDomain[d] {
 			seenDomain[d] = true
@@ -207,10 +219,10 @@ func generateConfig(req Request, catalog Catalog) (string, error) {
 		}
 	}
 	if len(custom) > 0 {
-		routes = append(routes, route{CustomProxyName, custom, "https://" + custom[0] + "/"})
+		routes = append(routes, serviceRoute{CustomProxyName, custom, "https://" + custom[0] + "/"})
 	}
 	if len(routes) == 0 {
-		return "", errors.New("choose at least one service or custom domain")
+		return plan{}, errors.New("choose at least one service or custom domain")
 	}
 
 	var tcps []Preset
@@ -225,11 +237,11 @@ func generateConfig(req Request, catalog Catalog) (string, error) {
 			presetID = catalog.DefaultTCP
 		}
 		if presetID == "" {
-			return "", errors.New("no desync strategy is available on this device")
+			return plan{}, errors.New("no desync strategy is available on this device")
 		}
 		tcp, err := catalog.find(catalog.TCP, "tcp", presetID)
 		if err != nil {
-			return "", err
+			return plan{}, err
 		}
 		tcps = []Preset{tcp}
 	}
@@ -237,7 +249,7 @@ func generateConfig(req Request, catalog Catalog) (string, error) {
 	if req.UDPPresetID != "" {
 		p, err := catalog.find(catalog.UDP, "udp", req.UDPPresetID)
 		if err != nil {
-			return "", err
+			return plan{}, err
 		}
 		udp = p.Options.UDP
 	}
@@ -245,12 +257,20 @@ func generateConfig(req Request, catalog Catalog) (string, error) {
 	if req.RejectQUIC != nil {
 		rejectQUIC = *req.RejectQUIC
 	}
-	optionsOf := func(tcp Preset) Options {
+	return plan{routes: routes, tcps: tcps, optionsOf: func(tcp Preset) Options {
 		opts := tcp.Options
 		opts.UDP = udp
 		opts.RejectQUIC = rejectQUIC
 		return opts
+	}}, nil
+}
+
+func generateConfig(req Request, catalog Catalog) (string, error) {
+	pl, err := planFor(req, catalog)
+	if err != nil {
+		return "", err
 	}
+	routes, tcps, optionsOf := pl.routes, pl.tcps, pl.optionsOf
 
 	profile := generatedProfile{Mode: "rule", DNS: generatedDNS{
 		Enable:       true,

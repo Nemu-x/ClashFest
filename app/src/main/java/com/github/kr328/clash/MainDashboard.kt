@@ -300,8 +300,10 @@ internal class MainDashboard(private val activity: MainActivity) {
         val active = profile ?: withProfile { queryActive() }
         if (active == null || !active.isDesyncOnly) {
             setDesyncStatusLine(null)
+            setDesyncOverlayLine(if (active != null && running) desyncOverlayLine() else null)
             return
         }
+        setDesyncOverlayLine(null)
         // From the service, never Clash.desyncPresets() here: see IClashManager.queryDesyncCatalog.
         val full = desyncCatalog ?: runCatching {
             desyncJson.decodeFromString(DesyncCatalog.serializer(), withClash { queryDesyncCatalog() })
@@ -337,6 +339,34 @@ internal class MainDashboard(private val activity: MainActivity) {
             }
         }
         setDesyncStatusLine(line)
+    }
+
+    /**
+     * Profile meta line of a subscription with desync on top: the services that go direct now, or
+     * that the core is still checking, or that all of them go through the VPN. Null without overlay
+     * routes (desync is off for this profile).
+     */
+    private suspend fun MainDesign.desyncOverlayLine(): String? {
+        val status = runCatching {
+            desyncJson.decodeFromString(DesyncStatus.serializer(), withClash { queryDesyncStatus() })
+        }.getOrNull() ?: return null
+        val routes = status.routes.filter { it.overlay }
+        if (routes.isEmpty()) return null
+        val direct = routes.filter { it.working }
+        return when {
+            direct.isNotEmpty() -> {
+                val full = desyncCatalog ?: runCatching {
+                    desyncJson.decodeFromString(DesyncCatalog.serializer(), withClash { queryDesyncCatalog() })
+                }.getOrNull()?.also { desyncCatalog = it }
+                val names = direct.joinToString(", ") { route ->
+                    full?.services?.firstOrNull { "desync-${it.id}" == route.name }?.name
+                        ?: if (route.name == "desync-custom") context.getString(R.string.desync_custom_domains) else route.name
+                }
+                context.getString(R.string.desync_overlay_status_direct, names)
+            }
+            routes.any { !it.checked } -> context.getString(R.string.desync_overlay_status_checking)
+            else -> context.getString(R.string.desync_overlay_status_none)
+        }
     }
 
     internal suspend fun MainDesign.fetchTraffic() {

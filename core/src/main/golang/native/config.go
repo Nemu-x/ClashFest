@@ -12,6 +12,7 @@ import (
 	"cfa/native/app"
 	"cfa/native/config"
 	"cfa/native/config/configscript"
+	"cfa/native/desync"
 	"cfa/native/snapshot"
 )
 
@@ -105,7 +106,13 @@ func load(completable unsafe.Pointer, path C.c_string) {
 			}
 		}()
 
-		C.complete(completable, marshalString(config.Load(path)))
+		err := config.Load(path)
+		if err == nil {
+			// The overlay groups of the new config start on the subscription's
+			// route; their checks run in the background.
+			desync.StartOverlayRouting()
+		}
+		C.complete(completable, marshalString(err))
 
 		C.release_object(completable)
 		completed = true

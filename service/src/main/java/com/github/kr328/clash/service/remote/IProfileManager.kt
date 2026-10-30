@@ -227,4 +227,14 @@ interface IProfileManager {
      * reloads it). Returns null on success, else the reason; nothing is stored when it fails.
      */
     suspend fun updateDesyncSettings(uuid: UUID, settingsJson: String): String?
+
+    /** Desync on top of the subscription of [uuid]: a `DesyncOverlayState` JSON. */
+    suspend fun readDesyncOverlay(uuid: UUID): String
+
+    /**
+     * Stores desync on top of the subscription of [uuid] ([overlayJson], a `DesyncOverlay` JSON)
+     * and re-composes the profile (a running core reloads it). Turning it on is dry-run first:
+     * returns null on success, else the reason, and nothing is stored when it fails.
+     */
+    suspend fun writeDesyncOverlay(uuid: UUID, overlayJson: String): String?
 }

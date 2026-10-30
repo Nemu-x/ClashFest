@@ -32,6 +32,7 @@ object ProfileOverlay {
         parseSnapshot: (File) -> ProfileSnapshot?,
         scriptRunner: ConfigScriptRunner = ConfigScriptRunner.Disabled,
         realityCompat: Boolean = false,
+        desyncRunner: DesyncOverlayRunner = DesyncOverlayRunner.Disabled,
     ): Boolean {
         ProfileMigration.migrateIfNeeded(
             profileDir = profileDir,
@@ -49,6 +50,7 @@ object ProfileOverlay {
             hardeningMode = hardeningMode,
             scriptRunner = scriptRunner,
             realityCompat = realityCompat,
+            desyncRunner = desyncRunner,
         )
     }
 
@@ -63,6 +65,7 @@ object ProfileOverlay {
         importedDir: File,
         store: ServiceStore,
         scriptRunner: ConfigScriptRunner = ConfigScriptRunner.Disabled,
+        desyncRunner: DesyncOverlayRunner = DesyncOverlayRunner.Disabled,
     ): Boolean {
         val rulesStateJson = File(profileDir, "rules_state.json")
             .takeIf { it.isFile }
@@ -85,6 +88,7 @@ object ProfileOverlay {
             parseSnapshot = { d -> runCatching { Clash.parseProfileSnapshot(d) }.getOrNull() },
             scriptRunner = scriptRunner,
             realityCompat = store.realityComposeRewrite,
+            desyncRunner = desyncRunner,
         )
     }
 }

@@ -7,7 +7,8 @@ import java.util.UUID
 
 /**
  * Operator policy headers that travel per subscription: `X-Network-Stack` (TUN stack lock),
- * `share-links` (share-link lock) and `X-Bypass-Preset` (bypass preset recommendation).
+ * `share-links` (share-link lock), `X-Bypass-Preset` (bypass preset recommendation) and
+ * `X-Desync` (desync on top of the subscription, see [DesyncOverlayPolicy]).
  *
  * They used to be stored only by the UI's metadata sync, which is throttled to once per ~6 hours
  * and only ever *set* a value: a changed header took hours to land, and a header the operator
@@ -21,6 +22,7 @@ object OperatorPolicyHeaders {
         val networkStack: String?,
         val shareLinksLocked: Boolean,
         val bypassPreset: String?,
+        val desync: String?,
     )
 
     fun policyOf(headers: FetchHeadersFile): Policy {
@@ -29,6 +31,7 @@ object OperatorPolicyHeaders {
             networkStack = meta.networkStack,
             shareLinksLocked = meta.shareLinksDisable == true,
             bypassPreset = meta.bypassPreset?.takeUnless { it == "none" },
+            desync = meta.desyncPolicy,
         )
     }
 
@@ -38,5 +41,6 @@ object OperatorPolicyHeaders {
         store.setSubscriptionNetworkStackFor(uuid, policy.networkStack)
         store.setSubscriptionShareLinksLockedFor(uuid, policy.shareLinksLocked)
         store.setSubscriptionBypassPresetFor(uuid, policy.bypassPreset)
+        store.setSubscriptionDesyncPolicyFor(uuid, policy.desync)
     }
 }

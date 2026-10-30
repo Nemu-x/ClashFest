@@ -1,6 +1,7 @@
 package com.github.kr328.clash.service.util
 
 import com.github.kr328.clash.common.log.Log
+import com.github.kr328.clash.service.model.DesyncProfileSettings
 import com.github.kr328.clash.service.model.RuleState
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -24,6 +25,7 @@ import java.util.UUID
  *                     (`RuleProvidersYamlEdit.mergeIntoConfig`; union)
  *  - [proxyChain]     proxy-chain (dialer-proxy) intent: target proxy name → dialer proxy name
  *  - [script]         the user's JS config script (see [UserScript])
+ *  - [desync]         desync on top of the subscription (see [DesyncOverlay])
  *
  * Population of the slots (re-pointing the editors) is Group 2.3; composition is Group 3. Until
  * then this type is inert.
@@ -40,6 +42,7 @@ data class UserLayer(
     val relayGroups: List<RelayGroup> = emptyList(),
     val proxyChain: Map<String, String> = emptyMap(),
     val script: UserScript? = null,
+    val desync: DesyncOverlay? = null,
 ) {
     /** True when the user has no edits — nothing to compose on top of the subscription. */
     fun isEmpty(): Boolean =
@@ -51,7 +54,8 @@ data class UserLayer(
             ruleProviders.isNullOrBlank() &&
             relayGroups.isEmpty() &&
             proxyChain.isEmpty() &&
-            (script == null || script.source.isBlank())
+            (script == null || script.source.isBlank()) &&
+            desync == null
 
     companion object {
         const val CURRENT_VERSION = 1
@@ -84,6 +88,17 @@ data class UserScript(
     val effective: String
         get() = if (enabled) source else ""
 }
+
+/**
+ * The user's choice for desync on top of the subscription: which services and strategy, and
+ * whether it is on. Stored even when off, so turning it back on keeps the selection, and so an
+ * explicit "off" wins over an operator's `X-Desync: on` (see [DesyncOverlayPolicy]).
+ */
+@Serializable
+data class DesyncOverlay(
+    val enabled: Boolean = true,
+    val settings: DesyncProfileSettings = DesyncProfileSettings(),
+)
 
 /** A user-created `select` proxy-group fed by proxy-providers (the relay feature). */
 @Serializable

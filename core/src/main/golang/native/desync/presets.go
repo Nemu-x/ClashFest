@@ -26,6 +26,9 @@ type Options struct {
 	Fake             *FakeOptions   `json:"fake,omitempty" yaml:"fake,omitempty"`
 	UDP              *UDPOptions    `json:"udp,omitempty" yaml:"udp,omitempty"`
 	RejectQUIC       bool           `json:"reject-quic,omitempty" yaml:"reject-quic,omitempty"`
+	// DNSFallback retries an empty answer of the direct nameservers with the
+	// profile's resolver (the overlay sets it, see overlay.go).
+	DNSFallback bool `json:"dns-fallback,omitempty" yaml:"dns-fallback,omitempty"`
 }
 
 type RandomOptions struct {
