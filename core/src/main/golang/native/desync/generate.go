@@ -9,6 +9,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"cfa/native/config/fakeipdefaults"
 	"cfa/native/snapshot"
 )
 
@@ -121,8 +122,23 @@ type generatedGroup struct {
 	Lazy     bool     `yaml:"lazy"`
 }
 
+// generatedDNS is the app's default fake-ip DNS (patchDns) with the system
+// resolver only. Measured on Russian mobile networks, plain DNS to public
+// resolvers answers blocked names with forged NXDOMAIN (8.8.4.4, 1.0.0.1) or
+// with addresses the network drops at TCP connect (223.5.5.5, 119.29.29.29 for
+// Instagram), and the engine takes whichever answer comes first; the
+// operator's resolver returned addresses desync gets through to.
+type generatedDNS struct {
+	Enable       bool     `yaml:"enable"`
+	EnhancedMode string   `yaml:"enhanced-mode"`
+	FakeIPRange  string   `yaml:"fake-ip-range"`
+	FakeIPFilter []string `yaml:"fake-ip-filter"`
+	NameServer   []string `yaml:"nameserver"`
+}
+
 type generatedProfile struct {
 	Mode        string           `yaml:"mode"`
+	DNS         generatedDNS     `yaml:"dns"`
 	Proxies     []generatedProxy `yaml:"proxies"`
 	ProxyGroups []generatedGroup `yaml:"proxy-groups,omitempty"`
 	Rules       []string         `yaml:"rules"`
@@ -217,7 +233,13 @@ func generateConfig(req Request, catalog Catalog) (string, error) {
 		return opts
 	}
 
-	profile := generatedProfile{Mode: "rule"}
+	profile := generatedProfile{Mode: "rule", DNS: generatedDNS{
+		Enable:       true,
+		EnhancedMode: "fake-ip",
+		FakeIPRange:  fakeipdefaults.Range,
+		FakeIPFilter: fakeipdefaults.Filter(),
+		NameServer:   []string{"system://"},
+	}}
 	for _, r := range routes {
 		if len(tcps) == 1 {
 			profile.Proxies = append(profile.Proxies, generatedProxy{Name: r.proxy, Type: "desync", Options: optionsOf(tcps[0])})

@@ -8,6 +8,7 @@ import (
 	"github.com/Nemu-x/desync/presets"
 	"gopkg.in/yaml.v3"
 
+	"cfa/native/config/fakeipdefaults"
 	"cfa/native/snapshot"
 )
 
@@ -62,6 +63,25 @@ func TestGenerateConfig(t *testing.T) {
 	}
 	if !strings.HasPrefix(y, "# ") {
 		t.Error("no header")
+	}
+
+	var dns struct {
+		DNS struct {
+			Enable       bool     `yaml:"enable"`
+			EnhancedMode string   `yaml:"enhanced-mode"`
+			FakeIPRange  string   `yaml:"fake-ip-range"`
+			FakeIPFilter []string `yaml:"fake-ip-filter"`
+			NameServer   []string `yaml:"nameserver"`
+		} `yaml:"dns"`
+	}
+	if err := yaml.Unmarshal([]byte(y), &dns); err != nil {
+		t.Fatal(err)
+	}
+	d := dns.DNS
+	if !d.Enable || d.EnhancedMode != "fake-ip" || d.FakeIPRange != fakeipdefaults.Range ||
+		strings.Join(d.FakeIPFilter, ",") != strings.Join(fakeipdefaults.Filter(), ",") ||
+		strings.Join(d.NameServer, ",") != "system://" {
+		t.Errorf("dns = %+v", d)
 	}
 }
 
