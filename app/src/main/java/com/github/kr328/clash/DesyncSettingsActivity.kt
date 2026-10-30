@@ -6,22 +6,21 @@ import com.github.kr328.clash.common.log.Log
 import com.github.kr328.clash.common.util.intent
 import com.github.kr328.clash.common.util.setUUID
 import com.github.kr328.clash.common.util.uuid
-import com.github.kr328.clash.core.Clash
-import com.github.kr328.clash.core.model.DesyncCapabilities
-import com.github.kr328.clash.core.model.DesyncPresetCatalog
-import com.github.kr328.clash.core.model.DesyncService
+import com.github.kr328.clash.core.model.DesyncCatalog
 import com.github.kr328.clash.design.DesyncSettingsDesign
 import com.github.kr328.clash.design.R
 import com.github.kr328.clash.design.model.DesyncSettingsForm
 import com.github.kr328.clash.design.ui.ToastDuration
 import com.github.kr328.clash.service.model.DesyncProfileSettings
 import com.github.kr328.clash.util.commitProfileWithProgress
+import com.github.kr328.clash.util.withClash
 import com.github.kr328.clash.util.withProfile
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import java.util.UUID
 
 /**
@@ -31,12 +30,6 @@ import java.util.UUID
  * regenerates the profile, and a running core reloads it.
  */
 class DesyncSettingsActivity : BaseActivity<DesyncSettingsDesign>() {
-    private class Catalogs(
-        val services: List<DesyncService>,
-        val presets: DesyncPresetCatalog,
-        val capabilities: DesyncCapabilities,
-    )
-
     override suspend fun main() {
         val uuid = intent.uuid
         val profile = uuid?.let { withProfile { queryByUUID(it) } }
@@ -48,8 +41,9 @@ class DesyncSettingsActivity : BaseActivity<DesyncSettingsDesign>() {
         val design = DesyncSettingsDesign(this, mode)
         setContentDesign(design)
 
-        val loaded = withContext(Dispatchers.IO) {
-            runCatching { Catalogs(Clash.desyncServices(), Clash.desyncPresets(), Clash.desyncCapabilities()) }
+        // From the service, never the bridge in this process: see IClashManager.queryDesyncCatalog.
+        val loaded = runCatching {
+            Json { ignoreUnknownKeys = true }.decodeFromString(DesyncCatalog.serializer(), withClash { queryDesyncCatalog() })
         }.onFailure { Log.w("Desync catalogs unavailable", it) }
         val catalogs = loaded.getOrNull()
 

@@ -9,6 +9,7 @@ import com.github.kr328.clash.core.model.Proxy
 import com.github.kr328.clash.core.model.TunnelState
 import com.github.kr328.clash.core.util.trafficDownload
 import com.github.kr328.clash.core.util.trafficUpload
+import com.github.kr328.clash.core.model.DesyncCatalog
 import com.github.kr328.clash.core.model.DesyncPresetCatalog
 import com.github.kr328.clash.core.model.DesyncStatus
 import com.github.kr328.clash.design.MainDesign
@@ -302,9 +303,10 @@ internal class MainDashboard(private val activity: MainActivity) {
             setDesyncStatusLine(null)
             return
         }
-        val catalog = desyncCatalog ?: withContext(Dispatchers.IO) {
-            runCatching { Clash.desyncPresets() }.getOrNull()
-        }?.also { desyncCatalog = it }
+        // From the service, never Clash.desyncPresets() here: see IClashManager.queryDesyncCatalog.
+        val catalog = desyncCatalog ?: runCatching {
+            desyncJson.decodeFromString(DesyncCatalog.serializer(), withClash { queryDesyncCatalog() }).presets
+        }.getOrNull()?.also { desyncCatalog = it }
         val settings = DesyncProfileSettings.decode(active.desyncSettings) ?: DesyncProfileSettings()
         val name = DesyncLabels.strategyName(
             context,

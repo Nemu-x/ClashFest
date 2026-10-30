@@ -93,6 +93,14 @@ data class DesyncService(
     val domains: List<String>,
 )
 
+/** Services, strategy catalog and capabilities in one answer of `IClashManager.queryDesyncCatalog`. */
+@Serializable
+data class DesyncCatalog(
+    val services: List<DesyncService>,
+    val presets: DesyncPresetCatalog,
+    val capabilities: DesyncCapabilities,
+)
+
 @Serializable
 data class DesyncConfigRequest(
     /** IDs of [com.github.kr328.clash.core.Clash.desyncServices]. */
