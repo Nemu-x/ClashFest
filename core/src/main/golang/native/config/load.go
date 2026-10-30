@@ -106,7 +106,16 @@ func Validate(path string) error {
 }
 
 func LoadDefault() {
-	cfg, err := config.Parse([]byte{})
+	// The empty config has no groups to restore, and store-selected would make ApplyConfig open
+	// the engine's cache file (an exclusive bbolt lock held for the life of the process) in every
+	// process that loads the bridge: a UI process that got there first left the core in the
+	// service process without fake-ip mappings. The real profile opens it in the service.
+	rawCfg, err := config.UnmarshalRawConfig([]byte{})
+	if err != nil {
+		panic(err.Error())
+	}
+	rawCfg.Profile.StoreSelected = false
+	cfg, err := config.ParseRawConfig(rawCfg)
 	if err != nil {
 		panic(err.Error())
 	}

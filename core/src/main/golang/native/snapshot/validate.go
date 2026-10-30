@@ -34,12 +34,24 @@ func ValidateBytes(data []byte) string {
 	if err != nil {
 		return err.Error()
 	}
-	cfg, err := config.ParseRawConfig(rawCfg)
+	cfg, err := parseReadOnly(rawCfg)
 	if err != nil {
 		return err.Error()
 	}
 	closeProviders(cfg)
 	return ""
+}
+
+// parseReadOnly is config.ParseRawConfig for a parse that is not applied:
+// without store-fake-ip / store-selected. With them the engine opens its
+// cache file (cachefile.Cache: an exclusive bbolt lock, kept for the life of
+// the process) while building the fake-ip pool, and a UI process that does
+// so first leaves the core in the service process without fake-ip mappings.
+// Neither flag changes whether a config is valid or what its groups are.
+func parseReadOnly(rawCfg *config.RawConfig) (*config.Config, error) {
+	rawCfg.Profile.StoreFakeIP = false
+	rawCfg.Profile.StoreSelected = false
+	return config.ParseRawConfig(rawCfg)
 }
 
 // closeProviders mirrors cfa/native/config.destroyProviders but lives here to
