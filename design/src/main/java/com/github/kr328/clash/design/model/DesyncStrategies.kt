@@ -133,14 +133,20 @@ sealed class DesyncRuntimeSummary {
     /** Running, but no desync proxy is loaded (another profile is loading, or the load failed). */
     object NotLoaded : DesyncRuntimeSummary()
 
-    /** Running with [routes] desync proxies (one per service, plus one for custom domains). */
-    data class Active(val routes: Int) : DesyncRuntimeSummary()
+    /**
+     * Running with [routes] routes (one per service, plus one for custom domains); [needsVpn] are the
+     * routes of automatic selection whose candidates were all checked and none got through.
+     */
+    data class Active(val routes: Int, val needsVpn: List<String> = emptyList()) : DesyncRuntimeSummary()
 
     companion object {
         fun of(running: Boolean, status: DesyncStatus?): DesyncRuntimeSummary = when {
             !running -> Stopped
             status == null || status.proxies.isEmpty() -> NotLoaded
-            else -> Active(status.proxies.size)
+            else -> Active(
+                routes = status.routes.size.takeIf { it > 0 } ?: status.proxies.size,
+                needsVpn = status.routes.filter { it.checked && !it.working }.map { it.name },
+            )
         }
     }
 }

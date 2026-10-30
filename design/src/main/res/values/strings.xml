@@ -1366,6 +1366,8 @@ Password: %4$s</string>
     <string name="desync_strategy_intro">How the first message of a connection is reshaped. Networks block in different ways, so a strategy that works on one connection may not work on another. If a service does not open, try a different one. The app does not test strategies for you yet.</string>
     <string name="desync_strategy_automatic">Automatic (recommended)</string>
     <string name="desync_strategy_automatic_summary">The library’s first choice for this device: %1$s</string>
+    <string name="desync_strategy_automatic_multi_summary">Tries %1$d strategies for each service and keeps one that gets through. It checks them when the profile loads and every 10 minutes while the service is in use.</string>
+    <string name="desync_strategy_automatic_short">Automatic</string>
     <string name="desync_strategy_variant">%1$s, variant %2$d</string>
     <string name="desync_strategy_unknown">Unknown strategy</string>
     <string name="desync_kind_record_split">Split the TLS record</string>
@@ -1398,5 +1400,6 @@ Password: %4$s</string>
     <string name="desync_library_version">Desync library %1$s</string>
     <string name="desync_skipped_count">Strategies this device cannot use: %1$d</string>
     <string name="desync_status_active">%1$s · active on %2$d routes</string>
+    <string name="desync_status_active_needs_vpn">%1$s · active on %2$d routes · needs a VPN: %3$s</string>
     <string name="desync_status_not_loaded">%1$s · not loaded yet</string>
 </resources>

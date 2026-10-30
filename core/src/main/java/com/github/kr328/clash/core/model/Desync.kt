@@ -80,6 +80,8 @@ data class DesyncSkippedPreset(
 data class DesyncPresetCatalog(
     val catalogVersion: String,
     val defaultTcp: String,
+    /** IDs automatic selection tries per route, in order; fewer than two: automatic is [defaultTcp]. */
+    val autoTcp: List<String> = emptyList(),
     val tcp: List<DesyncPreset>,
     val udp: List<DesyncPreset>,
     val skipped: List<DesyncSkippedPreset> = emptyList(),
@@ -137,7 +139,19 @@ data class DesyncProxyStatus(
     val udpDiagnostics: JsonObject? = null,
 )
 
+/** A fallback group over desync candidates (automatic selection): the candidate it uses [now]. */
+@Serializable
+data class DesyncRouteStatus(
+    val name: String,
+    val now: String = "",
+    /** Every candidate has been checked; with ![working], no strategy gets through (needs a VPN). */
+    val checked: Boolean = false,
+    val working: Boolean = false,
+)
+
 @Serializable
 data class DesyncStatus(
     val proxies: List<DesyncProxyStatus> = emptyList(),
+    /** One per route with automatic selection; empty with a fixed preset (a proxy per route). */
+    val routes: List<DesyncRouteStatus> = emptyList(),
 )
