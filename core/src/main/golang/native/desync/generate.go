@@ -136,9 +136,25 @@ type generatedDNS struct {
 	NameServer   []string `yaml:"nameserver"`
 }
 
+// generatedSniffer reads the server name of TLS and QUIC connections an app
+// opens to a bare IP (no DNS through the core, as Meta's apps do), so that
+// the domain rules - and reject-quic - apply to them too. The destination
+// stays the address the app chose.
+type generatedSniffer struct {
+	Enable       bool                           `yaml:"enable"`
+	OverrideDest bool                           `yaml:"override-destination"`
+	ParsePureIP  bool                           `yaml:"parse-pure-ip"`
+	Sniff        map[string]generatedSniffPorts `yaml:"sniff"`
+}
+
+type generatedSniffPorts struct {
+	Ports []int `yaml:"ports"`
+}
+
 type generatedProfile struct {
 	Mode        string           `yaml:"mode"`
 	DNS         generatedDNS     `yaml:"dns"`
+	Sniffer     generatedSniffer `yaml:"sniffer"`
 	Proxies     []generatedProxy `yaml:"proxies"`
 	ProxyGroups []generatedGroup `yaml:"proxy-groups,omitempty"`
 	Rules       []string         `yaml:"rules"`
@@ -239,6 +255,13 @@ func generateConfig(req Request, catalog Catalog) (string, error) {
 		FakeIPRange:  fakeipdefaults.Range,
 		FakeIPFilter: fakeipdefaults.Filter(),
 		NameServer:   []string{"system://"},
+	}, Sniffer: generatedSniffer{
+		Enable:      true,
+		ParsePureIP: true,
+		Sniff: map[string]generatedSniffPorts{
+			"TLS":  {Ports: []int{443}},
+			"QUIC": {Ports: []int{443}},
+		},
 	}}
 	for _, r := range routes {
 		if len(tcps) == 1 {

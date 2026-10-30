@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/Nemu-x/desync/presets"
+	"github.com/metacubex/mihomo/config"
+	snifferType "github.com/metacubex/mihomo/constant/sniffer"
 	"gopkg.in/yaml.v3"
 
 	"cfa/native/config/fakeipdefaults"
@@ -212,5 +214,32 @@ func TestGenerateConfigJSON(t *testing.T) {
 	}
 	if bad.YAML != "" || !strings.HasPrefix(bad.Error, "malformed request") {
 		t.Fatalf("result = %+v", bad)
+	}
+}
+
+// The engine's own parse of a generated profile: sniffing TLS and QUIC on 443
+// without overriding the destination the app chose.
+func TestGenerateConfigSniffer(t *testing.T) {
+	y, err := generateConfig(Request{Services: []string{"youtube"}}, Presets())
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := config.UnmarshalRawConfig([]byte(y))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.ParseRawConfig(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := cfg.Sniffer
+	if s == nil || !s.Enable || !s.ParsePureIp || len(s.Sniffers) != 2 {
+		t.Fatalf("sniffer = %+v", s)
+	}
+	for _, typ := range []snifferType.Type{snifferType.TLS, snifferType.QUIC} {
+		c, ok := s.Sniffers[typ]
+		if !ok || c.OverrideDest || !c.Ports.Check(443) || c.Ports.Check(80) {
+			t.Errorf("%v = %+v (present %v)", typ, c, ok)
+		}
 	}
 }
