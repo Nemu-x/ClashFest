@@ -87,7 +87,9 @@ the hybrid share.
 Only the chrome specs in `metacubex/utls` 1.8.8 carry the hybrid share (`HelloChrome_131`,
 `HelloChrome_133`); firefox, safari, ios and edge cannot offer it. When a hybrid handshake is
 wanted and the configured fingerprint cannot produce one, the patch uses chrome for that
-handshake, because the alternative is a node that can never connect to a 26.9.8+ server.
+handshake, because the alternative is a node that can never connect to a 26.9.8+ server. 0015
+narrows that: firefox and safari now switch to their own current browser hello instead; chrome
+stays the fallback only for the families that have none.
 
 Lab: stock core fails `26.9.9 classic` and `24.12.31 hybrid`; with the patch in Auto every
 server passes, the one wrong guess against 26.9.9 costs ~200 ms (the classic attempt fails
@@ -284,6 +286,34 @@ vanilla code path runs untouched unless an option is set. Ours on the idea of Ci
 (`DisableServeExpired` instead of Citrus' `ServeExpired` for that reason), with our own test.
 
 Upstream: none. Delete when mihomo has an equivalent.
+
+### 0015 REALITY: current Firefox and Safari hellos for the hybrid share
+
+Xray 26.9.8+ forwards a REALITY ClientHello without X25519MLKEM768 to the cover site, and in
+`metacubex/utls` 1.8.8 only chrome (Chrome 133) has that share: `firefox` is Firefox 120 and
+`safari` is Safari 16.0. 0002 therefore sent chrome's hello for such a server, so a proxy set to
+firefox or safari silently changed its fingerprint (and Chrome 133-149 hellos are reported to be
+rate-limited on some networks). The patch carries `HelloFirefox_148` and `HelloSafari_26_3` from
+`metacubex/utls` branch `v1.9.0-mod-meta` (`a6a364a`), the parrots Xray 26.10.x itself sends as
+`firefox` / `safari`, as data in `component/tls/reality_pq_specs.go`, applied through
+`HelloCustom` + `ApplyPreset`; the library stays on the released 1.8.8. Firefox sends one X25519
+key in both the hybrid and the standalone share, so after `ApplyPreset` the standalone share is
+rewritten to the hybrid's key (1.8.8 would generate two). Safari keeps two keys, as in the spec.
+
+Only the handshakes that need the hybrid share use these hellos (forced, policy On, or Auto after
+the classic hello failed); the classic attempt is unchanged. ios, edge and the randomized families
+have no post-quantum parrot and still borrow chrome's. The default client version moves from
+`26.9.9` to `26.10.29`, the Xray release the series was checked against (a per-proxy
+`client-version` still wins).
+
+Tests in the patch: both hellos pass the XTLS/REALITY key-share gate (one hybrid share, X25519 only
+after it) and the X25519 key the server will use is the client's auth key; Firefox reuses the key,
+Safari does not; specs are fresh per handshake; chrome / ios / edge / randomized get no spec. The
+same patch is SlothClash's 0024; its REALITY lab checks firefox and safari, forced and Auto,
+against Xray 24.12.31 to 26.10.29.
+
+Upstream: MetaCubeX/mihomo#3319 (closed: no unreleased utls). Delete when mihomo moves to a utls
+release whose `firefox` / `safari` parrots carry the hybrid share.
 
 ## Citrus compatibility suite
 
