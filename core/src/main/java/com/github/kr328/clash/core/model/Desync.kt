@@ -8,7 +8,12 @@ import kotlinx.serialization.json.JsonObject
  * docs/core-patches.md); the Go side is `cfa/native/desync`.
  */
 
-/** What the desync library implements on this device. Static for a library version. */
+/**
+ * What the desync library implements on this device. Static for a library version. On Android
+ * the methods that need a socket's unsent bytes (`split-wait-sent`, `fake-tcp`, `disorder`) are
+ * reported false and listed in [conditional]; [probed] resolves them on a loopback socket of
+ * this process, which answers for every connection of it.
+ */
 @Serializable
 data class DesyncCapabilities(
     val os: String,
@@ -21,6 +26,10 @@ data class DesyncCapabilities(
     val autoTtl: AutoTtl,
     /** Method ("fake-tcp", "fake-udp", "disorder", "oob", "auto-ttl-ipv4", ...) -> reason. */
     val unsupported: Map<String, String> = emptyMap(),
+    /** Methods decided per socket (Android) -> reason; also in [unsupported]. */
+    val conditional: Map<String, String> = emptyMap(),
+    /** The loopback probe; null from a core without it. */
+    val probed: Probe? = null,
     val libraryVersion: String = "",
     val static: Boolean = true,
     val note: String = "",
@@ -33,6 +42,16 @@ data class DesyncCapabilities(
 
     @Serializable
     data class AutoTtl(val mechanism: String, val ipv4: Boolean, val ipv6: Boolean)
+
+    /** What a socket of this process can do; [error] is set when the probe could not run. */
+    @Serializable
+    data class Probe(
+        val fakeTcp: Boolean = false,
+        val disorder: Disorder? = null,
+        val ack: Ack? = null,
+        val unsupported: Map<String, String> = emptyMap(),
+        val error: String = "",
+    )
 }
 
 /**

@@ -315,9 +315,15 @@ at config validation: an option the platform lacks fails the proxy instead of fa
 DIRECT. Kotlin decodes the adapter type as `Proxy.Type.Desync`; the feature token is `desync`
 (`cfa/native/features` references `outbound.NewDesync` and `C.Desync`).
 
-**Library version.** The patches pin `v0.1.0` in the submodule's `go.mod`; ClashFest builds with the
-version that `core/src/main/golang/go.mod` requires (currently **v0.2.0**, which adds the `presets`
-catalog the bridge serves; the `replace` of mihomo makes the main module's requirement win). To bump:
+**Library version.** The patches and `core/src/main/golang/go.mod` pin desync main at 673cbef
+(`v0.2.1-0.20261029232908-673cbefddb80`, Nemu-x/desync#11; it becomes the `v0.2.1` tag once that is
+published). It carries the `presets` catalog the bridge serves (v0.2.0) and the Android fix: apps may
+not read `SIOCOUTQNSD`, so `split-wait: sent`, `disorder` and `fake` read unsent bytes from `TCP_INFO`
+(Linux 4.6+) and are decided per socket. `PlatformCapabilities()` lists them in `Conditional`; the
+outbound (0021) accepts them and logs once per proxy that they are verified per connection, and a socket
+without the field fails its connection before anything is sent. ClashFest builds with the version that
+`core/src/main/golang/go.mod` requires (the `replace` of mihomo makes the main module's requirement
+win). To bump:
 edit that require line, then sync both modules with the `go list -mod=mod` commands of
 docs/core-update.md (step 3), which also update `core/src/foss/golang/go.mod` / `go.sum`; never
 `go mod tidy`. `Clash.desyncCapabilities().libraryVersion` reports the linked version at runtime.
@@ -327,8 +333,8 @@ docs/core-update.md (step 3), which also update `core/src/foss/golang/go.mod` / 
 
 | Kotlin | Go export | Returns |
 |---|---|---|
-| `Clash.desyncCapabilities()` | `desyncCapabilities` | `desync.PlatformCapabilities()`; static per library version |
-| `Clash.desyncPresets()` | `desyncPresets` | the `presets` catalog usable here, options as the outbound's YAML keys |
+| `Clash.desyncCapabilities()` | `desyncCapabilities` | `desync.PlatformCapabilities()` with `conditional`, plus `probed`: `desync.ProbeCapabilities` of a loopback connection, once per process |
+| `Clash.desyncPresets()` | `desyncPresets` | the `presets` catalog usable here (filtered by the probe, else the platform report), options as the outbound's YAML keys |
 | `Clash.desyncServices()` | `desyncServices` | services a desync-only profile can route (`native/desync/services.go`) |
 | `Clash.queryDesyncStatus()`, `IClashManager.queryDesyncStatus()` | `queryDesyncStatus` | the `desync` object of every desync proxy of the running config |
 | `Clash.generateDesyncOnlyConfig(request)` | `generateDesyncOnlyConfig` | a profile: one desync proxy per service, `MATCH,DIRECT`, engine-validated |
