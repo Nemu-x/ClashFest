@@ -31,7 +31,7 @@ proxy-groups:
 rules:
   - DOMAIN-SUFFIX,youtube.com,Video
   - DOMAIN-SUFFIX,discord.com,Proxy
-  - GEOIP,RU,DIRECT
+  - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
   - MATCH,Proxy
 `
 
@@ -74,7 +74,7 @@ func TestComposeOverlayKeepsTheSubscription(t *testing.T) {
 	for _, r := range cfg.Rules {
 		rules = append(rules, r.RuleType().String()+","+r.Payload()+","+r.Adapter())
 	}
-	tail := []string{"DomainSuffix,youtube.com,Video", "DomainSuffix,discord.com,Proxy", "GeoIP,ru,DIRECT", "Match,,Proxy"}
+	tail := []string{"DomainSuffix,youtube.com,Video", "DomainSuffix,discord.com,Proxy", "IPCIDR,10.0.0.0/8,DIRECT", "Match,,Proxy"}
 	if got := rules[len(rules)-len(tail):]; strings.Join(got, "|") != strings.Join(tail, "|") {
 		t.Errorf("subscription rules = %q, want %q", got, tail)
 	}
