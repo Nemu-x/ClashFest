@@ -754,8 +754,16 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         // operator policy (the service also keeps such a profile's session on rule).
         val hideGlobal = brandHolder.manifest.hideGlobalMode == true || activeProfileDesyncOnly
         // Hide only the Global segment (not the whole Mode row) so "Mode: Rule" still reads clearly
-        // and the card outline stays intact. The toggle group re-rounds the lone Rule button.
-        binding.mainModeGlobal.visibility = if (hideGlobal) View.GONE else View.VISIBLE
+        // and the card outline stays intact.
+        val globalVisibility = if (hideGlobal) View.GONE else View.VISIBLE
+        if (binding.mainModeGlobal.visibility != globalVisibility) {
+            binding.mainModeGlobal.visibility = globalVisibility
+            // MaterialButtonGroup recomputes child corners only when its shapes are marked dirty
+            // (child added/removed, shape setters), not on a child's visibility change: re-set the
+            // inner corner so the lone Rule button gets its outer corners back (and Global's return
+            // squares them again).
+            binding.mainModeSegment.innerCornerSize = binding.mainModeSegment.innerCornerSize
+        }
         if (hideGlobal && currentModeSegment == TunnelState.Mode.Global) {
             // Operator forbids Global — flip back to Rule, mirroring a user tap on the Rule segment.
             requests.trySend(Request.PatchModeRule)
