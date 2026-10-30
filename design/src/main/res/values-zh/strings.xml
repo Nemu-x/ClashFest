@@ -1301,7 +1301,7 @@
     <string name="desync_udp">通话和 QUIC（UDP）</string>
     <string name="desync_udp_off">关闭：阻止 QUIC，让应用改用 TCP（推荐）</string>
     <string name="desync_device">此设备支持的功能</string>
-    <string name="desync_device_intro">此应用版本中的 Desync 库在本设备上实现了哪些方法。该列表在同一应用版本内固定不变：它不是对你网络的测试，标记为可用的方法在你所在的地方仍可能被封锁。</string>
+    <string name="desync_device_intro">Desync 库在本机上能做什么。标记为已检查的方法已在本应用的连接上测试，其余取决于 Android 和应用版本。“可用”并不代表在你的网络中一定能通过。</string>
     <string name="desync_method_ttl">数据包生存时间（TTL）控制</string>
     <string name="desync_method_fake_tcp">TCP 诱饵数据包</string>
     <string name="desync_method_fake_udp">UDP 诱饵数据包</string>
@@ -1309,9 +1309,14 @@
     <string name="desync_method_oob">带外字节</string>
     <string name="desync_method_auto_ttl_ipv4">自动诱饵生存时间（IPv4）</string>
     <string name="desync_method_auto_ttl_ipv6">自动诱饵生存时间（IPv6）</string>
+    <string name="desync_method_split_wait">等待分段发出</string>
     <string name="desync_method_available">%1$s：可用</string>
     <string name="desync_method_unavailable">%1$s：不可用（%2$s）</string>
     <string name="desync_method_unavailable_plain">%1$s：不可用</string>
+    <string name="desync_method_available_checked">%1$s：可用（已在本机检查）</string>
+    <string name="desync_method_per_connection">%1$s：每个连接时检查</string>
+    <string name="desync_reason_unsent_bytes">本机不允许应用读取连接中尚未发送的数据</string>
+    <string name="desync_reason_auto_ttl_ipv4">Android 不向应用提供入站 IPv4 数据包的生存时间</string>
     <string name="desync_library_version">Desync 库 %1$s</string>
     <string name="desync_skipped_count">此设备无法使用的策略：%1$d</string>
     <string name="desync_status_active">%1$s · 已在 %2$d 条路由上生效</string>
