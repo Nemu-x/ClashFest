@@ -31,6 +31,11 @@ type RouteStatus struct {
 	Name string `json:"name"`
 	// Now is the candidate the group uses.
 	Now string `json:"now"`
+	// Checked: every candidate has been checked with the group's URL.
+	Checked bool `json:"checked"`
+	// Working: some candidate passed its last check. Checked && !Working
+	// means no strategy gets through: the service needs a VPN here.
+	Working bool `json:"working"`
 }
 
 // Status lists the desync proxies of the running configuration.
@@ -115,16 +120,24 @@ func routeOf(p C.Proxy, proxies map[string]C.Proxy) (RouteStatus, bool) {
 		return RouteStatus{}, false
 	}
 	var group struct {
-		Now string   `json:"now"`
-		All []string `json:"all"`
+		Now     string   `json:"now"`
+		All     []string `json:"all"`
+		TestURL string   `json:"testUrl"`
 	}
 	if json.Unmarshal(raw, &group) != nil || len(group.All) == 0 {
 		return RouteStatus{}, false
 	}
+	r := RouteStatus{Name: p.Name(), Now: group.Now, Checked: true}
 	for _, name := range group.All {
-		if m := proxies[name]; m == nil || m.Type() != C.Desync {
+		m := proxies[name]
+		if m == nil || m.Type() != C.Desync {
 			return RouteStatus{}, false
 		}
+		if len(m.ExtraDelayHistories()[group.TestURL].History) == 0 {
+			r.Checked = false
+		} else if m.AliveForTestUrl(group.TestURL) {
+			r.Working = true
+		}
 	}
-	return RouteStatus{Name: p.Name(), Now: group.Now}, true
+	return r, true
 }

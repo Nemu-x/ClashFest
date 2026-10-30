@@ -1392,5 +1392,6 @@
     <string name="desync_library_version">Библиотека Desync %1$s</string>
     <string name="desync_skipped_count">Стратегий, недоступных на этом устройстве: %1$d</string>
     <string name="desync_status_active">%1$s · работает на %2$d маршрутах</string>
+    <string name="desync_status_active_needs_vpn">%1$s · работает на %2$d маршрутах · нужен VPN: %3$s</string>
     <string name="desync_status_not_loaded">%1$s · ещё не загружено</string>
 </resources>

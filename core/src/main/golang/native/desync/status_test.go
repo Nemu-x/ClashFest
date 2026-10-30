@@ -1,8 +1,14 @@
 package desync
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"net"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/metacubex/mihomo/adapter"
 	"github.com/metacubex/mihomo/config"
@@ -86,5 +92,62 @@ func TestCollectStatusRoutes(t *testing.T) {
 	}
 	if len(st.Proxies) != 2*len(autoCandidates(c)) {
 		t.Fatalf("proxies = %d", len(st.Proxies))
+	}
+}
+
+// Route health from the engine's own URL tests: a route whose candidates
+// reach the test URL is working; one whose candidates all failed is checked
+// and not working (needs a VPN); one never tested is not checked.
+func TestCollectStatusRouteHealth(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	closed := "http://" + ln.Addr().String() + "/"
+	ln.Close()
+
+	y := fmt.Sprintf(`
+proxies:
+  - {name: a, type: desync, tlsrec: 1+s}
+  - {name: b, type: desync, tlsrec: 3+s}
+proxy-groups:
+  - {name: up, type: fallback, proxies: [a, b], url: %q, interval: 600, lazy: true}
+  - {name: down, type: fallback, proxies: [a, b], url: %q, interval: 600, lazy: true}
+  - {name: untested, type: fallback, proxies: [a, b], url: "http://untested.invalid/", interval: 600, lazy: true}
+rules:
+  - MATCH,DIRECT
+`, srv.URL+"/", closed)
+	raw, err := config.UnmarshalRawConfig([]byte(y))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.ParseRawConfig(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	for _, url := range []string{srv.URL + "/", closed} {
+		for _, name := range []string{"a", "b"} {
+			_, _ = cfg.Proxies[name].URLTest(ctx, url, nil)
+		}
+	}
+
+	got := map[string]RouteStatus{}
+	for _, r := range collectStatus(cfg.Proxies, nil).Routes {
+		got[r.Name] = r
+	}
+	if r := got["up"]; !r.Checked || !r.Working {
+		t.Errorf("up = %+v", r)
+	}
+	if r := got["down"]; !r.Checked || r.Working {
+		t.Errorf("down = %+v", r)
+	}
+	if r := got["untested"]; r.Checked || r.Working {
+		t.Errorf("untested = %+v", r)
 	}
 }

@@ -167,5 +167,16 @@ class DesyncStrategiesTest {
             routes = listOf(DesyncRouteStatus(name = "desync-youtube", now = "desync-youtube~c0")),
         )
         assertEquals(DesyncRuntimeSummary.Active(1), DesyncRuntimeSummary.of(true, auto))
+
+        // Checked and no candidate passed: that route needs a VPN; unchecked or working ones do not.
+        val blocked = DesyncStatus(
+            proxies = auto.proxies,
+            routes = listOf(
+                DesyncRouteStatus(name = "desync-youtube", checked = true, working = true),
+                DesyncRouteStatus(name = "desync-discord", checked = true, working = false),
+                DesyncRouteStatus(name = "desync-twitter", checked = false, working = false),
+            ),
+        )
+        assertEquals(DesyncRuntimeSummary.Active(3, listOf("desync-discord")), DesyncRuntimeSummary.of(true, blocked))
     }
 }

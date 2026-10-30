@@ -144,6 +144,9 @@ data class DesyncProxyStatus(
 data class DesyncRouteStatus(
     val name: String,
     val now: String = "",
+    /** Every candidate has been checked; with ![working], no strategy gets through (needs a VPN). */
+    val checked: Boolean = false,
+    val working: Boolean = false,
 )
 
 @Serializable

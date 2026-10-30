@@ -1400,5 +1400,6 @@ Password: %4$s</string>
     <string name="desync_library_version">Desync library %1$s</string>
     <string name="desync_skipped_count">Strategies this device cannot use: %1$d</string>
     <string name="desync_status_active">%1$s · active on %2$d routes</string>
+    <string name="desync_status_active_needs_vpn">%1$s · active on %2$d routes · needs a VPN: %3$s</string>
     <string name="desync_status_not_loaded">%1$s · not loaded yet</string>
 </resources>

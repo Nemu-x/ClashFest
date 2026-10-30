@@ -1322,5 +1322,6 @@
     <string name="desync_library_version">Desync 库 %1$s</string>
     <string name="desync_skipped_count">此设备无法使用的策略：%1$d</string>
     <string name="desync_status_active">%1$s · 已在 %2$d 条路由上生效</string>
+    <string name="desync_status_active_needs_vpn">%1$s · 已在 %2$d 条路由上生效 · 需要 VPN：%3$s</string>
     <string name="desync_status_not_loaded">%1$s · 尚未加载</string>
 </resources>
