@@ -3,7 +3,7 @@ module cfa
 go 1.25
 
 require (
-	github.com/Nemu-x/desync v0.2.1-0.20261029232908-673cbefddb80
+	github.com/Nemu-x/desync v0.2.1
 	github.com/dlclark/regexp2 v1.12.0
 	github.com/metacubex/mihomo v1.19.33
 	golang.org/x/sync v0.11.0
