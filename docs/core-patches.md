@@ -317,9 +317,8 @@ at config validation: an option the platform lacks fails the proxy instead of fa
 DIRECT. Kotlin decodes the adapter type as `Proxy.Type.Desync`; the feature token is `desync`
 (`cfa/native/features` references `outbound.NewDesync` and `C.Desync`).
 
-**Library version.** The patches and `core/src/main/golang/go.mod` pin desync main at 673cbef
-(`v0.2.1-0.20261029232908-673cbefddb80`, Nemu-x/desync#11; it becomes the `v0.2.1` tag once that is
-published). It carries the `presets` catalog the bridge serves (v0.2.0) and the Android fix: apps may
+**Library version.** The patches and `core/src/main/golang/go.mod` pin desync `v0.2.1` (commit
+673cbef, Nemu-x/desync#11). It carries the `presets` catalog the bridge serves (v0.2.0) and the Android fix: apps may
 not read `SIOCOUTQNSD`, so `split-wait: sent`, `disorder` and `fake` read unsent bytes from `TCP_INFO`
 (Linux 4.6+) and are decided per socket. `PlatformCapabilities()` lists them in `Conditional`; the
 outbound (0021) accepts them and notes that they are verified per connection, and a socket
