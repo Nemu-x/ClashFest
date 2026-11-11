@@ -31,7 +31,7 @@ modified while a build tree is set up; never commit the applied patches into the
 
 Tests that ship inside a patch run with the Go test task (`:core:goTestNativeSnapshot`, which runs
 `go test` on `component/tls`, `component/ca`, `component/sniffer`, `component/fragment`, `dns`, `tunnel`,
-`transport/openvpn`, `transport/xdrive`, `transport/vless/muxcool`, `transport/xhttp`, `transport/gun`, `transport/jls`,
+`transport/openvpn`, `transport/xdrive`, `transport/vless/muxcool`, `transport/muxcool`, `transport/xhttp`, `transport/gun`, `transport/jls`,
 `transport/vmess`, `common/convert`,
 `adapter`, `adapter/outbound`,
 `adapter/outboundgroup`, `config` and `hub/route` from the `cfa` module, plus the desync library's
@@ -679,6 +679,55 @@ node name (`skip vless link to <host> (<name>): <reason>`). The proxies produced
 Rerowros/veles (GPL-3.0), with its `common/convert/redact_test.go`.
 
 Upstream: none yet. Delete when mihomo stops logging the line.
+
+### 0037 VLESS: `mux.cool` client (Xray Mux.Cool and XUDP)
+
+An opt-in `mux.cool` block on a `vless` proxy carries its TCP streams and its UDP (as XUDP) over pooled
+Mux.Cool carriers, as an Xray client's outbound `mux` does; each carrier is one VLESS request with the
+Mux command. Same keys and defaults as Rerowros/veles and SlothClash, so configs written for either load
+unchanged:
+
+```yaml
+mux.cool:
+  enabled: true
+  max-concurrency: 8        # sessions at once per carrier
+  max-connections: 128      # sessions over a carrier's lifetime
+  max-carriers: 0           # carriers at once, 0 = no limit
+  xudp-concurrency: 0       # > 0: a separate pool of that width for UDP
+  xudp-proxy-udp443: reject # reject (QUIC falls back to TCP) | allow | skip (plain VLESS UDP)
+```
+
+Without the block, or with `enabled: false`, nothing changes: the VLESS outbound sends the Mux command
+only for the carrier dial the wrapper marks in its context (keyed to that dial's metadata), so a plain dial
+to `v1.mux.cool` or a `dialer-proxy` hop that inherits the context stays a TCP request. A config error
+refuses `mux.cool` on a non-vless proxy, with a Vision `flow`, with enabled `smux`, and with
+`network: xdrive` (0003 already runs its own TCP-only Mux.Cool client, `transport/vless/muxcool`; the two
+stay separate). `udp: false` still disables UDP. Config only, nothing in the app UI. Feature token
+`mux-cool`.
+
+Origin: Rerowros/veles P15, client side, at f3d6ddaf (v1.19.33-veles.3, which adds the packet-session
+fix: a packet session stays alive after its dial). Veles credits P15 to legiz-ru/Prizrak-Core (branch
+`v1-19-34`, author Jolymmiles, commits 8ab053b11ea8, 321b7c1a2615, 88ff3e6e8223, 00806cdf91f4,
+9090c2c0ee19). Veles and Prizrak-Core are both GPL-3.0, like mihomo and ClashFest; the files carry no
+headers and there is no NOTICE, the attribution is in the patch header. Brought: `transport/muxcool`
+(codec, session, packet session, pool, worker, carrier limiter), `adapter/outbound/muxcool.go` and the
+`mux.cool` hook in `adapter/parser.go` and `adapter/outbound/vless.go`. Left out: the server side
+(`server*.go`, `listener/sing`) and the tests that need it or an Xray binary. The patch is the same code
+as SlothClash's 0039; only the patch numbers in comments differ.
+
+Tests: Veles' client tests in `transport/muxcool` (codec vectors and malformed frames, sessions, packet
+sessions, worker, pool with `max-carriers`, an Xray-compatible echo server in process) and in `adapter`,
+`adapter/outbound` (wrapper, parser, Vision refused); added on top: the Mux command only for the marked
+carrier, `mux.cool` over xdrive refused. Engine oracle: `core_patch_muxcool_oracle_test.go`.
+
+Lab (2026-11-11, Docker, Xray 26.11.9, 25.7.25 and 24.12.31 with a plain VLESS TCP inbound, core built for
+windows/amd64 from the patched and the stock tree, a counting relay in front of Xray per proxy; SlothClash's
+`tests/reality-lab/muxcool_test.go`): 8 concurrent 1 MiB streams come back intact over one carrier; UDP joins
+that carrier as XUDP; UDP/443 rides it with `allow`, opens nothing and logs the reason with `reject`, goes
+over one plain VLESS connection with `skip`. A proxy without the key opens 8 connections, and so does the
+stock core with the key.
+
+Delete when mihomo ships a Mux.Cool client for VLESS.
 
 ## Citrus compatibility suite
 

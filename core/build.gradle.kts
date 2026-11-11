@@ -210,6 +210,7 @@ val goTestNativeSnapshot by tasks.registering(Exec::class) {
         "github.com/metacubex/mihomo/transport/openvpn",
         "github.com/metacubex/mihomo/transport/xdrive",
         "github.com/metacubex/mihomo/transport/vless/muxcool",
+        "github.com/metacubex/mihomo/transport/muxcool",
         "github.com/metacubex/mihomo/transport/xhttp",
         "github.com/metacubex/mihomo/transport/gun",
         "github.com/metacubex/mihomo/transport/jls",

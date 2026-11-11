@@ -24,6 +24,8 @@ import (
 	tlsC "github.com/metacubex/mihomo/component/tls"
 	// "desync": the adapter type the outbound registers, core patch 0021.
 	C "github.com/metacubex/mihomo/constant"
+	// "mux-cool": the mux.cool block on vless proxies (Xray Mux.Cool and XUDP), core patch 0037.
+	"github.com/metacubex/mihomo/transport/muxcool"
 	// "xdrive": VLESS over XDrive, core patch 0003.
 	"github.com/metacubex/mihomo/transport/xdrive"
 )
@@ -37,13 +39,15 @@ var (
 	_ = ca.NewFingerprintNameVerifier
 	_ = outbound.ECHOptions{QueryServer: ""}
 	_ = outbound.NewDesync
+	_ = outbound.NewMuxCool
+	_ = muxcool.NewPool
 	_ = outbound.BasicOption{}.FragmentOpts
 	_ = C.Desync
 )
 
 // List returns the capability tokens in a stable order.
 func List() []string {
-	return []string{"xdrive", "chain", "mldsa65", "pin-list", "ech-xray", "desync", "chrome155", "mlkem-fingerprint", "fragment"}
+	return []string{"xdrive", "chain", "mldsa65", "pin-list", "ech-xray", "desync", "chrome155", "mlkem-fingerprint", "fragment", "mux-cool"}
 }
 
 // String is List joined with commas, the form the bridge hands to Kotlin.

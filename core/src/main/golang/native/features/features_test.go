@@ -23,7 +23,7 @@ func TestListIsWellFormed(t *testing.T) {
 	if !seen["chain"] {
 		t.Fatal("chain missing although core patch 0005 is compiled in")
 	}
-	for _, f := range []string{"mldsa65", "pin-list", "ech-xray", "desync", "chrome155", "mlkem-fingerprint", "fragment"} {
+	for _, f := range []string{"mldsa65", "pin-list", "ech-xray", "desync", "chrome155", "mlkem-fingerprint", "fragment", "mux-cool"} {
 		if !seen[f] {
 			t.Fatalf("%s missing although its core patch is compiled in", f)
 		}
@@ -31,7 +31,7 @@ func TestListIsWellFormed(t *testing.T) {
 }
 
 func TestString(t *testing.T) {
-	if got := String(); got != "xdrive,chain,mldsa65,pin-list,ech-xray,desync,chrome155,mlkem-fingerprint,fragment" {
+	if got := String(); got != "xdrive,chain,mldsa65,pin-list,ech-xray,desync,chrome155,mlkem-fingerprint,fragment,mux-cool" {
 		t.Fatalf("String() = %q", got)
 	}
 }
