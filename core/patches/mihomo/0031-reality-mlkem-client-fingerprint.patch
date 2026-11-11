@@ -1,0 +1,325 @@
+diff --git a/adapter/outbound/reality.go b/adapter/outbound/reality.go
+index c68b046c..c1242f56 100644
+--- a/adapter/outbound/reality.go
++++ b/adapter/outbound/reality.go
+@@ -6,6 +6,7 @@ import (
+ 	"encoding/hex"
+ 	"errors"
+ 	"fmt"
++	"strings"
+ 
+ 	tlsC "github.com/metacubex/mihomo/component/tls"
+ )
+@@ -18,6 +19,10 @@ type RealityOptions struct {
+ 	ClientVersion string `proxy:"client-version,omitempty"`
+ 	// Mldsa65Verify is Xray's mldsa65Verify (share link `pqv`), ClashFest core patch 0006.
+ 	Mldsa65Verify string `proxy:"mldsa65-verify,omitempty"`
++	// MLKEMClientFingerprint replaces client-fingerprint for the handshakes
++	// that offer X25519MLKEM768 (ClashFest core patch 0031, from
++	// Rerowros/veles P7); it must be a fingerprint with that key share.
++	MLKEMClientFingerprint string `proxy:"mlkem-client-fingerprint,omitempty"`
+ 
+ 	SupportX25519MLKEM768 bool `proxy:"support-x25519mlkem768,omitempty"`
+ }
+@@ -61,7 +66,36 @@ func (o RealityOptions) Parse() (*tlsC.RealityConfig, error) {
+ 			}
+ 		}
+ 
++		if o.MLKEMClientFingerprint != "" {
++			fingerprint, ok := tlsC.GetFingerprint(o.MLKEMClientFingerprint)
++			if !ok {
++				return nil, fmt.Errorf("invalid REALITY mlkem-client-fingerprint %q", o.MLKEMClientFingerprint)
++			}
++			fingerprint, err = realityMLKEMFingerprint(o.MLKEMClientFingerprint, fingerprint)
++			if err != nil {
++				return nil, err
++			}
++			config.MLKEMFingerprint = &fingerprint
++		}
++
+ 		return config, nil
+ 	}
+ 	return nil, nil
+ }
++
++// realityMLKEMFingerprint checks the fingerprint picked for
++// mlkem-client-fingerprint. "random" is one pick per process and may land on a
++// fingerprint without the X25519MLKEM768 key share (ios): chrome is used then,
++// rather than failing the config on some starts. A named fingerprint without
++// the key share is a config error.
++func realityMLKEMFingerprint(name string, picked tlsC.UClientHelloID) (tlsC.UClientHelloID, error) {
++	if tlsC.FingerprintSupportsX25519MLKEM768(picked) {
++		return picked, nil
++	}
++	if strings.EqualFold(name, "random") {
++		if chrome, ok := tlsC.GetFingerprint("chrome"); ok && tlsC.FingerprintSupportsX25519MLKEM768(chrome) {
++			return chrome, nil
++		}
++	}
++	return tlsC.UClientHelloID{}, fmt.Errorf("REALITY mlkem-client-fingerprint %q has no X25519MLKEM768 key share", name)
++}
+diff --git a/adapter/outbound/reality_mlkem_fingerprint_test.go b/adapter/outbound/reality_mlkem_fingerprint_test.go
+new file mode 100644
+index 00000000..8c8e82cd
+--- /dev/null
++++ b/adapter/outbound/reality_mlkem_fingerprint_test.go
+@@ -0,0 +1,78 @@
++package outbound
++
++// ClashFest core patch 0031 tests, adapted from Rerowros/veles
++// adapter/outbound/reality_veles_test.go (GPL-3.0).
++
++import (
++	"crypto/ecdh"
++	"crypto/rand"
++	"encoding/base64"
++	"testing"
++
++	tlsC "github.com/metacubex/mihomo/component/tls"
++)
++
++func realityTestPublicKey(t *testing.T) string {
++	t.Helper()
++	privateKey, err := ecdh.X25519().GenerateKey(rand.Reader)
++	if err != nil {
++		t.Fatal(err)
++	}
++	return base64.RawURLEncoding.EncodeToString(privateKey.PublicKey().Bytes())
++}
++
++func TestRealityOptionsMLKEMClientFingerprint(t *testing.T) {
++	publicKey := realityTestPublicKey(t)
++
++	config, err := RealityOptions{PublicKey: publicKey}.Parse()
++	if err != nil {
++		t.Fatal(err)
++	}
++	if config.MLKEMFingerprint != nil {
++		t.Fatal("unset mlkem-client-fingerprint set a fingerprint")
++	}
++
++	for _, name := range []string{"firefox", "Firefox", "safari", "chrome", "chrome155", "hellofirefox_148"} {
++		config, err = RealityOptions{PublicKey: publicKey, MLKEMClientFingerprint: name}.Parse()
++		if err != nil {
++			t.Fatalf("%s: %v", name, err)
++		}
++		want, _ := tlsC.GetFingerprint(name)
++		if config.MLKEMFingerprint == nil || *config.MLKEMFingerprint != want {
++			t.Fatalf("%s: mlkem-client-fingerprint = %v, want %v", name, config.MLKEMFingerprint, want)
++		}
++	}
++
++	for _, name := range []string{"no-such-browser", "none", "edge", "chrome120", "firefox120"} {
++		if _, err = (RealityOptions{PublicKey: publicKey, MLKEMClientFingerprint: name}).Parse(); err == nil {
++			t.Fatalf("mlkem-client-fingerprint %q accepted", name)
++		}
++	}
++
++	config, err = RealityOptions{PublicKey: publicKey, MLKEMClientFingerprint: "random"}.Parse()
++	if err != nil {
++		t.Fatalf("random: %v", err)
++	}
++	if config.MLKEMFingerprint == nil || !tlsC.FingerprintSupportsX25519MLKEM768(*config.MLKEMFingerprint) {
++		t.Fatalf("random gave %v without X25519MLKEM768", config.MLKEMFingerprint)
++	}
++}
++
++func TestRealityMLKEMFingerprintRandom(t *testing.T) {
++	edge, _ := tlsC.GetFingerprint("edge")
++	chrome, _ := tlsC.GetFingerprint("chrome")
++	firefox, _ := tlsC.GetFingerprint("firefox")
++
++	// "random" landed on a fingerprint without the share: chrome instead.
++	if got, err := realityMLKEMFingerprint("random", edge); err != nil || got != chrome {
++		t.Fatalf("random -> edge gave %v, %v; want chrome", got, err)
++	}
++	// "random" landed on one with the share: kept.
++	if got, err := realityMLKEMFingerprint("random", firefox); err != nil || got != firefox {
++		t.Fatalf("random -> firefox gave %v, %v", got, err)
++	}
++	// A named fingerprint without the share stays an error.
++	if _, err := realityMLKEMFingerprint("edge", edge); err == nil {
++		t.Fatal("named edge without X25519MLKEM768 accepted")
++	}
++}
+diff --git a/component/tls/reality.go b/component/tls/reality.go
+index d74440e2..841906a8 100644
+--- a/component/tls/reality.go
++++ b/component/tls/reality.go
+@@ -49,6 +49,12 @@ type RealityConfig struct {
+ 	// REALITY certificate (reality-opts.mldsa65-verify, ClashFest core patch 0006).
+ 	Mldsa65Verify *mldsa.PublicKey
+ 
++	// MLKEMFingerprint, when set, replaces the proxy's client-fingerprint for
++	// a handshake that offers X25519MLKEM768 (reality-opts.mlkem-client-fingerprint,
++	// ClashFest core patch 0031); classic handshakes keep the configured one.
++	// It always carries the hybrid key share (checked when the config is parsed).
++	MLKEMFingerprint *UClientHelloID
++
+ 	SupportX25519MLKEM768 bool
+ }
+ 
+@@ -263,6 +269,13 @@ func GetRealityConn(ctx context.Context, conn net.Conn, fingerprint UClientHello
+ 			realityReportOutcome(memoKey, useMLKEM, outcome, conn.RemoteAddr())
+ 		}
+ 	}
++	// ClashFest core patch 0031: a hybrid handshake uses the proxy's
++	// mlkem-client-fingerprint when it has one. Chosen once, before the loop,
++	// so the substitutions below never undo it (it has the share, so they do
++	// not run for it).
++	if useMLKEM && realityConfig.MLKEMFingerprint != nil {
++		fingerprint = *realityConfig.MLKEMFingerprint
++	}
+ 	var pqHello *realityPQHello // set once the fingerprint is swapped for its post-quantum hello
+ 	for retry := 0; ; retry++ {
+ 		verifier := &realityVerifier{
+diff --git a/component/tls/reality_mlkem_fingerprint.go b/component/tls/reality_mlkem_fingerprint.go
+new file mode 100644
+index 00000000..36382f1b
+--- /dev/null
++++ b/component/tls/reality_mlkem_fingerprint.go
+@@ -0,0 +1,30 @@
++package tls
++
++import (
++	utls "github.com/metacubex/utls"
++)
++
++// ClashFest core patch 0031: reality-opts.mlkem-client-fingerprint.
++// Adapted from Rerowros/veles (GPL-3.0), patch P7.
++
++// FingerprintSupportsX25519MLKEM768 reports whether the ClientHello of the
++// fingerprint carries the hybrid X25519MLKEM768 key share, which Xray 26.9.8+
++// requires in a REALITY handshake.
++func FingerprintSupportsX25519MLKEM768(id UClientHelloID) bool {
++	spec, err := fingerprintSpec(id)
++	if err != nil {
++		return false
++	}
++	for _, extension := range spec.Extensions {
++		keyShare, ok := extension.(*utls.KeyShareExtension)
++		if !ok {
++			continue
++		}
++		for _, share := range keyShare.KeyShares {
++			if share.Group == utls.X25519MLKEM768 {
++				return true
++			}
++		}
++	}
++	return false
++}
+diff --git a/component/tls/reality_mlkem_fingerprint_test.go b/component/tls/reality_mlkem_fingerprint_test.go
+new file mode 100644
+index 00000000..c6f0876d
+--- /dev/null
++++ b/component/tls/reality_mlkem_fingerprint_test.go
+@@ -0,0 +1,108 @@
++package tls
++
++// ClashFest core patch 0031 tests, adapted from Rerowros/veles
++// component/tls/reality_veles_test.go (GPL-3.0).
++
++import (
++	"crypto/ecdh"
++	"crypto/rand"
++	"testing"
++)
++
++func TestFingerprintSupportsX25519MLKEM768(t *testing.T) {
++	for name, want := range map[string]bool{
++		"chrome":     true,
++		"chrome133":  true,
++		"chrome155":  true,
++		"firefox":    true,
++		"safari":     true,
++		"chrome120":  false,
++		"firefox120": false,
++		"safari16":   false,
++		"edge":       false,
++	} {
++		id, ok := GetFingerprint(name)
++		if !ok {
++			t.Fatalf("fingerprint %q not found", name)
++		}
++		if got := FingerprintSupportsX25519MLKEM768(id); got != want {
++			t.Errorf("%s: X25519MLKEM768 key share = %v, want %v", name, got, want)
++		}
++	}
++}
++
++// sameHelloShape reports whether two ClientHellos come from the same parrot:
++// the same cipher suites in the same order and the same extension set, GREASE
++// values aside (chrome shuffles its extensions).
++func sameHelloShape(t *testing.T, a, b []byte) bool {
++	t.Helper()
++	pa, pb := parseClientHello(t, a), parseClientHello(t, b)
++	return equalUint16s(ungreaseSuites(pa.cipherSuites), ungreaseSuites(pb.cipherSuites)) &&
++		equalUint16s(sortedIDs(pa.extensionIDs), sortedIDs(pb.extensionIDs))
++}
++
++// The mlkem-client-fingerprint goes on the wire for a hybrid handshake (forced
++// by the proxy or by policy On), and the configured fingerprint for a classic
++// one (policy Off).
++func TestRealityMLKEMFingerprintReachesClientHello(t *testing.T) {
++	key, err := ecdh.X25519().GenerateKey(rand.Reader)
++	if err != nil {
++		t.Fatal(err)
++	}
++	chrome, _ := GetFingerprint("chrome")
++	firefox, _ := GetFingerprint("firefox")
++	firefoxRaw := buildRawClientHello(t, "firefox", "www.example.com")
++	chromeRaw := buildRawClientHello(t, "chrome", "www.example.com")
++	if sameHelloShape(t, firefoxRaw, chromeRaw) {
++		t.Fatal("test cannot tell firefox from chrome")
++	}
++	defer SetRealityMLKEMPolicy(RealityMLKEMAuto)
++
++	cases := []struct {
++		name   string
++		policy RealityMLKEMPolicy
++		force  bool
++		want   []byte
++		hybrid bool
++	}{
++		{"forced", RealityMLKEMAuto, true, firefoxRaw, true},
++		{"policy on", RealityMLKEMOn, false, firefoxRaw, true},
++		{"policy off", RealityMLKEMOff, false, chromeRaw, false},
++	}
++	for _, c := range cases {
++		SetRealityMLKEMPolicy(c.policy)
++		hello := captureRealityHello(t, chrome, &RealityConfig{
++			PublicKey:             key.PublicKey(),
++			SupportX25519MLKEM768: c.force,
++			MLKEMFingerprint:      &firefox,
++		})
++		if !sameHelloShape(t, hello.Raw, c.want) {
++			t.Errorf("%s: REALITY hello is not the expected parrot", c.name)
++		}
++		if _, ok := xrayAcceptsKeyShares(hello.KeyShares); ok != c.hybrid {
++			t.Errorf("%s: Xray 26.9.8+ key-share gate = %v, want %v", c.name, ok, c.hybrid)
++		}
++	}
++}
++
++// Without mlkem-client-fingerprint nothing changes: a hybrid handshake with
++// chrome stays chrome, and one with firefox120 still takes 0023's Firefox hello.
++func TestRealityMLKEMFingerprintUnsetKeepsSeries(t *testing.T) {
++	key, err := ecdh.X25519().GenerateKey(rand.Reader)
++	if err != nil {
++		t.Fatal(err)
++	}
++	chrome, _ := GetFingerprint("chrome")
++	hello := captureRealityHello(t, chrome, &RealityConfig{PublicKey: key.PublicKey(), SupportX25519MLKEM768: true})
++	if !sameHelloShape(t, hello.Raw, buildRawClientHello(t, "chrome", "www.example.com")) {
++		t.Error("chrome without mlkem-client-fingerprint changed its hello")
++	}
++	firefox120, _ := GetFingerprint("firefox120")
++	hello = captureRealityHello(t, firefox120, &RealityConfig{PublicKey: key.PublicKey(), SupportX25519MLKEM768: true})
++	if !sameHelloShape(t, hello.Raw, buildRawClientHello(t, "firefox", "www.example.com")) {
++		t.Error("firefox120 hybrid handshake is not the current Firefox hello")
++	}
++	if _, ok := xrayAcceptsKeyShares(hello.KeyShares); !ok {
++		t.Error("firefox120 hybrid handshake fails the Xray key-share gate")
++	}
++}

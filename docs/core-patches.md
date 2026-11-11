@@ -31,7 +31,8 @@ modified while a build tree is set up; never commit the applied patches into the
 
 Tests that ship inside a patch run with the Go test task (`:core:goTestNativeSnapshot`, which runs
 `go test` on `component/tls`, `component/ca`, `component/sniffer`, `component/fragment`, `dns`, `tunnel`,
-`transport/openvpn`, `transport/xdrive`, `transport/vless/muxcool`, `transport/xhttp`, `transport/gun`, `transport/jls`, `common/convert`,
+`transport/openvpn`, `transport/xdrive`, `transport/vless/muxcool`, `transport/xhttp`, `transport/gun`, `transport/jls`,
+`transport/vmess`, `common/convert`,
 `adapter`, `adapter/outbound`,
 `adapter/outboundgroup`, `config` and `hub/route` from the `cfa` module, plus the desync library's
 `presets` catalog), against the patched tree. The `config` tests use testify, so `cfa`'s `go.sum` carries its checksums although
@@ -560,6 +561,60 @@ validation).
 
 Upstream: with 0003. Delete with 0003.
 
+### 0031 REALITY: `mlkem-client-fingerprint`
+
+`reality-opts.mlkem-client-fingerprint: firefox` replaces `client-fingerprint` for the handshakes that
+offer X25519MLKEM768: forced by `support-x25519mlkem768`, by the policy On, or chosen by 0002's memo in
+Auto. Classic handshakes keep `client-fingerprint`. Networks treat ClientHello fingerprints differently,
+so a node can keep `chrome` for its classic handshakes and send another browser's hybrid hello where
+the server needs one. Adapted from Rerowros/veles (GPL-3.0), patch P7 there.
+
+The value must name a fingerprint whose hello carries the hybrid share
+(`tlsC.FingerprintSupportsX25519MLKEM768`, read from the utls spec: `chrome`, `chrome133`,
+`chrome155`, `firefox`, `safari` and their Xray names); `edge`, `chrome120`, `firefox120`, `none` or an
+unknown name fail config validation. `random` is picked once per process like
+`client-fingerprint: random`; when the pick has no share (ios), chrome is used. The fingerprint is
+chosen before 0023's and 0002's substitutions, which then have nothing to substitute. Without the key
+nothing changes; vanilla ignores it. Feature token `mlkem-fingerprint`.
+
+Tests: `reality_mlkem_fingerprint_test.go` (which fingerprints carry the share; the hello on the wire
+is Firefox's for a forced or policy-On handshake and the configured chrome for policy Off; without the
+key chrome stays chrome and firefox120 still takes 0023's Firefox hello),
+`adapter/outbound/reality_mlkem_fingerprint_test.go` (parsing, `random`), and the engine oracle
+`core_patch_reality_mlkem_fingerprint_oracle_test.go`.
+
+Upstream: none. Delete with 0002.
+
+### 0032 REALITY: chrome when `client-fingerprint` is unset
+
+REALITY needs uTLS, and vanilla fails every dial of a REALITY proxy without `client-fingerprint`
+(`REALITY is based on uTLS, please set a client-fingerprint`); Xray clients default to chrome. The patch
+uses `chrome` (Chrome 133 in ClashFest, see 0026) for such a proxy, in `transport/vmess.StreamTLSConn`,
+the only REALITY dial path (TCP, XHTTP, gRPC). `none` and Xray's `unsafe` / `hellogolang` still fail as
+before. Only proxies that could never connect change. RealityCompat already fills the fingerprint in for
+inline proxies when it rewrites them; the core default also covers proxy-providers. From
+Rerowros/veles (GPL-3.0).
+
+Tests: `transport/vmess/tls_reality_fingerprint_test.go` (an unset fingerprint sends chrome's REALITY
+hello, `none` still fails; the first fails on a stock tree).
+
+Upstream: none. Delete when mihomo defaults the fingerprint.
+
+Lab for 0031-0032 (2026-11-11, Docker, plain mihomo v1.19.34 binaries for linux/amd64, policy Auto,
+three requests per proxy through VLESS + REALITY; vision on TCP, XHTTP packet-up and gRPC on 26.11.9):
+
+| Proxy | Xray 26.11.9 | 25.7.25 | 24.12.31 |
+|---|---|---|---|
+| no `client-fingerprint` (TCP, XHTTP, gRPC on 26.11.9) | patched OK, stock fails | patched OK, stock fails | patched OK, stock fails |
+| `chrome` + `mlkem-client-fingerprint: firefox` | patched OK, stock fails | both OK | both OK |
+| `edge` + `mlkem-client-fingerprint: safari` | patched OK, stock fails | both OK | both OK |
+| `chrome` + forced + `mlkem-client-fingerprint: firefox` | both OK | both OK | both fail (forced hybrid) |
+
+Citrus `test/interop` with the patched core against a Citrus 22da58f1 server: the ClashFest set gets
+`require-x25519mlkem768` servers reached by chrome + `mlkem-client-fingerprint: firefox`, edge + safari
+and firefox forced with `chrome155`, a classic server with the key set, and both servers without any
+`client-fingerprint`.
+
 ### 0033 `fragment-opts`: split the first ClientHello of a proxy connection
 
 `fragment-opts` on any proxy splits the start of every TCP connection the proxy dials, following Xray's
@@ -676,7 +731,7 @@ case that is rejected or has an ignored key not listed as `harmless`, and on an 
 
 ### Outcomes at Citrus 22da58f1 (v1.0.0-beta.3 content)
 
-163 cases: 156 `accept`, 4 `unsupported`, 3 `deferred` (with mihomo v1.19.34). Every `accept` holds with the series up to 0030.
+163 cases: 156 `accept`, 4 `unsupported`, 3 `deferred` (with mihomo v1.19.34). Every `accept` holds with the series up to 0036.
 Fixtures whose source did not change since ecaa9466 keep that commit in their header.
 
 | Fixture | Outcome | Notes |
