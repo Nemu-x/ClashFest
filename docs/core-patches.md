@@ -31,8 +31,8 @@ modified while a build tree is set up; never commit the applied patches into the
 
 Tests that ship inside a patch run with the Go test task (`:core:goTestNativeSnapshot`, which runs
 `go test` on `component/tls`, `component/ca`, `component/sniffer`, `dns`, `tunnel`,
-`transport/openvpn`, `transport/xdrive`, `transport/vless/muxcool`, `transport/xhttp`, `transport/jls`,
-`transport/vmess`,
+`transport/openvpn`, `transport/xdrive`, `transport/vless/muxcool`, `transport/xhttp`, `transport/gun`, `transport/jls`,
+`transport/vmess`, `common/convert`,
 `adapter`, `adapter/outbound`,
 `adapter/outboundgroup`, `config` and `hub/route` from the `cfa` module, plus the desync library's
 `presets` catalog), against the patched tree. The `config` tests use testify, so `cfa`'s `go.sum` carries its checksums although
@@ -614,6 +614,42 @@ Citrus `test/interop` with the patched core against a Citrus 22da58f1 server: th
 `require-x25519mlkem768` servers reached by chrome + `mlkem-client-fingerprint: firefox`, edge + safari
 and firefox forced with `chrome155`, a classic server with the key set, and both servers without any
 `client-fingerprint`.
+### 0034 gRPC: frame reader without recursion
+
+`transport/gun` read the next frame header by calling itself once per frame, so a peer that sends a
+stream of empty frames grew the stack without bound until the process died (a fatal stack overflow,
+which no `recover` catches), and it trusted the payload length of a frame beyond the gRPC message that
+carries it. The reader is now a loop, and a payload length larger than its gRPC message (or than an
+`int`) is `ErrInvalidLength`. Valid streams read exactly as before; the client and the server side of
+gRPC share this reader. From Rerowros/veles (GPL-3.0), with its `transport/gun/gun_test.go` (200 000
+empty frames under a 1 MB stack limit, oversized lengths, payloads split across reads).
+
+Upstream: none yet. Delete when mihomo's reader loops.
+
+### 0035 XHTTP: read and write deadlines that do not close an idle connection
+
+Vanilla's XHTTP connection had one timer for both directions: `SetReadDeadline` and
+`SetWriteDeadline` both reset it, and when it fired the whole connection was closed, even if nothing
+was reading or writing. A multiplexer on top (`smux` with yamux sets a write deadline ahead of its
+writes and leaves it in place) therefore saw idle sessions torn down. The connection now keeps one
+deadline per direction, as `net.Conn` does: an operation started after its deadline fails with
+`os.ErrDeadlineExceeded`, one still blocked when the deadline passes is ended by closing the connection
+(the only way to unblock the HTTP body), and an idle connection stays open. `Close` runs once. From
+Rerowros/veles (GPL-3.0), which took it from getmikan/Citrus `transport/xhttp/conn.go`; tests from
+Veles' `transport/xhttp/conn_test.go`. Veles' parallel packet-up uploads (its P5/P8) are not part of
+this patch.
+
+Upstream: none yet. Delete when mihomo's XHTTP connection keeps per-direction deadlines.
+
+### 0036 Share links: no credentials in the skip warning
+
+When a `vless://` or `vmess://` line of a base64 subscription (`ConvertsV2Ray`, used for proxy-providers
+and the app's import) cannot be converted, vanilla logs the whole line at warning level: the UUID, the
+REALITY public key and short id, passwords in the query. The warning now names only the server and the
+node name (`skip vless link to <host> (<name>): <reason>`). The proxies produced are unchanged. From
+Rerowros/veles (GPL-3.0), with its `common/convert/redact_test.go`.
+
+Upstream: none yet. Delete when mihomo stops logging the line.
 
 ## Citrus compatibility suite
 
