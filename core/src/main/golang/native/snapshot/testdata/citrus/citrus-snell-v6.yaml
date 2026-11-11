@@ -1,0 +1,21 @@
+# Citrus compatibility fixture, see docs/core-patches.md (Citrus compatibility suite).
+# Source: getmikan/Citrus@22da58f1 docs/config.yaml lines 623-633 (the snell proxy; version 6, udp, reuse and mode commented out there)
+# License: GPL-3.0 (Citrus, like ClashFest). Copied as test data.
+# Changes from the source (ClashFest):
+#   - the commented-out options uncommented with their v6 values and wrapped into a minimal profile
+#   - mode unshaped, the non-default value the comment allows
+
+proxies:
+  - name: "snell"
+    type: snell
+    server: server
+    port: 44046
+    psk: yourpsk
+    version: 6 # support 1/2/3/4/5/6
+    udp: true # support UDP on version 3/4/5/6
+    reuse: false # v4/5/6 only
+    mode: unshaped # v6 only, default / unshaped, must match the server
+proxy-groups:
+  - {name: GLOBAL, type: select, proxies: [snell]}
+rules:
+  - MATCH,GLOBAL
