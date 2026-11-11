@@ -1,0 +1,127 @@
+diff --git a/transport/vmess/tls.go b/transport/vmess/tls.go
+index 6bede7f1..fa994554 100644
+--- a/transport/vmess/tls.go
++++ b/transport/vmess/tls.go
+@@ -111,7 +111,14 @@ func StreamTLSConn(ctx context.Context, conn net.Conn, cfg *TLSConfig) (net.Conn
+ 		return nil, err
+ 	}
+ 
+-	if clientFingerprint, ok := tlsC.GetFingerprint(cfg.ClientFingerprint); ok {
++	clientFingerprintName := cfg.ClientFingerprint
++	if cfg.Reality != nil && clientFingerprintName == "" {
++		// ClashFest core patch 0032 (from Rerowros/veles): REALITY needs uTLS,
++		// and Xray clients default to chrome; an unset client-fingerprint used
++		// to fail every dial below.
++		clientFingerprintName = "chrome"
++	}
++	if clientFingerprint, ok := tlsC.GetFingerprint(clientFingerprintName); ok {
+ 		if cfg.Reality != nil {
+ 			return tlsC.GetRealityConn(ctx, conn, clientFingerprint, tlsConfig.ServerName, cfg.Reality)
+ 		}
+diff --git a/transport/vmess/tls_reality_fingerprint_test.go b/transport/vmess/tls_reality_fingerprint_test.go
+new file mode 100644
+index 00000000..e7aa4495
+--- /dev/null
++++ b/transport/vmess/tls_reality_fingerprint_test.go
+@@ -0,0 +1,101 @@
++package vmess
++
++// ClashFest core patch 0032: REALITY without client-fingerprint dials as chrome.
++
++import (
++	"context"
++	"crypto/ecdh"
++	"crypto/rand"
++	"encoding/binary"
++	"io"
++	"net"
++	"testing"
++	"time"
++
++	tlsC "github.com/metacubex/mihomo/component/tls"
++
++	utls "github.com/metacubex/utls"
++)
++
++// realityHelloFrom runs StreamTLSConn with REALITY over a pipe and returns the
++// ClientHello it sent, or the dial error when it sent none.
++func realityHelloFrom(t *testing.T, fingerprint string) (*utls.PubClientHelloMsg, error) {
++	t.Helper()
++	key, err := ecdh.X25519().GenerateKey(rand.Reader)
++	if err != nil {
++		t.Fatal(err)
++	}
++	client, server := net.Pipe()
++	defer client.Close()
++	defer server.Close()
++	deadline := time.Now().Add(5 * time.Second)
++	_ = client.SetDeadline(deadline)
++	_ = server.SetDeadline(deadline)
++
++	dialErr := make(chan error, 1)
++	go func() {
++		_, err := StreamTLSConn(context.Background(), client, &TLSConfig{
++			Host:              "www.example.com",
++			ClientFingerprint: fingerprint,
++			Reality:           &tlsC.RealityConfig{PublicKey: key.PublicKey()},
++		})
++		_ = client.Close()
++		dialErr <- err
++	}()
++
++	header := make([]byte, 5)
++	if _, err := io.ReadFull(server, header); err != nil {
++		return nil, <-dialErr
++	}
++	body := make([]byte, int(binary.BigEndian.Uint16(header[3:5])))
++	if _, err := io.ReadFull(server, body); err != nil {
++		t.Fatalf("read ClientHello: %v", err)
++	}
++	_ = server.Close()
++	<-dialErr
++	hello := utls.UnmarshalClientHello(body)
++	if hello == nil {
++		t.Fatal("captured record is not a ClientHello")
++	}
++	return hello, nil
++}
++
++func TestRealityWithoutFingerprintUsesChrome(t *testing.T) {
++	hello, err := realityHelloFrom(t, "")
++	if err != nil {
++		t.Fatalf("REALITY without client-fingerprint: %v", err)
++	}
++	want, err := realityHelloFrom(t, "chrome")
++	if err != nil {
++		t.Fatal(err)
++	}
++	if len(hello.SessionId) != 32 {
++		t.Fatalf("session id %d bytes, want a REALITY session id", len(hello.SessionId))
++	}
++	ungrease := func(suites []uint16) []uint16 {
++		out := make([]uint16, len(suites))
++		for i, suite := range suites {
++			if suite>>8 == suite&0xff && suite&0xf == 0xa {
++				suite = 0x0a0a
++			}
++			out[i] = suite
++		}
++		return out
++	}
++	got, exp := ungrease(hello.CipherSuites), ungrease(want.CipherSuites)
++	if len(got) != len(exp) || got[0] != 0x0a0a {
++		t.Fatalf("hello without client-fingerprint has cipher suites %x, chrome's are %x", got, exp)
++	}
++	for i := range got {
++		if got[i] != exp[i] {
++			t.Fatalf("hello without client-fingerprint has cipher suites %x, chrome's are %x", got, exp)
++		}
++	}
++}
++
++// An explicit "none" still means no uTLS, which REALITY cannot use.
++func TestRealityFingerprintNoneStillFails(t *testing.T) {
++	if _, err := realityHelloFrom(t, "none"); err == nil {
++		t.Fatal("REALITY with client-fingerprint none dialed")
++	}
++}

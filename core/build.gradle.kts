@@ -210,6 +210,7 @@ val goTestNativeSnapshot by tasks.registering(Exec::class) {
         "github.com/metacubex/mihomo/transport/vless/muxcool",
         "github.com/metacubex/mihomo/transport/xhttp",
         "github.com/metacubex/mihomo/transport/jls",
+        "github.com/metacubex/mihomo/transport/vmess",
         "github.com/metacubex/mihomo/adapter",
         "github.com/metacubex/mihomo/adapter/outbound",
         "github.com/metacubex/mihomo/adapter/outboundgroup",
