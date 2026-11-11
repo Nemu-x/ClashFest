@@ -554,7 +554,7 @@ session (Citrus 6f580ef9, a2cfd331); a session whose connection stalls on one fr
 (d447a87a); a session without streams closes after 16 s, as in Xray, instead of polling the storage
 (94f62093); a test of the cancelled-dial path (b1835036); the storage HTTPS client verifies against
 `component/ca` (custom certificates, the embedded bundle) instead of a bare `tls.Config`
-(d3a24184). `transport/vless/muxcool/client.go` now equals Citrus `dev` (22da58f1) except for the
+(d3a24184). `transport/vless/muxcool/client.go` now equals Citrus v1.0.0-beta.3 (b0f91a16) except for the
 Go 1.20 `min`. Not taken from SlothClash's version: its refusal of unknown `template` keys (a
 SlothClash-only change; Citrus ignores them, and an error there would fail the whole profile at
 validation).
@@ -852,10 +852,15 @@ case that is rejected or has an ignored key not listed as `harmless`, and on an 
    is ported as a small patch of its own only within the rules above; otherwise it is `deferred:`
    with the reason and size, or `unsupported:` when the owner decided against it.
 
-### Outcomes at Citrus 22da58f1 (v1.0.0-beta.3 content)
+### Outcomes at Citrus b0f91a16 (v1.0.0-beta.3)
 
-163 cases: 156 `accept`, 4 `unsupported`, 3 `deferred` (with mihomo v1.19.34). Every `accept` holds with the series up to 0036.
-Fixtures whose source did not change since ecaa9466 keep that commit in their header.
+163 cases: 156 `accept`, 4 `unsupported`, 3 `deferred` (with mihomo v1.19.34). Every `accept` holds with the series up to 0038.
+Every fixture header names the tag commit b0f91a16; the examples there are the same as at the release
+candidate 22da58f1 the suite was first synced to (same counts). `config-tun` now carries the TUN
+`dns-mode` and Windows forwarding comments of that version (comments only, no new key).
+Citrus `test/interop` `TestMihomoClientCitrusServer` against the v1.0.0-beta.3 release binary
+(linux-amd64, checked against its `checksums.txt`; 2026-11-11, Docker): 30 of 31 with the series up to
+0038, the failing one the negative control documented for 0002; stock mihomo v1.19.34 31 of 31.
 
 | Fixture | Outcome | Notes |
 |---|---|---|
@@ -886,7 +891,7 @@ Fixtures whose source did not change since ecaa9466 keep that commit in their he
 | `citrus-sniffer-bittorrent` | unsupported | feeds only the PROTOCOL rule |
 | `citrus-log-format` | unsupported | server-only (stdout log format); ignored |
 | `citrus-trusttunnel-timers` | deferred | needs Citrus' trusttunnel client rework (64970360, eb219944), ~110 lines in a transport ~3000 lines apart from vanilla; HTTP/2 ping / handshake timers only; ignored |
-| `citrus-snell-v6` | accept | vanilla since mihomo v1.19.34, the same code as Citrus 22da58f1 `transport/snell`; the example's `psk: yourpsk` is replaced, v6 needs 12-255 bytes on both. Vanilla also accepts `mode: unsafe-raw` (no PSK, no encryption), which Citrus refuses; not in the Citrus docs, so not a case |
+| `citrus-snell-v6` | accept | vanilla since mihomo v1.19.34, the same code as Citrus b0f91a16 `transport/snell`; the example's `psk: yourpsk` is replaced, v6 needs 12-255 bytes on both. Vanilla also accepts `mode: unsafe-raw` (no PSK, no encryption), which Citrus refuses; not in the Citrus docs, so not a case |
 | `citrus-geox-sha256` | deferred | SHA-256 pins of remote geodata (Citrus #155/#156) are ignored; SlothClash 0027 (~670 lines with tests) ports them |
 | `site-security` (`tls.ca-roots`, `tls.ca-denylist`) | deferred | Citrus #161; ignored, so the trust store stays system plus bundle, interception roots included if installed; SlothClash 0026 (~4.7k lines, mostly the Mozilla bundle) ports it |
 
