@@ -614,6 +614,7 @@ Citrus `test/interop` with the patched core against a Citrus 22da58f1 server: th
 `require-x25519mlkem768` servers reached by chrome + `mlkem-client-fingerprint: firefox`, edge + safari
 and firefox forced with `chrome155`, a classic server with the key set, and both servers without any
 `client-fingerprint`.
+
 ### 0034 gRPC: frame reader without recursion
 
 `transport/gun` read the next frame header by calling itself once per frame, so a peer that sends a
