@@ -1,9 +1,9 @@
 diff --git a/component/tls/chrome155.go b/component/tls/chrome155.go
 new file mode 100644
-index 00000000..e883a18c
+index 00000000..94845216
 --- /dev/null
 +++ b/component/tls/chrome155.go
-@@ -0,0 +1,207 @@
+@@ -0,0 +1,208 @@
 +package tls
 +
 +import (
@@ -21,9 +21,10 @@ index 00000000..e883a18c
 +// Xray-core 26.11.9 made hellochrome_155 its default fingerprint
 +// (XTLS/Xray-core#7135) and Citrus v1.0.0-beta.3 maps "chrome" to it. The profile
 +// comes from refraction-networking/utls 6ebdceb2 (also getmikan/utls a6dee38a),
-+// checked there against a capture of Chrome 155.0.8059.40. metacubex/utls v1.8.8
-+// stops at Chrome 133, so the spec is carried here as data and applied through
-+// HelloCustom + ApplyPreset; the library itself is not forked or replaced.
++// checked there against a capture of Chrome 155.0.8059.40. metacubex/utls stops
++// at Chrome 133 (v1.8.8, and v1.9.0-alpha.1 of mihomo v1.19.34), so the spec is
++// carried here as data and applied through HelloCustom + ApplyPreset; the
++// library itself is not forked or replaced.
 +// Adapted from Rerowros/veles component/tls/chrome155.go (GPL-3.0).
 +//
 +// Compared with Chrome 133 the hello gains a GREASE value and three ML-DSA
@@ -95,9 +96,9 @@ index 00000000..e883a18c
 +
 +// chrome155Spec returns a fresh spec: utls mutates it per connection.
 +func chrome155Spec() *utls.ClientHelloSpec {
-+	// utls v1.8.8 replaces GREASE placeholders in cipher suites, groups, key
-+	// shares and versions but not in signature_algorithms, so the value is
-+	// drawn here. BoringSSL draws every GREASE value independently.
++	// utls (v1.8.8, v1.9.0-alpha.1) replaces GREASE placeholders in cipher
++	// suites, groups, key shares and versions but not in signature_algorithms,
++	// so the value is drawn here. BoringSSL draws every GREASE value independently.
 +	greaseSigScheme := utls.SignatureScheme(uint16(randv2.IntN(16))*0x1010 + 0x0a0a)
 +
 +	return &utls.ClientHelloSpec{
@@ -213,7 +214,7 @@ index 00000000..e883a18c
 +}
 diff --git a/component/tls/chrome155_test.go b/component/tls/chrome155_test.go
 new file mode 100644
-index 00000000..3e8b5aa3
+index 00000000..deb37626
 --- /dev/null
 +++ b/component/tls/chrome155_test.go
 @@ -0,0 +1,476 @@
@@ -465,7 +466,7 @@ index 00000000..3e8b5aa3
 +					}
 +				}
 +
-+				// signature_algorithms starts with a GREASE value: utls v1.8.8
++				// signature_algorithms starts with a GREASE value: utls (v1.8.8, v1.9.0-alpha.1)
 +				// does not fill it in, chrome155Spec does.
 +				if sig := got.extensions[extSigAlgs]; !isGREASE(binary.BigEndian.Uint16(sig[2:])) {
 +					t.Fatalf("signature_algorithms starts with %x, want GREASE", sig[2:4])
@@ -738,19 +739,19 @@ index 6440c708..d573f54b 100644
  	"chrome120":  utls.HelloChrome_120,
  	"firefox120": utls.HelloFirefox_120,
 diff --git a/component/tls/utls_xray_names.go b/component/tls/utls_xray_names.go
-index a7b38946..6a96ece5 100644
+index d01a063f..28bf2d73 100644
 --- a/component/tls/utls_xray_names.go
 +++ b/component/tls/utls_xray_names.go
-@@ -18,6 +18,7 @@ var xrayFingerprints = map[string]UClientHelloID{
+@@ -19,6 +19,7 @@ var xrayFingerprints = map[string]UClientHelloID{
  	"hellochrome_120":                  utls.HelloChrome_120,
  	"hellochrome_131":                  utls.HelloChrome_131,
  	"hellochrome_133":                  utls.HelloChrome_133,
 +	"hellochrome_155":                  HelloChrome155, // core patch 0026
  	"helloios_13":                      utls.HelloIOS_13,
  	"helloios_14":                      utls.HelloIOS_14,
- 	"helloedge_106":                    utls.HelloEdge_Auto,   // HelloEdge_106 does not work with utls
+ 	"helloedge_106":                    utls.HelloEdge_Auto, // HelloEdge_106 does not work with utls
 diff --git a/component/tls/utls_xray_names_test.go b/component/tls/utls_xray_names_test.go
-index 4c25dfd5..8dff92a0 100644
+index 5e24957c..d3d83bb9 100644
 --- a/component/tls/utls_xray_names_test.go
 +++ b/component/tls/utls_xray_names_test.go
 @@ -26,7 +26,7 @@ func TestXrayFingerprintNames(t *testing.T) {

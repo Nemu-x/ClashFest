@@ -69,323 +69,62 @@ index e8f516f..1ce9849 100644
  		if !useMLKEM { // for X25519MLKEM768 does not work properly with the old reality server
 diff --git a/component/tls/reality_pq_specs.go b/component/tls/reality_pq_specs.go
 new file mode 100644
-index 0000000..5986727
+index 0000000..ab9d2b7
 --- /dev/null
 +++ b/component/tls/reality_pq_specs.go
-@@ -0,0 +1,307 @@
+@@ -0,0 +1,46 @@
 +package tls
 +
 +import (
-+	"errors"
 +	"net"
 +
 +	utls "github.com/metacubex/utls"
-+	"github.com/metacubex/utls/dicttls"
 +)
 +
 +// Current-browser ClientHellos for the REALITY handshakes that need the
 +// X25519MLKEM768 key share (Xray 26.9.8+ forwards a hello without it to the
-+// cover site). In metacubex/utls v1.8.8 only the chrome parrot carries that
-+// share: "firefox" is Firefox 120 and "safari" is Safari 16.0, both older than
-+// post-quantum TLS. Without these specs a firefox or safari proxy has to borrow
-+// chrome's hello for such a server, which changes the fingerprint the user
-+// chose.
++// cover site). Since metacubex/utls v1.9.0-alpha.1 (mihomo v1.19.34) "firefox"
++// is Firefox 148 and "safari" is Safari 26.3, and both carry that share
++// themselves. A proxy pinned to an older parrot of those families (firefox120,
++// hellofirefox_105, safari16, ...) has none; for such a handshake it switches
++// to its family's current hello instead of borrowing chrome's, so the browser
++// family the user chose is kept.
 +//
-+// The two specs are HelloFirefox_148 and HelloSafari_26_3 from metacubex/utls
-+// branch v1.9.0-mod-meta (a6a364a), the same parrots Xray 26.10.x itself sends
-+// as "firefox" and "safari". Only the data is carried here; the library stays on
-+// the released v1.8.8. Delete this file when mihomo moves to a utls release
-+// that ships them.
++// Until v1.19.34 this file carried the two parrots as ClientHelloSpec data
++// (from metacubex/utls branch v1.9.0-mod-meta a6a364a, identical to the
++// released ones, Firefox's X25519 share reusing the hybrid key included).
 +
 +type realityPQHello struct {
 +	name string
-+	spec func() *utls.ClientHelloSpec // a fresh spec per handshake: ApplyPreset fills it in
-+	// reuseX25519: the standalone X25519 share repeats the X25519 half of the
-+	// hybrid share (one key, as Firefox sends it). v1.8.8's ApplyPreset generates
-+	// a separate key for each share, so the reuse is applied afterwards.
-+	reuseX25519 bool
++	id   utls.ClientHelloID
 +}
 +
 +// realityPQHelloFor returns the post-quantum hello for a fingerprint family
-+// whose v1.8.8 parrot cannot offer X25519MLKEM768, or false when there is none.
++// whose current utls parrot offers X25519MLKEM768, or false when there is none.
 +func realityPQHelloFor(fingerprint UClientHelloID) (realityPQHello, bool) {
 +	switch fingerprint.Client {
 +	case utls.HelloFirefox_Auto.Client:
-+		return realityPQHello{name: "Firefox 148", spec: realityFirefox148, reuseX25519: true}, true
++		return realityPQHello{name: "Firefox 148", id: utls.HelloFirefox_148}, true
 +	case utls.HelloSafari_Auto.Client:
-+		return realityPQHello{name: "Safari 26.3", spec: realitySafari26_3}, true
++		return realityPQHello{name: "Safari 26.3", id: utls.HelloSafari_26_3}, true
 +	}
 +	return realityPQHello{}, false
 +}
 +
 +// realityPQConn builds the handshake state from a post-quantum hello.
-+// HelloCustom keeps BuildHandshakeState from applying a preset of its own.
 +func realityPQConn(conn net.Conn, config *utls.Config, hello realityPQHello) (*utls.UConn, error) {
-+	uConn := utls.UClient(conn, config, utls.HelloCustom)
-+	if err := uConn.ApplyPreset(hello.spec()); err != nil {
-+		return nil, err
-+	}
-+	if hello.reuseX25519 {
-+		if err := realityReuseX25519(uConn); err != nil {
-+			return nil, err
-+		}
-+	}
++	uConn := utls.UClient(conn, config, hello.id)
 +	if err := uConn.BuildHandshakeState(); err != nil {
 +		return nil, err
 +	}
 +	return uConn, nil
 +}
-+
-+// realityReuseX25519 makes the standalone X25519 share carry the X25519 key of
-+// the hybrid share and points the classical private key at it, so whichever
-+// share the server picks (and the REALITY auth key, derived from the X25519
-+// share) uses the one key.
-+func realityReuseX25519(uConn *utls.UConn) error {
-+	keys := uConn.HandshakeState.State13.KeyShareKeys
-+	if keys == nil || keys.MlkemEcdhe == nil {
-+		return errors.New("REALITY: no X25519MLKEM768 key to reuse")
-+	}
-+	for _, ext := range uConn.Extensions {
-+		ks, ok := ext.(*utls.KeyShareExtension)
-+		if !ok {
-+			continue
-+		}
-+		for i := range ks.KeyShares {
-+			if ks.KeyShares[i].Group == utls.X25519 {
-+				ks.KeyShares[i].Data = keys.MlkemEcdhe.PublicKey().Bytes()
-+				keys.Ecdhe = keys.MlkemEcdhe
-+				return nil
-+			}
-+		}
-+	}
-+	return errors.New("REALITY: no X25519 key share to reuse")
-+}
-+
-+func realityFirefox148() *utls.ClientHelloSpec {
-+	return &utls.ClientHelloSpec{
-+		TLSVersMin: utls.VersionTLS12,
-+		TLSVersMax: utls.VersionTLS13,
-+		CipherSuites: []uint16{
-+			utls.TLS_AES_128_GCM_SHA256,
-+			utls.TLS_CHACHA20_POLY1305_SHA256,
-+			utls.TLS_AES_256_GCM_SHA384,
-+			utls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-+			utls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-+			utls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-+			utls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
-+			utls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-+			utls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-+			utls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-+			utls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-+			utls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-+			utls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-+			utls.TLS_RSA_WITH_AES_128_GCM_SHA256,
-+			utls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-+			utls.TLS_RSA_WITH_AES_128_CBC_SHA,
-+			utls.TLS_RSA_WITH_AES_256_CBC_SHA,
-+		},
-+		CompressionMethods: []uint8{
-+			0x0, // no compression
-+		},
-+		Extensions: []utls.TLSExtension{
-+			&utls.SNIExtension{},
-+			&utls.ExtendedMasterSecretExtension{},
-+			&utls.RenegotiationInfoExtension{
-+				Renegotiation: utls.RenegotiateOnceAsClient,
-+			},
-+			&utls.SupportedCurvesExtension{
-+				Curves: []utls.CurveID{
-+					utls.X25519MLKEM768,
-+					utls.X25519,
-+					utls.CurveP256,
-+					utls.CurveP384,
-+					utls.CurveP521,
-+					0x0100,
-+					0x0101,
-+				},
-+			},
-+			&utls.SupportedPointsExtension{
-+				SupportedPoints: []uint8{
-+					0x0, // uncompressed
-+				},
-+			},
-+			&utls.ALPNExtension{
-+				AlpnProtocols: []string{
-+					"h2",
-+					"http/1.1",
-+				},
-+			},
-+			&utls.StatusRequestExtension{},
-+			&utls.FakeDelegatedCredentialsExtension{
-+				SupportedSignatureAlgorithms: []utls.SignatureScheme{
-+					utls.ECDSAWithP256AndSHA256,
-+					utls.ECDSAWithP384AndSHA384,
-+					utls.ECDSAWithP521AndSHA512,
-+					utls.ECDSAWithSHA1,
-+				},
-+			},
-+			&utls.SCTExtension{},
-+			&utls.KeyShareExtension{
-+				KeyShares: []utls.KeyShare{
-+					{Group: utls.X25519MLKEM768},
-+					{Group: utls.X25519}, // reused from the hybrid share, see reuseX25519
-+					{Group: utls.CurveP256},
-+				},
-+			},
-+			&utls.SupportedVersionsExtension{
-+				Versions: []uint16{
-+					utls.VersionTLS13,
-+					utls.VersionTLS12,
-+				},
-+			},
-+			&utls.SignatureAlgorithmsExtension{
-+				SupportedSignatureAlgorithms: []utls.SignatureScheme{
-+					utls.ECDSAWithP256AndSHA256,
-+					utls.ECDSAWithP384AndSHA384,
-+					utls.ECDSAWithP521AndSHA512,
-+					utls.PSSWithSHA256,
-+					utls.PSSWithSHA384,
-+					utls.PSSWithSHA512,
-+					utls.PKCS1WithSHA256,
-+					utls.PKCS1WithSHA384,
-+					utls.PKCS1WithSHA512,
-+					utls.ECDSAWithSHA1,
-+					utls.PKCS1WithSHA1,
-+				},
-+			},
-+			&utls.FakeRecordSizeLimitExtension{
-+				Limit: 0x4001,
-+			},
-+			&utls.UtlsCompressCertExtension{Algorithms: []utls.CertCompressionAlgo{
-+				utls.CertCompressionZlib,
-+				utls.CertCompressionBrotli,
-+				utls.CertCompressionZstd,
-+			}},
-+			&utls.GREASEEncryptedClientHelloExtension{
-+				CandidateCipherSuites: []utls.HPKESymmetricCipherSuite{
-+					{
-+						KdfId:  dicttls.HKDF_SHA256,
-+						AeadId: dicttls.AEAD_AES_128_GCM,
-+					},
-+					{
-+						KdfId:  dicttls.HKDF_SHA256,
-+						AeadId: dicttls.AEAD_CHACHA20_POLY1305,
-+					},
-+				},
-+				CandidatePayloadLens: []uint16{223}, // +16: 239
-+			},
-+		},
-+	}
-+}
-+
-+func realitySafari26_3() *utls.ClientHelloSpec {
-+	return &utls.ClientHelloSpec{
-+		TLSVersMin: utls.VersionTLS12,
-+		TLSVersMax: utls.VersionTLS13,
-+		CipherSuites: []uint16{
-+			utls.GREASE_PLACEHOLDER,
-+			utls.TLS_AES_256_GCM_SHA384,
-+			utls.TLS_CHACHA20_POLY1305_SHA256,
-+			utls.TLS_AES_128_GCM_SHA256,
-+			utls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-+			utls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-+			utls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-+			utls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-+			utls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-+			utls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
-+			utls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-+			utls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-+			utls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-+			utls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-+			utls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-+			utls.TLS_RSA_WITH_AES_128_GCM_SHA256,
-+			utls.TLS_RSA_WITH_AES_256_CBC_SHA,
-+			utls.TLS_RSA_WITH_AES_128_CBC_SHA,
-+			utls.FAKE_TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA,
-+			utls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
-+			utls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
-+		},
-+		CompressionMethods: []uint8{
-+			0x0, // no compression
-+		},
-+		Extensions: []utls.TLSExtension{
-+			&utls.UtlsGREASEExtension{},
-+			&utls.SNIExtension{},
-+			&utls.ExtendedMasterSecretExtension{},
-+			&utls.RenegotiationInfoExtension{
-+				Renegotiation: utls.RenegotiateOnceAsClient,
-+			},
-+			&utls.SupportedCurvesExtension{
-+				Curves: []utls.CurveID{
-+					utls.GREASE_PLACEHOLDER,
-+					utls.X25519MLKEM768,
-+					utls.X25519,
-+					utls.CurveP256,
-+					utls.CurveP384,
-+					utls.CurveP521,
-+				},
-+			},
-+			&utls.SupportedPointsExtension{
-+				SupportedPoints: []uint8{
-+					0x0, // uncompressed
-+				},
-+			},
-+			&utls.ALPNExtension{
-+				AlpnProtocols: []string{
-+					"h2",
-+					"http/1.1",
-+				},
-+			},
-+			&utls.StatusRequestExtension{},
-+			&utls.SignatureAlgorithmsExtension{
-+				SupportedSignatureAlgorithms: []utls.SignatureScheme{
-+					utls.ECDSAWithP256AndSHA256,
-+					utls.PSSWithSHA256,
-+					utls.PKCS1WithSHA256,
-+					utls.ECDSAWithP384AndSHA384,
-+					utls.PSSWithSHA384,
-+					utls.PSSWithSHA384,
-+					utls.PKCS1WithSHA384,
-+					utls.PSSWithSHA512,
-+					utls.PKCS1WithSHA512,
-+					utls.PKCS1WithSHA1,
-+				},
-+			},
-+			&utls.SCTExtension{},
-+			&utls.KeyShareExtension{
-+				KeyShares: []utls.KeyShare{
-+					{Group: utls.GREASE_PLACEHOLDER, Data: []byte{0}},
-+					{Group: utls.X25519MLKEM768},
-+					{Group: utls.X25519},
-+				},
-+			},
-+			&utls.PSKKeyExchangeModesExtension{
-+				Modes: []uint8{
-+					utls.PskModeDHE,
-+				},
-+			},
-+			&utls.SupportedVersionsExtension{
-+				Versions: []uint16{
-+					utls.GREASE_PLACEHOLDER,
-+					utls.VersionTLS13,
-+					utls.VersionTLS12,
-+				},
-+			},
-+			&utls.UtlsCompressCertExtension{
-+				Algorithms: []utls.CertCompressionAlgo{
-+					utls.CertCompressionZlib,
-+				},
-+			},
-+			&utls.UtlsGREASEExtension{},
-+		},
-+	}
-+}
 diff --git a/component/tls/reality_pq_specs_test.go b/component/tls/reality_pq_specs_test.go
 new file mode 100644
-index 0000000..fe0c008
+index 0000000..f232f5d
 --- /dev/null
 +++ b/component/tls/reality_pq_specs_test.go
-@@ -0,0 +1,127 @@
+@@ -0,0 +1,155 @@
 +package tls
 +
 +import (
@@ -495,21 +234,49 @@ index 0000000..fe0c008
 +		}
 +	}
 +	if len(classic) != 32 || bytes.Equal(hybrid[1184:], classic) {
-+		t.Fatal("the Safari 26.3 spec keeps a separate X25519 key")
++		t.Fatal("Safari 26.3 keeps a separate X25519 key")
 +	}
 +}
 +
 +func TestRealityPQSpecsAreFreshPerHandshake(t *testing.T) {
 +	a, b := buildPQ(t, utls.HelloFirefox_Auto), buildPQ(t, utls.HelloFirefox_Auto)
 +	if bytes.Equal(a.HandshakeState.Hello.Raw, b.HandshakeState.Hello.Raw) {
-+		t.Fatal("two handshakes produced the same hello (shared spec state)")
++		t.Fatal("two handshakes produced the same hello")
++	}
++}
++
++func TestRealityPQHelloFromOldParrot(t *testing.T) {
++	// A pinned pre-quantum parrot of the family has no hybrid share; the hello it
++	// switches to does (and is the one "firefox" / "safari" send themselves).
++	for _, c := range []struct{ old, current UClientHelloID }{
++		{utls.HelloFirefox_120, utls.HelloFirefox_Auto},
++		{utls.HelloFirefox_105, utls.HelloFirefox_Auto},
++		{utls.HelloSafari_16_0, utls.HelloSafari_Auto},
++	} {
++		c1, c2 := net.Pipe()
++		old := utls.UClient(c1, &utls.Config{ServerName: "www.example.com", InsecureSkipVerify: true}, c.old)
++		if err := old.BuildHandshakeState(); err != nil {
++			t.Fatalf("%s/%s: %v", c.old.Client, c.old.Version, err)
++		}
++		c1.Close()
++		c2.Close()
++		if realityHasMLKEMShare(old) {
++			t.Fatalf("%s/%s already offers X25519MLKEM768", c.old.Client, c.old.Version)
++		}
++		hello, ok := realityPQHelloFor(c.old)
++		if !ok || hello.id != c.current {
++			t.Fatalf("%s/%s: post-quantum hello %+v, want %s/%s", c.old.Client, c.old.Version, hello.id, c.current.Client, c.current.Version)
++		}
++		if !realityHasMLKEMShare(buildPQ(t, c.old)) {
++			t.Fatalf("%s/%s: switched hello has no X25519MLKEM768 share", c.old.Client, c.old.Version)
++		}
 +	}
 +}
 +
 +func TestRealityPQHelloOnlyForOldParrots(t *testing.T) {
 +	for _, fp := range []UClientHelloID{utls.HelloChrome_Auto, utls.HelloIOS_Auto, utls.HelloEdge_Auto, utls.HelloRandomized} {
 +		if _, ok := realityPQHelloFor(fp); ok {
-+			t.Errorf("%s must not get a post-quantum spec", fp.Client)
++			t.Errorf("%s must not get a post-quantum hello", fp.Client)
 +		}
 +	}
 +}
