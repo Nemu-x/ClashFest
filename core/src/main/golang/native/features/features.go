@@ -19,6 +19,7 @@ import (
 	"github.com/metacubex/mihomo/component/ca"
 	// "mldsa65": reality-opts.mldsa65-verify, core patch 0006.
 	// "chrome155": client-fingerprint chrome155 / hellochrome_155, core patch 0026.
+	// "mlkem-fingerprint": reality-opts.mlkem-client-fingerprint, core patch 0031.
 	tlsC "github.com/metacubex/mihomo/component/tls"
 	// "desync": the adapter type the outbound registers, core patch 0021.
 	C "github.com/metacubex/mihomo/constant"
@@ -31,6 +32,7 @@ var (
 	_ xdrive.Config
 	_ = tlsC.ParseRealityMldsa65Verify
 	_ = tlsC.HelloChrome155
+	_ = tlsC.FingerprintSupportsX25519MLKEM768
 	_ = ca.NewFingerprintNameVerifier
 	_ = outbound.ECHOptions{QueryServer: ""}
 	_ = outbound.NewDesync
@@ -39,7 +41,7 @@ var (
 
 // List returns the capability tokens in a stable order.
 func List() []string {
-	return []string{"xdrive", "chain", "mldsa65", "pin-list", "ech-xray", "desync", "chrome155"}
+	return []string{"xdrive", "chain", "mldsa65", "pin-list", "ech-xray", "desync", "chrome155", "mlkem-fingerprint"}
 }
 
 // String is List joined with commas, the form the bridge hands to Kotlin.
