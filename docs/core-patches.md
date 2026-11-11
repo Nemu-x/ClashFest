@@ -33,7 +33,7 @@ Tests that ship inside a patch run with the Go test task (`:core:goTestNativeSna
 `go test` on `component/tls`, `component/ca`, `component/sniffer`, `component/fragment`, `dns`, `tunnel`,
 `transport/openvpn`, `transport/xdrive`, `transport/vless/muxcool`, `transport/muxcool`, `transport/xhttp`, `transport/gun`, `transport/jls`,
 `transport/vmess`, `common/convert`,
-`adapter`, `adapter/outbound`,
+`adapter`, `adapter/outbound`, `listener`,
 `adapter/outboundgroup`, `config` and `hub/route` from the `cfa` module, plus the desync library's
 `presets` catalog), against the patched tree. The `config` tests use testify, so `cfa`'s `go.sum` carries its checksums although
 `go.mod` does not require it; `go mod tidy` may drop them again, and
@@ -803,6 +803,34 @@ ClashFest-only set uploading 16 MiB over REALITY h2, TLS h2, HTTP/1.1 and h3, wi
 
 Delete when mihomo itself pipelines packet-up uploads.
 
+### 0039 Snell v6: warning for `mode: unsafe-raw`
+
+mihomo v1.19.34 brought Snell v6 with three modes. `unsafe-raw` drops the crypto as well as the
+traffic shaping: it never uses the PSK, so there is no authentication and no encryption. Traffic to
+such a server is plaintext, and an `unsafe-raw` listener is an open proxy to anyone who reaches its
+port. Citrus refuses the mode for that reason (`transport/snell/v6.go`: "it does not use the psk, use
+default or unshaped").
+
+ClashFest keeps it accepted, as vanilla does, so a subscription with such a node still loads, but the
+core logs one warning per proxy and per listener when the config loads:
+
+- outbound, in `adapter/outbound` `NewSnell` after the mode is parsed: `snell <name>: mode unsafe-raw
+  does not use the psk: no authentication and no encryption, traffic to this server is plaintext; use
+  mode default or unshaped`;
+- inbound, in `listener` `ParseListener` after the listener is built: `snell inbound <name>: ... this
+  listener is an open proxy and its traffic is plaintext; ...`.
+
+`default`, `unshaped` (and no `mode`) and Snell before v6 do not warn. The warning goes to the core
+log only; the app shows no dialog and no translated text for it.
+
+Tests in the patch (`adapter/outbound`, `listener`, both in `:core:goTestNativeSnapshot`): v6
+proxies and listeners with no mode, `default`, `unshaped` and `unsafe-raw`, plus a v4 one, are all
+built; the log, read through `log.Subscribe`, has exactly one warning for the `unsafe-raw` one and
+none for the others. Both fail on the series without the patch. The same patch body is SlothClash
+core patch 0042.
+
+Delete when mihomo warns about or refuses `unsafe-raw` itself.
+
 ## Citrus compatibility suite
 
 Panels that build configs for Citrus (getmikan/Citrus, a mihomo fork) may ship keys vanilla mihomo
@@ -854,7 +882,7 @@ case that is rejected or has an ignored key not listed as `harmless`, and on an 
 
 ### Outcomes at Citrus b0f91a16 (v1.0.0-beta.3)
 
-163 cases: 156 `accept`, 4 `unsupported`, 3 `deferred` (with mihomo v1.19.34). Every `accept` holds with the series up to 0038.
+163 cases: 156 `accept`, 4 `unsupported`, 3 `deferred` (with mihomo v1.19.34). Every `accept` holds with the series up to 0039.
 Every fixture header names the tag commit b0f91a16; the examples there are the same as at the release
 candidate 22da58f1 the suite was first synced to (same counts). `config-tun` now carries the TUN
 `dns-mode` and Windows forwarding comments of that version (comments only, no new key).
@@ -891,7 +919,7 @@ Citrus `test/interop` `TestMihomoClientCitrusServer` against the v1.0.0-beta.3 r
 | `citrus-sniffer-bittorrent` | unsupported | feeds only the PROTOCOL rule |
 | `citrus-log-format` | unsupported | server-only (stdout log format); ignored |
 | `citrus-trusttunnel-timers` | deferred | needs Citrus' trusttunnel client rework (64970360, eb219944), ~110 lines in a transport ~3000 lines apart from vanilla; HTTP/2 ping / handshake timers only; ignored |
-| `citrus-snell-v6` | accept | vanilla since mihomo v1.19.34, the same code as Citrus b0f91a16 `transport/snell`; the example's `psk: yourpsk` is replaced, v6 needs 12-255 bytes on both. Vanilla also accepts `mode: unsafe-raw` (no PSK, no encryption), which Citrus refuses; not in the Citrus docs, so not a case |
+| `citrus-snell-v6` | accept | vanilla since mihomo v1.19.34, the same code as Citrus b0f91a16 `transport/snell`; the example's `psk: yourpsk` is replaced, v6 needs 12-255 bytes on both. Vanilla also accepts `mode: unsafe-raw` (no PSK, no encryption), which Citrus refuses; ClashFest accepts it with a load-time warning (0039); not in the Citrus docs, so not a case |
 | `citrus-geox-sha256` | deferred | SHA-256 pins of remote geodata (Citrus #155/#156) are ignored; SlothClash 0027 (~670 lines with tests) ports them |
 | `site-security` (`tls.ca-roots`, `tls.ca-denylist`) | deferred | Citrus #161; ignored, so the trust store stays system plus bundle, interception roots included if installed; SlothClash 0026 (~4.7k lines, mostly the Mozilla bundle) ports it |
 
