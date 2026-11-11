@@ -218,6 +218,8 @@ val goTestNativeSnapshot by tasks.registering(Exec::class) {
         "github.com/metacubex/mihomo/adapter",
         "github.com/metacubex/mihomo/adapter/outbound",
         "github.com/metacubex/mihomo/adapter/outboundgroup",
+        // Only the tests 0039 adds; listener/inbound (mihomo's own inbound tests) is not run.
+        "github.com/metacubex/mihomo/listener",
         "github.com/metacubex/mihomo/config",
         "github.com/metacubex/mihomo/hub/route",
         // The strategy catalog the desync bridge (native/desync) serves; pure Go. The
