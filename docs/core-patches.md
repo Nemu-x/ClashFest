@@ -31,7 +31,8 @@ modified while a build tree is set up; never commit the applied patches into the
 
 Tests that ship inside a patch run with the Go test task (`:core:goTestNativeSnapshot`, which runs
 `go test` on `component/tls`, `component/ca`, `component/sniffer`, `dns`, `tunnel`,
-`transport/openvpn`, `transport/xdrive`, `transport/vless/muxcool`, `adapter`, `adapter/outbound`,
+`transport/openvpn`, `transport/xdrive`, `transport/vless/muxcool`, `transport/xhttp`, `transport/jls`,
+`adapter`, `adapter/outbound`,
 `adapter/outboundgroup`, `config` and `hub/route` from the `cfa` module, plus the desync library's
 `presets` catalog), against the patched tree. The `config` tests use testify, so `cfa`'s `go.sum` carries its checksums although
 `go.mod` does not require it; `go mod tidy` may drop them again, and
@@ -417,6 +418,128 @@ reused for 10 minutes (the groups' interval).
 
 Upstream: none. Delete with 0024.
 
+### 0026 TLS: Chrome 155 fingerprint (`chrome155`)
+
+`client-fingerprint: chrome155` (and Xray's `hellochrome_155`, any case) sends the Chrome 155
+ClientHello, the fingerprint Xray-core 26.11.9 made its default (XTLS/Xray-core#7135) and Citrus
+v1.0.0-beta.3 calls `chrome`. Against Chrome 133 it adds a GREASE value and the ML-DSA schemes
+0x0904/0x0905/0x0906 to `signature_algorithms` (advertised only, nothing verifies an ML-DSA
+certificate) and the `trust_anchors` extension (0xca34) with 28 Chrome Root Store IDs. The profile is
+the one of refraction-networking/utls 6ebdceb2 (also getmikan/utls a6dee38a); the patch carries it as
+a `ClientHelloSpec` in `component/tls/chrome155.go`, applied through `HelloCustom` + `ApplyPreset`, so
+`metacubex/utls` stays on the released v1.8.8 with no fork or `replace`. Adapted from
+Rerowros/veles `component/tls/chrome155.go` (GPL-3.0). `chrome133` (Citrus' pinned name) is added
+as an alias of mihomo's Chrome 133.
+
+**`chrome` stays Chrome 133** (mihomo's meaning). Citrus and Veles map `chrome` to Chrome 155; in
+ClashFest the non-vanilla hello is sent only when the config names it, no layer of ours owns
+`chrome`, and a `chrome` node therefore behaves exactly as on a stock core. A panel that wants Chrome
+155 sends `chrome155`; the core advertises the name as the `chrome155` token in `coreFeatures`
+(subscription User-Agent), tied to `tlsC.HelloChrome155`. Revisit when mihomo moves `chrome` itself.
+
+utls cannot build a hello for an ID it does not know, so every uTLS client must be created through
+`tlsC.UClient`: the patch routes REALITY (`GetRealityConn`) and JLS (`transport/jls`, the only direct
+`utls.UClient` caller outside `component/tls`) through it. A config with a session cache gets
+`PreferSkipResumptionOnNilExtension` on a copy (utls panics on a cached TLS 1.3 session for a
+`HelloCustom` spec without `pre_shared_key`), and a spec utls refuses falls back to Chrome 133 with
+a warning.
+
+With REALITY, chrome155 carries the X25519MLKEM768 share itself, so 0002's adaptive choice works
+unchanged: Auto removes the hybrid share for a classic attempt (`BuildRemovedX25519MLKEM768HandshakeState`
+works on the custom spec) and keeps it after a flip; no chrome swap happens. 0023 does not touch it
+(its post-quantum hellos are for firefox and safari only).
+
+Tests: `chrome155_test.go` compares 20 generated hellos per name with the Chrome 155.0.8059.40
+capture in `testdata/chrome155_clienthello.hex` (from utls, SHA-256 of the handshake
+`235618e3…439a`): version, session id, cipher suites, extension set, every extension body except
+GREASE values, key-share shape, GREASE ECH length family and total size. Also: `chrome` and
+`chrome133` stay Chrome 133, a session cache does not panic, REALITY with policy On passes the
+XTLS/REALITY key-share gate as Chrome 155 and with Off has no hybrid share, and no package outside
+`component/tls` calls `utls.UClient` directly (AST walk).
+
+Upstream: none. Delete when mihomo moves to a utls release that ships `HelloChrome_155` (then map
+the names to it).
+
+### 0027 REALITY: the ML-KEM memo learns only from answers
+
+0002's memo counted every failed handshake as a refusal. A timeout, an EOF or a cancelled request
+(a phone changing networks, a health check cut short) then flipped a server to the other key share,
+which it may not accept. Xray of either generation does not fail a hello it does not accept: it
+relays the client to its cover site, whose certificate then fails REALITY authentication. The patch
+classifies each handshake (`realityClassify`, adapted from Rerowros/veles, GPL-3.0, which itself
+adapted 0002):
+
+| Outcome | When | Memo |
+|---|---|---|
+| OK | authenticated | pin the variant (as before) |
+| Refused | completed without REALITY authentication, or failed after a ServerHello (x509, alert) | count towards a flip (as before) |
+| Silent | context cancelled or expired, timeout, EOF, closed socket, or any failure before a ServerHello | no flip, no unpin; counted |
+| None | failed after authentication | ignored |
+
+After 3 silent handshakes in a row (`realityMemoFlipAfter`) the next attempt probes the other key
+share once: its success pins it, its failure is a stale attempt and changes nothing. That still finds
+a server that drops the wrong hello instead of relaying it (the 24.x behaviour seen in the 0002
+lab), which a rule of "only a relayed certificate counts" never would.
+
+Compared with SlothClash #136 (same problem, merged 2026-11-02): SlothClash moves the memo only when
+a certificate chain arrived and failed REALITY verification, and ignores everything else, including
+silence; its own known limitation is a server that closes instead of relaying, which Auto then never
+learns. 0027 keeps an equally strict "refused" signal (relay, then a certificate that is not
+REALITY's, or an answer after a ServerHello) and adds the bounded probe for the silent case.
+SlothClash also stopped swapping a fingerprint without the hybrid share for chrome; ClashFest keeps
+0002's swap (a node that can never reach a 26.9.8+ server is worse than a borrowed hello), but now
+compares the whole hello ID: `chrome120` and the other old chrome parrots share the `Chrome` client
+name with `chrome`, so before 0027 they skipped the swap and sent a classic hello while the memo
+believed it offered ML-KEM. The same rule covers `random`: its per-process pick may be ios, which has
+no hybrid share and borrows chrome's.
+
+`realityReportMLKEM(ok bool)` stays as a wrapper (OK / Refused), so 0002's tests are unchanged.
+`reality_mlkem_outcome_test.go` (from Veles' tests): the classification table, silence keeps a
+pinned and an unpinned verdict, one probe after three silent handshakes, a failed probe keeps the
+pin, a successful probe pins, stale silence is ignored, answers reset the silent count, and loopback
+handshakes against a server that closes and one that never answers until the deadline (memo
+unchanged), and against a plain TLS site (refused, flip) after which the next hello passes the Xray
+key-share gate for chrome, chrome155 (still Chrome 155), firefox, safari, edge, ios and chrome120.
+
+Upstream: same as 0002. Delete with 0002.
+
+### 0028 REALITY: default client version 26.11.9
+
+`tlsC.RealityClientVersion` defaults to `26.11.9` (was `26.10.29` since 0023), the Xray release the
+series was last checked against and the version Citrus v1.0.0-beta.3 reports. Only servers with
+`minClientVer` / `maxClientVer` look at it: a `minClientVer: 26.11.9` server now passes, a
+`maxClientVer` below 26.11.9 refuses (as it does any newer client). The setting in **Settings →
+Network** and a per-proxy `reality-opts.client-version` (0004) still win. The bridge now returns to
+the core default when the setting is cleared (`native/reality.ClientVersion`); before, clearing it
+kept the last value set in that process.
+
+Upstream: same as 0001. Delete with 0001.
+
+### 0029 XHTTP: default uplink data key
+
+With `xhttp-opts.uplink-data-placement: header` or `cookie` and no `uplink-data-key`, vanilla sends
+the packet-up payload under the names `-0`, `-1`, ..., which no Xray-compatible server reads, so
+such a node never works. The patch falls back to Xray's defaults (`X-Data` for headers, `x_data` for
+cookies) on both sides (`GetNormalizedUplinkDataKey`). A config that sets the key is unchanged.
+SlothClash's 0028, byte for byte, with its `transport/xhttp/uplink_data_key_test.go`.
+
+Upstream: none yet. Delete when mihomo defaults the key.
+
+### 0030 XDrive: Mux.Cool and storage TLS fixes from Citrus
+
+Later Citrus fixes to the code 0003 brought, as SlothClash took them into its xdrive patch
+(834b9ab9): a stream's write deadline or a cancelled dial fails that stream only, not the Mux.Cool
+session (Citrus 6f580ef9, a2cfd331); a session whose connection stalls on one frame for 30 s fails
+(d447a87a); a session without streams closes after 16 s, as in Xray, instead of polling the storage
+(94f62093); a test of the cancelled-dial path (b1835036); the storage HTTPS client verifies against
+`component/ca` (custom certificates, the embedded bundle) instead of a bare `tls.Config`
+(d3a24184). `transport/vless/muxcool/client.go` now equals Citrus `dev` (22da58f1) except for the
+Go 1.20 `min`. Not taken from SlothClash's version: its refusal of unknown `template` keys (a
+SlothClash-only change; Citrus ignores them, and an error there would fail the whole profile at
+validation).
+
+Upstream: with 0003. Delete with 0003.
+
 ## Citrus compatibility suite
 
 Panels that build configs for Citrus (getmikan/Citrus, a mihomo fork) may ship keys vanilla mihomo
@@ -466,22 +589,25 @@ case that is rejected or has an ignored key not listed as `harmless`, and on an 
    is ported as a small patch of its own only within the rules above; otherwise it is `deferred:`
    with the reason and size, or `unsupported:` when the owner decided against it.
 
-### Outcomes at Citrus ecaa9466
+### Outcomes at Citrus 22da58f1 (v1.0.0-beta.3 content)
 
-145 cases: 140 `accept`, 4 `unsupported`, 1 `deferred`. Every `accept` holds with the series up to 0014;
-with only 0001-0005 the suite fails on the 14 cases that 0006-0014 fixed and on the 52 Xray fingerprint
-names.
+163 cases: 155 `accept`, 4 `unsupported`, 4 `deferred`. Every `accept` holds with the series up to 0030.
+Fixtures whose source did not change since ecaa9466 keep that commit in their header.
 
 | Fixture | Outcome | Notes |
 |---|---|---|
-| `config-general`, `-tun`, `-sniffer`, `-tunnels`, `-groups` | accept | |
+| `config-general` | accept | `geox-sha256` with the example's empty pins ignored, harmless: an empty pin is no pin |
+| `config-tun`, `-sniffer`, `-tunnels`, `-groups` | accept | |
 | `config-dns` | accept | `serve-expired*` read (0014) |
-| `config-proxies` (48 proxies) | accept | placeholders of the example replaced |
+| `config-proxies` (49 proxies) | accept | placeholders of the example replaced; `vless-xdrive` is 0003 |
 | `config-rules` (9 rules) | accept | |
 | `config-rules#PROTOCOL,bittorrent,REJECT` | unsupported | PROTOCOL rule comes with a mihomo release |
 | `site-chains`, `site-getting-started` | accept | chain group is 0005 |
-| `citrus-reality-mldsa65-verify`, `interop-citrus-clients` (11) | accept | 0006 |
-| `citrus-xray-fingerprints` (52 names) | accept | 0007 |
+| `citrus-reality-mldsa65-verify` | accept | 0006 |
+| `interop-citrus-clients` (18) | accept | 0006 mldsa65; XHTTP over h3 (3 modes), XDrive local / template (0003), Citrus client vs sing-box (REALITY vision, Hysteria2) |
+| `citrus-xray-fingerprints` (53 names) | accept | 0007; `hellochrome_155` is 0026 |
+| `citrus-chrome-pinned` (`chrome155`, `chrome133`) | accept | 0026; `chrome` stays Chrome 133 in ClashFest |
+| `citrus-reality-client-version` | accept | `client-version: 26.11.9` (0004) with `chrome155` (0026) |
 | `citrus-tls-pin-lists` | accept | 0008 |
 | `citrus-ech-xray` (PEM, query-server) | accept | 0009 |
 | `citrus-openvpn-identity` | accept | 0010 |
@@ -489,16 +615,24 @@ names.
 | `citrus-tcp-connect-timeout` | accept | 0012 |
 | `citrus-sniffer-skip-threshold` | accept | 0013 |
 | `citrus-dns-serve-expired` | accept | 0014 |
+| `citrus-desync`, `site-desync` | accept | 0021; checked on Windows and Linux (`split-wait: sent` is unsupported on macOS) |
+| `citrus-xdrive-template` | accept | 0003; Citrus #168 refuses `template` / `local` in http proxy-providers, ClashFest refuses only `local`, at dial time on Android |
 | `citrus-ws-early-data`, `citrus-xhttp-uplink-get` | accept | vanilla reads these keys |
 | `citrus-ssh-host-key` | accept | `skip-host-key-check` ignored, harmless: vanilla never checks or warns without `host-key` |
 | `citrus-dns-sdns` | unsupported | DNSCrypt `sdns://`, not wanted |
 | `citrus-sniffer-bittorrent` | unsupported | feeds only the PROTOCOL rule |
 | `citrus-log-format` | unsupported | server-only (stdout log format); ignored |
 | `citrus-trusttunnel-timers` | deferred | needs Citrus' trusttunnel client rework (64970360, eb219944), ~110 lines in a transport ~3000 lines apart from vanilla; HTTP/2 ping / handshake timers only; ignored |
+| `citrus-snell-v6` | deferred | Snell v6 is in mihomo Alpha (Citrus #182) and comes with the next mihomo release; v1.19.33 rejects `version: 6`. When it lands, vanilla accepts `mode: unsafe-raw` (no PSK, no encryption), which Citrus rejects |
+| `citrus-geox-sha256` | deferred | SHA-256 pins of remote geodata (Citrus #155/#156) are ignored; SlothClash 0027 (~670 lines with tests) ports them |
+| `site-security` (`tls.ca-roots`, `tls.ca-denylist`) | deferred | Citrus #161; ignored, so the trust store stays system plus bundle, interception roots included if installed; SlothClash 0026 (~4.7k lines, mostly the Mozilla bundle) ports it |
 
 Silently ignored by this core: `skip-host-key-check` (harmless), `log-format`,
-`log-timestamp-format`, trusttunnel `ping-interval` / `ping-timeout` / `handshake-timeout`.
+`log-timestamp-format`, trusttunnel `ping-interval` / `ping-timeout` / `handshake-timeout`,
+`geox-sha256`, `tls.ca-roots`, `tls.ca-denylist`.
 
 Not testable by validation, so not in the suite, and not taken by decision: Citrus' X25519MLKEM768 on
-by default, its XHTTP defaults (`x-padding-header`, XMUX `reuse-settings`) and the removed protocols
-(vmess, SSR, hysteria v1, TUIC v4, stream ciphers, which ClashFest keeps).
+by default, its XHTTP defaults (`x-padding-header`, XMUX `reuse-settings`), `chrome` meaning Chrome
+155 (0026) and the removed protocols (vmess, SSR, hysteria v1, TUIC v4, stream ciphers, which
+ClashFest keeps). Server-only items of beta.3 are not in the suite: `mux-option.max-streams`, grace
+access, fallbacks, egress guard, PROXY protocol, `fallback-page`, the XDrive inbound.
