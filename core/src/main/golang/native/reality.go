@@ -10,6 +10,11 @@ import (
 	"github.com/metacubex/mihomo/log"
 )
 
+// defaultRealityClientVersion is the core's own default (core patch 0028), kept
+// so that clearing the setting returns to it instead of the last value set in
+// this process.
+var defaultRealityClientVersion = tlsC.RealityClientVersion
+
 // setRealityPolicy pushes the user-facing REALITY settings into the core:
 // the Xray-style client version carried in the ClientHello (core patch 0001;
 // empty or malformed keeps the core default) and the X25519MLKEM768 policy
@@ -20,9 +25,7 @@ import (
 func setRealityPolicy(version C.c_string, mlkem C.int) {
 	defer guard("setRealityPolicy")()
 
-	if v, ok := reality.ParseVersion(C.GoString(version)); ok {
-		tlsC.RealityClientVersion = v
-	}
+	tlsC.RealityClientVersion = reality.ClientVersion(C.GoString(version), defaultRealityClientVersion)
 	policy := tlsC.RealityMLKEMPolicy(mlkem)
 	if policy < tlsC.RealityMLKEMAuto || policy > tlsC.RealityMLKEMOff {
 		policy = tlsC.RealityMLKEMAuto
