@@ -665,8 +665,7 @@ deadline per direction, as `net.Conn` does: an operation started after its deadl
 `os.ErrDeadlineExceeded`, one still blocked when the deadline passes is ended by closing the connection
 (the only way to unblock the HTTP body), and an idle connection stays open. `Close` runs once. From
 Rerowros/veles (GPL-3.0), which took it from getmikan/Citrus `transport/xhttp/conn.go`; tests from
-Veles' `transport/xhttp/conn_test.go`. Veles' parallel packet-up uploads (its P5/P8) are not part of
-this patch.
+Veles' `transport/xhttp/conn_test.go`. Veles' parallel packet-up uploads (its P5/P8) are 0038.
 
 Upstream: none yet. Delete when mihomo's XHTTP connection keeps per-direction deadlines.
 
@@ -728,6 +727,81 @@ over one plain VLESS connection with `skip`. A proxy without the key opens 8 con
 stock core with the key.
 
 Delete when mihomo ships a Mux.Cool client for VLESS.
+
+### 0038 XHTTP: packet-up keeps up to 8 uploads in flight
+
+Vanilla's packet-up sent one upload request and waited for its response before the next, so a session
+uploaded at most `sc-max-each-post-bytes` per round trip and less behind anything that adds latency.
+Xray's client does not wait: it starts a request every `sc-min-posts-interval-ms` and the server puts the
+requests back in order by seq. With the patch the next request starts once the headers of the previous
+one are written (so the server sees the seqs in order), the bodies go out side by side, and the request
+with seq N waits for the response of seq N-8: at most 8 are unanswered, all within a window of 8 seqs.
+`sc-min-posts-interval-ms` now paces the requests rather than the writes, as in Xray: the first write and
+a write after a pause go out at once instead of after the interval, and the interval counts from when
+the previous request went out, so writes batch up as before while the pipeline is full. With
+`alpn: [http/1.1]` every unanswered request would hold a connection and a TLS or REALITY handshake of its
+own, so there packet-up still waits for each response (as Citrus does) and only the pacing changes.
+Request sizes are unchanged; stream-one, stream-up and the download are untouched. On by default, no
+setting.
+
+The window is one of seqs, not a plain count, because a server answers an upload once it has queued it,
+not once it has used it: with a count, seq 0 stuck behind seven answered uploads would let seqs 8-14 go
+out and overflow the reorder buffer. With the window the server never holds more than 7 uploads out of
+order. Limits checked on the server side: Xray 24.12.31, 25.7.25 and 26.11.9 queue up to
+`scMaxBufferedPosts` (default 30) and fail the session with more than that out of order; mihomo's and
+Citrus' servers the same; Citrus also answers 503 to more than `sc-max-buffered-posts` uploads in progress
+before the client has authenticated. A server configured below 7 (Xray) or 8 (Citrus) breaks the
+patched client, as it breaks Xray's own client, which has no cap at all. `sc-max-each-post-bytes` is
+not changed by the patch, so a server's limit on it applies as before.
+
+A failed upload fails the session: the other requests in flight are canceled and the next `Write`
+returns the error, as before. `Close` sends the buffered tail, waits up to a second for the responses in
+flight, then cancels the rest.
+
+The same window of 8 seqs, the pacing and the HTTP/1.1 exception as SlothClash's packet-up patch. One
+difference: SlothClash, like Xray's client, starts the next request once the previous one is written
+in full; ClashFest starts it once the previous one's headers are written, so the bodies share the
+connection. Behind a proxy that gives each request a small flow-control window that is the difference
+between one window per round trip and eight (nginx row below).
+
+After Rerowros/veles (GPL-3.0) P5/P8: Veles releases a request's slot when its body is written and keeps
+a separate window of 24 unanswered seqs; ClashFest uses one window of 8 for both, which stays below the
+smallest server buffers seen in the lab. Tests (`transport/xhttp/packet_up_pipelining_test.go`, test
+server adapted from Veles): order and reassembly over h2 and HTTP/1.1, POST bodies and GET with the
+data in headers (HTTP/1.1 one request at a time); the cap of 8 while the server holds every response;
+the seq window against a reorder buffer of 7; the interval pacing requests, not writes; a refused
+upload failing the session; `Close` while requests are stuck (no goroutine left, later writes fail);
+`Close` delivering the tail; throughput with a 100 ms response delay (about 6x); the whole client against
+mihomo's server handler. They pass with `-race`; on a stock tree
+they do not compile (no `newPacketUpWriter`).
+
+Lab (2026-11-11, Docker, plain mihomo v1.19.34 linux/amd64 builds of the series without and with 0038,
+`tc netem` delay on the client's link, 16 MiB POSTed through the tunnel to a hash endpoint, three runs,
+Mbit/s; VLESS + REALITY + XHTTP packet-up h2 unless noted; every run's hash matched):
+
+| Server | 50 ms stock | 50 ms 0038 | 100 ms stock | 100 ms 0038 |
+|---|---|---|---|---|
+| Xray 24.12.31 (`xPaddingBytes: 0-1000`) | 68 | 106 | 41 | 53 |
+| Xray 25.7.25 | 69 | 105 | 41 | 53 |
+| Xray 26.11.9 | 70 | 102 | 41 | 53 |
+| Xray 26.11.9, `scMaxBufferedPosts: 7` | 70 | 101 | 41 | 51 |
+| Citrus `dev` (e268c1cd) | 70 | 101 | 41 | 51 |
+| Citrus, `sc-max-buffered-posts: 8` | 70 | 101 | 41 | 51 |
+| nginx 1.27 (TLS, h2) in front of Xray 26.11.9 | 9.4 | 53 | 4.8 | 26 |
+| nginx 1.27, client `alpn: [http/1.1]` | 64 | 92 | 38 | 47 |
+| control: stream-one to Xray 26.11.9 | 106 | 106 | 53 | 53 |
+
+Direct to a Go server the patch reaches what one TCP connection carries (the stream-one row); behind
+nginx, whose HTTP/2 gives each request a 64 KB window, the bodies run side by side and gain 5x. Over
+HTTP/1.1 the gain is the round trip no longer added to the interval. With no added delay both builds are
+bound by the 30 ms interval (213-231 Mbit/s stock, 251-254 patched). The nginx HTTP/1.1 proxy has no
+`client-fingerprint`: uTLS hellos offer h2 in ALPN, nginx picks it and an `alpn: [http/1.1]` client then
+fails on both builds. Citrus `test/interop` with the patched core against Citrus `dev` (e268c1cd):
+`TestMihomoClientCitrusServer` as documented for 0002 (the negative control connects), and a
+ClashFest-only set uploading 16 MiB over REALITY h2, TLS h2, HTTP/1.1 and h3, with
+`sc-max-buffered-posts: 8`, small posts and the data in headers and cookies: all pass.
+
+Delete when mihomo itself pipelines packet-up uploads.
 
 ## Citrus compatibility suite
 
