@@ -86,8 +86,9 @@ classic first, flip after one failure, pin after one success, re-flip after thre
 pinned verdict (servers get upgraded). A per-proxy `support-x25519mlkem768: true` still forces
 the hybrid share.
 
-Only the chrome specs in `metacubex/utls` 1.8.8 carry the hybrid share (`HelloChrome_131`,
-`HelloChrome_133`); firefox, safari, ios and edge cannot offer it. When a hybrid handshake is
+In `metacubex/utls` 1.8.8 only the chrome specs carried the hybrid share (`HelloChrome_131`,
+`HelloChrome_133`); since v1.9.0-alpha.1 (mihomo v1.19.34) `firefox` (Firefox 148) and `safari`
+(Safari 26.3) carry it too, while ios, edge and the older pinned parrots still cannot offer it. When a hybrid handshake is
 wanted and the configured fingerprint cannot produce one, the patch uses chrome for that
 handshake, because the alternative is a node that can never connect to a 26.9.8+ server. 0023
 narrows that: firefox and safari now switch to their own current browser hello instead; chrome
@@ -210,10 +211,10 @@ Upstream: mihomo has no ML-DSA verification for REALITY. Delete when it does.
 `client-fingerprint` accepts the names Xray-core uses (`hellofirefox_148`, `hellochrome_131`,
 `helloios_14`, `randomizednoalpn`, ..., case-insensitive; `unsafe` and `hellogolang` mean no uTLS).
 Vanilla logs an unknown name and dials with Go's own ClientHello, the one hello a censor can single
-out. The names map to the nearest parrot of `metacubex/utls` v1.8.8 (the table of Citrus commit
-9c9b0856, which was written for that version): `hellofirefox_148` is Firefox 120 and
-`hellosafari_26_3` is Safari 16.0 until utls ships those parrots. Aliases only, no utls fork (Citrus
-main moved to the getmikan/utls fork for real Firefox 148 / Safari 26.3 parrots; not taken). The
+out. The names map to the nearest parrot of `metacubex/utls` (the table of Citrus commit 9c9b0856,
+written for v1.8.8). Since mihomo v1.19.34 (utls v1.9.0-alpha.1) `hellofirefox_148` and
+`hellosafari_26_3` map to the real Firefox 148 and Safari 26.3 parrots; before, they fell back to
+Firefox 120 and Safari 16.0. Aliases only, no utls fork. The
 table lives in `component/tls/utls_xray_names.go` and never shadows a mihomo name. No
 `coreFeatures` token: there is no exported symbol to tie it to, and vanilla accepts the config.
 
@@ -356,31 +357,32 @@ Delete when the test in 0021 handles CMFA itself.
 
 ### 0023 REALITY: current Firefox and Safari hellos for the hybrid share
 
-Xray 26.9.8+ forwards a REALITY ClientHello without X25519MLKEM768 to the cover site, and in
-`metacubex/utls` 1.8.8 only chrome (Chrome 133) has that share: `firefox` is Firefox 120 and
-`safari` is Safari 16.0. 0002 therefore sent chrome's hello for such a server, so a proxy set to
-firefox or safari silently changed its fingerprint (and Chrome 133-149 hellos are reported to be
-rate-limited on some networks). The patch carries `HelloFirefox_148` and `HelloSafari_26_3` from
-`metacubex/utls` branch `v1.9.0-mod-meta` (`a6a364a`), the parrots Xray 26.10.x itself sends as
-`firefox` / `safari`, as data in `component/tls/reality_pq_specs.go`, applied through
-`HelloCustom` + `ApplyPreset`; the library stays on the released 1.8.8. Firefox sends one X25519
-key in both the hybrid and the standalone share, so after `ApplyPreset` the standalone share is
-rewritten to the hybrid's key (1.8.8 would generate two). Safari keeps two keys, as in the spec.
+Xray 26.9.8+ forwards a REALITY ClientHello without X25519MLKEM768 to the cover site. Before this
+patch, 0002 sent chrome's hello whenever a hybrid handshake was wanted and the configured
+fingerprint had no hybrid share, so a proxy set to firefox or safari silently changed its
+fingerprint. With the patch a firefox-family fingerprint switches to Firefox 148 and a safari-family
+one to Safari 26.3 for such a handshake; ios, edge and the randomized families have no
+post-quantum parrot and still borrow chrome's. Only the handshakes that need the hybrid share are
+affected (forced, policy On, or Auto after the classic hello failed). The default client version
+moves from `26.9.9` to `26.10.29` (a per-proxy `client-version` still wins; 0028 moves it again).
 
-Only the handshakes that need the hybrid share use these hellos (forced, policy On, or Auto after
-the classic hello failed); the classic attempt is unchanged. ios, edge and the randomized families
-have no post-quantum parrot and still borrow chrome's. The default client version moves from
-`26.9.9` to `26.10.29`, the Xray release the series was checked against (a per-proxy
-`client-version` still wins).
+Since mihomo v1.19.34 `metacubex/utls` v1.9.0-alpha.1 ships both parrots, and `firefox` / `safari`
+themselves are Firefox 148 / Safari 26.3, so they carry the share and never switch. The patch now
+matters only for a proxy pinned to an older parrot of those families (`firefox120`, `safari16`,
+`hellofirefox_105`, ...), and `component/tls/reality_pq_specs.go` just names the library's
+`HelloFirefox_148` / `HelloSafari_26_3`. Up to v1.19.33 it carried the two parrots as
+`ClientHelloSpec` data from `metacubex/utls` branch `v1.9.0-mod-meta` (`a6a364a`), applied through
+`HelloCustom` + `ApplyPreset` with Firefox's X25519 share rewritten to the hybrid's key; the released
+parrots are the same specs (checked field by field, Firefox's key reuse now done by utls itself).
 
 Tests in the patch: both hellos pass the XTLS/REALITY key-share gate (one hybrid share, X25519 only
 after it) and the X25519 key the server will use is the client's auth key; Firefox reuses the key,
-Safari does not; specs are fresh per handshake; chrome / ios / edge / randomized get no spec. The
-same patch is SlothClash's 0024; its REALITY lab checks firefox and safari, forced and Auto,
-against Xray 24.12.31 to 26.10.29.
+Safari does not; hellos are fresh per handshake; firefox120, firefox105 and safari16 have no share and
+switch to a hello that has it; chrome / ios / edge / randomized get no switch. The same patch is
+SlothClash's 0024.
 
-Upstream: MetaCubeX/mihomo#3319 (closed: no unreleased utls). Delete when mihomo moves to a utls
-release whose `firefox` / `safari` parrots carry the hybrid share.
+Upstream: MetaCubeX/mihomo#3319 (closed: no unreleased utls). The data half is gone with v1.19.34;
+delete the rest with 0002.
 
 ### 0024 Transfer test: GET /proxies/{name}/transfer
 
@@ -427,7 +429,8 @@ v1.0.0-beta.3 calls `chrome`. Against Chrome 133 it adds a GREASE value and the 
 certificate) and the `trust_anchors` extension (0xca34) with 28 Chrome Root Store IDs. The profile is
 the one of refraction-networking/utls 6ebdceb2 (also getmikan/utls a6dee38a); the patch carries it as
 a `ClientHelloSpec` in `component/tls/chrome155.go`, applied through `HelloCustom` + `ApplyPreset`, so
-`metacubex/utls` stays on the released v1.8.8 with no fork or `replace`. Adapted from
+`metacubex/utls` stays the release mihomo pins (v1.9.0-alpha.1 since v1.19.34, which still stops at
+Chrome 133) with no fork or `replace`. Adapted from
 Rerowros/veles `component/tls/chrome155.go` (GPL-3.0). `chrome133` (Citrus' pinned name) is added
 as an alias of mihomo's Chrome 133.
 
@@ -608,7 +611,7 @@ case that is rejected or has an ignored key not listed as `harmless`, and on an 
 
 ### Outcomes at Citrus 22da58f1 (v1.0.0-beta.3 content)
 
-163 cases: 155 `accept`, 4 `unsupported`, 4 `deferred`. Every `accept` holds with the series up to 0030.
+163 cases: 156 `accept`, 4 `unsupported`, 3 `deferred` (with mihomo v1.19.34). Every `accept` holds with the series up to 0030.
 Fixtures whose source did not change since ecaa9466 keep that commit in their header.
 
 | Fixture | Outcome | Notes |
@@ -640,7 +643,7 @@ Fixtures whose source did not change since ecaa9466 keep that commit in their he
 | `citrus-sniffer-bittorrent` | unsupported | feeds only the PROTOCOL rule |
 | `citrus-log-format` | unsupported | server-only (stdout log format); ignored |
 | `citrus-trusttunnel-timers` | deferred | needs Citrus' trusttunnel client rework (64970360, eb219944), ~110 lines in a transport ~3000 lines apart from vanilla; HTTP/2 ping / handshake timers only; ignored |
-| `citrus-snell-v6` | deferred | Snell v6 is in mihomo Alpha (Citrus #182) and comes with the next mihomo release; v1.19.33 rejects `version: 6`. When it lands, vanilla accepts `mode: unsafe-raw` (no PSK, no encryption), which Citrus rejects |
+| `citrus-snell-v6` | accept | vanilla since mihomo v1.19.34, the same code as Citrus 22da58f1 `transport/snell`; the example's `psk: yourpsk` is replaced, v6 needs 12-255 bytes on both. Vanilla also accepts `mode: unsafe-raw` (no PSK, no encryption), which Citrus refuses; not in the Citrus docs, so not a case |
 | `citrus-geox-sha256` | deferred | SHA-256 pins of remote geodata (Citrus #155/#156) are ignored; SlothClash 0027 (~670 lines with tests) ports them |
 | `site-security` (`tls.ca-roots`, `tls.ca-denylist`) | deferred | Citrus #161; ignored, so the trust store stays system plus bundle, interception roots included if installed; SlothClash 0026 (~4.7k lines, mostly the Mozilla bundle) ports it |
 

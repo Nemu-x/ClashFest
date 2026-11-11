@@ -4,13 +4,15 @@
 # Changes from the source (ClashFest):
 #   - the commented-out options uncommented with their v6 values and wrapped into a minimal profile
 #   - mode unshaped, the non-default value the comment allows
+#   - psk yourpsk replaced by a 15-byte placeholder: v6 needs 12 to 255 bytes (Citrus and mihomo
+#     both refuse a shorter one; the zh comment of the source says so)
 
 proxies:
   - name: "snell"
     type: snell
     server: server
     port: 44046
-    psk: yourpsk
+    psk: yourpsk-v6-0001
     version: 6 # support 1/2/3/4/5/6
     udp: true # support UDP on version 3/4/5/6
     reuse: false # v4/5/6 only

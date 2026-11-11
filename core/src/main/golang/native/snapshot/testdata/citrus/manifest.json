@@ -795,11 +795,8 @@
       "file": "citrus-snell-v6.yaml",
       "cases": {
         "": {
-          "outcome": "deferred:Snell v6 is in mihomo Alpha (synced into Citrus by #182) and comes with the next mihomo release; vanilla v1.19.33 rejects version 6 (snell version error: 6); porting it means transport/snell v6 (~1300 lines)",
-          "citrus-only": [
-            "proxies[0].mode"
-          ],
-          "note": "Citrus also rejects mode: unsafe-raw (no PSK, no crypto) that mihomo Alpha accepts; the docs do not show it, so it is not a case here: check it when mihomo ships v6"
+          "outcome": "accept",
+          "note": "Snell v6 (default / unshaped) is vanilla since mihomo v1.19.34 and byte-identical to Citrus 22da58f1 transport/snell. Only difference: vanilla also accepts mode: unsafe-raw (no PSK, no encryption), which Citrus refuses; the Citrus docs do not show it, so it is not a case here"
         }
       }
     },
