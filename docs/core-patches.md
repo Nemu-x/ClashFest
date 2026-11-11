@@ -515,6 +515,23 @@ kept the last value set in that process.
 
 Upstream: same as 0001. Delete with 0001.
 
+Lab for 0026-0028 (2026-11-11, Docker, plain mihomo binaries for linux/amd64, policy Auto; three
+requests per proxy through VLESS + REALITY + vision; a local TLS 1.3 site as the REALITY target):
+
+| Server (Xray) | chrome, chrome155, hellochrome_155, firefox, safari, ios, chrome120 | chrome155 + `support-x25519mlkem768` |
+|---|---|---|
+| 26.11.9, and 26.11.9 with `minClientVer: 26.11.9` | patched: all OK on the first request; stock: all fail | patched OK, stock fails |
+| 25.7.25 | patched: all OK; stock: OK except chrome155 / hellochrome_155 (unknown names, no uTLS) | patched OK, stock fails |
+| 24.12.31 | patched: all OK; stock: OK except chrome155 / hellochrome_155 | both fail (forced hybrid; the server relays it to the cover site) |
+
+Citrus `test/interop` (`TestMihomoClientCitrusServer`, Citrus 22da58f1 as server) with the patched core:
+30 of 31 pass; the negative control `vless-reality-require-mlkem-client-classic` connects, because
+Auto flips to the hybrid share after the refused classic hello (the stock core passes all 31). A
+ClashFest-only set of 25 more cases (the fingerprints above in Auto against a Citrus server with and
+without `require-x25519mlkem768`, forced chrome155, `min-client-ver: 26.11.9` passes and
+`max-client-ver: 26.11.8` refuses, chrome155 over WebSocket and XHTTP TLS, XHTTP packet-up with the
+data in a header or a cookie for 0029) passes 25/25 on the patched core and 9/25 on stock.
+
 ### 0029 XHTTP: default uplink data key
 
 With `xhttp-opts.uplink-data-placement: header` or `cookie` and no `uplink-data-key`, vanilla sends
