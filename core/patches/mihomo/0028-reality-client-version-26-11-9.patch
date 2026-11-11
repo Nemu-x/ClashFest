@@ -1,0 +1,30 @@
+diff --git a/component/tls/reality.go b/component/tls/reality.go
+index 68850fee..d74440e2 100644
+--- a/component/tls/reality.go
++++ b/component/tls/reality.go
+@@ -32,8 +32,10 @@ const RealityMaxShortIDLen = 8
+ // RealityClientVersion is the Xray-style client version carried in the first
+ // three bytes of the REALITY ClientHello session id. Xray servers compare it
+ // against their optional minClientVer / maxClientVer; nothing else depends on it.
+-// Defaults to the Xray release this core was last validated against.
+-var RealityClientVersion = [3]byte{26, 10, 29}
++// Defaults to the Xray release this core was last validated against
++// (26.11.9 since ClashFest core patch 0028, the release whose REALITY lab and
++// Citrus v1.0.0-beta.3 the series was checked with).
++var RealityClientVersion = [3]byte{26, 11, 9}
+ 
+ type RealityConfig struct {
+ 	PublicKey *ecdh.PublicKey
+diff --git a/component/tls/reality_mlkem_memo_test.go b/component/tls/reality_mlkem_memo_test.go
+index 4a113b30..f9c119fa 100644
+--- a/component/tls/reality_mlkem_memo_test.go
++++ b/component/tls/reality_mlkem_memo_test.go
+@@ -79,4 +79,8 @@ func TestRealityClientVersionDefault(t *testing.T) {
+ 	if RealityClientVersion == [3]byte{1, 8, 2} {
+ 		t.Fatal("client version still reports the legacy 1.8.2")
+ 	}
++	// Core patch 0028: Xray 26.11.9, the release the series was last checked against.
++	if RealityClientVersion != [3]byte{26, 11, 9} {
++		t.Fatalf("default client version = %v, want 26.11.9", RealityClientVersion)
++	}
+ }

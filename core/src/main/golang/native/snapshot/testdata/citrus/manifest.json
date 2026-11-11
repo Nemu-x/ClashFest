@@ -1,11 +1,24 @@
 {
-  "citrus": "ecaa9466",
+  "citrus": "22da58f1",
   "fixtures": [
     {
       "file": "config-general.yaml",
       "cases": {
         "": {
-          "outcome": "accept"
+          "outcome": "accept",
+          "citrus-only": [
+            "geox-sha256.geoip",
+            "geox-sha256.geosite",
+            "geox-sha256.mmdb",
+            "geox-sha256.asn"
+          ],
+          "harmless": [
+            "geox-sha256.geoip",
+            "geox-sha256.geosite",
+            "geox-sha256.mmdb",
+            "geox-sha256.asn"
+          ],
+          "note": "geox-sha256 is ignored; the empty pins of the example mean no pin, which is vanilla's behaviour"
         }
       }
     },
@@ -201,6 +214,14 @@
         },
         "en1-direct": {
           "outcome": "accept"
+        },
+        "vless-xdrive": {
+          "outcome": "accept",
+          "citrus-only": [
+            "xdrive-opts.service",
+            "xdrive-opts.secrets"
+          ],
+          "note": "core patch 0003"
         }
       }
     },
@@ -657,6 +678,10 @@
         "hellochrome_120_pq": {
           "outcome": "accept",
           "note": "core patch 0007"
+        },
+        "hellochrome_155": {
+          "outcome": "accept",
+          "note": "core patch 0026"
         }
       }
     },
@@ -708,6 +733,137 @@
         },
         "grpc-reality": {
           "outcome": "accept"
+        },
+        "xhttp-h3-packet-up": {
+          "outcome": "accept"
+        },
+        "xhttp-h3-stream-one": {
+          "outcome": "accept"
+        },
+        "xhttp-h3-stream-up": {
+          "outcome": "accept"
+        },
+        "xdrive-local": {
+          "outcome": "accept",
+          "citrus-only": [
+            "xdrive-opts.service"
+          ],
+          "note": "core patch 0003; local storage is accepted but refuses every dial on Android"
+        },
+        "xdrive-template": {
+          "outcome": "accept",
+          "citrus-only": [
+            "xdrive-opts.template"
+          ],
+          "note": "core patch 0003"
+        },
+        "singbox-vless-reality-vision": {
+          "outcome": "accept"
+        },
+        "singbox-hysteria2": {
+          "outcome": "accept"
+        }
+      }
+    },
+    {
+      "file": "citrus-chrome-pinned.yaml",
+      "split": "proxies",
+      "cases": {
+        "chrome155": {
+          "outcome": "accept",
+          "note": "core patch 0026"
+        },
+        "chrome133": {
+          "outcome": "accept",
+          "note": "core patch 0026"
+        }
+      }
+    },
+    {
+      "file": "citrus-reality-client-version.yaml",
+      "cases": {
+        "": {
+          "outcome": "accept",
+          "citrus-only": [
+            "proxies[0].reality-opts.client-version"
+          ],
+          "note": "core patches 0004 (client-version) and 0026 (chrome155)"
+        }
+      }
+    },
+    {
+      "file": "citrus-snell-v6.yaml",
+      "cases": {
+        "": {
+          "outcome": "deferred:Snell v6 is in mihomo Alpha (synced into Citrus by #182) and comes with the next mihomo release; vanilla v1.19.33 rejects version 6 (snell version error: 6); porting it means transport/snell v6 (~1300 lines)",
+          "citrus-only": [
+            "proxies[0].mode"
+          ],
+          "note": "Citrus also rejects mode: unsafe-raw (no PSK, no crypto) that mihomo Alpha accepts; the docs do not show it, so it is not a case here: check it when mihomo ships v6"
+        }
+      }
+    },
+    {
+      "file": "citrus-desync.yaml",
+      "cases": {
+        "": {
+          "outcome": "accept",
+          "citrus-only": [
+            "proxies[0].tlsrec",
+            "proxies[0].split-wait-timeout",
+            "proxies[0].random",
+            "proxies[0].fake",
+            "proxies[0].udp"
+          ],
+          "note": "core patch 0021; which methods a platform has is decided by the desync library at validation"
+        }
+      }
+    },
+    {
+      "file": "citrus-xdrive-template.yaml",
+      "cases": {
+        "": {
+          "outcome": "accept",
+          "citrus-only": [
+            "proxies[0].xdrive-opts.template"
+          ],
+          "note": "core patch 0003; Citrus #168 refuses template and local in http proxy providers, ClashFest refuses only local (on Android, at dial time)"
+        }
+      }
+    },
+    {
+      "file": "citrus-geox-sha256.yaml",
+      "cases": {
+        "": {
+          "outcome": "deferred:SHA-256 pins of remote geodata (Citrus #155/#156); SlothClash has it as core patch 0027 geox-sha256; ClashFest ships geodata in the APK and turns geo-auto-update off, so a pin only matters for profile-driven downloads",
+          "citrus-only": [
+            "geox-sha256.geoip",
+            "geox-sha256.mmdb"
+          ]
+        }
+      }
+    },
+    {
+      "file": "site-security.yaml",
+      "cases": {
+        "": {
+          "outcome": "deferred:tls.ca-roots and tls.ca-denylist (Citrus #161); SlothClash has them as core patch 0026 ca-policy; vanilla trusts system plus bundle and every system CA, including the state interception CAs the denylist names",
+          "citrus-only": [
+            "tls.ca-roots",
+            "tls.ca-denylist"
+          ]
+        }
+      }
+    },
+    {
+      "file": "site-desync.yaml",
+      "cases": {
+        "": {
+          "outcome": "accept",
+          "citrus-only": [
+            "proxies[0].tlsrec"
+          ],
+          "note": "core patch 0021"
         }
       }
     }

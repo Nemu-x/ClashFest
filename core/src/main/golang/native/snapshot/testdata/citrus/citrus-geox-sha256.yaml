@@ -1,0 +1,11 @@
+# Citrus compatibility fixture, see docs/core-patches.md (Citrus compatibility suite).
+# Source: getmikan/Citrus@22da58f1 docs/config.yaml lines 46-51
+# License: GPL-3.0 (Citrus, like ClashFest). Copied as test data.
+# Changes from the source (ClashFest):
+#   - the empty pins replaced by a 64-hex SHA-256 (of an empty file) for geoip and mmdb, the case the comment describes; config-general.yaml keeps the empty ones
+
+geox-sha256:
+  geoip: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"   # 64 hex characters
+  geosite: ""
+  mmdb: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  asn: ""

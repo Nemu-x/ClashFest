@@ -1,0 +1,9 @@
+# Citrus compatibility fixture, see docs/core-patches.md (Citrus compatibility suite).
+# Source: getmikan/Citrus@22da58f1 component/tls/utls.go lines 97-99 (pinned Chrome versions) and docs/config.yaml line 912 (client-fingerprint list)
+# License: GPL-3.0 (Citrus, like ClashFest). Copied as test data.
+# Changes from the source (ClashFest):
+#   - one VLESS+TLS proxy per name, the name as both the proxy name and its client-fingerprint
+
+proxies:
+  - {name: chrome155, type: vless, server: 192.0.2.1, port: 443, uuid: 27848739-7e62-4138-9fd3-098a63964b6b, tls: true, servername: www.example.com, client-fingerprint: chrome155}
+  - {name: chrome133, type: vless, server: 192.0.2.1, port: 443, uuid: 27848739-7e62-4138-9fd3-098a63964b6b, tls: true, servername: www.example.com, client-fingerprint: chrome133}

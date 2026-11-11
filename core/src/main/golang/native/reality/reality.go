@@ -29,6 +29,15 @@ func ParseVersion(s string) ([3]byte, bool) {
 	return out, true
 }
 
+// ClientVersion is the client version to use for the setting s: s itself when
+// it parses, else the core default (an empty or malformed setting).
+func ClientVersion(s string, def [3]byte) [3]byte {
+	if v, ok := ParseVersion(s); ok {
+		return v
+	}
+	return def
+}
+
 // FormatVersion is the inverse of ParseVersion, for logs.
 func FormatVersion(v [3]byte) string {
 	return fmt.Sprintf("%d.%d.%d", v[0], v[1], v[2])

@@ -37,3 +37,17 @@ func TestMLKEMPolicyName(t *testing.T) {
 		t.Fatal("policy names drifted")
 	}
 }
+
+func TestClientVersionFallsBackToDefault(t *testing.T) {
+	def := [3]byte{26, 11, 9}
+	for in, want := range map[string][3]byte{
+		"25.1.1": {25, 1, 1},
+		"":       def,
+		"  ":     def,
+		"26.x.9": def,
+	} {
+		if got := ClientVersion(in, def); got != want {
+			t.Errorf("ClientVersion(%q) = %v, want %v", in, got, want)
+		}
+	}
+}
