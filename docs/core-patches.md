@@ -30,7 +30,7 @@ modified freely: CI and the F-Droid recipe overwrite the embedded Root CA bundle
 modified while a build tree is set up; never commit the applied patches into the submodule.
 
 Tests that ship inside a patch run with the Go test task (`:core:goTestNativeSnapshot`, which runs
-`go test` on `component/tls`, `component/ca`, `component/sniffer`, `dns`, `tunnel`,
+`go test` on `component/tls`, `component/ca`, `component/sniffer`, `component/fragment`, `common/convert`, `dns`, `tunnel`,
 `transport/openvpn`, `transport/xdrive`, `transport/vless/muxcool`, `transport/xhttp`, `transport/jls`,
 `adapter`, `adapter/outbound`,
 `adapter/outboundgroup`, `config` and `hub/route` from the `cfa` module, plus the desync library's
@@ -559,6 +559,34 @@ SlothClash-only change; Citrus ignores them, and an error there would fail the w
 validation).
 
 Upstream: with 0003. Delete with 0003.
+
+### 0033 `fragment-opts`: split the first ClientHello of a proxy connection
+
+`fragment-opts` on any proxy splits the start of every TCP connection the proxy dials, following Xray's
+finalmask `fragment` (`packets`, `length`, `delay`, `max-split`; the same names and ranges, so a panel
+can pass Xray's values). `packets: tlshello` (the default) re-frames the first write, when it is a whole
+TLS ClientHello record, into several TLS records of `length` bytes of payload (`delay: 0` sends them
+in one write, a non-zero delay as separate writes with pauses); `packets: N-M` cuts writes N..M into
+raw pieces of `length` bytes. Everything after that passes through; UDP is untouched. The wrap sits in
+`BasicOption.NewDialer`, so it covers every proxy type and transport (TCP, WebSocket, gRPC, XHTTP,
+REALITY, plain TLS) and also a `dialer-proxy` hop. An invalid block fails the proxy at validation. A
+VLESS / VMess share link with Xray's `fm` parameter holding a TCP `fragment` mask becomes
+`fragment-opts`; a malformed `fm` is ignored rather than failing the subscription. Without the key
+nothing changes; vanilla ignores it. Feature token `fragment`.
+
+This is the per-proxy, Xray-compatible knob; desync (0015-0021) stays the tool for direct connections.
+Ported from Rerowros/veles `component/fragment` (GPL-3.0), patch P19 there, with its tests:
+`component/fragment` (parsing, merged and delayed TLS records, TCP segments, a loopback model of a
+middlebox that blocks a ClientHello it can read whole, by record and by segment), `adapter`
+(validation), `adapter/outbound` (the dialer is wrapped only when set), `common/convert` (`fm`). Engine
+oracle: `core_patch_fragment_oracle_test.go`.
+
+Lab (2026-11-11, Docker, Xray 26.11.9, 25.7.25 and 24.12.31 with VLESS + REALITY + vision, 26.11.9 also
+over XHTTP and gRPC): `tlshello` merged, `tlshello` with a 2-5 ms delay and `packets: 1-1` all connect
+on every server (three requests each, policy Auto). Citrus `test/interop` against a Citrus 22da58f1
+server: REALITY with the three modes, VLESS + WebSocket + uTLS and Trojan + Go TLS with `tlshello`.
+
+Upstream: none. Delete when mihomo ships an equivalent.
 
 ## Citrus compatibility suite
 

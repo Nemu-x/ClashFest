@@ -203,6 +203,8 @@ val goTestNativeSnapshot by tasks.registering(Exec::class) {
         "github.com/metacubex/mihomo/component/tls",
         "github.com/metacubex/mihomo/component/ca",
         "github.com/metacubex/mihomo/component/sniffer",
+        "github.com/metacubex/mihomo/component/fragment",
+        "github.com/metacubex/mihomo/common/convert",
         "github.com/metacubex/mihomo/dns",
         "github.com/metacubex/mihomo/tunnel",
         "github.com/metacubex/mihomo/transport/openvpn",
