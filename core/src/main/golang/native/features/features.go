@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	// "ech-xray": ech-opts in the Xray forms (ECH CONFIGS PEM, query-server), core patch 0009.
+	// "fragment": fragment-opts on a proxy, core patch 0033.
 	// "desync": outbounds of type desync (github.com/Nemu-x/desync), core patch 0021.
 	"github.com/metacubex/mihomo/adapter/outbound"
 	// "chain": proxy groups of type chain, core patch 0005.
@@ -36,12 +37,13 @@ var (
 	_ = ca.NewFingerprintNameVerifier
 	_ = outbound.ECHOptions{QueryServer: ""}
 	_ = outbound.NewDesync
+	_ = outbound.BasicOption{}.FragmentOpts
 	_ = C.Desync
 )
 
 // List returns the capability tokens in a stable order.
 func List() []string {
-	return []string{"xdrive", "chain", "mldsa65", "pin-list", "ech-xray", "desync", "chrome155", "mlkem-fingerprint"}
+	return []string{"xdrive", "chain", "mldsa65", "pin-list", "ech-xray", "desync", "chrome155", "mlkem-fingerprint", "fragment"}
 }
 
 // String is List joined with commas, the form the bridge hands to Kotlin.
