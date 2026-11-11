@@ -1,5 +1,5 @@
 # Citrus compatibility fixture, see docs/core-patches.md (Citrus compatibility suite).
-# Source: getmikan/Citrus@22da58f1 component/tls/utls.go lines 97-99 (pinned Chrome versions) and docs/config.yaml line 912 (client-fingerprint list)
+# Source: getmikan/Citrus@b0f91a16 component/tls/utls.go lines 97-99 (pinned Chrome versions) and docs/config.yaml line 912 (client-fingerprint list)
 # License: GPL-3.0 (Citrus, like ClashFest). Copied as test data.
 # Changes from the source (ClashFest):
 #   - one VLESS+TLS proxy per name, the name as both the proxy name and its client-fingerprint

@@ -1,5 +1,5 @@
 # Citrus compatibility fixture, see docs/core-patches.md (Citrus compatibility suite).
-# Source: getmikan/Citrus@ecaa9466 docs/config.yaml (proxy-groups 1722-1820, proxy-providers 1823-1950)
+# Source: getmikan/Citrus@b0f91a16 docs/config.yaml (proxy-groups 1881-1979, proxy-providers 1982-2109)
 # License: GPL-3.0 (Citrus, like ClashFest). Copied as test data.
 # Changes from the source (ClashFest):
 #   - stub proxies ss1, ss2 and vless1 added, the members the example groups name

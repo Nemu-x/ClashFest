@@ -1,5 +1,5 @@
 {
-  "citrus": "22da58f1",
+  "citrus": "b0f91a16",
   "fixtures": [
     {
       "file": "config-general.yaml",
@@ -796,7 +796,7 @@
       "cases": {
         "": {
           "outcome": "accept",
-          "note": "Snell v6 (default / unshaped) is vanilla since mihomo v1.19.34 and byte-identical to Citrus 22da58f1 transport/snell. Only difference: vanilla also accepts mode: unsafe-raw (no PSK, no encryption), which Citrus refuses; the Citrus docs do not show it, so it is not a case here"
+          "note": "Snell v6 (default / unshaped) is vanilla since mihomo v1.19.34 and byte-identical to Citrus b0f91a16 (v1.0.0-beta.3) transport/snell. Only difference: vanilla also accepts mode: unsafe-raw (no PSK, no encryption), which Citrus refuses; the Citrus docs do not show it, so it is not a case here"
         }
       }
     },
