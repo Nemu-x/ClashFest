@@ -1,0 +1,1 @@
+Fix: the APK is about half the size again (1.4.0 stored the core uncompressed, which doubled the download).
