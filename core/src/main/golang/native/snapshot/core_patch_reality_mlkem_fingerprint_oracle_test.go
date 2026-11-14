@@ -6,8 +6,9 @@ import (
 )
 
 // Engine oracle for core patch 0031 (reality-opts.mlkem-client-fingerprint):
-// a fingerprint with the X25519MLKEM768 key share is accepted, one without it
-// or an unknown name fails validation.
+// a fingerprint with the X25519MLKEM768 key share is accepted. Patch 0040: one
+// without it or an unknown name is ignored with a warning instead of failing
+// the profile.
 
 const realityProxyWithMLKEMFingerprint = `
   - name: node
@@ -32,16 +33,10 @@ func TestCorePatchOracle_RealityMLKEMClientFingerprint(t *testing.T) {
 			t.Errorf("mlkem-client-fingerprint %s rejected: %s", fp, errMsg)
 		}
 	}
-	for fp, want := range map[string]string{
-		"edge":       "has no X25519MLKEM768 key share",
-		"chrome120":  "has no X25519MLKEM768 key share",
-		"firefox120": "has no X25519MLKEM768 key share",
-		"opera":      "invalid REALITY mlkem-client-fingerprint",
-		"none":       "invalid REALITY mlkem-client-fingerprint",
-	} {
+	for _, fp := range []string{"edge", "chrome120", "firefox120", "opera", "none"} {
 		proxy := strings.Replace(realityProxyWithMLKEMFingerprint, "MLKEM_FINGERPRINT", fp, 1)
-		if errMsg := ValidateBytes([]byte(patchOracleProfile(proxy))); !strings.Contains(errMsg, want) {
-			t.Errorf("mlkem-client-fingerprint %s: got %q, want %q", fp, errMsg, want)
+		if errMsg := ValidateBytes([]byte(patchOracleProfile(proxy))); errMsg != "" {
+			t.Errorf("mlkem-client-fingerprint %s failed the profile: %s", fp, errMsg)
 		}
 	}
 }

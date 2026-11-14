@@ -6,7 +6,8 @@ import (
 )
 
 // Engine oracle for core patch 0033 (fragment-opts): valid blocks are accepted
-// on any proxy type, an invalid one fails validation instead of every dial.
+// on any proxy type. Patch 0040: an invalid one no longer fails validation; the
+// engine drops the block with a warning and the profile loads.
 
 const fragmentOracleProxy = `
   - name: node
@@ -30,15 +31,15 @@ func TestCorePatchOracle_FragmentOpts(t *testing.T) {
 			t.Errorf("fragment-opts %q rejected: %s", opts, errMsg)
 		}
 	}
-	for opts, want := range map[string]string{
-		"      packets: tlshello\n      length: 0-5": "fragment-opts.length",
-		"      packets: first":                     "fragment-opts.packets",
-		"      packets: 0-2":                       "fragment-opts.packets",
-		"      delay: soon":                        "fragment-opts.delay",
+	for _, opts := range []string{
+		"      packets: tlshello\n      length: 0-5",
+		"      packets: first",
+		"      packets: 0-2",
+		"      delay: soon",
 	} {
 		proxy := strings.Replace(fragmentOracleProxy, "FRAGMENT_OPTS", opts, 1)
-		if errMsg := ValidateBytes([]byte(patchOracleProfile(proxy))); !strings.Contains(errMsg, want) {
-			t.Errorf("fragment-opts %q: got %q, want %q", opts, errMsg, want)
+		if errMsg := ValidateBytes([]byte(patchOracleProfile(proxy))); errMsg != "" {
+			t.Errorf("invalid fragment-opts %q failed the profile: %s", opts, errMsg)
 		}
 	}
 }
