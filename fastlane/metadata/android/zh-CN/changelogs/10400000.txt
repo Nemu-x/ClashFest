@@ -1,2 +1,2 @@
-新功能：Desync 无需 VPN 服务器即可直接打开 YouTube、Discord 等被封锁的服务，可作为独立配置或叠加在订阅之上，并自动选择策略。mihomo 内核 1.19.34，兼容 Xray 26.11.9（chrome155、REALITY 26.11.9、更稳定的 ML-KEM 选择），新增代理参数 fragment-opts 和 mux.cool。
-修复：单个异常节点不再导致整个订阅失效；日志中不再显示分享链接里的凭据。
+新功能：Desync 无需 VPN 服务器即可直接打开 YouTube、Discord 等被封锁的服务，可作为独立配置或叠加在订阅之上。mihomo 1.19.34，兼容 Xray 26.11.9（chrome155、更稳定的 ML-KEM），新增 fragment-opts 和 mux.cool。
+修复：单个异常节点不再导致订阅失效；最近任务中只显示一个应用窗口；三键导航下规则页的保存按钮不再被遮挡；Desync 配置的主页更新按钮。

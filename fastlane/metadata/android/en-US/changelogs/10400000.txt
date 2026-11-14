@@ -1,2 +1,2 @@
-New: Desync opens YouTube, Discord and other blocked services directly, without a VPN server, as its own profile or on top of a subscription with automatic strategy choice. mihomo core 1.19.34, Xray 26.11.9 compatibility (chrome155, REALITY 26.11.9, steadier ML-KEM choice), new proxy keys fragment-opts and mux.cool.
-Fixes: one broken node no longer makes the whole subscription fail; no credentials in share-link errors in the log.
+New: Desync opens YouTube, Discord and other blocked services directly, without a VPN server, as its own profile or on top of a subscription. mihomo 1.19.34, Xray 26.11.9 compatibility (chrome155, steadier ML-KEM), fragment-opts and mux.cool.
+Fixes: one broken node no longer fails a subscription; one app window in Recents; Rules Save button above 3-button navigation; Home update button for Desync profiles.
