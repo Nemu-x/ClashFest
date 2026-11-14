@@ -6,8 +6,9 @@ import (
 )
 
 // Engine oracle for core patch 0037 (mux.cool): a vless proxy accepts the
-// block, a disabled block is ignored, and the combinations the client cannot
-// carry fail validation instead of every dial.
+// block and a disabled block is ignored. Patch 0040: the combinations the
+// client cannot carry no longer fail validation; the engine ignores mux.cool
+// with a warning and the profile loads.
 
 const muxCoolOracleProxy = `
   - name: node
@@ -40,18 +41,17 @@ func TestCorePatchOracle_MuxCool(t *testing.T) {
 		}
 	}
 	for _, tc := range []struct {
-		name, proxyType, extra, block, want string
+		name, proxyType, extra, block string
 	}{
-		{"udp443", "vless", "", "      enabled: true\n      xudp-proxy-udp443: bogus", "xudp-proxy-udp443"},
-		{"negative", "vless", "", "      enabled: true\n      max-concurrency: -1", "max-concurrency"},
-		{"vision", "vless", "    flow: xtls-rprx-vision\n", "      enabled: true", "flow"},
-		{"smux", "vless", "    smux:\n      enabled: true\n", "      enabled: true", "smux"},
-		{"vmess", "vmess", "    cipher: auto\n    alterId: 0\n", "      enabled: true", "only supported for vless"},
+		{"udp443", "vless", "", "      enabled: true\n      xudp-proxy-udp443: bogus"},
+		{"negative", "vless", "", "      enabled: true\n      max-concurrency: -1"},
+		{"vision", "vless", "    flow: xtls-rprx-vision\n", "      enabled: true"},
+		{"smux", "vless", "    smux:\n      enabled: true\n", "      enabled: true"},
+		{"vmess", "vmess", "    cipher: auto\n    alterId: 0\n", "      enabled: true"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			errMsg := ValidateBytes([]byte(patchOracleProfile(muxCoolOracle(tc.proxyType, tc.extra, tc.block))))
-			if !strings.Contains(errMsg, tc.want) {
-				t.Fatalf("got %q, want an error mentioning %q", errMsg, tc.want)
+			if errMsg := ValidateBytes([]byte(patchOracleProfile(muxCoolOracle(tc.proxyType, tc.extra, tc.block)))); errMsg != "" {
+				t.Fatalf("mux.cool that cannot apply failed the profile: %s", errMsg)
 			}
 		})
 	}

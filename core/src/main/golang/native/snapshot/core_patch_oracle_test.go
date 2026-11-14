@@ -150,11 +150,12 @@ func TestCorePatchOracle_RealityClientVersion(t *testing.T) {
 			t.Errorf("client-version %s rejected: %s", v, errMsg)
 		}
 	}
+	// Patch 0040: an invalid version is ignored with a warning (the global
+	// version applies) instead of failing the profile.
 	for _, v := range []string{"26.9", "26.x.9", "300.0.0", "26.9.9.9"} {
 		proxy := strings.Replace(realityProxyWithVersion, "CLIENT_VERSION", v, 1)
-		errMsg := ValidateBytes([]byte(patchOracleProfile(proxy)))
-		if !strings.Contains(errMsg, "invalid REALITY client version") {
-			t.Errorf("client-version %s: got %q, want a REALITY client version error", v, errMsg)
+		if errMsg := ValidateBytes([]byte(patchOracleProfile(proxy))); errMsg != "" {
+			t.Errorf("invalid client-version %s failed the profile: %s", v, errMsg)
 		}
 	}
 }

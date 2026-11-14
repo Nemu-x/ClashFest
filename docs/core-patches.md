@@ -572,7 +572,7 @@ the server needs one. Adapted from Rerowros/veles (GPL-3.0), patch P7 there.
 The value must name a fingerprint whose hello carries the hybrid share
 (`tlsC.FingerprintSupportsX25519MLKEM768`, read from the utls spec: `chrome`, `chrome133`,
 `chrome155`, `firefox`, `safari` and their Xray names); `edge`, `chrome120`, `firefox120`, `none` or an
-unknown name fail config validation. `random` is picked once per process like
+unknown name are ignored with a warning (0040; they failed config validation before). `random` is picked once per process like
 `client-fingerprint: random`; when the pick has no share (ios), chrome is used. The fingerprint is
 chosen before 0023's and 0002's substitutions, which then have nothing to substitute. Without the key
 nothing changes; vanilla ignores it. Feature token `mlkem-fingerprint`.
@@ -624,7 +624,8 @@ TLS ClientHello record, into several TLS records of `length` bytes of payload (`
 in one write, a non-zero delay as separate writes with pauses); `packets: N-M` cuts writes N..M into
 raw pieces of `length` bytes. Everything after that passes through; UDP is untouched. The wrap sits in
 `BasicOption.NewDialer`, so it covers every proxy type and transport (TCP, WebSocket, gRPC, XHTTP,
-REALITY, plain TLS) and also a `dialer-proxy` hop. An invalid block fails the proxy at validation. A
+REALITY, plain TLS) and also a `dialer-proxy` hop. An invalid block is dropped with a warning and the proxy loads without fragmentation (0040; it
+failed the proxy at validation before). A
 VLESS / VMess share link with Xray's `fm` parameter holding a TCP `fragment` mask becomes
 `fragment-opts`; a malformed `fm` is ignored rather than failing the subscription. Without the key
 nothing changes; vanilla ignores it. Feature token `fragment`.
@@ -698,8 +699,8 @@ mux.cool:
 
 Without the block, or with `enabled: false`, nothing changes: the VLESS outbound sends the Mux command
 only for the carrier dial the wrapper marks in its context (keyed to that dial's metadata), so a plain dial
-to `v1.mux.cool` or a `dialer-proxy` hop that inherits the context stays a TCP request. A config error
-refuses `mux.cool` on a non-vless proxy, with a Vision `flow`, with enabled `smux`, and with
+to `v1.mux.cool` or a `dialer-proxy` hop that inherits the context stays a TCP request. Since 0040 a warning
+(before it, a config error) drops `mux.cool` on a non-vless proxy, with a Vision `flow`, with enabled `smux`, and with
 `network: xdrive` (0003 already runs its own TCP-only Mux.Cool client, `transport/vless/muxcool`; the two
 stay separate). `udp: false` still disables UDP. Config only, nothing in the app UI. Feature token
 `mux-cool`.
@@ -830,6 +831,30 @@ none for the others. Both fail on the series without the patch. The same patch b
 core patch 0042.
 
 Delete when mihomo warns about or refuses `unsafe-raw` itself.
+
+### 0040 Proxy options: unusable values are ignored, not fatal
+
+`fragment-opts` (0033), `mux.cool` (0037), `reality-opts.client-version` (0004) and
+`reality-opts.mlkem-client-fingerprint` (0031) failed the whole profile when a value could not apply,
+so one such node made the engine reject a subscription that vanilla, which ignores keys it does not
+know, loads. Each is now dropped with a warning in the core log and the proxy loads without it:
+
+- `fragment-opts` that does not decode or parse: no fragmentation (`[Proxy] <name>: ignore unsupported
+  fragment-opts: ...`); the caller's mapping is copied, not modified;
+- `mux.cool` with invalid options, on a non-vless proxy, with a Vision `flow`, with enabled `smux` or
+  with `network: xdrive`, and a non-map `mux.cool`: no MuxCool wrapper (`[Proxy] <name>: ignore mux.cool: ...`);
+- an invalid `client-version`: the global REALITY client version;
+- an unknown `mlkem-client-fingerprint` or one without the X25519MLKEM768 share: the default ML-KEM
+  handshake.
+
+`reality-opts.mldsa65-verify` (0006) stays a config error: it pins the server, and dropping it would
+weaken the check. The warning goes to the core log only.
+
+Origin: Rerowros/veles v1.19.34-veles.1 (ff6de754), adapted to this series. Tests: `adapter`
+(fragment-opts and mux.cool load, warn, no wrapper), `adapter/outbound` (the REALITY fields stay unset);
+the engine oracles of 0004, 0031, 0033 and 0037 now expect these configs to be accepted.
+
+Delete when the patches it softens are dropped.
 
 ## Citrus compatibility suite
 
