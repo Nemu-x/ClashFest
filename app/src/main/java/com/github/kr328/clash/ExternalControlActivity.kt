@@ -55,7 +55,15 @@ class ExternalControlActivity : Activity(), CoroutineScope by MainScope() {
                                 patch(it, name, url, 0, null)
                             }
                         }
-                        startActivity(PropertiesActivity::class.intent.setUUID(uuid))
+                        // Open the editor on top of MainActivity, in its task. Started
+                        // alone with NEW_TASK it got a task of its own (MainActivity has
+                        // an empty taskAffinity), a second ClashFest window in Recents.
+                        startActivities(
+                            arrayOf(
+                                MainActivity::class.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                PropertiesActivity::class.intent.setUUID(uuid),
+                            ),
+                        )
                         finish()
                     }
                 }
@@ -174,7 +182,9 @@ class ExternalControlActivity : Activity(), CoroutineScope by MainScope() {
     }
 
     override fun finish() {
-        super.finish()
+        // Root of a task of its own (a link or another app started it with NEW_TASK): remove the
+        // emptied task as well, or Recents keeps a blank ClashFest card next to the real one.
+        if (isTaskRoot) super.finishAndRemoveTask() else super.finish()
         @Suppress("DEPRECATION")
         overridePendingTransition(0, 0)
     }

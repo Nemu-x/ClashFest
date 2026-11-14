@@ -32,7 +32,8 @@ class UpdateDownloadActivity : Activity() {
                 .setAction(ACTION_SYNC_PENDING_DOWNLOAD)
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP),
         )
-        finish()
+        // Its own task (empty affinity): remove it, or Recents keeps a blank card.
+        if (isTaskRoot) finishAndRemoveTask() else finish()
     }
 
     companion object {

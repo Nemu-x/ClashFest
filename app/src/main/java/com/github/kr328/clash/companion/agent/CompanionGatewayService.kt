@@ -10,6 +10,7 @@ import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.github.kr328.clash.CompanionActivity
+import com.github.kr328.clash.MainActivity
 import com.github.kr328.clash.R
 import com.github.kr328.clash.common.compat.pendingIntentFlags
 import com.github.kr328.clash.common.compat.startForegroundCompat
@@ -206,11 +207,14 @@ class CompanionGatewayService : Service(), CompanionHooks,
         .setContentText(getString(DR.string.companion_notification_text))
         .setOngoing(true)
         .setContentIntent(
-            PendingIntent.getActivity(
+            // On top of MainActivity, in its task, not a second window in Recents.
+            PendingIntent.getActivities(
                 this,
                 R.id.nf_companion_status,
-                CompanionActivity::class.intent
-                    .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                arrayOf(
+                    MainActivity::class.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    CompanionActivity::class.intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                ),
                 pendingIntentFlags(PendingIntent.FLAG_UPDATE_CURRENT),
             ),
         )
