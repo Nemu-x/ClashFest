@@ -168,10 +168,15 @@ class ProfileWorker : BaseService() {
     }
 
     private fun resultBuilder(id: Int, uuid: UUID): NotificationCompat.Builder {
-        val intent = PendingIntent.getActivity(
+        // The editor opens on top of MainActivity, in its task: alone it got a task of
+        // its own (MainActivity has an empty taskAffinity), a second window in Recents.
+        val intent = PendingIntent.getActivities(
             this,
             id,
-            Intent().setComponent(Components.PROPERTIES_ACTIVITY).setUUID(uuid),
+            arrayOf(
+                Intent().setComponent(Components.MAIN_ACTIVITY).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                Intent().setComponent(Components.PROPERTIES_ACTIVITY).setUUID(uuid),
+            ),
             pendingIntentFlags(PendingIntent.FLAG_UPDATE_CURRENT)
         )
         val chrome = BrandNotificationChrome.forProfile(this, uuid)

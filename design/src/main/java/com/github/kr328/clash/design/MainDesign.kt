@@ -883,7 +883,9 @@ class MainDesign(context: Context) : Design<MainDesign.Request>(context) {
         }
         binding.mainActiveProfileUpdate.setOnClickListener {
             activeProfileForQuickActions?.let { profile ->
-                if (profile.imported && profile.type != Profile.Type.File) {
+                // Same rule as the button's visibility (renderActiveProfileCard): a Desync-only
+                // profile is a File profile, but its update regenerates the config.
+                if (profile.imported && (profile.type != Profile.Type.File || profile.isDesyncOnly)) {
                     profileForceUpdateRequests.trySend(profile)
                 }
             }

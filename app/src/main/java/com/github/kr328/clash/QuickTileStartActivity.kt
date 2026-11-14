@@ -106,7 +106,9 @@ class QuickTileStartActivity : ComponentActivity(), CoroutineScope by MainScope(
     }
 
     override fun finish() {
-        super.finish()
+        // Root of a task of its own (a link or another app started it with NEW_TASK): remove the
+        // emptied task as well, or Recents keeps a blank ClashFest card next to the real one.
+        if (isTaskRoot) super.finishAndRemoveTask() else super.finish()
         @Suppress("DEPRECATION")
         overridePendingTransition(0, 0)
     }

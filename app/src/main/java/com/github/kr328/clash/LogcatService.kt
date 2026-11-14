@@ -143,11 +143,15 @@ class LogcatService : Service(), CoroutineScope by CoroutineScope(Dispatchers.De
             .setContentTitle(getString(com.github.kr328.clash.design.R.string.clash_logcat))
             .setContentText(getString(com.github.kr328.clash.design.R.string.running))
             .setContentIntent(
-                PendingIntent.getActivity(
+                // On top of MainActivity, in its task, not a second window in Recents.
+                PendingIntent.getActivities(
                     this,
                     R.id.nf_logcat_status,
-                    LogcatActivity::class.intent
-                        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+                    arrayOf(
+                        MainActivity::class.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        LogcatActivity::class.intent
+                            .setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+                    ),
                     pendingIntentFlags(PendingIntent.FLAG_UPDATE_CURRENT)
                 )
             )

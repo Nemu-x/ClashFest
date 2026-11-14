@@ -3,6 +3,7 @@ package com.github.kr328.clash.design.adapter
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Canvas
+import android.graphics.Rect
 import android.graphics.drawable.Drawable
 import android.view.View
 import android.view.ViewGroup
@@ -254,6 +255,7 @@ internal class ProxyPickerSheet(private val adapter: ProfileAdapter) {
             ContextCompat.getDrawable(context, R.drawable.divider_node_hairline)?.let { d ->
                 sheet.proxySheetNodesList.addItemDecoration(NodeDividerDecoration(d))
             }
+            sheet.proxySheetNodesList.addItemDecoration(GroupSpacingDecoration(context.resources.displayMetrics.density))
 
             fun isGroupPinging(groupName: String): Boolean =
                 adapter.states.pingingUuid == profile.uuid && adapter.pingingGroupByUuid[profile.uuid] == groupName
@@ -865,6 +867,26 @@ internal class ProxyPickerSheet(private val adapter: ProfileAdapter) {
                 val top = child.bottom + child.translationY.toInt()
                 divider.setBounds(parent.paddingLeft, top, parent.width - parent.paddingRight, top + divider.intrinsicHeight)
                 divider.draw(c)
+            }
+        }
+    }
+
+    /**
+     * Air around an expanded group: its rows started 4dp under its header and the next group's
+     * header 4dp under its last row, as tight as two collapsed headers (8dp) or tighter. A header
+     * after a node row gets 8dp more above it, an expanded header 4dp more below it.
+     */
+    private class GroupSpacingDecoration(density: Float) : RecyclerView.ItemDecoration() {
+        private val afterGroup = (8 * density).toInt()
+        private val belowHeader = (4 * density).toInt()
+
+        override fun getItemOffsets(outRect: Rect, view: View, parent: RecyclerView, state: RecyclerView.State) {
+            val adapter = parent.adapter ?: return
+            val position = parent.getChildAdapterPosition(view)
+            if (position == RecyclerView.NO_POSITION || adapter.getItemViewType(position) != PICKER_VIEW_HEADER) return
+            if (position > 0 && adapter.getItemViewType(position - 1) == PICKER_VIEW_NODE) outRect.top = afterGroup
+            if (position + 1 < adapter.itemCount && adapter.getItemViewType(position + 1) == PICKER_VIEW_NODE) {
+                outRect.bottom = belowHeader
             }
         }
     }
