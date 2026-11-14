@@ -123,8 +123,9 @@ class RulesHubDesign(context: Context) : Design<RulesHubDesign.Request>(context)
                 (saveBar.layoutParams as ViewGroup.MarginLayoutParams).setMargins(m, 0, m, bars.bottom + m)
                 saveBar.requestLayout()
             } else {
-                val barPad = bars.bottom + gap
-                saveBar.setPadding(saveBar.paddingLeft, saveBar.paddingTop, saveBar.paddingRight, barPad)
+                // CardView ignores setPadding: the inset goes in as content padding, or the
+                // button sits under a 3-button navigation bar.
+                saveBar.setContentPadding(0, 0, 0, bars.bottom + gap)
             }
             // Pad the list by the pinned bar's REAL height (measured after it
             // applies its own bottom inset) so it never covers the last rows or
