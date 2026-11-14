@@ -81,6 +81,12 @@ android {
             // BouncyCastle to mint the Companion X.509 certificate.
             excludes += "org/bouncycastle/pqc/crypto/picnic/**"
         }
+        jniLibs {
+            // Compressed native libs, extracted at install. With minSdk 23 AGP stores them
+            // uncompressed by default (loaded straight from the APK), which made the APKs on
+            // GitHub and F-Droid twice the size (libclash.so 26 -> 79 MB in the arm64 APK).
+            useLegacyPackaging = true
+        }
     }
 }
 
