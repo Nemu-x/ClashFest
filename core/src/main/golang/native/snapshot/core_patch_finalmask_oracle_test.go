@@ -5,7 +5,8 @@ import (
 	"testing"
 )
 
-// Engine oracle for core patches 0041-0042: finalmask blocks are accepted by the patched engine; an unusable
+// Engine oracle for core patches 0041-0043: finalmask blocks and the Firefox
+// 156 / 160 fingerprints are accepted by the patched engine; an unusable
 // finalmask block (wrong network, unknown mask, xicmp under cmfa) keeps the
 // profile loading, as patch 0040 does for other options; the proxy then fails
 // its dials instead of connecting without its masks.
@@ -101,6 +102,14 @@ func TestCorePatchOracle_FinalMask(t *testing.T) {
 	for name, block := range unusable {
 		if errMsg := ValidateBytes([]byte(patchOracleProfile(finalmaskProxy("vless", "chrome", block)))); errMsg != "" {
 			t.Errorf("unusable finalmask %q failed the profile: %s", name, errMsg)
+		}
+	}
+}
+
+func TestCorePatchOracle_Firefox160Fingerprint(t *testing.T) {
+	for _, fp := range []string{"firefox156", "firefox160", "hellofirefox_156", "hellofirefox_160"} {
+		if errMsg := ValidateBytes([]byte(patchOracleProfile(finalmaskProxy("vless", fp, "")))); errMsg != "" {
+			t.Errorf("client-fingerprint %s rejected: %s", fp, errMsg)
 		}
 	}
 }

@@ -896,6 +896,27 @@ The two spellings do not mix; compact zones on an inbound are refused.
 Origin: Prizrak-Core v1.19.34-r4 (586bc431, eb5b04df). Tests: `transport/finalmask/xdns`,
 `transport/finalmask/option`. Delete with 0041.
 
+### 0043 TLS: `firefox156` / `firefox160`
+
+Firefox 156 and 160 send the same fresh ClientHello: Firefox 148 without the ECDSA CBC suites and the
+FFDHE groups, with a GREASE ECH payload of 240 bytes. metacubex/utls v1.9.0-alpha.1 stops at 148, so
+the spec is data in `component/tls` (`firefox160.go`), applied through `HelloCustom` like `chrome155`
+(0026; `customHello` now serves both). The GREASE ECH enc is drawn uniformly per connection, as NSS
+does, instead of the X25519 public key utls would put there (whose last byte never has the top bit
+set). Names `firefox156`, `firefox160`, Xray `hellofirefox_156`, `hellofirefox_160`; `firefox` stays
+Firefox 148.
+
+Origin: Prizrak-Core v1.19.34-r4 (fingerprints of its utls fork, 36e99b0, f7b2359), with its browser
+captures as fixtures. Tests: `component/tls` (byte-for-byte against the captures except key shares
+and GREASE ECH contents, enc uniformity, a TLS 1.3 handshake with a session cache, REALITY key-share
+gate under policy On/Off); engine oracle. Feature token `firefox160`.
+
+Known gap: utls keeps only the private key of the first classical key share, so a server that picks
+P-256 from Firefox's X25519 + P-256 shares fails the handshake (refraction-networking/utls#402, fixed
+upstream in #416, not in metacubex/utls). REALITY and common TLS servers pick X25519.
+
+Delete when mihomo moves to a utls release with these profiles.
+
 ## Citrus compatibility suite
 
 Panels that build configs for Citrus (getmikan/Citrus, a mihomo fork) may ship keys vanilla mihomo
