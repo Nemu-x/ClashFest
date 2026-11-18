@@ -26,6 +26,8 @@ import (
 	C "github.com/metacubex/mihomo/constant"
 	// "mux-cool": the mux.cool block on vless proxies (Xray Mux.Cool and XUDP), core patch 0037.
 	"github.com/metacubex/mihomo/transport/muxcool"
+	// "finalmask": the Xray finalmask block on vless and trojan proxies, core patch 0041.
+	"github.com/metacubex/mihomo/transport/finalmask"
 	// "xdrive": VLESS over XDrive, core patch 0003.
 	"github.com/metacubex/mihomo/transport/xdrive"
 )
@@ -35,6 +37,7 @@ var (
 	_ xdrive.Config
 	_ = tlsC.ParseRealityMldsa65Verify
 	_ = tlsC.HelloChrome155
+	_ = finalmask.Broken
 	_ = tlsC.FingerprintSupportsX25519MLKEM768
 	_ = ca.NewFingerprintNameVerifier
 	_ = outbound.ECHOptions{QueryServer: ""}
@@ -47,7 +50,7 @@ var (
 
 // List returns the capability tokens in a stable order.
 func List() []string {
-	return []string{"xdrive", "chain", "mldsa65", "pin-list", "ech-xray", "desync", "chrome155", "mlkem-fingerprint", "fragment", "mux-cool"}
+	return []string{"xdrive", "chain", "mldsa65", "pin-list", "ech-xray", "desync", "chrome155", "mlkem-fingerprint", "fragment", "mux-cool", "finalmask"}
 }
 
 // String is List joined with commas, the form the bridge hands to Kotlin.

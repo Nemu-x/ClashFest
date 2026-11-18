@@ -32,7 +32,7 @@ modified while a build tree is set up; never commit the applied patches into the
 Tests that ship inside a patch run with the Go test task (`:core:goTestNativeSnapshot`, which runs
 `go test` on `component/tls`, `component/ca`, `component/sniffer`, `component/fragment`, `dns`, `tunnel`,
 `transport/openvpn`, `transport/xdrive`, `transport/vless/muxcool`, `transport/muxcool`, `transport/xhttp`, `transport/gun`, `transport/jls`,
-`transport/vmess`, `common/convert`,
+`transport/vmess`, `transport/finalmask/...` (each package listed), `common/convert`,
 `adapter`, `adapter/outbound`, `listener`,
 `adapter/outboundgroup`, `config` and `hub/route` from the `cfa` module, plus the desync library's
 `presets` catalog), against the patched tree. The `config` tests use testify, so `cfa`'s `go.sum` carries its checksums although
@@ -855,6 +855,46 @@ Origin: Rerowros/veles v1.19.34-veles.1 (ff6de754), adapted to this series. Test
 the engine oracles of 0004, 0031, 0033 and 0037 now expect these configs to be accepted.
 
 Delete when the patches it softens are dropped.
+
+### 0041 finalmask on vless and trojan
+
+Xray-core's `finalmask` (streamSettings) as a `finalmask` block on `vless` and `trojan` proxies and
+inbounds: a chain of masks between the socket and TLS, written as in Xray (first entry outermost,
+`settings` nesting optional).
+
+- `tcp`: `header-custom`, `fragment`, `sudoku`, `xmc`. `fragment` runs on `component/fragment` (0033);
+  per-piece `lengths` / `delays` lists of more than one entry are refused.
+- `udp`: `noise`, `header-custom`, `sudoku`, `udphop`, `xdns`, `xicmp`; used only by `network: xhttp`
+  with `alpn: [h3]`.
+
+Masks open their sockets through the proxy's dialer, so `protect()`, interface binding and
+`dialer-proxy` apply. `xicmp` opens ICMP sockets itself and is refused under `cmfa` (they would
+escape `VpnService.protect()` and loop into the tunnel). A block that cannot be used (bad option,
+unknown mask, UDP masks on another network, `xicmp`) does not fail the profile (in the spirit of
+0040): the proxy loads, logs `[Proxy] <name>: unusable finalmask, the proxy will not connect`, and
+every dial fails, so it never goes out without its masks.
+
+Origin: Prizrak-Core v1.19.34-r4 (634043dc), adapted: its `transport/fragment` replaced by ours, the
+Xray interop test that needs a utls fork dropped, graceful errors and the `xicmp` guard added. Tests:
+`transport/finalmask/...`, `adapter` (parse, unusable block loads and fails its dials),
+`adapter/outbound`, `listener/inbound` loopback tests (run by hand: the Go test task runs only `listener`); engine
+oracle `core_patch_finalmask_oracle_test.go`. Feature token `finalmask`.
+
+Not ported yet: VLESS over mKCP with the UDP chain (7583dd0a), xdns DoH resolvers (8b42dafe,
+9cec8374; the h3 variant needs a QUIC-parrot change in quic-go), the share-link `fm` beyond
+`fragment` (0033).
+
+Delete when mihomo ships finalmask.
+
+### 0042 finalmask: the compact xdns spelling
+
+`<domain>[:<method>]+udp://<server>` resolvers and `<domain>[:<method>]` zones, as the first Xray xdns
+(v26.1.31 to v26.9.9) and panels of that time write them, with that client's wire (DNSTT framing,
+polls doubling from 500 ms to 10 s, resolver rotation); the structured form speaks the current wire.
+The two spellings do not mix; compact zones on an inbound are refused.
+
+Origin: Prizrak-Core v1.19.34-r4 (586bc431, eb5b04df). Tests: `transport/finalmask/xdns`,
+`transport/finalmask/option`. Delete with 0041.
 
 ## Citrus compatibility suite
 
