@@ -5257,10 +5257,10 @@ index 00000000..00467b39
 +}
 diff --git a/transport/finalmask/option/option.go b/transport/finalmask/option/option.go
 new file mode 100644
-index 00000000..cac6549d
+index 00000000..5484836b
 --- /dev/null
 +++ b/transport/finalmask/option/option.go
-@@ -0,0 +1,183 @@
+@@ -0,0 +1,240 @@
 +// Package option reads a finalmask block of the config into the mask
 +// chain; the mask types it knows are the registry of the port.
 +package option
@@ -5323,7 +5323,64 @@ index 00000000..cac6549d
 +			return "", nil, fmt.Errorf("finalmask: settings of %s must be a map", typ)
 +		}
 +	}
-+	return typ, settings, nil
++	return typ, kebabKeys(settings).(map[string]any), nil
++}
++
++// kebabKeys writes the lowerCamelCase keys of Xray-core's JSON (maxSplit,
++// randRange) the way the masks' options are tagged (max-split, rand-range),
++// at every depth, so a finalmask copied verbatim from an Xray config or a
++// panel decodes completely instead of losing those keys silently. Other keys,
++// header names among them, are left as they are. ClashFest patch 0041.
++func kebabKeys(v any) any {
++	switch v := v.(type) {
++	case map[string]any:
++		out := make(map[string]any, len(v))
++		for k, item := range v {
++			out[kebabKey(k)] = kebabKeys(item)
++		}
++		return out
++	case map[any]any:
++		out := make(map[string]any, len(v))
++		for k, item := range v {
++			out[kebabKey(fmt.Sprint(k))] = kebabKeys(item)
++		}
++		return out
++	case []any:
++		out := make([]any, len(v))
++		for i, item := range v {
++			out[i] = kebabKeys(item)
++		}
++		return out
++	}
++	return v
++}
++
++func kebabKey(k string) string {
++	if k == "" || k[0] < 'a' || k[0] > 'z' {
++		return k
++	}
++	camel := false
++	for _, r := range k {
++		switch {
++		case r >= 'A' && r <= 'Z':
++			camel = true
++		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
++		default:
++			return k
++		}
++	}
++	if !camel {
++		return k
++	}
++	var b strings.Builder
++	for _, r := range k {
++		if r >= 'A' && r <= 'Z' {
++			b.WriteByte('-')
++			r += 'a' - 'A'
++		}
++		b.WriteRune(r)
++	}
++	return b.String()
 +}
 +
 +func decodeMask(settings map[string]any, option any) error {
@@ -5446,10 +5503,10 @@ index 00000000..cac6549d
 +}
 diff --git a/transport/finalmask/option/option_test.go b/transport/finalmask/option/option_test.go
 new file mode 100644
-index 00000000..e7ef8f91
+index 00000000..aa0b2f57
 --- /dev/null
 +++ b/transport/finalmask/option/option_test.go
-@@ -0,0 +1,130 @@
+@@ -0,0 +1,155 @@
 +package option
 +
 +import (
@@ -5578,6 +5635,31 @@ index 00000000..e7ef8f91
 +			require.NoError(t, err, c.entry)
 +			require.IsType(t, c.want, mask, c.entry)
 +		}
++	}
++}
++
++// ClashFest patch 0041: Xray's camelCase keys, as panels copy them.
++func TestXrayCamelCaseKeys(t *testing.T) {
++	if got := kebabKey("maxSplit"); got != "max-split" {
++		t.Fatalf("maxSplit -> %q", got)
++	}
++	for _, k := range []string{"packets", "User-Agent", "rand-range", "x_y", ""} {
++		if got := kebabKey(k); got != k {
++			t.Fatalf("%q -> %q", k, got)
++		}
++	}
++	_, settings, err := maskEntry(map[string]any{"type": "fragment", "settings": map[string]any{
++		"packets": "1-1", "maxSplit": "5", "lengths": []any{"20-40"},
++		"nested": []any{map[string]any{"randRange": "0-255"}},
++	}})
++	if err != nil {
++		t.Fatal(err)
++	}
++	if settings["max-split"] != "5" || settings["maxSplit"] != nil {
++		t.Fatalf("settings %v", settings)
++	}
++	if settings["nested"].([]any)[0].(map[string]any)["rand-range"] != "0-255" {
++		t.Fatalf("nested %v", settings["nested"])
 +	}
 +}
 diff --git a/transport/finalmask/sudoku/codec.go b/transport/finalmask/sudoku/codec.go

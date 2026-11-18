@@ -861,6 +861,16 @@ Delete when the patches it softens are dropped.
 Xray-core's `finalmask` (streamSettings) as a `finalmask` block on `vless` and `trojan` proxies and
 inbounds: a chain of masks between the socket and TLS, written as in Xray (first entry outermost,
 `settings` nesting optional).
+Xray's camelCase keys (`maxSplit`, `randRange`) are read as the kebab-case of the options
+(`max-split`, `rand-range`) at every depth, so a block copied verbatim from Xray JSON decodes
+completely. Remnawave (3.4+) serves it to mihomo clients with a Host Mapper operation on the host:
+`{"mihomo": [{"op": "copy", "from": "$host.streamOverrides.finalMask", "to": "finalmask"}]}`;
+its mihomo generator does not emit `finalmask` on its own.
+
+With REALITY, `fragment` with `packets: tlshello` and pieces too small for the first TLS record to
+hold the SNI (about 150 bytes for Firefox) is refused by the server: Xray-core 26.11.9 fails the
+same way against the same server (measured 2026-11-19). Split TCP segments instead
+(`packets: "1-1"`).
 
 - `tcp`: `header-custom`, `fragment`, `sudoku`, `xmc`. `fragment` runs on `component/fragment` (0033);
   per-piece `lengths` / `delays` lists of more than one entry are refused.

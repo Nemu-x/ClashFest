@@ -5,10 +5,10 @@ Ported from Prizrak-Core v1.19.34-r4.
 v26.1.31 to v26.9.9 write them, with that client's DNSTT framing and polling.
 
 diff --git a/transport/finalmask/option/option.go b/transport/finalmask/option/option.go
-index cac6549d..7bd71bda 100644
+index 5484836b..7abdea0a 100644
 --- a/transport/finalmask/option/option.go
 +++ b/transport/finalmask/option/option.go
-@@ -138,6 +138,15 @@ func BuildUDPMask(entry map[string]any) (finalmask.UDPMask, error) {
+@@ -195,6 +195,15 @@ func BuildUDPMask(entry map[string]any) (finalmask.UDPMask, error) {
  		}
  		return udphop.New(o)
  	case "xdns":
@@ -25,7 +25,7 @@ index cac6549d..7bd71bda 100644
  		if err := decodeMask(settings, &o); err != nil {
  			return nil, err
 diff --git a/transport/finalmask/option/option_test.go b/transport/finalmask/option/option_test.go
-index e7ef8f91..45c2fea8 100644
+index aa0b2f57..52e557ac 100644
 --- a/transport/finalmask/option/option_test.go
 +++ b/transport/finalmask/option/option_test.go
 @@ -76,6 +76,19 @@ func TestAcceptsXraySettings(t *testing.T) {
