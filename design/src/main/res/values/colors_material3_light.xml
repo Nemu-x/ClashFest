@@ -80,6 +80,7 @@
     <color name="proto_transport">#00796B</color>
     <color name="proto_tls">#3949AB</color>
     <color name="proto_reality">#C2185B</color>
+    <color name="proto_finalmask">#795548</color>
     <color name="proto_hysteria">#A8780B</color>
     <color name="proto_tuic">#A8780B</color>
     <color name="proto_vmess">#5E35B1</color>

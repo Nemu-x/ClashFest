@@ -2,6 +2,7 @@ package com.github.kr328.clash.service.util
 
 import com.github.kr328.clash.core.model.ProfileSnapshot
 import com.github.kr328.clash.service.model.ProxyTransportInfo
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
@@ -109,6 +110,9 @@ object ProxyTransportYamlPreview {
 
     private val HEX_CHARS = "0123456789abcdef".toCharArray()
 
+    /** The mask chains of a `finalmask` block; either one, non-empty, marks the node. */
+    private val FINALMASK_CHAINS = listOf("tcp", "udp")
+
     /**
      * `network:` means "transport" for most outbounds (ws / grpc / h2 / xhttp / tcp), but not for
      * all of them: on a `zerotier` proxy it is the 16-hex ZeroTier network ID, which otherwise
@@ -126,11 +130,15 @@ object ProxyTransportYamlPreview {
         // explicit tls: true. Mihomo accepts both forms.
         val realityOpts = p["reality-opts"] as? JsonObject
         val reality = realityOpts != null && realityOpts.isNotEmpty()
+        val finalmask = (p["finalmask"] as? JsonObject)?.let { fm ->
+            FINALMASK_CHAINS.any { chain -> (fm[chain] as? JsonArray)?.isNotEmpty() == true }
+        } == true
         return ProxyTransportInfo(
             network = network,
             tls = tls,
             reality = reality,
             type = type,
+            finalmask = finalmask,
         )
     }
 
@@ -140,11 +148,15 @@ object ProxyTransportYamlPreview {
         val tls = truthy(p["tls"])
         val realityOpts = p["reality-opts"] as? Map<*, *>
         val reality = realityOpts != null && realityOpts.isNotEmpty()
+        val finalmask = (p["finalmask"] as? Map<*, *>)?.let { fm ->
+            FINALMASK_CHAINS.any { chain -> (fm[chain] as? List<*>)?.isNotEmpty() == true }
+        } == true
         return ProxyTransportInfo(
             network = network,
             tls = tls,
             reality = reality,
             type = type,
+            finalmask = finalmask,
         )
     }
 

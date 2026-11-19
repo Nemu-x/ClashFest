@@ -1,6 +1,7 @@
 package com.github.kr328.clash.service.util
 
 import com.github.kr328.clash.core.model.ProfileSnapshot
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -55,6 +56,36 @@ class ProxyTransportYamlPreviewTest {
         assertEquals("", plain.network)
         assertFalse(plain.tls)
         assertFalse(plain.reality)
+    }
+
+    @Test
+    fun parse_flagsNonEmptyFinalmaskOnly() {
+        val fragment = jsonObj("type" to JsonPrimitive("fragment"))
+        val snapshot = ProfileSnapshot(
+            proxies = listOf(
+                jsonObj(
+                    "name" to JsonPrimitive("tcp-mask"),
+                    "type" to JsonPrimitive("vless"),
+                    "finalmask" to jsonObj("tcp" to JsonArray(listOf(fragment))),
+                ),
+                jsonObj(
+                    "name" to JsonPrimitive("udp-mask"),
+                    "type" to JsonPrimitive("vless"),
+                    "finalmask" to jsonObj("udp" to JsonArray(listOf(jsonObj("type" to JsonPrimitive("noise"))))),
+                ),
+                jsonObj(
+                    "name" to JsonPrimitive("empty-mask"),
+                    "type" to JsonPrimitive("vless"),
+                    "finalmask" to jsonObj("tcp" to JsonArray(emptyList())),
+                ),
+                jsonObj("name" to JsonPrimitive("no-mask"), "type" to JsonPrimitive("vless")),
+            ),
+        )
+        val out = ProxyTransportYamlPreview.parse(snapshot)
+        assertTrue(out["tcp-mask"]!!.finalmask)
+        assertTrue(out["udp-mask"]!!.finalmask)
+        assertFalse(out["empty-mask"]!!.finalmask)
+        assertFalse(out["no-mask"]!!.finalmask)
     }
 
     @Test
