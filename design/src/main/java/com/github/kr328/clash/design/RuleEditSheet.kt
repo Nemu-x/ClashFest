@@ -49,6 +49,7 @@ class RuleEditSheet(
     private val policyBuiltinGroup: MaterialButtonToggleGroup = root.findViewById(R.id.policy_builtin_group)
     private val btnPolicyDirect: MaterialButton = root.findViewById(R.id.btn_policy_direct)
     private val btnPolicyReject: MaterialButton = root.findViewById(R.id.btn_policy_reject)
+    private val btnPolicyRejectDrop: MaterialButton = root.findViewById(R.id.btn_policy_reject_drop)
     private val groupLayout: TextInputLayout = root.findViewById(R.id.group_layout)
     private val groupInput: AutoCompleteTextView = root.findViewById(R.id.input_group)
     private val policyWarning: TextView = root.findViewById(R.id.policy_warning)
@@ -62,15 +63,13 @@ class RuleEditSheet(
     private var selectedMeta: RuleTypeMeta = RuleTypeCatalog.common.first()
     // Picker shows the real proxy/group names only. knownPolicies (UPPERCASED, for
     // validation) must NOT be mixed in here — it produced a duplicate of every node
-    // in caps. Dedup case-insensitively, keeping the original-case name.
-    private val groupPolicies = policyOptions
+    // in caps. Dedup case-insensitively, keeping the original-case name. The engine's
+    // other built-in targets come first, in a fixed order, so a profile with hundreds
+    // of nodes does not bury them (the toggle has the three common ones).
+    private val groupPolicies = EXTRA_BUILTIN_POLICIES + policyOptions
         .map { it.trim() }
         .filter { it.isNotEmpty() }
-        .filter { policy ->
-            !policy.equals("DIRECT", ignoreCase = true) &&
-                !policy.equals("REJECT", ignoreCase = true) &&
-                !policy.equals("REJECT-DROP", ignoreCase = true)
-        }
+        .filter { policy -> RulesHubRowBuilder.builtInPolicies.none { it.equals(policy, ignoreCase = true) } }
         .distinctBy { it.uppercase() }
         .sorted()
 
@@ -88,7 +87,7 @@ class RuleEditSheet(
         policyBuiltinGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (isChecked) {
                 when (checkedId) {
-                    R.id.btn_policy_direct, R.id.btn_policy_reject -> {
+                    R.id.btn_policy_direct, R.id.btn_policy_reject, R.id.btn_policy_reject_drop -> {
                         groupInput.setText("", false)
                     }
                 }
@@ -225,10 +224,17 @@ class RuleEditSheet(
                 policyBuiltinGroup.check(R.id.btn_policy_direct)
                 groupInput.setText("", false)
             }
-            normalized.equals("REJECT", ignoreCase = true) ||
-                normalized.equals("REJECT-DROP", ignoreCase = true) -> {
+            normalized.equals("REJECT", ignoreCase = true) -> {
                 policyBuiltinGroup.check(R.id.btn_policy_reject)
                 groupInput.setText("", false)
+            }
+            normalized.equals("REJECT-DROP", ignoreCase = true) -> {
+                policyBuiltinGroup.check(R.id.btn_policy_reject_drop)
+                groupInput.setText("", false)
+            }
+            EXTRA_BUILTIN_POLICIES.any { it.equals(normalized, ignoreCase = true) } -> {
+                policyBuiltinGroup.clearChecked()
+                groupInput.setText(normalized.uppercase(), false)
             }
             normalized.isNotBlank() -> {
                 policyBuiltinGroup.clearChecked()
@@ -247,6 +253,7 @@ class RuleEditSheet(
         when (policyBuiltinGroup.checkedButtonId) {
             R.id.btn_policy_direct -> return "DIRECT"
             R.id.btn_policy_reject -> return "REJECT"
+            R.id.btn_policy_reject_drop -> return "REJECT-DROP"
         }
         return groupInput.text?.toString()?.trim().orEmpty()
     }
@@ -290,6 +297,7 @@ class RuleEditSheet(
     private fun stylePolicyButtons() {
         val directChecked = policyBuiltinGroup.checkedButtonId == R.id.btn_policy_direct
         val rejectChecked = policyBuiltinGroup.checkedButtonId == R.id.btn_policy_reject
+        val rejectDropChecked = policyBuiltinGroup.checkedButtonId == R.id.btn_policy_reject_drop
         tintPolicyButton(
             btnPolicyDirect,
             directChecked,
@@ -301,6 +309,12 @@ class RuleEditSheet(
             rejectChecked,
             MaterialColors.getColor(btnPolicyReject, com.google.android.material.R.attr.colorErrorContainer),
             MaterialColors.getColor(btnPolicyReject, com.google.android.material.R.attr.colorOnErrorContainer),
+        )
+        tintPolicyButton(
+            btnPolicyRejectDrop,
+            rejectDropChecked,
+            MaterialColors.getColor(btnPolicyRejectDrop, com.google.android.material.R.attr.colorErrorContainer),
+            MaterialColors.getColor(btnPolicyRejectDrop, com.google.android.material.R.attr.colorOnErrorContainer),
         )
     }
 
@@ -351,6 +365,10 @@ class RuleEditSheet(
     private fun paddingVerticalPx(): Int = (8 * context.resources.displayMetrics.density).toInt()
 
     companion object {
+        // Built-in targets of mihomo beside DIRECT / REJECT / REJECT-DROP, offered before the
+        // proxy and group names.
+        private val EXTRA_BUILTIN_POLICIES = listOf("PASS", "PASS-RULE", "COMPATIBLE", "GLOBAL")
+
         fun newManualRule(
             result: RuleEditResult,
             order: Int,
