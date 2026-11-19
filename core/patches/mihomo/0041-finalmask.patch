@@ -2154,10 +2154,10 @@ index 00000000..0d90413c
 +}
 diff --git a/transport/finalmask/custom/custom_test.go b/transport/finalmask/custom/custom_test.go
 new file mode 100644
-index 00000000..c50439f1
+index 00000000..1843c3d6
 --- /dev/null
 +++ b/transport/finalmask/custom/custom_test.go
-@@ -0,0 +1,386 @@
+@@ -0,0 +1,390 @@
 +package custom
 +
 +import (
@@ -2311,7 +2311,11 @@ index 00000000..c50439f1
 +	require.NoError(t, err)
 +	defer client.Close()
 +	_ = client.SetDeadline(time.Now().Add(time.Second))
-+	_, err = client.Write([]byte("GET /x HTTP/1.1\r\n\r\n"))
++	// As long as the expected sequence: the server reads all of it before it
++	// answers with the error sequence and closes, so nothing is left unread
++	// and the close is a FIN. A longer request would leave bytes unread, the
++	// close would become an RST, and the client could lose the answer.
++	_, err = client.Write([]byte("GET / HTTP/1.0\r\n\r\n"))
 +	require.NoError(t, err)
 +	got, _ := io.ReadAll(client)
 +	require.True(t, strings.HasPrefix(string(got), "HTTP/1.1 400"), "got %q", got)
