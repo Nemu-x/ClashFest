@@ -31,6 +31,7 @@ import com.github.kr328.clash.service.store.ServiceStore
 import com.github.kr328.clash.util.AppUpdateChecker
 import com.github.kr328.clash.util.showProfileQuickEditSheet
 import com.github.kr328.clash.util.ChangeBus
+import com.github.kr328.clash.util.removeStaleMainTasks
 import com.github.kr328.clash.util.applyUserProxySelection
 import com.github.kr328.clash.util.stopClashService
 import com.github.kr328.clash.util.withClash
@@ -681,6 +682,7 @@ class MainActivity : BaseActivity<MainDesign>() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        removeStaleMainTasks()
 
         // TV: BACK on a non-Home tab returns to Home first; on Home it exits as usual.
         if (isTelevision()) {
