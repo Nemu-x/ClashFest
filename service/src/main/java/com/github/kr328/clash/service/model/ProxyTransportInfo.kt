@@ -13,6 +13,10 @@ data class ProxyTransportInfo(
     /** Raw mihomo proxy `type` (e.g. "vless", "ss") — lets the picker show the protocol
      *  badge offline, when there's no live engine to report the type. Empty = unknown. */
     val type: String = "",
+    /** A non-empty `finalmask` block (Xray masks under the transport, core patch 0041). Says the
+     *  masks are configured, not that the engine could use them: an unusable block is logged
+     *  by the core and fails the node's dials. */
+    val finalmask: Boolean = false,
 ) : Parcelable {
     override fun writeToParcel(parcel: Parcel, flags: Int) {
         Parcelizer.encodeToParcel(serializer(), parcel, this)

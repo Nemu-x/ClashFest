@@ -187,6 +187,7 @@ internal fun bindNodeRowAppearance(
     val typeBadge = row.findViewById<TextView>(R.id.proxy_type_badge)
     val transportBadge = row.findViewById<TextView>(R.id.proxy_transport_badge)
     val realityBadge = row.findViewById<TextView>(R.id.proxy_reality_badge)
+    val finalmaskBadge = row.findViewById<TextView>(R.id.proxy_finalmask_badge)
     val typeName = type.name
 
     // Leaf node → protocol chips (VLESS / GRPC / REALITY). Nested auto-group →
@@ -202,6 +203,7 @@ internal fun bindNodeRowAppearance(
         }
         transportBadge.visibility = View.GONE
         realityBadge.visibility = View.GONE
+        finalmaskBadge.visibility = View.GONE
         showBadge = groupTypeLabel != null
     } else {
         showBadge = typeName != "Unknown"
@@ -225,6 +227,12 @@ internal fun bindNodeRowAppearance(
             transportInfo != null && usesTls(transportInfo, typeName) ->
                 applyProtoChip(realityBadge, "TLS", ContextCompat.getColor(context, R.color.proto_tls))
             else -> realityBadge.visibility = View.GONE
+        }
+        // Xray finalmask configured on the node (masks under the transport).
+        if (transportInfo?.finalmask == true) {
+            applyProtoChip(finalmaskBadge, "FINALMASK", ContextCompat.getColor(context, R.color.proto_finalmask))
+        } else {
+            finalmaskBadge.visibility = View.GONE
         }
     }
 
