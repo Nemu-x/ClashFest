@@ -1,0 +1,1 @@
+New: Xray finalmask on VLESS and Trojan nodes (a FINALMASK badge marks them in the node list), Firefox 156 and 160 fingerprints, and REJECT-DROP plus the other built-in targets in rules. Fix: ClashFest no longer shows up as two windows in Recents.

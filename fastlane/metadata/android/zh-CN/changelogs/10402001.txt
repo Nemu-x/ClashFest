@@ -1,0 +1,1 @@
+新增：VLESS 和 Trojan 节点支持 Xray finalmask（节点列表中以 FINALMASK 标记显示）、Firefox 156 与 160 指纹，规则中可选 REJECT-DROP 等内置目标。修复：最近任务中不再出现两个 ClashFest 窗口。
