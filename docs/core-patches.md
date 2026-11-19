@@ -888,6 +888,8 @@ every dial fails, so it never goes out without its masks.
 Origin: Prizrak-Core v1.19.34-r4 (634043dc), adapted: its `transport/fragment` replaced by ours, the
 Xray interop test that needs a utls fork dropped, graceful errors and the `xicmp` guard added. Tests:
 `transport/finalmask/...`, `adapter` (parse, unusable block loads and fails its dials),
+`config` (the oracle's blocks through `parseProxies`, every proxy dialed: a valid block must fail
+in the network, not as an unusable finalmask, which loading alone cannot tell apart),
 `adapter/outbound`, `listener/inbound` loopback tests (run by hand: the Go test task runs only `listener`); engine
 oracle `core_patch_finalmask_oracle_test.go`. Feature token `finalmask`.
 

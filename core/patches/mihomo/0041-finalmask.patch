@@ -1495,6 +1495,210 @@ index 00000000..7dbf075f
 +		"finalmask":   map[string]any{"tcp": []any{map[string]any{"type": "fragment", "packets": "1-1", "length": "1-5"}}},
 +	}, "finalmask")
 +}
+diff --git a/config/finalmask_test.go b/config/finalmask_test.go
+new file mode 100644
+index 00000000..742b37d3
+--- /dev/null
++++ b/config/finalmask_test.go
+@@ -0,0 +1,198 @@
++package config
++
++// Profile-level checks of ClashFest core patch 0041, the path a subscription
++// takes through the core (UnmarshalRawConfig, parseProxies, as in Parse):
++// finalmask blocks are accepted with a working chain; a block that cannot be
++// used (UDP masks on another network, an unknown mask, xicmp under cmfa, any
++// mask on xdrive) keeps the profile loading, as patch 0040 does for other
++// options, and that proxy then fails every dial instead of connecting without
++// its masks. Loading alone cannot tell a working chain from a Broken one, so
++// every proxy is dialed.
++
++import (
++	"context"
++	"strings"
++	"testing"
++	"time"
++
++	C "github.com/metacubex/mihomo/constant"
++	"github.com/metacubex/mihomo/constant/features"
++
++	"github.com/stretchr/testify/require"
++)
++
++const finalMaskTestProxy = `
++  - name: NAME
++    type: TYPE
++    server: 127.0.0.1
++    port: 9
++CREDENTIALS
++    servername: www.example.com
++    client-fingerprint: FINGERPRINT
++FINALMASK
++`
++
++func finalMaskTestNode(name, typ, fingerprint, finalmask string) string {
++	credentials := "    uuid: 27848739-7e62-4138-9fd3-098a63964b6b\n    tls: true"
++	if typ == "trojan" {
++		credentials = "    password: dummy"
++	}
++	return strings.NewReplacer("NAME", name, "TYPE", typ, "CREDENTIALS", credentials, "FINGERPRINT", fingerprint, "FINALMASK", finalmask).Replace(finalMaskTestProxy)
++}
++
++// finalMaskXHTTPH3Node: the one network that uses UDP masks (xhttp over
++// HTTP/3), with the entries of a finalmask.udp list.
++func finalMaskXHTTPH3Node(name, udp string) string {
++	return `
++  - name: ` + name + `
++    type: vless
++    server: 127.0.0.1
++    port: 9
++    uuid: 27848739-7e62-4138-9fd3-098a63964b6b
++    tls: true
++    servername: www.example.com
++    network: xhttp
++    alpn: [h3]
++    xhttp-opts:
++      path: /x
++    finalmask:
++      udp:` + udp + "\n"
++}
++
++func parseFinalMaskProfile(t *testing.T, nodes ...string) map[string]C.Proxy {
++	t.Helper()
++	rawCfg, err := UnmarshalRawConfig([]byte("proxies:" + strings.Join(nodes, "")))
++	require.NoError(t, err)
++	proxies, _, err := parseProxies(rawCfg)
++	require.NoError(t, err, "the profile failed to load")
++	t.Cleanup(func() {
++		for _, proxy := range proxies {
++			_ = proxy.Close()
++		}
++	})
++	return proxies
++}
++
++// The valid blocks of the engine oracle (cfa native/snapshot,
++// core_patch_finalmask_oracle_test.go), kept in step with it.
++func TestFinalMaskProfileAccepted(t *testing.T) {
++	valid := map[string]string{
++		"fragment": `    finalmask:
++      tcp:
++        - type: fragment
++          packets: tlshello
++          length: 100-200
++          delay: 10-20`,
++		"header-custom+sudoku": `    finalmask:
++      tcp:
++        - type: header-custom
++          clients:
++            - - packet: "GET / HTTP/1.1\r\n"
++                type: str
++        - type: sudoku
++          password: sudoku`,
++		"xray-nesting": `    finalmask:
++      tcp:
++        - type: fragment
++          settings:
++            packets: tlshello
++            length: 10-20`,
++		"xray-camelcase": `    finalmask:
++      tcp:
++        - type: fragment
++          settings:
++            packets: "1-1"
++            length: 10-20
++            maxSplit: 4`,
++	}
++	var nodes, names []string
++	for _, typ := range []string{"vless", "trojan"} {
++		for name, block := range valid {
++			nodes = append(nodes, finalMaskTestNode(typ+"-"+name, typ, "chrome", block))
++			names = append(names, typ+"-"+name)
++		}
++	}
++	nodes = append(nodes, finalMaskXHTTPH3Node("xhttp-h3", `
++        - type: noise
++          noise:
++            - rand: 10-20
++        - type: udphop
++          mode: intervalLocal
++          interval: 30-60`))
++	names = append(names, "xhttp-h3")
++	proxies := parseFinalMaskProfile(t, nodes...)
++	for _, name := range names {
++		requireUsableFinalMask(t, proxies, name)
++	}
++}
++
++// requireUsableFinalMask: the proxy loaded with a working chain, so its dial
++// to the closed test port fails in the network, not with the error of an
++// unusable (Broken) finalmask, which always names finalmask.
++func requireUsableFinalMask(t *testing.T, proxies map[string]C.Proxy, name string) {
++	t.Helper()
++	proxy, ok := proxies[name]
++	require.True(t, ok, "proxy %s missing", name)
++	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
++	defer cancel()
++	conn, err := proxy.DialContext(ctx, &C.Metadata{Host: "example.com", DstPort: 80})
++	if err == nil {
++		_ = conn.Close()
++		return
++	}
++	require.NotContains(t, err.Error(), "finalmask", "%s: a valid finalmask was treated as unusable", name)
++}
++
++func TestFinalMaskProfileUnusableKeepsLoading(t *testing.T) {
++	unusable := map[string]struct{ node, want string }{
++		"udp-on-tcp": {finalMaskTestNode("udp-on-tcp", "vless", "chrome", `    finalmask:
++      udp:
++        - type: noise
++          noise:
++            - rand: 8`), "finalmask.udp"},
++		"unknown-mask": {finalMaskTestNode("unknown-mask", "vless", "chrome", `    finalmask:
++      tcp:
++        - type: no-such-mask`), "no-such-mask"},
++		"xdrive": {`
++  - name: xdrive
++    type: vless
++    server: 127.0.0.1
++    port: 9
++    uuid: 27848739-7e62-4138-9fd3-098a63964b6b
++    network: xdrive
++    encryption: mlkem768x25519plus.native.0rtt.XKbaq1BuzJKKKPxZbwgRpn-gYQbnhrYketgezASCL1I
++    xdrive-opts:
++      service: local
++      remote-folder: '` + t.TempDir() + `'
++    finalmask:
++      tcp:
++        - type: fragment
++          packets: "1-1"
++          length: 1-5
++`, "xdrive"},
++	}
++	if features.CMFA {
++		// On xhttp over HTTP/3, so the xicmp guard refuses it, not the network check.
++		unusable["xicmp"] = struct{ node, want string }{finalMaskXHTTPH3Node("xicmp", `
++        - type: xicmp
++          ips: [127.0.0.1]`), "xicmp"}
++	}
++	nodes := []string{finalMaskTestNode("plain", "vless", "chrome", "")}
++	for _, c := range unusable {
++		nodes = append(nodes, c.node)
++	}
++	proxies := parseFinalMaskProfile(t, nodes...)
++	require.Contains(t, proxies, "plain")
++	for name, c := range unusable {
++		proxy, ok := proxies[name]
++		require.True(t, ok, "unusable finalmask %q dropped the proxy", name)
++		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
++		conn, err := proxy.DialContext(ctx, &C.Metadata{Host: "example.com", DstPort: 80})
++		cancel()
++		if err == nil {
++			_ = conn.Close()
++			t.Fatalf("%s: a proxy with an unusable finalmask dialed", name)
++		}
++		require.Contains(t, err.Error(), c.want, name)
++	}
++}
 diff --git a/listener/config/trojan.go b/listener/config/trojan.go
 index e3a75bc9..68c21e5b 100644
 --- a/listener/config/trojan.go
