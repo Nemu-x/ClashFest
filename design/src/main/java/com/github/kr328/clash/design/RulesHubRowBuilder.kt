@@ -13,7 +13,7 @@ enum class RulesHubFilter {
 }
 
 object RulesHubRowBuilder {
-    val builtInPolicies = setOf("DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE", "GLOBAL")
+    val builtInPolicies = setOf("DIRECT", "REJECT", "REJECT-DROP", "PASS", "PASS-RULE", "COMPATIBLE", "GLOBAL")
 
     fun isTargetMissing(rule: RuleItem, knownPolicies: Set<String>): Boolean {
         if (rule.source != RuleSource.MANUAL || rule.deleted) return false

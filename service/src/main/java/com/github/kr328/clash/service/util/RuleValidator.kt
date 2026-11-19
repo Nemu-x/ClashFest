@@ -3,7 +3,7 @@ package com.github.kr328.clash.service.util
 import com.github.kr328.clash.service.model.RuleState
 
 object RuleValidator {
-    private val builtInPolicies = setOf("DIRECT", "REJECT", "REJECT-DROP", "PASS")
+    private val builtInPolicies = setOf("DIRECT", "REJECT", "REJECT-DROP", "PASS", "PASS-RULE", "COMPATIBLE", "GLOBAL")
 
     /**
      * @param availablePolicies proxy-group names **and** proxy (node) names a rule may target —

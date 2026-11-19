@@ -41,4 +41,19 @@ class RuleValidatorTest {
         val e = assertFailsWith<IllegalArgumentException> { RuleValidator.validate(state) }
         assertEquals("Rule value is empty for type DOMAIN", e.message)
     }
+
+    @Test
+    fun engineBuiltInTargets_needNoGroup() {
+        // mihomo registers these outbounds itself (config.parseProxies), so a profile
+        // without such a group still takes them as rule targets.
+        val builtIns = listOf("DIRECT", "REJECT", "REJECT-DROP", "PASS", "PASS-RULE", "COMPATIBLE", "GLOBAL")
+        val state = RuleState(
+            rules = builtIns.mapIndexed { i, policy -> rule("DOMAIN", "t$i.example", policy, id = "r$i") },
+        )
+        RuleValidator.validate(state)
+        val e = assertFailsWith<IllegalArgumentException> {
+            RuleValidator.validate(RuleState(rules = listOf(rule("DOMAIN", "a.example", "MATCH-TARGET"))))
+        }
+        assertEquals("Unknown rule policy/group: MATCH-TARGET", e.message)
+    }
 }
