@@ -952,10 +952,10 @@ index 00000000..fd5dafde
 +}
 diff --git a/adapter/outbound/finalmask.go b/adapter/outbound/finalmask.go
 new file mode 100644
-index 00000000..4f40fbfa
+index 00000000..8651daa3
 --- /dev/null
 +++ b/adapter/outbound/finalmask.go
-@@ -0,0 +1,160 @@
+@@ -0,0 +1,165 @@
 +package outbound
 +
 +import (
@@ -1096,8 +1096,13 @@ index 00000000..4f40fbfa
 +	return quicConn, nil
 +}
 +
-+// checkFinalMaskNetwork refuses UDP masks where no transport would use them.
++// checkFinalMaskNetwork refuses UDP masks where no transport would use them,
++// and any mask on xdrive (patch 0003), whose connections go to a storage
++// service that cannot take the masks off.
 +func checkFinalMaskNetwork(fm *finalmask.FinalMask, proxyType, network string, alpn []string) error {
++	if network == "xdrive" && (fm.HasTCP() || fm.HasUDP()) {
++		return errors.New("finalmask does not apply to network: xdrive, its connections go to the storage service")
++	}
 +	if !fm.HasUDP() {
 +		return nil
 +	}
@@ -1207,7 +1212,7 @@ index d581e80a..68967499 100644
  				return nil, fmt.Errorf("%s connect error: %s", t.addr, err.Error())
  			}
 diff --git a/adapter/outbound/vless.go b/adapter/outbound/vless.go
-index e01da23d..08f2012c 100644
+index e01da23d..5f397964 100644
 --- a/adapter/outbound/vless.go
 +++ b/adapter/outbound/vless.go
 @@ -17,6 +17,7 @@ import (
@@ -1236,7 +1241,16 @@ index e01da23d..08f2012c 100644
  	WSHeaders         map[string]string `proxy:"ws-headers,omitempty"`
  	SkipCertVerify    bool              `proxy:"skip-cert-verify,omitempty"`
  	NameCertVerify    string            `proxy:"name-cert-verify,omitempty"`
-@@ -356,7 +361,26 @@ func (v *Vless) dialContext(ctx context.Context) (c net.Conn, err error) {
+@@ -353,10 +358,35 @@ func (v *Vless) dialContext(ctx context.Context) (c net.Conn, err error) {
+ 	case "xhttp":
+ 		return v.xhttpClient.Dial(ctx)
+ 	case "xdrive":
++		// ClashFest 0041: xdrive talks to its storage, not to an Xray server,
++		// so a finalmask block there is unusable (Broken); the node must not
++		// go out without it.
++		if err := v.finalMask.Err(); err != nil {
++			return nil, err
++		}
  		return v.xdriveClient.Dial(ctx)
  	default:
  	}
@@ -1264,7 +1278,7 @@ index e01da23d..08f2012c 100644
  }
  
  // DialContext implements C.ProxyAdapter
-@@ -549,6 +573,9 @@ func NewVless(option VlessOption) (*Vless, error) {
+@@ -549,6 +579,9 @@ func NewVless(option VlessOption) (*Vless, error) {
  	}
  	v.dialer = option.NewDialer(v.DialOptions())
  
@@ -1274,7 +1288,7 @@ index e01da23d..08f2012c 100644
  	v.encryption, err = encryption.NewClient(option.Encryption)
  	if err != nil {
  		return nil, err
-@@ -614,7 +641,7 @@ func NewVless(option VlessOption) (*Vless, error) {
+@@ -614,7 +647,7 @@ func NewVless(option VlessOption) (*Vless, error) {
  		}
  	case "grpc":
  		dialFn := func(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -1283,7 +1297,7 @@ index e01da23d..08f2012c 100644
  			if err != nil {
  				return nil, fmt.Errorf("%s connect error: %s", v.addr, err.Error())
  			}
-@@ -718,7 +745,7 @@ func NewVless(option VlessOption) (*Vless, error) {
+@@ -718,7 +751,7 @@ func NewVless(option VlessOption) (*Vless, error) {
  		makeTransport := func() http.RoundTripper {
  			return xhttp.NewTransport(
  				func(ctx context.Context) (net.Conn, error) {
@@ -1292,7 +1306,7 @@ index e01da23d..08f2012c 100644
  				},
  				func(ctx context.Context, raw net.Conn, isH2 bool) (net.Conn, error) {
  					return v.streamTLSConn(ctx, raw, isH2)
-@@ -755,11 +782,7 @@ func NewVless(option VlessOption) (*Vless, error) {
+@@ -755,11 +788,7 @@ func NewVless(option VlessOption) (*Vless, error) {
  					if err != nil {
  						return nil, err
  					}
@@ -1305,7 +1319,7 @@ index e01da23d..08f2012c 100644
  				},
  				v.option.ALPN,
  				hKeepAlivePeriod,
-@@ -879,7 +902,7 @@ func NewVless(option VlessOption) (*Vless, error) {
+@@ -879,7 +908,7 @@ func NewVless(option VlessOption) (*Vless, error) {
  			makeDownloadTransport = func() http.RoundTripper {
  				return xhttp.NewTransport(
  					func(ctx context.Context) (net.Conn, error) {
@@ -1314,7 +1328,7 @@ index e01da23d..08f2012c 100644
  					},
  					func(ctx context.Context, conn net.Conn, isH2 bool) (net.Conn, error) {
  						if downloadTLS {
-@@ -946,11 +969,7 @@ func NewVless(option VlessOption) (*Vless, error) {
+@@ -946,11 +975,7 @@ func NewVless(option VlessOption) (*Vless, error) {
  						if err != nil {
  							return nil, err
  						}
@@ -1327,12 +1341,25 @@ index e01da23d..08f2012c 100644
  					},
  					downloadALPN,
  					downloadHKeepAlivePeriod,
+diff --git a/adapter/outbound/vless_xdrive.go b/adapter/outbound/vless_xdrive.go
+index 44e3a9f3..65de112e 100644
+--- a/adapter/outbound/vless_xdrive.go
++++ b/adapter/outbound/vless_xdrive.go
+@@ -79,7 +79,7 @@ func (c *xdriveTLSConn) NetConn() net.Conn {
+ var _ http.TLSConn = (*xdriveTLSConn)(nil)
+ 
+ func (v *Vless) newXDriveMuxConn(ctx context.Context) (conn net.Conn, err error) {
+-	raw, err := v.xdriveClient.Dial(ctx)
++	raw, err := v.dialContext(ctx) // ClashFest 0041: refuses a finalmask block
+ 	if err != nil {
+ 		return nil, err
+ 	}
 diff --git a/adapter/parser_finalmask_test.go b/adapter/parser_finalmask_test.go
 new file mode 100644
-index 00000000..85f47281
+index 00000000..7dbf075f
 --- /dev/null
 +++ b/adapter/parser_finalmask_test.go
-@@ -0,0 +1,120 @@
+@@ -0,0 +1,135 @@
 +package adapter
 +
 +import (
@@ -1353,6 +1380,7 @@ index 00000000..85f47281
 +	if err != nil {
 +		t.Fatalf("unusable finalmask failed the proxy: %v", err)
 +	}
++	t.Cleanup(func() { proxy.Close() })
 +	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 +	defer cancel()
 +	conn, err := proxy.DialContext(ctx, &C.Metadata{Host: "example.com", DstPort: 80})
@@ -1403,6 +1431,7 @@ index 00000000..85f47281
 +	if err != nil {
 +		t.Fatal(err)
 +	}
++	t.Cleanup(func() { proxy.Close() })
 +	if proxy.Type() != C.Vless {
 +		t.Fatalf("type %v", proxy.Type())
 +	}
@@ -1444,6 +1473,7 @@ index 00000000..85f47281
 +	if err != nil {
 +		t.Fatal(err)
 +	}
++	t.Cleanup(func() { proxy.Close() })
 +	if proxy.Type() != C.Trojan {
 +		t.Fatalf("type %v", proxy.Type())
 +	}
@@ -1452,6 +1482,18 @@ index 00000000..85f47281
 +		"name": "bad", "type": "trojan", "server": "127.0.0.1", "port": 443, "password": "secret",
 +		"finalmask": map[string]any{"udp": []any{map[string]any{"type": "sudoku"}}},
 +	}, "finalmask.udp")
++}
++
++// xdrive dials its storage service, which cannot take masks off: the node
++// loads and never goes out, with or without the masks.
++func TestParseVlessFinalMaskXDriveUnusable(t *testing.T) {
++	requireUnusableFinalMask(t, map[string]any{
++		"name": "xdrive", "type": "vless", "server": "127.0.0.1", "port": 443, "uuid": "27848739-7e62-4138-9fd3-098a63964b6b",
++		"network":     "xdrive",
++		"encryption":  "mlkem768x25519plus.native.0rtt.XKbaq1BuzJKKKPxZbwgRpn-gYQbnhrYketgezASCL1I",
++		"xdrive-opts": map[string]any{"service": "local", "remote-folder": t.TempDir()},
++		"finalmask":   map[string]any{"tcp": []any{map[string]any{"type": "fragment", "packets": "1-1", "length": "1-5"}}},
++	}, "finalmask")
 +}
 diff --git a/listener/config/trojan.go b/listener/config/trojan.go
 index e3a75bc9..68c21e5b 100644

@@ -880,7 +880,8 @@ same way against the same server (measured 2026-11-19). Split TCP segments inste
 Masks open their sockets through the proxy's dialer, so `protect()`, interface binding and
 `dialer-proxy` apply. `xicmp` opens ICMP sockets itself and is refused under `cmfa` (they would
 escape `VpnService.protect()` and loop into the tunnel). A block that cannot be used (bad option,
-unknown mask, UDP masks on another network, `xicmp`) does not fail the profile (in the spirit of
+unknown mask, UDP masks on another network, `xicmp`, any mask on `network: xdrive` (0003), whose
+connections go to a storage service and not through the masks) does not fail the profile (in the spirit of
 0040): the proxy loads, logs `[Proxy] <name>: unusable finalmask, the proxy will not connect`, and
 every dial fails, so it never goes out without its masks.
 
